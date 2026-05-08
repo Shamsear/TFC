@@ -2,14 +2,11 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/lib/prisma"
 import { compare } from "bcryptjs"
-import type { NextAuthConfig } from "next-auth"
+import { authConfig } from "@/lib/auth"
 
-export const authConfig: NextAuthConfig = {
-  // Remove PrismaAdapter - use JWT sessions only
-  session: { 
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
+// Extend the base config with Prisma-dependent providers
+const handler = NextAuth({
+  ...authConfig,
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -47,46 +44,8 @@ export const authConfig: NextAuthConfig = {
       }
     })
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-        token.role = user.role
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        if (token.id) {
-          session.user.id = token.id as string
-        }
-        if (token.role) {
-          session.user.role = token.role as any
-        }
-      }
-      return session
-    },
-    async redirect({ url, baseUrl }) {
-      // Get the user's session to check their role
-      // If signing in, redirect based on role
-      if (url === baseUrl || url === `${baseUrl}/`) {
-        // This will be handled by middleware
-        return baseUrl
-      }
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
-    }
-  },
-  pages: {
-    signIn: "/auth/signin",
-    error: "/auth/error"
-  }
-}
+})
 
-const { handlers } = NextAuth(authConfig)
-
-export const GET = handlers.GET
-export const POST = handlers.POST
+export const GET = handler.handlers.GET
+export const POST = handler.handlers.POST
+export { authConfig }

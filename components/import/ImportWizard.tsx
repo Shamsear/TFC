@@ -91,12 +91,12 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
       
       // Use gzip compression
       const encoder = new TextEncoder()
-      const data = encoder.encode(jsonString)
+      const encodedData = encoder.encode(jsonString)
       
       // Create a compressed stream
       const compressionStream = new CompressionStream('gzip')
       const writer = compressionStream.writable.getWriter()
-      writer.write(data)
+      writer.write(encodedData)
       writer.close()
       
       const compressedData = await new Response(compressionStream.readable).blob()
@@ -125,18 +125,18 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         throw new Error(errorData.error || 'Failed to preview')
       }
 
-      const data: PreviewResponse = await response.json()
-      setPreview(data)
+      const previewData: PreviewResponse = await response.json()
+      setPreview(previewData)
       
       // Auto-select all new and changed players
       const autoSelected = new Set<string>()
-      data.newPlayers.forEach(p => autoSelected.add(p.playerId))
-      data.changedPlayers.forEach(p => autoSelected.add(p.playerId))
+      previewData.newPlayers.forEach(p => autoSelected.add(p.playerId))
+      previewData.changedPlayers.forEach(p => autoSelected.add(p.playerId))
       setSelectedPlayers(autoSelected)
       
       // Initialize duplicate resolutions
       const resolutions: Record<string, 'skip' | 'replace' | 'add' | string> = {}
-      data.duplicates.forEach(d => {
+      previewData.duplicates.forEach(d => {
         if (d.duplicateType === 'file-vs-file' && d.allFileInstances) {
           // For file-vs-file, default to first instance
           resolutions[d.playerId] = d.allFileInstances[0].playerId

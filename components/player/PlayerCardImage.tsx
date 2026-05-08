@@ -2,15 +2,16 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
+import { getPlayerCardById } from '@/lib/image-cdn'
 
 interface PlayerCardImageProps {
   playerCardId: string
   playerName: string
-  fallbackUrl: string
+  fallbackUrl?: string
 }
 
 export default function PlayerCardImage({ playerCardId, playerName, fallbackUrl }: PlayerCardImageProps) {
-  const [imgSrc, setImgSrc] = useState(`/player_cards/${playerCardId}.png`)
+  const [imgSrc, setImgSrc] = useState(getPlayerCardById(playerCardId))
 
   return (
     <Image
@@ -20,7 +21,7 @@ export default function PlayerCardImage({ playerCardId, playerName, fallbackUrl 
       className="object-contain"
       priority
       onError={() => {
-        setImgSrc(fallbackUrl)
+        setImgSrc(fallbackUrl || '/default-player-card.png')
       }}
     />
   )

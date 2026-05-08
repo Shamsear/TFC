@@ -38,6 +38,14 @@ yarn-error.log*
 # Prisma
 prisma/migrations
 
+# Database files
+*.db
+efootball_latest.db
+
+# Player images (fetched from GitHub CDN)
+public/player_cards/
+public/player_photos/
+
 # Large files
 *.db
 temp_images_migration/

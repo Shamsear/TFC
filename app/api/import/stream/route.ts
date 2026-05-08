@@ -22,8 +22,16 @@ export async function POST(request: NextRequest) {
   const body: ImportRequest = await request.json();
   const { seasonId, mode, selectedPlayers, duplicateResolutions } = body;
 
+  console.log(`Import request: ${selectedPlayers?.length || 0} players for season ${seasonId}`);
+
   if (!seasonId || !mode || !selectedPlayers) {
+    console.error('Missing required fields:', { seasonId: !!seasonId, mode: !!mode, selectedPlayers: !!selectedPlayers });
     return new Response('Missing required fields', { status: 400 });
+  }
+
+  if (selectedPlayers.length === 0) {
+    console.error('No players selected');
+    return new Response('No players selected', { status: 400 });
   }
 
   // Verify season exists
@@ -39,28 +47,33 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      let imported = 0;
-      let updated = 0;
-      let skipped = 0;
-      const errors: Array<{ player: string; error: string }> = [];
-      const importedPlayers: string[] = [];
-      const updatedPlayers: string[] = [];
+      try {
+        let imported = 0;
+        let updated = 0;
+        let skipped = 0;
+        const errors: Array<{ player: string; error: string }> = [];
+        const importedPlayers: string[] = [];
+        const updatedPlayers: string[] = [];
 
-      // Send initial progress
-      controller.enqueue(
-        encoder.encode(
-          `data: ${JSON.stringify({
-            type: 'progress',
-            total: selectedPlayers.length,
-            processed: 0,
-            imported: 0,
-            updated: 0,
-            skipped: 0,
-            currentPlayer: null,
-            errors: []
-          })}\n\n`
-        )
-      );
+        console.log(`Starting import of ${selectedPlayers.length} players`);
+
+        // Send initial progress
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: 'progress',
+              total: selectedPlayers.length,
+              processed: 0,
+              imported: 0,
+              updated: 0,
+              skipped: 0,
+              currentPlayer: null,
+              errors: [],
+              importedPlayers: [],
+              updatedPlayers: []
+            })}\n\n`
+          )
+        );
 
       // Process each player
       for (let i = 0; i < selectedPlayers.length; i++) {
@@ -358,7 +371,20 @@ export async function POST(request: NextRequest) {
         )
       );
 
+      console.log(`Import complete: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
       controller.close();
+    } catch (error) {
+      console.error('Stream error:', error);
+      controller.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({
+            type: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          })}\n\n`
+        )
+      );
+      controller.close();
+    }
     }
   });
 

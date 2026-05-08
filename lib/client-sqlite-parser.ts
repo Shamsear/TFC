@@ -96,15 +96,26 @@ function mapPosition(efootballPosition: string): string {
  */
 export async function parseClientSQLiteDB(file: File): Promise<ParseResult> {
   try {
-    // Initialize SQL.js with local WASM file
+    console.log('Initializing SQL.js...');
+    
+    // Initialize SQL.js with explicit WASM loading
     const SQL = await initSqlJs({
-      locateFile: (filename) => `/${filename}`
+      locateFile: (filename) => {
+        // Return the full path to the WASM file
+        const path = filename.endsWith('.wasm') ? '/sql-wasm.wasm' : `/${filename}`;
+        console.log(`Loading WASM file: ${filename} from ${path}`);
+        return path;
+      }
     });
     
+    console.log('SQL.js initialized successfully');
+    
     // Read file as array buffer
+    console.log(`Reading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     
+    console.log('Opening database...');
     // Open database
     const db = new SQL.Database(uint8Array);
     
@@ -230,15 +241,19 @@ export async function parseClientSQLiteDB(file: File): Promise<ParseResult> {
       ORDER BY overall_rating DESC, player_name ASC
     `;
     
+    console.log('Executing query...');
     const results = db.exec(query);
     
     if (!results || results.length === 0) {
       db.close();
+      console.error('No results from query');
       return {
         success: false,
         error: 'No players found in database'
       };
     }
+    
+    console.log(`Query returned ${results[0].values.length} players`);
     
     const { columns, values } = results[0];
     

@@ -197,6 +197,8 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         }
       }
 
+      console.log(`Starting import of ${selected.length} players`)
+
       // Initialize progress
       setProgress({
         total: selected.length,
@@ -222,7 +224,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to start import')
+        const errorText = await response.text()
+        console.error('Import stream failed:', errorText)
+        throw new Error(`Failed to start import: ${response.status} ${errorText}`)
       }
 
       const reader = response.body?.getReader()
@@ -232,60 +236,78 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         throw new Error('No response body')
       }
 
+      let buffer = ''
+      
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) {
+          console.log('Stream completed')
+          break
+        }
 
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n')
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || ''
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.slice(6))
+            try {
+              const data = JSON.parse(line.slice(6))
 
-            if (data.type === 'progress') {
-              setProgress({
-                total: data.total,
-                processed: data.processed,
-                imported: data.imported,
-                updated: data.updated,
-                skipped: data.skipped,
-                errors: data.errors,
-                currentPlayer: data.currentPlayer,
-                importedPlayers: data.importedPlayers || [],
-                updatedPlayers: data.updatedPlayers || []
-              })
-            } else if (data.type === 'current') {
-              setProgress(prev => ({
-                ...prev,
-                currentPlayer: data.currentPlayer
-              }))
-            } else if (data.type === 'complete') {
-              setResult({
-                success: true,
-                imported: data.imported,
-                updated: data.updated,
-                skipped: data.skipped,
-                total: data.total,
-                errors: data.errors
-              })
-              setProgress({
-                total: data.total,
-                processed: data.total,
-                imported: data.imported,
-                updated: data.updated,
-                skipped: data.skipped,
-                errors: data.errors,
-                importedPlayers: data.importedPlayers || [],
-                updatedPlayers: data.updatedPlayers || []
-              })
-              setStep('complete')
+              if (data.type === 'progress') {
+                setProgress({
+                  total: data.total,
+                  processed: data.processed,
+                  imported: data.imported,
+                  updated: data.updated,
+                  skipped: data.skipped,
+                  errors: data.errors,
+                  currentPlayer: data.currentPlayer,
+                  importedPlayers: data.importedPlayers || [],
+                  updatedPlayers: data.updatedPlayers || []
+                })
+              } else if (data.type === 'current') {
+                setProgress(prev => ({
+                  ...prev,
+                  currentPlayer: data.currentPlayer
+                }))
+              } else if (data.type === 'complete') {
+                console.log('Import complete:', data)
+                setResult({
+                  success: true,
+                  imported: data.imported,
+                  updated: data.updated,
+                  skipped: data.skipped,
+                  total: data.total,
+                  errors: data.errors
+                })
+                setProgress({
+                  total: data.total,
+                  processed: data.total,
+                  imported: data.imported,
+                  updated: data.updated,
+                  skipped: data.skipped,
+                  errors: data.errors,
+                  importedPlayers: data.importedPlayers || [],
+                  updatedPlayers: data.updatedPlayers || []
+                })
+                setStep('complete')
+              } else if (data.type === 'error') {
+                console.error('Stream error:', data.error)
+                throw new Error(data.error)
+              }
+            } catch (parseError) {
+              console.error('Failed to parse SSE data:', line, parseError)
             }
           }
         }
       }
     } catch (err) {
+      console.error('Import error:', err)
       setError(err instanceof Error ? err.message : 'Failed to import players')
+      setStep('confirm') // Go back to confirm step on error
     } finally {
       setIsLoading(false)
     }

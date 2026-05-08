@@ -1,0 +1,504 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model base_players {
+  id                   String                  @id
+  name                 String
+  photoUrl             String
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime
+  retentions           retentions[]
+  seasonalPlayerStats  seasonal_player_stats[]
+  transferHistory      transfer_history[]
+}
+
+model financial_ledger {
+  id              String          @id
+  seasonTeamId    String
+  seasonId        String
+  transactionType TransactionType
+  amount          Int
+  previousBalance Int
+  newBalance      Int
+  description     String?
+  createdAt       DateTime        @default(now())
+  season          seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  seasonTeam      season_teams    @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
+}
+
+model retentions {
+  id                   String       @id
+  seasonId             String
+  basePlayerId         String
+  retainedFromSeasonId String
+  createdAt            DateTime     @default(now())
+  basePlayer           base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  season               seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, basePlayerId])
+}
+
+model season_teams {
+  id              String             @id
+  seasonId        String
+  teamId          String
+  currentBudget   Int
+  finalBudget     Int?
+  trophiesWon     Int                @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime
+  financialLedger financial_ledger[]
+  season          seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team            teams              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  homeMatches     matches[]          @relation("HomeTeam")
+  awayMatches     matches[]          @relation("AwayTeam")
+  standings       standings[]        @relation("StandingsTeam")
+  tournamentTeams tournament_teams[] @relation("TournamentTeams")
+
+  @@unique([seasonId, teamId])
+}
+
+model seasonal_player_stats {
+  id            String       @id
+  basePlayerId  String
+  seasonId      String
+  position      String
+  realWorldClub String
+  overallRating Int
+  star_rating   Int?         @map("star_rating")
+  
+  // Player Info
+  nationality           String?
+  playing_style         String?      @map("playing_style")
+  height                Int?
+  weight                Int?
+  age                   Int?
+  foot                  String?
+  featured              String?
+  weak_foot_usage       String?      @map("weak_foot_usage")
+  weak_foot_accuracy    String?      @map("weak_foot_accuracy")
+  form                  String?
+  injury_resistance     String?      @map("injury_resistance")
+  condition             String?
+  max_level             Int?         @map("max_level")
+  overall_at_max_level  Int?         @map("overall_at_max_level")
+  
+  // Offensive Stats
+  offensive_awareness Int?        @map("offensive_awareness")
+  ball_control        Int?        @map("ball_control")
+  dribbling           Int?
+  tight_possession    Int?        @map("tight_possession")
+  low_pass            Int?        @map("low_pass")
+  lofted_pass         Int?        @map("lofted_pass")
+  finishing           Int?
+  heading             Int?
+  set_piece_taking    Int?        @map("set_piece_taking")
+  curl                Int?
+  
+  // Physical Stats
+  speed             Int?
+  acceleration      Int?
+  kicking_power     Int?          @map("kicking_power")
+  jumping           Int?
+  physical_contact  Int?          @map("physical_contact")
+  balance           Int?
+  stamina           Int?
+  
+  // Defensive Stats
+  defensive_awareness  Int?       @map("defensive_awareness")
+  tackling             Int?
+  aggression           Int?
+  defensive_engagement Int?       @map("defensive_engagement")
+  
+  // Goalkeeper Stats
+  gk_awareness Int?               @map("gk_awareness")
+  gk_catching  Int?               @map("gk_catching")
+  gk_parrying  Int?               @map("gk_parrying")
+  gk_reflexes  Int?               @map("gk_reflexes")
+  gk_reach     Int?               @map("gk_reach")
+  
+  // Dribbling Skills
+  scissors_feint      String?     @map("scissors_feint")
+  double_touch        String?     @map("double_touch")
+  flip_flap           String?     @map("flip_flap")
+  marseille_turn      String?     @map("marseille_turn")
+  sombrero            String?
+  chop_turn           String?     @map("chop_turn")
+  cut_behind_turn     String?     @map("cut_behind_turn")
+  scotch_move         String?     @map("scotch_move")
+  sole_control        String?     @map("sole_control")
+  momentum_dribbling  String?     @map("momentum_dribbling")
+  acceleration_burst  String?     @map("acceleration_burst")
+  magnetic_feet       String?     @map("magnetic_feet")
+  
+  // Heading Skills
+  heading_skill       String?     @map("heading_skill")
+  bullet_header       String?     @map("bullet_header")
+  
+  // Shooting Skills
+  long_range_curler   String?     @map("long_range_curler")
+  blitz_curler        String?     @map("blitz_curler")
+  chip_shot_control   String?     @map("chip_shot_control")
+  knuckle_shot        String?     @map("knuckle_shot")
+  dipping_shot        String?     @map("dipping_shot")
+  rising_shot         String?     @map("rising_shot")
+  long_range_shooting String?     @map("long_range_shooting")
+  low_screamer        String?     @map("low_screamer")
+  acrobatic_finishing String?     @map("acrobatic_finishing")
+  heel_trick          String?     @map("heel_trick")
+  first_time_shot     String?     @map("first_time_shot")
+  phenomenal_finishing String?    @map("phenomenal_finishing")
+  willpower           String?
+  
+  // Passing Skills
+  one_touch_pass      String?     @map("one_touch_pass")
+  through_passing     String?     @map("through_passing")
+  weighted_pass       String?     @map("weighted_pass")
+  pinpoint_crossing   String?     @map("pinpoint_crossing")
+  edged_crossing      String?     @map("edged_crossing")
+  outside_curler      String?     @map("outside_curler")
+  rabona              String?
+  no_look_pass        String?     @map("no_look_pass")
+  game_changing_pass  String?     @map("game_changing_pass")
+  visionary_pass      String?     @map("visionary_pass")
+  phenomenal_pass     String?     @map("phenomenal_pass")
+  low_lofted_pass     String?     @map("low_lofted_pass")
+  
+  // Goalkeeper Skills
+  gk_low_punt         String?     @map("gk_low_punt")
+  gk_high_punt        String?     @map("gk_high_punt")
+  long_throw          String?     @map("long_throw")
+  gk_long_throw       String?     @map("gk_long_throw")
+  penalty_specialist  String?     @map("penalty_specialist")
+  gk_penalty_saver    String?     @map("gk_penalty_saver")
+  gk_directing_defence String?    @map("gk_directing_defence")
+  gk_spirit_roar      String?     @map("gk_spirit_roar")
+  
+  // Defensive Skills
+  gamesmanship        String?
+  man_marking         String?     @map("man_marking")
+  track_back          String?     @map("track_back")
+  interception        String?
+  blocker             String?
+  aerial_superiority  String?     @map("aerial_superiority")
+  sliding_tackle      String?     @map("sliding_tackle")
+  long_reach_tackle   String?     @map("long_reach_tackle")
+  fortress            String?
+  acrobatic_clearance String?     @map("acrobatic_clearance")
+  aerial_fort         String?     @map("aerial_fort")
+  
+  // Special Skills
+  captaincy           String?
+  attack_trigger      String?     @map("attack_trigger")
+  super_sub           String?     @map("super_sub")
+  fighting_spirit     String?     @map("fighting_spirit")
+  trickster           String?
+  mazing_run          String?     @map("mazing_run")
+  speeding_bullet     String?     @map("speeding_bullet")
+  incisive_run        String?     @map("incisive_run")
+  long_ball_expert    String?     @map("long_ball_expert")
+  early_cross         String?     @map("early_cross")
+  long_ranger         String?     @map("long_ranger")
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime
+  basePlayer    base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  season        seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([basePlayerId, seasonId])
+}
+
+model seasons {
+  id                   String                  @id
+  name                 String                  @unique
+  startingPurse        Int
+  isActive             Boolean                 @default(false)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime
+  financialLedger      financial_ledger[]
+  retentions           retentions[]
+  seasonTeams          season_teams[]
+  seasonalPlayerStats  seasonal_player_stats[]
+  transferHistory      transfer_history[]
+  auctionCalendar      auction_calendar[]
+  tournaments          tournaments[]
+}
+
+model teams {
+  id              String             @id
+  name            String             @unique
+  managerName     String
+  logoUrl         String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime
+  seasonTeams     season_teams[]
+  transferHistory transfer_history[]
+}
+
+model transfer_history {
+  id           String       @id
+  basePlayerId String
+  seasonId     String
+  teamId       String
+  soldPrice    Int
+  createdAt    DateTime     @default(now())
+  basePlayer   base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  season       seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team         teams        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model users {
+  id              String   @id
+  email           String   @unique
+  name            String?
+  role            UserRole @default(SUB_ADMIN)
+  passwordHash    String
+  createdBy       String?  @map("created_by")
+  isActive        Boolean  @default(true) @map("is_active")
+  assignedSeasons Json     @default("[]") @map("assigned_seasons")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  auditLogs       audit_logs[]
+}
+
+model audit_logs {
+  id          String   @id
+  userId      String   @map("user_id")
+  userEmail   String   @map("user_email")
+  userRole    String   @map("user_role")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  entityName  String?  @map("entity_name")
+  seasonId    String?  @map("season_id")
+  details     String?  // JSON string
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([seasonId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model auction_calendar {
+  id           String          @id
+  seasonId     String
+  auctionDate  DateTime
+  description  String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime
+  season       seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  auctionSlots auction_slots[]
+
+  @@unique([seasonId, auctionDate])
+}
+
+model auction_slots {
+  id                String           @id
+  auctionCalendarId String
+  position          String
+  slotOrder         Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime
+  auctionCalendar   auction_calendar @relation(fields: [auctionCalendarId], references: [id], onDelete: Cascade)
+
+  @@unique([auctionCalendarId, position])
+}
+
+model tournaments {
+  id              String           @id
+  seasonId        String
+  name            String
+  tournamentType  TournamentType
+  startDate       DateTime
+  endDate         DateTime?
+  status          TournamentStatus @default(UPCOMING)
+  description     String?
+  
+  // League Configuration
+  leagueLegs      Int?             @default(2) // 1 or 2 legs
+  playoffFormat   String?          // JSON: {top2: 'SEMI', top3to6: 'PLAYOFF', top4: 'SEMI', top8: 'QUARTER'}
+  
+  // Group Configuration
+  groupLegs       Int?             @default(1) // 1 or 2 legs
+  groupQualifiers Int?             @default(2) // Top 2 or Top 3 qualify
+  
+  // Knockout Configuration
+  knockoutConfig  String?          // JSON: Round-by-round config with legs and teams
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  season          seasons          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  tournamentTeams tournament_teams[]
+  matches         matches[]
+  groups          groups[]
+  standings       standings[]
+  knockoutRounds  knockout_rounds[]
+
+  @@unique([seasonId, name])
+}
+
+model tournament_teams {
+  id           String       @id
+  tournamentId String       @map("tournament_id")
+  teamId       String       @map("team_id")
+  groupName    String?      @map("group_name")
+  seedPosition Int?         @map("seed_position")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @default(now()) @map("updated_at")
+  tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  seasonTeam   season_teams @relation("TournamentTeams", fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+  @@index([tournamentId])
+  @@index([teamId])
+}
+
+model knockout_rounds {
+  id           String      @id
+  tournamentId String
+  roundName    String      // ROUND_OF_16, QUARTER_FINAL, SEMI_FINAL, FINAL
+  roundOrder   Int
+  legs         Int         @default(1) // 1 or 2 legs
+  status       RoundStatus @default(PENDING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime
+  tournament   tournaments @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  pairings     knockout_pairings[]
+
+  @@unique([tournamentId, roundName])
+}
+
+model knockout_pairings {
+  id             String          @id
+  knockoutRoundId String
+  team1Id        String?
+  team2Id        String?
+  winnerId       String?
+  leg1MatchId    String?
+  leg2MatchId    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime
+  knockoutRound  knockout_rounds @relation(fields: [knockoutRoundId], references: [id], onDelete: Cascade)
+}
+
+model groups {
+  id           String   @id
+  tournamentId String
+  name         String
+  groupOrder   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  tournament   tournaments @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches      matches[]
+
+  @@unique([tournamentId, name])
+}
+
+model matches {
+  id              String       @id
+  tournamentId    String
+  groupId         String?
+  homeTeamId      String
+  awayTeamId      String
+  matchDate       DateTime
+  venue           String?
+  round           String?
+  matchType       MatchType    @default(LEAGUE)
+  status          MatchStatus  @default(SCHEDULED)
+  homeScore       Int?
+  awayScore       Int?
+  homePenalty     Int?
+  awayPenalty     Int?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  tournament      tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  group           groups?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  homeTeam        season_teams @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam        season_teams @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+}
+
+model standings {
+  id           String       @id
+  tournamentId String
+  teamId       String
+  groupName    String?
+  played       Int          @default(0)
+  won          Int          @default(0)
+  drawn        Int          @default(0)
+  lost         Int          @default(0)
+  goalsFor     Int          @default(0)
+  goalsAgainst Int          @default(0)
+  goalDiff     Int          @default(0)
+  points       Int          @default(0)
+  position     Int?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime
+  tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  seasonTeam   season_teams @relation("StandingsTeam", fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId, groupName])
+}
+
+enum TransactionType {
+  INITIAL_PURSE
+  PLAYER_PURCHASE
+  PLAYER_SALE
+  ADJUSTMENT
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  SUB_ADMIN
+}
+
+enum TournamentType {
+  LEAGUE_ONLY
+  LEAGUE_PLAYOFF
+  GROUP_KNOCKOUT
+  KNOCKOUT_ONLY
+}
+
+enum TournamentStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MatchType {
+  LEAGUE
+  GROUP_STAGE
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  THIRD_PLACE
+  FINAL
+  PLAYOFF
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  POSTPONED
+  CANCELLED
+}
+
+enum RoundStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}

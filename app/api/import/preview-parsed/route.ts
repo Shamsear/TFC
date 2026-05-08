@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { EFootballPlayer } from '@/lib/sqlite-parser';
 import { PlayerChange, DuplicateInfo, PreviewResponse } from '../preview/route';
+import { gunzipSync } from 'zlib';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -25,8 +26,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse JSON body
-    const body = await request.json();
+    // Check if data is compressed
+    const contentEncoding = request.headers.get('content-encoding');
+    let body;
+
+    if (contentEncoding === 'gzip') {
+      // Decompress gzipped data
+      const buffer = Buffer.from(await request.arrayBuffer());
+      const decompressed = gunzipSync(buffer);
+      body = JSON.parse(decompressed.toString('utf-8'));
+    } else {
+      // Parse JSON body normally
+      body = await request.json();
+    }
+
     const { players: dbPlayers, seasonId, mode } = body as {
       players: EFootballPlayer[];
       seasonId: string;

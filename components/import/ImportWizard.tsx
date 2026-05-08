@@ -80,17 +80,36 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
 
       console.log(`Parsed ${parseResult.players.length} players from database`)
 
-      // Send parsed data to server
+      // Compress the data before sending
+      const jsonString = JSON.stringify({
+        players: parseResult.players,
+        seasonId,
+        mode
+      })
+      
+      console.log(`JSON size: ${(jsonString.length / 1024 / 1024).toFixed(2)} MB`)
+      
+      // Use gzip compression
+      const encoder = new TextEncoder()
+      const data = encoder.encode(jsonString)
+      
+      // Create a compressed stream
+      const compressionStream = new CompressionStream('gzip')
+      const writer = compressionStream.writable.getWriter()
+      writer.write(data)
+      writer.close()
+      
+      const compressedData = await new Response(compressionStream.readable).blob()
+      console.log(`Compressed size: ${(compressedData.size / 1024 / 1024).toFixed(2)} MB`)
+
+      // Send compressed data to server
       const response = await fetch('/api/import/preview-parsed', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Content-Encoding': 'gzip',
         },
-        body: JSON.stringify({
-          players: parseResult.players,
-          seasonId,
-          mode
-        })
+        body: compressedData
       })
 
       // Check content type before parsing

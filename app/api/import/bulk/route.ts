@@ -319,16 +319,14 @@ export async function POST(request: NextRequest) {
               type: 'complete',
               total: players.length,
               imported,
-              updated,
               skipped,
               errors,
-              importedPlayers,
-              updatedPlayers
+              importedPlayers
             })}\n\n`
           )
         );
 
-        console.log(`Bulk import complete: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
+        console.log(`Bulk import complete: ${imported} imported, ${skipped} skipped, ${errors.length} errors`);
         controller.close();
       } catch (error) {
         console.error('Stream error:', error);

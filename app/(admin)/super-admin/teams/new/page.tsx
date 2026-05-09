@@ -43,6 +43,7 @@ export default function CreateTeamPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
   const [credentials, setCredentials] = useState<{
     email: string
     password: string

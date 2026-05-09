@@ -4,8 +4,8 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
-import { generateTeamId, generateId } from "@/lib/id-generator"
-import { generatePassword, generateUniqueEmail } from "@/lib/password-generator"
+import { generateTeamId, generateUserId } from "@/lib/id-generator"
+import { generatePassword, generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator"
 import { hash } from "bcryptjs"
 
 /**
@@ -126,12 +126,12 @@ export async function POST(request: NextRequest) {
       return !!existing
     })
     
-    const password = generatePassword()
+    const password = generatePasswordFromTeamName(name.trim())
     const passwordHash = await hash(password, 10)
 
     // Generate IDs
     const teamId = await generateTeamId()
-    const userId = generateId("user")
+    const userId = await generateUserId()
 
     // Create team and user in a transaction
     const result = await prisma.$transaction(async (tx) => {

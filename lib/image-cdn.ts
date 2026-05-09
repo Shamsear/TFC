@@ -68,7 +68,7 @@ export function localToCdnUrl(localPath: string): string {
 /**
  * Convert a photoUrl from database to CDN URL
  * Handles both local paths and player IDs
- * @param photoUrl - Photo URL from database (e.g., "/player_photos/123.png" or "123")
+ * @param photoUrl - Photo URL from database (e.g., "/player_photos/123.png" or "123" or "123.webp")
  * @returns CDN URL
  */
 export function getPhotoUrlFromDb(photoUrl: string | null | undefined): string {
@@ -82,8 +82,8 @@ export function getPhotoUrlFromDb(photoUrl: string | null | undefined): string {
   // Extract filename or use as is
   const filename = photoUrl.split('/').pop() || photoUrl;
   
-  // If it doesn't have an extension, assume it's a player ID and add .png
-  const finalFilename = filename.includes('.') ? filename : `${filename}.png`;
+  // If it doesn't have an extension, assume it's a player ID and add .webp (default format)
+  const finalFilename = filename.includes('.') ? filename : `${filename}.webp`;
   
   return getPlayerPhotoUrl(finalFilename);
 }

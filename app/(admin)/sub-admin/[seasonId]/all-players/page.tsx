@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import AllPlayersClient from '@/components/players/AllPlayersClient'
+import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface AllPlayersPageProps {
   params: Promise<{
@@ -65,7 +66,7 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     return {
       id: player.id,
       name: player.name,
-      photoUrl: player.photoUrl,
+      photoUrl: getPhotoUrlFromDb(player.photoUrl),
       position: stats?.position || 'N/A',
       realWorldClub: stats?.realWorldClub || 'N/A',
       overallRating: stats?.overallRating || 0,

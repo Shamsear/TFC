@@ -84,6 +84,7 @@ export default function CreateTeamPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccess(false)
 
     if (!formData.name || !formData.managerName) {
       setError("Team name and manager name are required")
@@ -112,12 +113,14 @@ export default function CreateTeamPage() {
         throw new Error(data.error || "Failed to create team")
       }
 
-      // Show credentials modal
+      // Show credentials on page
       setCredentials({
         email: data.credentials.email,
         password: data.credentials.password,
         teamName: formData.name
       })
+      setSuccess(true)
+      setIsSubmitting(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create team")
       setIsSubmitting(false)

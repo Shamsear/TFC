@@ -21,6 +21,8 @@ export type AuditAction =
   | 'CREATE_SUB_ADMIN'
   | 'UPDATE_SUB_ADMIN'
   | 'DEACTIVATE_SUB_ADMIN'
+  | 'ACTIVATE_SEASON'
+  | 'DEACTIVATE_SEASON'
   | 'LOGIN'
   | 'LOGOUT'
 

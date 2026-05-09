@@ -32,176 +32,165 @@ export const ID_PREFIXES = {
 type IDPrefix = typeof ID_PREFIXES[keyof typeof ID_PREFIXES]
 
 /**
- * Generate a new ID with the given prefix
+ * Generate a new ID with the given prefix using atomic counter
  * @param prefix - The prefix for the ID (e.g., 'TFCP' for players)
- * @param tableName - The Prisma model name (e.g., 'base_players')
  * @returns A new unique ID (e.g., 'TFCP-1', 'TFCP-2', etc.)
  */
-export async function generateId(prefix: IDPrefix, tableName: string): Promise<string> {
-  // Get the last ID with this prefix
-  const lastRecord = await (prisma as any)[tableName].findFirst({
-    where: {
-      id: {
-        startsWith: prefix
-      }
-    },
-    orderBy: {
-      id: 'desc'
-    },
-    select: {
-      id: true
-    }
-  })
+export async function generateId(prefix: IDPrefix): Promise<string> {
+  // Use PostgreSQL's UPDATE ... RETURNING for atomic increment
+  // This ensures thread-safety even with concurrent requests
+  const result = await prisma.$queryRaw<Array<{ counter: number }>>`
+    INSERT INTO id_counters (prefix, counter, updated_at)
+    VALUES (${prefix}, 1, NOW())
+    ON CONFLICT (prefix) 
+    DO UPDATE SET 
+      counter = id_counters.counter + 1,
+      updated_at = NOW()
+    RETURNING counter
+  `
 
-  if (!lastRecord) {
-    return `${prefix}-1`
-  }
-
-  // Extract the number from the last ID
-  const lastNumber = parseInt(lastRecord.id.split('-')[1] || '0', 10)
-  const nextNumber = lastNumber + 1
-
-  return `${prefix}-${nextNumber}`
+  const counter = result[0]?.counter || 1
+  return `${prefix}-${counter}`
 }
 
 /**
  * Generate a player ID
  */
 export async function generatePlayerId(): Promise<string> {
-  return generateId(ID_PREFIXES.PLAYER, 'base_players')
+  return generateId(ID_PREFIXES.PLAYER)
 }
 
 /**
  * Generate a season ID
  */
 export async function generateSeasonId(): Promise<string> {
-  return generateId(ID_PREFIXES.SEASON, 'seasons')
+  return generateId(ID_PREFIXES.SEASON)
 }
 
 /**
  * Generate a user ID
  */
 export async function generateUserId(): Promise<string> {
-  return generateId(ID_PREFIXES.USER, 'users')
+  return generateId(ID_PREFIXES.USER)
 }
 
 /**
  * Generate a tournament ID
  */
 export async function generateTournamentId(): Promise<string> {
-  return generateId(ID_PREFIXES.TOURNAMENT, 'tournaments')
+  return generateId(ID_PREFIXES.TOURNAMENT)
 }
 
 /**
  * Generate a team ID
  */
 export async function generateTeamId(): Promise<string> {
-  return generateId(ID_PREFIXES.TEAM, 'teams')
+  return generateId(ID_PREFIXES.TEAM)
 }
 
 /**
  * Generate a fixture ID
  */
 export async function generateFixtureId(): Promise<string> {
-  return generateId(ID_PREFIXES.FIXTURE, 'fixtures')
+  return generateId(ID_PREFIXES.FIXTURE)
 }
 
 /**
  * Generate a match ID
  */
 export async function generateMatchId(): Promise<string> {
-  return generateId(ID_PREFIXES.MATCH, 'fixture_matches')
+  return generateId(ID_PREFIXES.MATCH)
 }
 
 /**
  * Generate a transfer ID
  */
 export async function generateTransferId(): Promise<string> {
-  return generateId(ID_PREFIXES.TRANSFER, 'transfer_history')
+  return generateId(ID_PREFIXES.TRANSFER)
 }
 
 /**
  * Generate an auction ID
  */
 export async function generateAuctionId(): Promise<string> {
-  return generateId(ID_PREFIXES.AUCTION, 'auction_calendar')
+  return generateId(ID_PREFIXES.AUCTION)
 }
 
 /**
  * Generate an auction slot ID
  */
 export async function generateAuctionSlotId(): Promise<string> {
-  return generateId(ID_PREFIXES.AUCTION_SLOT, 'auction_slots')
+  return generateId(ID_PREFIXES.AUCTION_SLOT)
 }
 
 /**
  * Generate a retention ID
  */
 export async function generateRetentionId(): Promise<string> {
-  return generateId(ID_PREFIXES.RETENTION, 'retentions')
+  return generateId(ID_PREFIXES.RETENTION)
 }
 
 /**
  * Generate a season team ID
  */
 export async function generateSeasonTeamId(): Promise<string> {
-  return generateId(ID_PREFIXES.SEASON_TEAM, 'season_teams')
+  return generateId(ID_PREFIXES.SEASON_TEAM)
 }
 
 /**
  * Generate a player stats ID
  */
 export async function generatePlayerStatsId(): Promise<string> {
-  return generateId(ID_PREFIXES.PLAYER_STATS, 'seasonal_player_stats')
+  return generateId(ID_PREFIXES.PLAYER_STATS)
 }
 
 /**
  * Generate a financial ledger ID
  */
 export async function generateFinancialId(): Promise<string> {
-  return generateId(ID_PREFIXES.FINANCIAL, 'financial_ledger')
+  return generateId(ID_PREFIXES.FINANCIAL)
 }
 
 /**
  * Generate an audit log ID
  */
 export async function generateAuditId(): Promise<string> {
-  return generateId(ID_PREFIXES.AUDIT, 'audit_logs')
+  return generateId(ID_PREFIXES.AUDIT)
 }
 
 /**
  * Generate a tournament team ID
  */
 export async function generateTournamentTeamId(): Promise<string> {
-  return generateId(ID_PREFIXES.TOURNAMENT_TEAM, 'tournament_teams')
+  return generateId(ID_PREFIXES.TOURNAMENT_TEAM)
 }
 
 /**
  * Generate a knockout round ID
  */
 export async function generateKnockoutRoundId(): Promise<string> {
-  return generateId(ID_PREFIXES.KNOCKOUT_ROUND, 'knockout_rounds')
+  return generateId(ID_PREFIXES.KNOCKOUT_ROUND)
 }
 
 /**
  * Generate a knockout pairing ID
  */
 export async function generateKnockoutPairingId(): Promise<string> {
-  return generateId(ID_PREFIXES.KNOCKOUT_PAIRING, 'knockout_pairings')
+  return generateId(ID_PREFIXES.KNOCKOUT_PAIRING)
 }
 
 /**
  * Generate a group ID
  */
 export async function generateGroupId(): Promise<string> {
-  return generateId(ID_PREFIXES.GROUP, 'groups')
+  return generateId(ID_PREFIXES.GROUP)
 }
 
 /**
  * Generate a standing ID
  */
 export async function generateStandingId(): Promise<string> {
-  return generateId(ID_PREFIXES.STANDING, 'standings')
+  return generateId(ID_PREFIXES.STANDING)
 }
 
 /**

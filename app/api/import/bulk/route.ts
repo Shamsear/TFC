@@ -127,16 +127,6 @@ export async function POST(request: NextRequest) {
               }
             });
 
-            // Check if seasonal stats exist
-            const existingStats = await prisma.seasonal_player_stats.findUnique({
-              where: {
-                basePlayerId_seasonId: {
-                  basePlayerId: basePlayer.id,
-                  seasonId: seasonId
-                }
-              }
-            });
-
             const statsData = {
               position: player.position,
               realWorldClub: player.teamName,

@@ -35,11 +35,17 @@ const handler = NextAuth({
           return null
         }
 
+        // Check if user is active
+        if (!user.isActive) {
+          return null
+        }
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role
+          role: user.role,
+          teamId: user.teamId
         }
       }
     })

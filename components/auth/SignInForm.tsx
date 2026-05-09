@@ -91,7 +91,20 @@ export function SignInForm() {
       if (result?.error) {
         setError("Invalid email/username or password");
       } else if (result?.ok) {
-        router.push(callbackUrl);
+        // Fetch session to get user role
+        const response = await fetch('/api/auth/session');
+        const session = await response.json();
+        
+        // Redirect based on role
+        if (session?.user?.role === 'SUPER_ADMIN') {
+          router.push('/super-admin');
+        } else if (session?.user?.role === 'SUB_ADMIN') {
+          router.push('/sub-admin');
+        } else if (session?.user?.role === 'TEAM_MANAGER') {
+          router.push('/team');
+        } else {
+          router.push(callbackUrl);
+        }
         router.refresh();
       }
     } catch (err) {

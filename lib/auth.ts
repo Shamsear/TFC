@@ -13,6 +13,7 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         token.id = user.id
         token.role = user.role
+        token.teamId = user.teamId
       }
       return token
     },
@@ -23,6 +24,9 @@ export const authConfig: NextAuthConfig = {
         }
         if (token.role) {
           session.user.role = token.role as any
+        }
+        if (token.teamId) {
+          session.user.teamId = token.teamId as string
         }
       }
       return session
@@ -40,16 +44,20 @@ export const authConfig: NextAuthConfig = {
       }
 
       // Protect admin routes
-      if (pathname.startsWith("/super-admin") || pathname.startsWith("/sub-admin")) {
+      if (pathname.startsWith("/super-admin")) {
         if (!isLoggedIn) return false
-        
-        if (pathname.startsWith("/super-admin") && userRole !== "SUPER_ADMIN") {
-          return false
-        }
-        
-        if (pathname.startsWith("/sub-admin") && userRole !== "SUB_ADMIN") {
-          return false
-        }
+        if (userRole !== "SUPER_ADMIN") return false
+      }
+      
+      if (pathname.startsWith("/sub-admin")) {
+        if (!isLoggedIn) return false
+        if (userRole !== "SUB_ADMIN" && userRole !== "SUPER_ADMIN") return false
+      }
+
+      // Protect team routes
+      if (pathname.startsWith("/team")) {
+        if (!isLoggedIn) return false
+        if (userRole !== "TEAM_MANAGER") return false
       }
 
       return true

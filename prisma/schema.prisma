@@ -242,6 +242,7 @@ model teams {
   updatedAt       DateTime
   seasonTeams     season_teams[]
   transferHistory transfer_history[]
+  teamManagers    users[]            @relation("TeamManager")
 }
 
 model transfer_history {
@@ -262,11 +263,13 @@ model users {
   name            String?
   role            UserRole @default(SUB_ADMIN)
   passwordHash    String
+  teamId          String?  @map("team_id")
   createdBy       String?  @map("created_by")
   isActive        Boolean  @default(true) @map("is_active")
   assignedSeasons Json     @default("[]") @map("assigned_seasons")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  team            teams?   @relation("TeamManager", fields: [teamId], references: [id], onDelete: SetNull)
   auditLogs       audit_logs[]
 }
 
@@ -463,6 +466,7 @@ enum TransactionType {
 enum UserRole {
   SUPER_ADMIN
   SUB_ADMIN
+  TEAM_MANAGER
 }
 
 enum TournamentType {

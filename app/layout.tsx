@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import Header from "@/components/layout/Header";
 
 export const metadata: Metadata = {
@@ -30,8 +31,10 @@ export default function RootLayout({
       <body className="antialiased">
         <ErrorBoundary>
           <SessionProvider>
-            <Header />
-            {children}
+            <ToastProvider>
+              <Header />
+              {children}
+            </ToastProvider>
           </SessionProvider>
         </ErrorBoundary>
       </body>

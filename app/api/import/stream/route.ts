@@ -174,7 +174,35 @@ export async function POST(request: NextRequest) {
               importedPlayers.push(player.playerName);
             }
           } else {
-            // IMPORT MODE: Always create new player with unique ID
+            // IMPORT MODE: Check if player with this player_id already exists
+            basePlayer = await prisma.base_players.findUnique({
+              where: { player_id: player.playerId }
+            });
+
+            if (basePlayer) {
+              // Player already exists, skip it
+              console.log(`Skipping existing player: ${player.playerName} (player_id: ${player.playerId})`);
+              skipped++;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'progress',
+                    total: selectedPlayers.length,
+                    processed: i + 1,
+                    imported,
+                    updated,
+                    skipped,
+                    currentPlayer: `${player.playerName} (skipped - already exists)`,
+                    errors,
+                    importedPlayers,
+                    updatedPlayers
+                  })}\n\n`
+                )
+              );
+              continue; // Skip to next player
+            }
+
+            // Create new player
             const newPlayerId = await generatePlayerId();
             basePlayer = await prisma.base_players.create({
               data: {

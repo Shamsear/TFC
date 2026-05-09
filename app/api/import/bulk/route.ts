@@ -69,6 +69,20 @@ export async function POST(request: NextRequest) {
 
         console.log(`Starting bulk import of ${players.length} players (${batchLabel})`);
 
+        // OPTIMIZATION: Pre-fetch all existing player_ids in one query
+        const existingPlayerIds = new Set(
+          (await prisma.base_players.findMany({
+            where: {
+              player_id: {
+                in: players.map(p => p.playerId).filter(Boolean)
+              }
+            },
+            select: { player_id: true }
+          })).map(p => p.player_id)
+        );
+
+        console.log(`Found ${existingPlayerIds.size} existing players out of ${players.length}`);
+
         // Send initial progress
         controller.enqueue(
           encoder.encode(
@@ -85,84 +99,49 @@ export async function POST(request: NextRequest) {
           )
         );
 
-        // Process each player
+        // Prepare batch data for bulk insert
+        const playersToCreate: any[] = [];
+        const statsToCreate: any[] = [];
+        const skippedPlayers: string[] = [];
+
+        // Process each player and prepare data
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
 
           try {
-            console.log(`Processing player ${i + 1}/${players.length}: ${player.playerName}`);
-            
-            // Send current player update
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: 'current',
-                  currentPlayer: player.playerName
-                })}\n\n`
-              )
-            );
-
-            // Find or create base player
-            // Check if player with this player_id already exists
-            let basePlayer = await prisma.base_players.findUnique({
-              where: { player_id: player.playerId }
-            });
-
-            if (basePlayer) {
-              // Player already exists, skip it
+            // Check if player already exists (using pre-fetched set)
+            if (existingPlayerIds.has(player.playerId)) {
               console.log(`Skipping existing player: ${player.playerName} (player_id: ${player.playerId})`);
               skipped++;
-              
-              // Send progress update
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: 'progress',
-                    total: players.length,
-                    processed: i + 1,
-                    imported,
-                    skipped,
-                    currentPlayer: `${player.playerName} (skipped - already exists)`,
-                    errors,
-                    importedPlayers: importedPlayers.slice(-10)
-                  })}\n\n`
-                )
-              );
-              continue; // Skip to next player
+              skippedPlayers.push(player.playerName);
+              continue;
             }
 
-            // Create new base player
+            // Generate IDs for this player
             const newPlayerId = await generatePlayerId();
-            basePlayer = await prisma.base_players.create({
-              data: {
-                id: newPlayerId,
-                player_id: player.playerId,
-                name: player.playerName,
-                photoUrl: `/players/${player.playerId}.webp`,
-                updatedAt: new Date()
-              }
-            });
-            imported++;
-            importedPlayers.push(player.playerName);
+            const statsId = await generatePlayerStatsId();
 
-            // Check if seasonal stats exist
-            const existingStats = await prisma.seasonal_player_stats.findUnique({
-              where: {
-                basePlayerId_seasonId: {
-                  basePlayerId: basePlayer.id,
-                  seasonId: seasonId
-                }
-              }
+            // Prepare base player data
+            playersToCreate.push({
+              id: newPlayerId,
+              player_id: player.playerId,
+              name: player.playerName,
+              photoUrl: `/players/${player.playerId}.webp`,
+              createdAt: new Date(),
+              updatedAt: new Date()
             });
 
-            const statsData = {
+            // Prepare stats data
+            statsToCreate.push({
+              id: statsId,
+              basePlayerId: newPlayerId,
+              seasonId: seasonId,
               position: player.position,
               realWorldClub: player.teamName,
               overallRating: player.overallRating,
               star_rating: player.starRating || null,
               nationality: player.nationality || null,
               playing_style: player.playingStyle || null,
-              // Player Info
               height: player.height || null,
               weight: player.weight || null,
               age: player.age || null,
@@ -175,7 +154,6 @@ export async function POST(request: NextRequest) {
               condition: player.condition || null,
               max_level: player.maxLevel || null,
               overall_at_max_level: player.overallAtMaxLevel || null,
-              // Offensive Stats
               offensive_awareness: player.offensiveAwareness || null,
               ball_control: player.ballControl || null,
               dribbling: player.dribbling || null,
@@ -186,7 +164,6 @@ export async function POST(request: NextRequest) {
               heading: player.heading || null,
               set_piece_taking: player.setPieceTaking || null,
               curl: player.curl || null,
-              // Physical Stats
               speed: player.speed || null,
               acceleration: player.acceleration || null,
               kicking_power: player.kickingPower || null,
@@ -194,18 +171,15 @@ export async function POST(request: NextRequest) {
               physical_contact: player.physicalContact || null,
               balance: player.balance || null,
               stamina: player.stamina || null,
-              // Defensive Stats
               defensive_awareness: player.defensiveAwareness || null,
               tackling: player.tackling || null,
               aggression: player.aggression || null,
               defensive_engagement: player.defensiveEngagement || null,
-              // Goalkeeper Stats
               gk_awareness: player.gkAwareness || null,
               gk_catching: player.gkCatching || null,
               gk_parrying: player.gkParrying || null,
               gk_reflexes: player.gkReflexes || null,
               gk_reach: player.gkReach || null,
-              // Dribbling Skills
               scissors_feint: player.scissorsFeint || null,
               double_touch: player.doubleTouch || null,
               flip_flap: player.flipFlap || null,
@@ -218,10 +192,8 @@ export async function POST(request: NextRequest) {
               momentum_dribbling: player.momentumDribbling || null,
               acceleration_burst: player.accelerationBurst || null,
               magnetic_feet: player.magneticFeet || null,
-              // Heading Skills
               heading_skill: player.headingSkill || null,
               bullet_header: player.bulletHeader || null,
-              // Shooting Skills
               long_range_curler: player.longRangeCurler || null,
               blitz_curler: player.blitzCurler || null,
               chip_shot_control: player.chipShotControl || null,
@@ -235,7 +207,6 @@ export async function POST(request: NextRequest) {
               first_time_shot: player.firstTimeShot || null,
               phenomenal_finishing: player.phenomenalFinishing || null,
               willpower: player.willpower || null,
-              // Passing Skills
               one_touch_pass: player.oneTouchPass || null,
               through_passing: player.throughPassing || null,
               weighted_pass: player.weightedPass || null,
@@ -248,7 +219,6 @@ export async function POST(request: NextRequest) {
               visionary_pass: player.visionaryPass || null,
               phenomenal_pass: player.phenomenalPass || null,
               low_lofted_pass: player.lowLoftedPass || null,
-              // Goalkeeper Skills
               gk_low_punt: player.gkLowPunt || null,
               gk_high_punt: player.gkHighPunt || null,
               long_throw: player.longThrow || null,
@@ -257,7 +227,6 @@ export async function POST(request: NextRequest) {
               gk_penalty_saver: player.gkPenaltySaver || null,
               gk_directing_defence: player.gkDirectingDefence || null,
               gk_spirit_roar: player.gkSpiritRoar || null,
-              // Defensive Skills
               gamesmanship: player.gamesmanship || null,
               man_marking: player.manMarking || null,
               track_back: player.trackBack || null,
@@ -269,7 +238,6 @@ export async function POST(request: NextRequest) {
               fortress: player.fortress || null,
               acrobatic_clearance: player.acrobaticClearance || null,
               aerial_fort: player.aerialFort || null,
-              // Special Skills
               captaincy: player.captaincy || null,
               attack_trigger: player.attackTrigger || null,
               super_sub: player.superSub || null,
@@ -281,55 +249,72 @@ export async function POST(request: NextRequest) {
               long_ball_expert: player.longBallExpert || null,
               early_cross: player.earlyCross || null,
               long_ranger: player.longRanger || null,
+              createdAt: new Date(),
               updatedAt: new Date()
-            };
+            });
 
-            if (existingStats) {
-              // This shouldn't happen since we always create new base players
-              // But handle it just in case - update the stats
-              await prisma.seasonal_player_stats.update({
-                where: { id: existingStats.id },
-                data: statsData
-              });
-            } else {
-              // Create new seasonal stats for this player
-              const statsId = await generatePlayerStatsId();
-              await prisma.seasonal_player_stats.create({
-                data: {
-                  id: statsId,
-                  basePlayerId: basePlayer.id,
-                  seasonId: seasonId,
-                  ...statsData
-                }
-              });
+            imported++;
+            importedPlayers.push(player.playerName);
+
+            // Send progress update every 10 players
+            if (i % 10 === 0 || i === players.length - 1) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'progress',
+                    total: players.length,
+                    processed: i + 1,
+                    imported,
+                    skipped,
+                    currentPlayer: player.playerName,
+                    errors,
+                    importedPlayers: importedPlayers.slice(-10)
+                  })}\n\n`
+                )
+              );
             }
           } catch (error) {
-            console.error(`Error processing player ${player.playerName}:`, error);
+            console.error(`Error preparing player ${player.playerName}:`, error);
             errors.push({
               player: player.playerName,
               error: error instanceof Error ? error.message : 'Unknown error'
             });
           }
+        }
 
-          // Send progress update (only send last 10 player names to reduce payload)
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: 'progress',
-                total: players.length,
-                processed: i + 1,
-                imported,
-                skipped,
-                currentPlayer: player.playerName,
-                errors,
-                importedPlayers: importedPlayers.slice(-10)
-              })}\n\n`
-            )
-          );
+        // BULK INSERT: Insert all players and stats in batches
+        if (playersToCreate.length > 0) {
+          console.log(`Bulk inserting ${playersToCreate.length} players...`);
+          
+          try {
+            // Insert players in chunks of 500 to avoid query size limits
+            const CHUNK_SIZE = 500;
+            for (let i = 0; i < playersToCreate.length; i += CHUNK_SIZE) {
+              const chunk = playersToCreate.slice(i, i + CHUNK_SIZE);
+              await prisma.base_players.createMany({
+                data: chunk,
+                skipDuplicates: true // Skip any duplicates that might occur
+              });
+              console.log(`Inserted players chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(playersToCreate.length / CHUNK_SIZE)}`);
+            }
 
-          // Small delay to prevent overwhelming the database (reduced for batched processing)
-          if (i < players.length - 1 && i % 10 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 5));
+            // Insert stats in chunks of 500
+            for (let i = 0; i < statsToCreate.length; i += CHUNK_SIZE) {
+              const chunk = statsToCreate.slice(i, i + CHUNK_SIZE);
+              await prisma.seasonal_player_stats.createMany({
+                data: chunk,
+                skipDuplicates: true
+              });
+              console.log(`Inserted stats chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(statsToCreate.length / CHUNK_SIZE)}`);
+            }
+
+            console.log(`Bulk insert complete: ${playersToCreate.length} players and stats created`);
+          } catch (bulkError) {
+            console.error('Bulk insert error:', bulkError);
+            errors.push({
+              player: 'Bulk Insert',
+              error: bulkError instanceof Error ? bulkError.message : 'Failed to bulk insert'
+            });
           }
         }
 

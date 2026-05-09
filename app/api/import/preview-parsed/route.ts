@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
     const unchangedPlayers: EFootballPlayer[] = [];
 
     // First, detect duplicates WITHIN the uploaded file
+    // NOTE: We no longer treat file-vs-file as duplicates - user can select all
+    // Only flag file-vs-db duplicates (players already in database with same player_id)
     const filePlayersByNamePos = new Map<string, EFootballPlayer[]>();
     for (const player of dbPlayers) {
       const key = `${player.playerName.toLowerCase()}|${player.position}`;
@@ -92,120 +94,40 @@ export async function POST(request: NextRequest) {
       filePlayersByNamePos.get(key)!.push(player);
     }
 
-    // Mark duplicates within file
+    // No longer mark file-vs-file as duplicates - all can be selected
     const duplicatePlayerIds = new Set<string>();
     const processedFileDuplicates = new Set<string>();
-    
-    for (const [key, players] of filePlayersByNamePos.entries()) {
-      if (players.length > 1 && !processedFileDuplicates.has(key)) {
-        processedFileDuplicates.add(key);
-        
-        players.forEach(p => duplicatePlayerIds.add(p.playerId));
-        
-        const nationalities = new Set(players.map(p => p.nationality?.toLowerCase()));
-        const isSamePlayer = nationalities.size === 1 || 
-                            (nationalities.size === 2 && (nationalities.has('') || nationalities.has(null as any)));
-        
-        const representative = players[0];
-        duplicates.push({
-          playerId: representative.playerId,
-          playerName: representative.playerName,
-          position: representative.position,
-          existingCount: players.length - 1,
-          existingPlayers: [],
-          reason: isSamePlayer 
-            ? `Found ${players.length} entries for this player (same name, position, and nationality)`
-            : `Found ${players.length} players with same name and position (different nationalities - may be different people)`,
-          duplicateType: 'file-vs-file',
-          allFileInstances: players
-        });
-      }
-    }
 
     // Analyze each player from database
     for (const dbPlayer of dbPlayers) {
-      const existing = existingByName.get(dbPlayer.playerName.toLowerCase());
+      // Check if player already exists in database by player_id
+      const existingByPlayerId = await prisma.base_players.findUnique({
+        where: { player_id: dbPlayer.playerId }
+      });
 
-      // Skip if this is a duplicate instance (not the representative)
-      if (duplicatePlayerIds.has(dbPlayer.playerId)) {
-        const key = `${dbPlayer.playerName.toLowerCase()}|${dbPlayer.position}`;
-        const group = filePlayersByNamePos.get(key);
-        if (group && group[0].playerId !== dbPlayer.playerId) {
-          continue;
-        }
+      if (existingByPlayerId) {
+        // Player with this player_id already exists in database - flag as duplicate
+        duplicatePlayerIds.add(dbPlayer.playerId);
+        duplicates.push({
+          playerId: dbPlayer.playerId,
+          playerName: dbPlayer.playerName,
+          position: dbPlayer.position,
+          existingCount: 1,
+          existingPlayers: [{
+            id: existingByPlayerId.id,
+            name: existingByPlayerId.name,
+            team: 'Existing',
+            rating: 0,
+            position: dbPlayer.position
+          }],
+          reason: `Player already exists in database (player_id: ${dbPlayer.playerId})`,
+          duplicateType: 'file-vs-db'
+        });
+        continue; // Skip this player from new/changed/unchanged lists
       }
 
-      if (!existing) {
-        if (!duplicatePlayerIds.has(dbPlayer.playerId)) {
-          newPlayers.push(dbPlayer);
-        }
-        
-        if (!duplicatePlayerIds.has(dbPlayer.playerId)) {
-          const matchingExisting = existingPlayers.filter(p => {
-            const nameMatch = p.name.toLowerCase() === dbPlayer.playerName.toLowerCase();
-            const stats = p.seasonalPlayerStats[0];
-            const posMatch = stats && stats.position === dbPlayer.position;
-            return nameMatch && posMatch;
-          });
-
-          if (matchingExisting.length > 0) {
-            duplicatePlayerIds.add(dbPlayer.playerId);
-            duplicates.push({
-              playerId: dbPlayer.playerId,
-              playerName: dbPlayer.playerName,
-              position: dbPlayer.position,
-              existingCount: matchingExisting.length,
-              existingPlayers: matchingExisting.map(p => ({
-                id: p.id,
-                name: p.name,
-                team: p.seasonalPlayerStats[0]?.realWorldClub || 'Unknown',
-                rating: p.seasonalPlayerStats[0]?.overallRating || 0,
-                position: p.seasonalPlayerStats[0]?.position || 'N/A'
-              })),
-              reason: `Player already exists in database with same name and position`,
-              duplicateType: 'file-vs-db'
-            });
-          }
-        }
-      } else {
-        const existingStats = existing.seasonalPlayerStats[0];
-
-        if (!existingStats) {
-          if (!duplicatePlayerIds.has(dbPlayer.playerId)) {
-            newPlayers.push(dbPlayer);
-          }
-        } else {
-          const changedFields: string[] = [];
-
-          if (existingStats.position !== dbPlayer.position) changedFields.push('position');
-          if (existingStats.realWorldClub !== dbPlayer.teamName) changedFields.push('teamName');
-          if (existingStats.overallRating !== dbPlayer.overallRating) changedFields.push('overallRating');
-          if (existingStats.nationality !== dbPlayer.nationality) changedFields.push('nationality');
-          if (existingStats.playing_style !== dbPlayer.playingStyle) changedFields.push('playingStyle');
-          
-          if (existingStats.offensive_awareness !== dbPlayer.offensiveAwareness) changedFields.push('offensiveAwareness');
-          if (existingStats.ball_control !== dbPlayer.ballControl) changedFields.push('ballControl');
-          if (existingStats.dribbling !== dbPlayer.dribbling) changedFields.push('dribbling');
-          if (existingStats.speed !== dbPlayer.speed) changedFields.push('speed');
-          if (existingStats.acceleration !== dbPlayer.acceleration) changedFields.push('acceleration');
-          if (existingStats.finishing !== dbPlayer.finishing) changedFields.push('finishing');
-          if (existingStats.low_pass !== dbPlayer.lowPass) changedFields.push('lowPass');
-          if (existingStats.defensive_awareness !== dbPlayer.defensiveAwareness) changedFields.push('defensiveAwareness');
-          if (existingStats.tackling !== dbPlayer.tackling) changedFields.push('tackling');
-
-          if (changedFields.length > 0) {
-            changedPlayers.push({
-              playerId: dbPlayer.playerId,
-              playerName: dbPlayer.playerName,
-              oldStats: existingStats,
-              newStats: dbPlayer,
-              changedFields
-            });
-          } else {
-            unchangedPlayers.push(dbPlayer);
-          }
-        }
-      }
+      // Player doesn't exist in database - add to new players
+      newPlayers.push(dbPlayer);
     }
 
     const totalRawPlayers = dbPlayers.length;

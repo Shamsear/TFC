@@ -11,6 +11,7 @@ datasource db {
 
 model base_players {
   id                   String                  @id
+  player_id            String?                 @unique @map("player_id")
   name                 String
   photoUrl             String
   createdAt            DateTime                @default(now())

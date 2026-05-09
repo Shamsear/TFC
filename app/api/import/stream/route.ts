@@ -50,11 +50,13 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       try {
         let imported = 0;
+        let updated = 0;
         let skipped = 0;
         const errors: Array<{ player: string; error: string }> = [];
         const importedPlayers: string[] = [];
+        const updatedPlayers: string[] = [];
 
-        console.log(`Starting import of ${selectedPlayers.length} players`);
+        console.log(`Starting import of ${selectedPlayers.length} players in ${mode} mode`);
 
         // Send initial progress
         controller.enqueue(
@@ -64,10 +66,12 @@ export async function POST(request: NextRequest) {
               total: selectedPlayers.length,
               processed: 0,
               imported: 0,
+              updated: 0,
               skipped: 0,
               currentPlayer: null,
               errors: [],
-              importedPlayers: []
+              importedPlayers: [],
+              updatedPlayers: []
             })}\n\n`
           )
         );
@@ -102,10 +106,12 @@ export async function POST(request: NextRequest) {
                     total: selectedPlayers.length,
                     processed: i + 1,
                     imported,
+                    updated,
                     skipped,
                     currentPlayer: player.playerName,
                     errors,
-                    importedPlayers
+                    importedPlayers,
+                    updatedPlayers
                   })}\n\n`
                 )
               );
@@ -120,28 +126,76 @@ export async function POST(request: NextRequest) {
                   total: selectedPlayers.length,
                   processed: i + 1,
                   imported,
+                  updated,
                   skipped,
                   currentPlayer: player.playerName,
                   errors,
-                  importedPlayers
+                  importedPlayers,
+                  updatedPlayers
                 })}\n\n`
               )
             );
             continue;
           }
 
-          // Create base player - always create new player with unique ID
-          // Each player in the database is treated as a unique individual
-          let basePlayer = await prisma.base_players.create({
-            data: {
-              id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              name: player.playerName,
-              photoUrl: `/players/${player.playerId}.webp`,
-              updatedAt: new Date()
+          let basePlayer;
+          let isNewPlayer = false;
+
+          if (mode === 'update') {
+            // UPDATE MODE: Use player_id to find existing player
+            basePlayer = await prisma.base_players.findUnique({
+              where: { player_id: player.playerId }
+            });
+
+            if (basePlayer) {
+              // Update existing player's photo URL
+              basePlayer = await prisma.base_players.update({
+                where: { id: basePlayer.id },
+                data: {
+                  photoUrl: `/players/${player.playerId}.webp`,
+                  updatedAt: new Date()
+                }
+              });
+            } else {
+              // Player doesn't exist, create new one
+              basePlayer = await prisma.base_players.create({
+                data: {
+                  id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  player_id: player.playerId,
+                  name: player.playerName,
+                  photoUrl: `/players/${player.playerId}.webp`,
+                  updatedAt: new Date()
+                }
+              });
+              isNewPlayer = true;
+              imported++;
+              importedPlayers.push(player.playerName);
+            }
+          } else {
+            // IMPORT MODE: Always create new player with unique ID
+            basePlayer = await prisma.base_players.create({
+              data: {
+                id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                player_id: player.playerId,
+                name: player.playerName,
+                photoUrl: `/players/${player.playerId}.webp`,
+                updatedAt: new Date()
+              }
+            });
+            isNewPlayer = true;
+            imported++;
+            importedPlayers.push(player.playerName);
+          }
+
+          // Check if seasonal stats exist for this season
+          const existingStats = await prisma.seasonal_player_stats.findUnique({
+            where: {
+              basePlayerId_seasonId: {
+                basePlayerId: basePlayer.id,
+                seasonId: seasonId
+              }
             }
           });
-          imported++;
-          importedPlayers.push(player.playerName);
 
           const statsData = {
             position: player.position,
@@ -272,17 +326,29 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date()
           };
 
-          // Create seasonal stats for this new player
-          // Since we always create a new base player, we always create new stats
-          await prisma.seasonal_player_stats.create({
-            data: {
-              id: `stats-${seasonId}-${basePlayer.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              basePlayerId: basePlayer.id,
-              seasonId: seasonId,
-              ...statsData
+          // Create or update seasonal stats
+          if (existingStats) {
+            // Update existing seasonal stats
+            await prisma.seasonal_player_stats.update({
+              where: { id: existingStats.id },
+              data: statsData
+            });
+            if (!isNewPlayer) {
+              updated++;
+              updatedPlayers.push(player.playerName);
             }
-          });
-          // Already counted as imported when we created the base player
+          } else {
+            // Create new seasonal stats
+            await prisma.seasonal_player_stats.create({
+              data: {
+                id: `stats-${seasonId}-${basePlayer.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                basePlayerId: basePlayer.id,
+                seasonId: seasonId,
+                ...statsData
+              }
+            });
+            // Already counted as imported if new player
+          }
         } catch (error) {
           console.error(`Error processing player ${player.playerName}:`, error);
           errors.push({
@@ -299,10 +365,12 @@ export async function POST(request: NextRequest) {
               total: selectedPlayers.length,
               processed: i + 1,
               imported,
+              updated,
               skipped,
               currentPlayer: player.playerName,
               errors,
-              importedPlayers
+              importedPlayers,
+              updatedPlayers
             })}\n\n`
           )
         );
@@ -320,14 +388,16 @@ export async function POST(request: NextRequest) {
             type: 'complete',
             total: selectedPlayers.length,
             imported,
+            updated,
             skipped,
             errors,
-            importedPlayers
+            importedPlayers,
+            updatedPlayers
           })}\n\n`
         )
       );
 
-      console.log(`Import complete: ${imported} imported, ${skipped} skipped, ${errors.length} errors`);
+      console.log(`Import complete: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
       controller.close();
     } catch (error) {
       console.error('Stream error:', error);

@@ -17,10 +17,12 @@ interface ImportProgress {
   total: number
   processed: number
   imported: number
+  updated: number
   skipped: number
   errors: Array<{ player: string; error: string }>
   currentPlayer?: string
   importedPlayers: string[]
+  updatedPlayers: string[]
 }
 
 export default function ImportWizard({ seasonId }: ImportWizardProps) {
@@ -38,9 +40,11 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     total: 0,
     processed: 0,
     imported: 0,
+    updated: 0,
     skipped: 0,
     errors: [],
-    importedPlayers: []
+    importedPlayers: [],
+    updatedPlayers: []
   })
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,17 +86,21 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         total: allPlayers.length,
         processed: 0,
         imported: 0,
+        updated: 0,
         skipped: 0,
         errors: [],
-        importedPlayers: []
+        importedPlayers: [],
+        updatedPlayers: []
       })
 
       // Process in batches of 100 players
       const BATCH_SIZE = 100
       let totalImported = 0
+      let totalUpdated = 0
       let totalSkipped = 0
       const allErrors: Array<{ player: string; error: string }> = []
       const allImportedPlayers: string[] = []
+      const allUpdatedPlayers: string[] = []
 
       for (let batchStart = 0; batchStart < allPlayers.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, allPlayers.length)
@@ -151,15 +159,18 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                 if (data.type === 'progress') {
                   // Only keep last 50 player names to avoid memory issues
                   const recentImported = [...allImportedPlayers, ...(data.importedPlayers || [])].slice(-50)
+                  const recentUpdated = [...allUpdatedPlayers, ...(data.updatedPlayers || [])].slice(-50)
                   
                   setProgress({
                     total: allPlayers.length,
                     processed: batchStart + data.processed,
                     imported: totalImported + data.imported,
+                    updated: totalUpdated + data.updated,
                     skipped: totalSkipped + data.skipped,
                     errors: [...allErrors, ...data.errors],
                     currentPlayer: data.currentPlayer,
-                    importedPlayers: recentImported
+                    importedPlayers: recentImported,
+                    updatedPlayers: recentUpdated
                   })
                 } else if (data.type === 'current') {
                   setProgress(prev => ({
@@ -169,9 +180,11 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                 } else if (data.type === 'complete') {
                   console.log('Batch complete:', data)
                   totalImported += data.imported
+                  totalUpdated += data.updated
                   totalSkipped += data.skipped
                   allErrors.push(...data.errors)
                   allImportedPlayers.push(...(data.importedPlayers || []))
+                  allUpdatedPlayers.push(...(data.updatedPlayers || []))
                 } else if (data.type === 'error') {
                   console.error('Stream error:', data.error)
                   throw new Error(data.error)
@@ -185,10 +198,11 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
       }
 
       // All batches complete
-      console.log('All batches complete:', { totalImported, totalSkipped })
+      console.log('All batches complete:', { totalImported, totalUpdated, totalSkipped })
       setResult({
         success: true,
         imported: totalImported,
+        updated: totalUpdated,
         skipped: totalSkipped,
         total: allPlayers.length,
         errors: allErrors
@@ -197,9 +211,11 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         total: allPlayers.length,
         processed: allPlayers.length,
         imported: totalImported,
+        updated: totalUpdated,
         skipped: totalSkipped,
         errors: allErrors,
-        importedPlayers: allImportedPlayers
+        importedPlayers: allImportedPlayers,
+        updatedPlayers: allUpdatedPlayers
       })
       setStep('complete')
     } catch (err) {
@@ -360,9 +376,11 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         total: selected.length,
         processed: 0,
         imported: 0,
+        updated: 0,
         skipped: 0,
         errors: [],
-        importedPlayers: []
+        importedPlayers: [],
+        updatedPlayers: []
       })
 
       // Use EventSource for real-time updates
@@ -415,10 +433,12 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   total: data.total,
                   processed: data.processed,
                   imported: data.imported,
+                  updated: data.updated,
                   skipped: data.skipped,
                   errors: data.errors,
                   currentPlayer: data.currentPlayer,
-                  importedPlayers: data.importedPlayers || []
+                  importedPlayers: data.importedPlayers || [],
+                  updatedPlayers: data.updatedPlayers || []
                 })
               } else if (data.type === 'current') {
                 setProgress(prev => ({
@@ -430,6 +450,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                 setResult({
                   success: true,
                   imported: data.imported,
+                  updated: data.updated,
                   skipped: data.skipped,
                   total: data.total,
                   errors: data.errors
@@ -438,9 +459,11 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   total: data.total,
                   processed: data.total,
                   imported: data.imported,
+                  updated: data.updated,
                   skipped: data.skipped,
                   errors: data.errors,
-                  importedPlayers: data.importedPlayers || []
+                  importedPlayers: data.importedPlayers || [],
+                  updatedPlayers: data.updatedPlayers || []
                 })
                 setStep('complete')
               } else if (data.type === 'error') {

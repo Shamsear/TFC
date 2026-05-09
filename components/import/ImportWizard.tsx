@@ -78,11 +78,12 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         throw new Error(parseResult.error || 'Failed to parse database file')
       }
 
-      console.log(`Parsed ${parseResult.players.length} players from database`)
+      const allPlayers = parseResult.players
+      console.log(`Parsed ${allPlayers.length} players from database`)
 
       // Initialize progress
       setProgress({
-        total: parseResult.players.length,
+        total: allPlayers.length,
         processed: 0,
         imported: 0,
         updated: 0,
@@ -92,96 +93,127 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         updatedPlayers: []
       })
 
-      // Use EventSource for real-time updates
-      const response = await fetch('/api/import/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          seasonId,
-          players: parseResult.players
+      // Process in batches of 100 players
+      const BATCH_SIZE = 100
+      let totalImported = 0
+      let totalUpdated = 0
+      let totalSkipped = 0
+      const allErrors: Array<{ player: string; error: string }> = []
+      const allImportedPlayers: string[] = []
+      const allUpdatedPlayers: string[] = []
+
+      for (let batchStart = 0; batchStart < allPlayers.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, allPlayers.length)
+        const batch = allPlayers.slice(batchStart, batchEnd)
+        
+        console.log(`Processing batch ${Math.floor(batchStart / BATCH_SIZE) + 1}/${Math.ceil(allPlayers.length / BATCH_SIZE)} (${batch.length} players)`)
+
+        // Send batch to server
+        const response = await fetch('/api/import/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seasonId,
+            players: batch,
+            batchInfo: {
+              batchNumber: Math.floor(batchStart / BATCH_SIZE) + 1,
+              totalBatches: Math.ceil(allPlayers.length / BATCH_SIZE),
+              overallStart: batchStart,
+              overallTotal: allPlayers.length
+            }
+          })
         })
-      })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Bulk import stream failed:', errorText)
-        throw new Error(`Failed to start bulk import: ${response.status} ${errorText}`)
-      }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-
-      if (!reader) {
-        throw new Error('No response body')
-      }
-
-      let buffer = ''
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) {
-          console.log('Bulk import stream completed')
-          break
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Bulk import batch failed:', errorText)
+          throw new Error(`Failed to import batch: ${response.status} ${errorText}`)
         }
 
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+
+        if (!reader) {
+          throw new Error('No response body')
+        }
+
+        let buffer = ''
         
-        buffer = lines.pop() || ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) {
+            console.log(`Batch ${Math.floor(batchStart / BATCH_SIZE) + 1} completed`)
+            break
+          }
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6))
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          
+          buffer = lines.pop() || ''
 
-              if (data.type === 'progress') {
-                setProgress({
-                  total: data.total,
-                  processed: data.processed,
-                  imported: data.imported,
-                  updated: data.updated,
-                  skipped: data.skipped,
-                  errors: data.errors,
-                  currentPlayer: data.currentPlayer,
-                  importedPlayers: data.importedPlayers || [],
-                  updatedPlayers: data.updatedPlayers || []
-                })
-              } else if (data.type === 'current') {
-                setProgress(prev => ({
-                  ...prev,
-                  currentPlayer: data.currentPlayer
-                }))
-              } else if (data.type === 'complete') {
-                console.log('Bulk import complete:', data)
-                setResult({
-                  success: true,
-                  imported: data.imported,
-                  updated: data.updated,
-                  skipped: data.skipped,
-                  total: data.total,
-                  errors: data.errors
-                })
-                setProgress({
-                  total: data.total,
-                  processed: data.total,
-                  imported: data.imported,
-                  updated: data.updated,
-                  skipped: data.skipped,
-                  errors: data.errors,
-                  importedPlayers: data.importedPlayers || [],
-                  updatedPlayers: data.updatedPlayers || []
-                })
-                setStep('complete')
-              } else if (data.type === 'error') {
-                console.error('Stream error:', data.error)
-                throw new Error(data.error)
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+
+                if (data.type === 'progress') {
+                  setProgress({
+                    total: allPlayers.length,
+                    processed: batchStart + data.processed,
+                    imported: totalImported + data.imported,
+                    updated: totalUpdated + data.updated,
+                    skipped: totalSkipped + data.skipped,
+                    errors: [...allErrors, ...data.errors],
+                    currentPlayer: data.currentPlayer,
+                    importedPlayers: [...allImportedPlayers, ...(data.importedPlayers || [])],
+                    updatedPlayers: [...allUpdatedPlayers, ...(data.updatedPlayers || [])]
+                  })
+                } else if (data.type === 'current') {
+                  setProgress(prev => ({
+                    ...prev,
+                    currentPlayer: data.currentPlayer
+                  }))
+                } else if (data.type === 'complete') {
+                  console.log('Batch complete:', data)
+                  totalImported += data.imported
+                  totalUpdated += data.updated
+                  totalSkipped += data.skipped
+                  allErrors.push(...data.errors)
+                  allImportedPlayers.push(...(data.importedPlayers || []))
+                  allUpdatedPlayers.push(...(data.updatedPlayers || []))
+                } else if (data.type === 'error') {
+                  console.error('Stream error:', data.error)
+                  throw new Error(data.error)
+                }
+              } catch (parseError) {
+                console.error('Failed to parse SSE data:', line, parseError)
               }
-            } catch (parseError) {
-              console.error('Failed to parse SSE data:', line, parseError)
             }
           }
         }
       }
+
+      // All batches complete
+      console.log('All batches complete:', { totalImported, totalUpdated, totalSkipped })
+      setResult({
+        success: true,
+        imported: totalImported,
+        updated: totalUpdated,
+        skipped: totalSkipped,
+        total: allPlayers.length,
+        errors: allErrors
+      })
+      setProgress({
+        total: allPlayers.length,
+        processed: allPlayers.length,
+        imported: totalImported,
+        updated: totalUpdated,
+        skipped: totalSkipped,
+        errors: allErrors,
+        importedPlayers: allImportedPlayers,
+        updatedPlayers: allUpdatedPlayers
+      })
+      setStep('complete')
     } catch (err) {
       console.error('Bulk import error:', err)
       setError(err instanceof Error ? err.message : 'Failed to bulk import players')

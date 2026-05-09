@@ -10,6 +10,12 @@ export const maxDuration = 300; // 5 minutes timeout for large imports
 interface BulkImportRequest {
   seasonId: string;
   players: EFootballPlayer[];
+  batchInfo?: {
+    batchNumber: number;
+    totalBatches: number;
+    overallStart: number;
+    overallTotal: number;
+  };
 }
 
 export async function POST(request: NextRequest) {

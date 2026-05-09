@@ -27,6 +27,7 @@ export default function CreateSeasonPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
     name: "",
+    seasonNumber: "",
     startingPurse: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,8 +37,14 @@ export default function CreateSeasonPage() {
     e.preventDefault()
     setError("")
 
-    if (!formData.name || !formData.startingPurse) {
-      setError("Season name and starting purse are required")
+    if (!formData.name || !formData.seasonNumber || !formData.startingPurse) {
+      setError("All fields are required")
+      return
+    }
+
+    const seasonNumber = parseInt(formData.seasonNumber, 10)
+    if (isNaN(seasonNumber) || seasonNumber <= 0) {
+      setError("Season number must be a positive number")
       return
     }
 
@@ -57,6 +64,7 @@ export default function CreateSeasonPage() {
         },
         body: JSON.stringify({
           name: formData.name,
+          seasonNumber,
           startingPurse
         })
       })
@@ -108,6 +116,26 @@ export default function CreateSeasonPage() {
           )}
 
           <div className="space-y-4 sm:space-y-6">
+            {/* Season Number */}
+            <div>
+              <label htmlFor="seasonNumber" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
+                Season Number <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                id="seasonNumber"
+                value={formData.seasonNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, seasonNumber: e.target.value }))}
+                className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
+                placeholder="e.g., 1, 2, 3, 4"
+                min="1"
+                required
+              />
+              <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
+                Unique number for this season (used in ID: TFCS-{formData.seasonNumber || "X"})
+              </p>
+            </div>
+
             {/* Season Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
@@ -151,13 +179,19 @@ export default function CreateSeasonPage() {
             </div>
 
             {/* Preview Card */}
-            {formData.name && formData.startingPurse && (
+            {formData.seasonNumber && formData.name && formData.startingPurse && (
               <div className="rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 p-4 sm:p-6">
                 <div className="flex items-center gap-1 sm:gap-2 mb-3 sm:mb-4">
                   <CalendarIcon />
                   <div className="text-xs sm:text-sm font-bold text-[#E8A800] uppercase tracking-wider">Preview</div>
                 </div>
                 <div className="space-y-2 sm:space-y-3">
+                  <div>
+                    <div className="text-xs sm:text-sm text-gray-400 mb-1">Season ID</div>
+                    <div className="text-lg sm:text-xl font-black text-[#E8A800] font-mono">
+                      TFCS-{formData.seasonNumber}
+                    </div>
+                  </div>
                   <div>
                     <div className="text-xl sm:text-2xl font-black text-white">{formData.name}</div>
                   </div>

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, startingPurse, isActive } = body
+    const { name, startingPurse, seasonNumber, isActive } = body
 
     // Validate required fields
     if (!name || typeof name !== "string" || name.trim() === "") {
@@ -96,13 +96,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate clean season ID
-    const seasonId = await generateSeasonId()
+    if (!seasonNumber || typeof seasonNumber !== "number" || seasonNumber < 1) {
+      return NextResponse.json(
+        { error: "Season number is required and must be a positive number" },
+        { status: 400 }
+      )
+    }
+
+    // Check if season number already exists
+    const existingSeasonWithNumber = await prisma.seasons.findUnique({
+      where: { seasonNumber }
+    })
+
+    if (existingSeasonWithNumber) {
+      return NextResponse.json(
+        { error: `Season number ${seasonNumber} is already in use. Please choose a different number.` },
+        { status: 409 }
+      )
+    }
+
+    // Generate clean season ID based on season number
+    const seasonId = `TFCS-${seasonNumber}`
     console.log('🆔 Generated Season ID:', seasonId)
     
     const season = await prisma.seasons.create({
       data: {
         id: seasonId,
+        seasonNumber,
         name: name.trim(),
         startingPurse,
         isActive: isActive ?? false,

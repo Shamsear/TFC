@@ -219,6 +219,7 @@ model seasonal_player_stats {
 
 model seasons {
   id                   String                  @id
+  seasonNumber         Int                     @unique
   name                 String                  @unique
   startingPurse        Int
   isActive             Boolean                 @default(false)

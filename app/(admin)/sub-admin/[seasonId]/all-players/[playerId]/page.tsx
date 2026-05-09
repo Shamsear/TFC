@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import PlayerDetailContent from '@/components/player/PlayerDetailContent'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 interface PlayerDetailPageProps {
   params: Promise<{
@@ -60,7 +61,7 @@ async function getPlayerData(playerId: string, seasonId: string) {
     basePlayer: {
       id: playerData.id,
       name: playerData.name,
-      photoUrl: playerData.photoUrl,
+      photoUrl: getPlayerPhotoUrl(`${playerData.id}.webp`),
     },
     stats: {
       position: stats.position,

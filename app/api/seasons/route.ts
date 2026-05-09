@@ -98,6 +98,8 @@ export async function POST(request: NextRequest) {
 
     // Generate clean season ID
     const seasonId = await generateSeasonId()
+    console.log('🆔 Generated Season ID:', seasonId)
+    
     const season = await prisma.seasons.create({
       data: {
         id: seasonId,
@@ -107,6 +109,8 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date()
       }
     })
+    
+    console.log('✅ Created season with ID:', season.id)
 
     // Create audit log
     await createAuditLog({

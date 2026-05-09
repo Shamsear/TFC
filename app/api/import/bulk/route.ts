@@ -58,11 +58,9 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       try {
         let imported = 0;
-        let updated = 0;
         let skipped = 0;
         const errors: Array<{ player: string; error: string }> = [];
         const importedPlayers: string[] = [];
-        const updatedPlayers: string[] = [];
 
         const batchLabel = batchInfo 
           ? `batch ${batchInfo.batchNumber}/${batchInfo.totalBatches}` 
@@ -78,12 +76,10 @@ export async function POST(request: NextRequest) {
               total: players.length,
               processed: 0,
               imported: 0,
-              updated: 0,
               skipped: 0,
               currentPlayer: null,
               errors: [],
-              importedPlayers: [],
-              updatedPlayers: []
+              importedPlayers: []
             })}\n\n`
           )
         );
@@ -118,6 +114,16 @@ export async function POST(request: NextRequest) {
             });
             imported++;
             importedPlayers.push(player.playerName);
+
+            // Check if seasonal stats exist
+            const existingStats = await prisma.seasonal_player_stats.findUnique({
+              where: {
+                basePlayerId_seasonId: {
+                  basePlayerId: basePlayer.id,
+                  seasonId: seasonId
+                }
+              }
+            });
 
             // Check if seasonal stats exist
             const existingStats = await prisma.seasonal_player_stats.findUnique({
@@ -259,14 +265,12 @@ export async function POST(request: NextRequest) {
             };
 
             if (existingStats) {
-              // This shouldn't happen in bulk mode since we always create new base players
-              // But handle it just in case
+              // This shouldn't happen since we always create new base players
+              // But handle it just in case - update the stats
               await prisma.seasonal_player_stats.update({
                 where: { id: existingStats.id },
                 data: statsData
               });
-              updated++;
-              updatedPlayers.push(player.playerName);
             } else {
               // Create new seasonal stats for this player
               await prisma.seasonal_player_stats.create({
@@ -277,7 +281,6 @@ export async function POST(request: NextRequest) {
                   ...statsData
                 }
               });
-              // Already counted as imported when we created the base player
             }
           } catch (error) {
             console.error(`Error processing player ${player.playerName}:`, error);
@@ -295,12 +298,10 @@ export async function POST(request: NextRequest) {
                 total: players.length,
                 processed: i + 1,
                 imported,
-                updated,
                 skipped,
                 currentPlayer: player.playerName,
                 errors,
-                importedPlayers: importedPlayers.slice(-10),
-                updatedPlayers: updatedPlayers.slice(-10)
+                importedPlayers: importedPlayers.slice(-10)
               })}\n\n`
             )
           );

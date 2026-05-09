@@ -50,11 +50,9 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       try {
         let imported = 0;
-        let updated = 0;
         let skipped = 0;
         const errors: Array<{ player: string; error: string }> = [];
         const importedPlayers: string[] = [];
-        const updatedPlayers: string[] = [];
 
         console.log(`Starting import of ${selectedPlayers.length} players`);
 
@@ -66,12 +64,10 @@ export async function POST(request: NextRequest) {
               total: selectedPlayers.length,
               processed: 0,
               imported: 0,
-              updated: 0,
               skipped: 0,
               currentPlayer: null,
               errors: [],
-              importedPlayers: [],
-              updatedPlayers: []
+              importedPlayers: []
             })}\n\n`
           )
         );
@@ -106,12 +102,10 @@ export async function POST(request: NextRequest) {
                     total: selectedPlayers.length,
                     processed: i + 1,
                     imported,
-                    updated,
                     skipped,
                     currentPlayer: player.playerName,
                     errors,
-                    importedPlayers,
-                    updatedPlayers
+                    importedPlayers
                   })}\n\n`
                 )
               );
@@ -126,12 +120,10 @@ export async function POST(request: NextRequest) {
                   total: selectedPlayers.length,
                   processed: i + 1,
                   imported,
-                  updated,
                   skipped,
                   currentPlayer: player.playerName,
                   errors,
-                  importedPlayers,
-                  updatedPlayers
+                  importedPlayers
                 })}\n\n`
               )
             );
@@ -307,12 +299,10 @@ export async function POST(request: NextRequest) {
               total: selectedPlayers.length,
               processed: i + 1,
               imported,
-              updated,
               skipped,
               currentPlayer: player.playerName,
               errors,
-              importedPlayers,
-              updatedPlayers
+              importedPlayers
             })}\n\n`
           )
         );
@@ -330,16 +320,14 @@ export async function POST(request: NextRequest) {
             type: 'complete',
             total: selectedPlayers.length,
             imported,
-            updated,
             skipped,
             errors,
-            importedPlayers,
-            updatedPlayers
+            importedPlayers
           })}\n\n`
         )
       );
 
-      console.log(`Import complete: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
+      console.log(`Import complete: ${imported} imported, ${skipped} skipped, ${errors.length} errors`);
       controller.close();
     } catch (error) {
       console.error('Stream error:', error);

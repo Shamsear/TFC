@@ -30,26 +30,12 @@ export function getPlayerCardUrl(filename: string | null | undefined): string {
  * @returns Full URL to the image
  */
 export function getPlayerPhotoUrl(filename: string | null | undefined): string {
-  if (!filename) {
-    console.warn('⚠️ No filename provided for player photo');
-    return '/default-player.png';
-  }
+  if (!filename) return '/default-player.png';
   
   // Remove leading slash and path if present
   const cleanFilename = filename.split('/').pop() || filename;
   
-  const url = `${BASE_URL}/public/player_photos/${cleanFilename}`;
-  
-  // Debug logging - always log in development
-  console.log('🖼️ Player Photo URL Generated:', {
-    input: filename,
-    cleanFilename,
-    baseUrl: BASE_URL,
-    fullUrl: url,
-    expectedGitHubPath: `https://github.com/Shamsear/TFC-Images/blob/main/public/player_photos/${cleanFilename}`
-  });
-  
-  return url;
+  return `${BASE_URL}/public/player_photos/${cleanFilename}`;
 }
 
 /**

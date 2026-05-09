@@ -360,6 +360,11 @@ export async function POST(request: NextRequest) {
             })}\n\n`
           )
         );
+
+        // Small delay to prevent overwhelming the database
+        if (i < selectedPlayers.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
       }
 
       // Send completion

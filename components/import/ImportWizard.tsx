@@ -28,7 +28,7 @@ interface ImportProgress {
 export default function ImportWizard({ seasonId }: ImportWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('upload')
-  const [mode, setMode] = useState<'import' | 'update'>('import')
+  const [mode, setMode] = useState<'import' | 'update' | 'bulk'>('import')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<PreviewResponse | null>(null)
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set())
@@ -61,8 +61,144 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     }
   }
 
+  const handleBulkImport = async () => {
+    if (!file) return
+
+    setStep('progress')
+    setIsLoading(true)
+    setError('')
+
+    try {
+      console.log('Starting bulk import - parsing database file...')
+      const { parseClientSQLiteDB } = await import('@/lib/client-sqlite-parser')
+      
+      const parseResult = await parseClientSQLiteDB(file)
+      
+      if (!parseResult.success || !parseResult.players) {
+        throw new Error(parseResult.error || 'Failed to parse database file')
+      }
+
+      console.log(`Parsed ${parseResult.players.length} players from database`)
+
+      // Initialize progress
+      setProgress({
+        total: parseResult.players.length,
+        processed: 0,
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        errors: [],
+        importedPlayers: [],
+        updatedPlayers: []
+      })
+
+      // Use EventSource for real-time updates
+      const response = await fetch('/api/import/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seasonId,
+          players: parseResult.players
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Bulk import stream failed:', errorText)
+        throw new Error(`Failed to start bulk import: ${response.status} ${errorText}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      let buffer = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          console.log('Bulk import stream completed')
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+
+              if (data.type === 'progress') {
+                setProgress({
+                  total: data.total,
+                  processed: data.processed,
+                  imported: data.imported,
+                  updated: data.updated,
+                  skipped: data.skipped,
+                  errors: data.errors,
+                  currentPlayer: data.currentPlayer,
+                  importedPlayers: data.importedPlayers || [],
+                  updatedPlayers: data.updatedPlayers || []
+                })
+              } else if (data.type === 'current') {
+                setProgress(prev => ({
+                  ...prev,
+                  currentPlayer: data.currentPlayer
+                }))
+              } else if (data.type === 'complete') {
+                console.log('Bulk import complete:', data)
+                setResult({
+                  success: true,
+                  imported: data.imported,
+                  updated: data.updated,
+                  skipped: data.skipped,
+                  total: data.total,
+                  errors: data.errors
+                })
+                setProgress({
+                  total: data.total,
+                  processed: data.total,
+                  imported: data.imported,
+                  updated: data.updated,
+                  skipped: data.skipped,
+                  errors: data.errors,
+                  importedPlayers: data.importedPlayers || [],
+                  updatedPlayers: data.updatedPlayers || []
+                })
+                setStep('complete')
+              } else if (data.type === 'error') {
+                console.error('Stream error:', data.error)
+                throw new Error(data.error)
+              }
+            } catch (parseError) {
+              console.error('Failed to parse SSE data:', line, parseError)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Bulk import error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to bulk import players')
+      setStep('upload')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handlePreview = async () => {
     if (!file) return
+
+    // If bulk mode, skip preview and go straight to import
+    if (mode === 'bulk') {
+      await handleBulkImport()
+      return
+    }
 
     setIsLoading(true)
     setError('')
@@ -390,7 +526,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
           {/* Mode Selection */}
           <div className="mb-4 sm:mb-6">
             <label className="block text-sm font-bold text-white mb-3">Import Mode</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={() => setMode('import')}
@@ -414,6 +550,18 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
               >
                 <div className="font-bold mb-1 text-sm sm:text-base">Update</div>
                 <div className="text-xs">Update existing season data</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('bulk')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  mode === 'bulk'
+                    ? 'bg-[#E8A800]/20 border-[#E8A800] text-[#E8A800]'
+                    : 'bg-black/30 border-white/10 text-[#D4CCBB] hover:border-white/20'
+                }`}
+              >
+                <div className="font-bold mb-1 text-sm sm:text-base">Bulk</div>
+                <div className="text-xs">Import everything without preview</div>
               </button>
             </div>
           </div>
@@ -454,9 +602,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Analyzing...
+                {mode === 'bulk' ? 'Importing...' : 'Analyzing...'}
               </span>
-            ) : 'Preview Import'}
+            ) : mode === 'bulk' ? 'Start Bulk Import' : 'Preview Import'}
           </button>
         </div>
       )}

@@ -171,9 +171,10 @@ export async function PATCH(
 // DELETE /api/admin/team-managers/[id] - Delete team manager
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
 
     // Check authorization
@@ -187,7 +188,7 @@ export async function DELETE(
     // Check if team manager exists
     const existingManager = await prisma.users.findUnique({
       where: {
-        id: params.id,
+        id,
         role: "TEAM_MANAGER",
       },
       include: {

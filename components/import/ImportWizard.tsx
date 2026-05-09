@@ -360,11 +360,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         total: selected.length,
         processed: 0,
         imported: 0,
-        updated: 0,
         skipped: 0,
         errors: [],
-        importedPlayers: [],
-        updatedPlayers: []
+        importedPlayers: []
       })
 
       // Use EventSource for real-time updates
@@ -417,12 +415,10 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   total: data.total,
                   processed: data.processed,
                   imported: data.imported,
-                  updated: data.updated,
                   skipped: data.skipped,
                   errors: data.errors,
                   currentPlayer: data.currentPlayer,
-                  importedPlayers: data.importedPlayers || [],
-                  updatedPlayers: data.updatedPlayers || []
+                  importedPlayers: data.importedPlayers || []
                 })
               } else if (data.type === 'current') {
                 setProgress(prev => ({
@@ -434,7 +430,6 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                 setResult({
                   success: true,
                   imported: data.imported,
-                  updated: data.updated,
                   skipped: data.skipped,
                   total: data.total,
                   errors: data.errors
@@ -443,11 +438,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   total: data.total,
                   processed: data.total,
                   imported: data.imported,
-                  updated: data.updated,
                   skipped: data.skipped,
                   errors: data.errors,
-                  importedPlayers: data.importedPlayers || [],
-                  updatedPlayers: data.updatedPlayers || []
+                  importedPlayers: data.importedPlayers || []
                 })
                 setStep('complete')
               } else if (data.type === 'error') {

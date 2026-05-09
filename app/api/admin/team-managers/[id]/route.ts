@@ -17,9 +17,10 @@ const updateTeamManagerSchema = z.object({
 // PATCH /api/admin/team-managers/[id] - Update team manager
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
 
     // Check authorization
@@ -33,7 +34,7 @@ export async function PATCH(
     // Check if team manager exists
     const existingManager = await prisma.users.findUnique({
       where: {
-        id: params.id,
+        id,
         role: "TEAM_MANAGER",
       },
     })
@@ -84,7 +85,7 @@ export async function PATCH(
             teamId: validatedData.teamId,
             role: "TEAM_MANAGER",
             NOT: {
-              id: params.id,
+              id,
             },
           },
         })
@@ -114,7 +115,7 @@ export async function PATCH(
 
     // Update team manager
     const updatedManager = await prisma.users.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         team: true,

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 interface TeamDetailPageProps {
   params: Promise<{
@@ -272,10 +273,10 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        {transfer.basePlayer.photoUrl && (
+                        {transfer.basePlayer.id && (
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
                             <Image
-                              src={transfer.basePlayer.photoUrl}
+                              src={getPlayerPhotoUrl(`${transfer.basePlayer.id}.webp`)}
                               alt={transfer.basePlayer.name}
                               fill
                               className="object-cover"

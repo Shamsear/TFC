@@ -21,7 +21,7 @@ export function getPlayerCardUrl(filename: string | null | undefined): string {
   // Remove leading slash and path if present
   const cleanFilename = filename.split('/').pop() || filename;
   
-  return `${BASE_URL}/player_cards/${cleanFilename}`;
+  return `${BASE_URL}/public/player_cards/${cleanFilename}`;
 }
 
 /**
@@ -35,21 +35,21 @@ export function getPlayerPhotoUrl(filename: string | null | undefined): string {
   // Remove leading slash and path if present
   const cleanFilename = filename.split('/').pop() || filename;
   
-  return `${BASE_URL}/player_photos/${cleanFilename}`;
+  return `${BASE_URL}/public/player_photos/${cleanFilename}`;
 }
 
 /**
  * Get the base URL for player cards
  */
 export function getPlayerCardBaseUrl(): string {
-  return `${BASE_URL}/player_cards`;
+  return `${BASE_URL}/public/player_cards`;
 }
 
 /**
  * Get the base URL for player photos
  */
 export function getPlayerPhotoBaseUrl(): string {
-  return `${BASE_URL}/player_photos`;
+  return `${BASE_URL}/public/player_photos`;
 }
 
 /**

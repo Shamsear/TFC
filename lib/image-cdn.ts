@@ -16,12 +16,25 @@ const BASE_URL = USE_CDN ? CDN_BASE_URL : GITHUB_REPO;
  * @returns Full URL to the image
  */
 export function getPlayerCardUrl(filename: string | null | undefined): string {
-  if (!filename) return '/default-player-card.png';
+  if (!filename) {
+    console.warn('⚠️ No filename provided for player card');
+    return '/default-player-card.png';
+  }
   
   // Remove leading slash and path if present
   const cleanFilename = filename.split('/').pop() || filename;
   
-  return `${BASE_URL}/public/player_cards/${cleanFilename}`;
+  const url = `${BASE_URL}/public/player_cards/${cleanFilename}`;
+  
+  console.log('🃏 Player Card URL Generated:', {
+    input: filename,
+    cleanFilename,
+    baseUrl: BASE_URL,
+    fullUrl: url,
+    expectedGitHubPath: `https://github.com/Shamsear/TFC-Images/blob/main/public/player_cards/${cleanFilename}`
+  });
+  
+  return url;
 }
 
 /**
@@ -94,7 +107,15 @@ export function getPhotoUrlFromDb(photoUrl: string | null | undefined): string {
  * @returns CDN URL for the player card
  */
 export function getPlayerCardById(playerId: string | null | undefined): string {
-  if (!playerId) return '/default-player-card.png';
+  if (!playerId) {
+    console.warn('⚠️ No playerId provided for player card');
+    return '/default-player-card.png';
+  }
+  
+  console.log('🃏 Getting player card by ID:', {
+    playerId,
+    willCallGetPlayerCardUrl: `${playerId}.png`
+  });
   
   return getPlayerCardUrl(`${playerId}.png`);
 }

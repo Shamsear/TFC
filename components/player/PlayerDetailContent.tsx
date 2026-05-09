@@ -11,6 +11,7 @@ interface PlayerDetailContentProps {
   backLink?: string
   basePlayer: {
     id: string
+    player_id?: string | null
     name: string
     photoUrl: string | null
   }
@@ -90,8 +91,15 @@ export default function PlayerDetailContent({
     return 'text-[#ef4444]'
   }
 
-  // Extract player ID from base player ID
-  const playerCardId = basePlayer.id.replace('player-', '').split('-')[0]
+  // Extract player ID from base player - use player_id if available, otherwise extract from id
+  const playerCardId = basePlayer.player_id || basePlayer.id.replace('player-', '').split('-')[0]
+  
+  console.log('🎴 PlayerDetailContent - Card ID:', {
+    basePlayerId: basePlayer.id,
+    basePlayerPlayerId: basePlayer.player_id,
+    extractedPlayerCardId: playerCardId,
+    basePlayerName: basePlayer.name
+  });
 
   const handleDownloadCard = async () => {
     try {

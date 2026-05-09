@@ -13,6 +13,13 @@ interface PlayerCardImageProps {
 export default function PlayerCardImage({ playerCardId, playerName, fallbackUrl }: PlayerCardImageProps) {
   const [imgSrc, setImgSrc] = useState(getPlayerCardById(playerCardId))
 
+  console.log('🖼️ PlayerCardImage component:', {
+    playerCardId,
+    playerName,
+    imgSrc,
+    fallbackUrl
+  });
+
   return (
     <Image
       src={imgSrc}
@@ -21,6 +28,10 @@ export default function PlayerCardImage({ playerCardId, playerName, fallbackUrl 
       className="object-contain"
       priority
       onError={() => {
+        console.log('❌ Player card failed to load, using fallback:', {
+          failedSrc: imgSrc,
+          fallbackUrl
+        });
         setImgSrc(fallbackUrl || '/default-player-card.png')
       }}
     />

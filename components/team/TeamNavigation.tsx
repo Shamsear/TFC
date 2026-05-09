@@ -4,7 +4,7 @@ import TeamNavigationClient from "./TeamNavigationClient"
 
 export default async function TeamNavigation() {
   const session = await auth()
-  
+
   if (!session?.user?.teamId) {
     return null
   }
@@ -16,15 +16,34 @@ export default async function TeamNavigation() {
       id: true,
       name: true,
       logoUrl: true,
-      managerName: true
-    }
+    },
   })
 
-  // Fetch active season
+  if (!team) {
+    return null
+  }
+
+  // Get active season
   const activeSeason = await prisma.seasons.findFirst({
     where: { isActive: true },
-    select: { id: true, name: true }
+    select: {
+      id: true,
+      name: true,
+    },
   })
+
+  // Check if team is in active season
+  const isInActiveSeason = activeSeason
+    ? await prisma.season_teams.findUnique({
+        where: {
+          seasonId_teamId: {
+            seasonId: activeSeason.id,
+            teamId: team.id,
+          },
+        },
+        select: { id: true },
+      })
+    : null
 
   return (
     <TeamNavigationClient
@@ -34,6 +53,7 @@ export default async function TeamNavigation() {
       }}
       team={team}
       activeSeason={activeSeason}
+      isInActiveSeason={!!isInActiveSeason}
     />
   )
 }

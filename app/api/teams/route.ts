@@ -4,7 +4,9 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
-import { generateTeamId } from "@/lib/id-generator"
+import { generateTeamId, generateId } from "@/lib/id-generator"
+import { generatePassword, generateUniqueEmail } from "@/lib/password-generator"
+import { hash } from "bcryptjs"
 
 /**
  * GET /api/teams
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, managerName, logoUrl } = body
+    const { name, managerName, logoUrl, seasonId } = body
 
     // Validate required fields
     if (!name || typeof name !== "string" || name.trim() === "") {
@@ -96,16 +98,70 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate clean team ID
-    const teamId = await generateTeamId()
-    const team = await prisma.teams.create({
-      data: {
-        id: teamId,
-        name: name.trim(),
-        managerName: managerName.trim(),
-        logoUrl: logoUrl.trim(),
-        updatedAt: new Date()
+    // Validate season if provided
+    let season = null
+    if (seasonId) {
+      season = await prisma.seasons.findUnique({
+        where: { id: seasonId }
+      })
+      
+      if (!season) {
+        return NextResponse.json(
+          { error: "Invalid season ID" },
+          { status: 400 }
+        )
       }
+    } else {
+      // Default to active season
+      season = await prisma.seasons.findFirst({
+        where: { isActive: true }
+      })
+    }
+
+    // Generate credentials
+    const email = await generateUniqueEmail(name.trim(), async (email) => {
+      const existing = await prisma.users.findUnique({
+        where: { email }
+      })
+      return !!existing
+    })
+    
+    const password = generatePassword()
+    const passwordHash = await hash(password, 10)
+
+    // Generate IDs
+    const teamId = await generateTeamId()
+    const userId = generateId("user")
+
+    // Create team and user in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create team
+      const team = await tx.teams.create({
+        data: {
+          id: teamId,
+          name: name.trim(),
+          managerName: managerName.trim(),
+          logoUrl: logoUrl.trim(),
+          updatedAt: new Date()
+        }
+      })
+
+      // Create user (team manager)
+      const user = await tx.users.create({
+        data: {
+          id: userId,
+          email,
+          name: managerName.trim(),
+          passwordHash,
+          role: "TEAM_MANAGER",
+          teamId: team.id,
+          createdBy: session.user.id,
+          isActive: true,
+          assignedSeasons: season ? [season.id] : []
+        }
+      })
+
+      return { team, user, password }
     })
 
     // Create audit log
@@ -115,17 +171,25 @@ export async function POST(request: NextRequest) {
       userRole: session.user.role!,
       action: 'CREATE_TEAM',
       entityType: 'team',
-      entityId: team.id,
-      entityName: team.name,
+      entityId: result.team.id,
+      entityName: result.team.name,
       details: {
-        managerName: team.managerName,
-        logoUrl: team.logoUrl
+        managerName: result.team.managerName,
+        logoUrl: result.team.logoUrl,
+        userEmail: email,
+        assignedSeasons: season ? [season.id] : []
       },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
 
-    return NextResponse.json(team, { status: 201 })
+    return NextResponse.json({
+      team: result.team,
+      credentials: {
+        email,
+        password: result.password
+      }
+    }, { status: 201 })
   } catch (error) {
     // Handle Prisma unique constraint violation
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

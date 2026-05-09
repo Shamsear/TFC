@@ -15,20 +15,21 @@ interface TeamNavigationClientProps {
     id: string
     name: string
     logoUrl: string
-    managerName: string
   } | null
   activeSeason: {
     id: string
     name: string
   } | null
+  isInActiveSeason: boolean
 }
 
-export default function TeamNavigationClient({ user, team, activeSeason }: TeamNavigationClientProps) {
+export default function TeamNavigationClient({ user, team, activeSeason, isInActiveSeason }: TeamNavigationClientProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
-  const navigation = [
+  // Different navigation based on season participation
+  const activeSeasonNavigation = [
     { name: "Dashboard", href: "/team", icon: "🏠" },
     { name: "Squad", href: "/team/squad", icon: "👥" },
     { name: "Matches", href: "/team/matches", icon: "⚽" },
@@ -36,6 +37,13 @@ export default function TeamNavigationClient({ user, team, activeSeason }: TeamN
     { name: "Finances", href: "/team/finances", icon: "💰" },
     { name: "Profile", href: "/team/profile", icon: "⚙️" },
   ]
+
+  const inactiveSeasonNavigation = [
+    { name: "Status", href: "/team/not-in-season", icon: "📊" },
+    { name: "Profile", href: "/team/profile", icon: "⚙️" },
+  ]
+
+  const navigation = isInActiveSeason ? activeSeasonNavigation : inactiveSeasonNavigation
 
   const isActive = (href: string) => {
     if (href === "/team") {
@@ -96,7 +104,7 @@ export default function TeamNavigationClient({ user, team, activeSeason }: TeamN
             >
               <div className="text-right">
                 <div className="text-sm font-medium text-white">{user.name || "Team Manager"}</div>
-                <div className="text-xs text-gray-400">{team?.managerName}</div>
+                <div className="text-xs text-gray-400">{team?.name}</div>
               </div>
               <div className="w-8 h-8 rounded-full bg-[#E8A800] flex items-center justify-center text-[#0a0a0a] font-bold">
                 {user.name?.charAt(0) || "T"}

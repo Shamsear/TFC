@@ -126,3 +126,126 @@ export async function canEditTeam(teamId: string): Promise<boolean> {
 
   return false
 }
+
+/**
+ * Get assigned seasons for a user
+ * Returns array of season IDs
+ */
+export async function getAssignedSeasons(userId: string): Promise<string[]> {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { assignedSeasons: true }
+  })
+  
+  if (!user || !user.assignedSeasons) {
+    return []
+  }
+  
+  // assignedSeasons is stored as JSON array
+  const seasons = user.assignedSeasons as any
+  if (Array.isArray(seasons)) {
+    return seasons
+  }
+  
+  return []
+}
+
+/**
+ * Check if user can access a specific season
+ */
+export async function canAccessSeason(userId: string, seasonId: string): Promise<boolean> {
+  const assignedSeasons = await getAssignedSeasons(userId)
+  
+  // Empty array means access to all seasons (backward compatibility)
+  if (assignedSeasons.length === 0) {
+    return true
+  }
+  
+  return assignedSeasons.includes(seasonId)
+}
+
+/**
+ * Get seasons that the current team manager can access
+ */
+export async function getAccessibleSeasons() {
+  const session = await auth()
+  
+  if (!session?.user) {
+    return []
+  }
+
+  // Admins can access all seasons
+  if (session.user.role === 'SUPER_ADMIN' || session.user.role === 'SUB_ADMIN') {
+    return await prisma.seasons.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
+  }
+
+  // Team managers can only access assigned seasons
+  if (session.user.role === 'TEAM_MANAGER') {
+    const assignedSeasonIds = await getAssignedSeasons(session.user.id)
+    
+    // Empty array means access to all seasons (backward compatibility)
+    if (assignedSeasonIds.length === 0) {
+      return await prisma.seasons.findMany({
+        orderBy: { createdAt: 'desc' }
+      })
+    }
+    
+    return await prisma.seasons.findMany({
+      where: {
+        id: { in: assignedSeasonIds }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  }
+
+  return []
+}
+
+/**
+ * Check if team is participating in active season
+ * Returns { isParticipating, activeSeason, seasonTeam, team }
+ */
+export async function checkTeamSeasonParticipation() {
+  const session = await auth()
+  
+  if (!session?.user?.teamId) {
+    return { isParticipating: false, activeSeason: null, seasonTeam: null, team: null }
+  }
+
+  // Get team
+  const team = await prisma.teams.findUnique({
+    where: { id: session.user.teamId }
+  })
+
+  if (!team) {
+    return { isParticipating: false, activeSeason: null, seasonTeam: null, team: null }
+  }
+
+  // Get active season
+  const activeSeason = await prisma.seasons.findFirst({
+    where: { isActive: true }
+  })
+
+  if (!activeSeason) {
+    return { isParticipating: false, activeSeason: null, seasonTeam: null, team }
+  }
+
+  // Check if team is in active season
+  const seasonTeam = await prisma.season_teams.findUnique({
+    where: {
+      seasonId_teamId: {
+        seasonId: activeSeason.id,
+        teamId: team.id
+      }
+    }
+  })
+
+  return {
+    isParticipating: !!seasonTeam,
+    activeSeason,
+    seasonTeam,
+    team
+  }
+}

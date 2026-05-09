@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
+import { checkTeamSeasonParticipation } from "@/lib/team-auth"
 
 export async function generateMetadata({ params }: { params: Promise<{ tournamentId: string }> }) {
   const { tournamentId } = await params
@@ -25,6 +26,13 @@ export default async function TournamentDetailsPage({
 
   if (!session?.user?.teamId) {
     redirect("/auth/signin")
+  }
+
+  // Check if team is in active season
+  const { isParticipating } = await checkTeamSeasonParticipation()
+
+  if (!isParticipating) {
+    redirect("/team/not-in-season")
   }
 
   // Get tournament info

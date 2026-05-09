@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
 import { getPlayerPhotoUrl, getPlayerCardUrl } from "@/lib/image-cdn"
+import { checkTeamSeasonParticipation } from "@/lib/team-auth"
 
 export async function generateMetadata({ params }: { params: Promise<{ playerId: string }> }) {
   const { playerId } = await params
@@ -24,10 +25,12 @@ export default async function PlayerDetailsPage({ params }: { params: Promise<{ 
     redirect("/auth/signin")
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-  })
+  // Check if team is in active season
+  const { isParticipating, activeSeason } = await checkTeamSeasonParticipation()
+
+  if (!isParticipating) {
+    redirect("/team/not-in-season")
+  }
 
   if (!activeSeason) {
     redirect("/team/squad")

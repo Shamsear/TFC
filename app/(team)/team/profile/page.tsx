@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { canEditTeam } from "@/lib/team-auth"
+import { canEditTeam, checkTeamSeasonParticipation } from "@/lib/team-auth"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -15,6 +15,12 @@ export default async function TeamProfilePage() {
 
   if (!session?.user?.teamId) {
     redirect("/auth/signin")
+  }
+
+  // Check if team is participating in active season
+  const { isParticipating } = await checkTeamSeasonParticipation()
+  if (!isParticipating) {
+    redirect("/team/not-in-season")
   }
 
   // Fetch team info

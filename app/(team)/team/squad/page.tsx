@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { checkTeamSeasonParticipation } from "@/lib/team-auth"
 
 export const metadata = {
   title: "Squad | Team Dashboard",
@@ -16,12 +17,14 @@ export default async function SquadPage() {
     redirect("/auth/signin")
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-  })
+  // Check if team is in active season
+  const { isParticipating, activeSeason, seasonTeam } = await checkTeamSeasonParticipation()
 
-  if (!activeSeason) {
+  if (!isParticipating) {
+    redirect("/team/not-in-season")
+  }
+
+  if (!activeSeason || !seasonTeam) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

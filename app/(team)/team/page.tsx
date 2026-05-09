@@ -19,16 +19,6 @@ export default async function TeamDashboardPage() {
   // Fetch team info
   const team = await prisma.teams.findUnique({
     where: { id: session.user.teamId },
-    include: {
-      seasonTeams: {
-        include: {
-          season: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
   })
 
   if (!team) {
@@ -40,7 +30,7 @@ export default async function TeamDashboardPage() {
     where: { isActive: true },
   })
 
-  // Get current season team data
+  // Check if team is participating in active season
   const currentSeasonTeam = activeSeason
     ? await prisma.season_teams.findUnique({
         where: {
@@ -52,61 +42,61 @@ export default async function TeamDashboardPage() {
       })
     : null
 
+  // If team is not in active season, redirect to not-in-season page
+  if (!currentSeasonTeam) {
+    redirect("/team/not-in-season")
+  }
+
+  // Team is in active season - show dashboard
   // Get squad count for current season
-  const squadCount = activeSeason
-    ? await prisma.transfer_history.count({
-        where: {
-          seasonId: activeSeason.id,
-          teamId: team.id,
-        },
-      })
-    : 0
+  const squadCount = await prisma.transfer_history.count({
+    where: {
+      seasonId: activeSeason.id,
+      teamId: team.id,
+    },
+  })
 
   // Get upcoming matches
-  const upcomingMatches = activeSeason
-    ? await prisma.matches.findMany({
-        where: {
-          tournament: {
-            seasonId: activeSeason.id,
-          },
-          OR: [
-            { homeTeamId: currentSeasonTeam?.id },
-            { awayTeamId: currentSeasonTeam?.id },
-          ],
-          status: "SCHEDULED",
-        },
+  const upcomingMatches = await prisma.matches.findMany({
+    where: {
+      tournament: {
+        seasonId: activeSeason.id,
+      },
+      OR: [
+        { homeTeamId: currentSeasonTeam.id },
+        { awayTeamId: currentSeasonTeam.id },
+      ],
+      status: "SCHEDULED",
+    },
+    include: {
+      homeTeam: {
         include: {
-          homeTeam: {
-            include: {
-              team: true,
-            },
-          },
-          awayTeam: {
-            include: {
-              team: true,
-            },
-          },
-          tournament: true,
+          team: true,
         },
-        orderBy: {
-          matchDate: "asc",
+      },
+      awayTeam: {
+        include: {
+          team: true,
         },
-        take: 5,
-      })
-    : []
+      },
+      tournament: true,
+    },
+    orderBy: {
+      matchDate: "asc",
+    },
+    take: 5,
+  })
 
   // Get recent transactions
-  const recentTransactions = currentSeasonTeam
-    ? await prisma.financial_ledger.findMany({
-        where: {
-          seasonTeamId: currentSeasonTeam.id,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: 5,
-      })
-    : []
+  const recentTransactions = await prisma.financial_ledger.findMany({
+    where: {
+      seasonTeamId: currentSeasonTeam.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 5,
+  })
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
@@ -129,12 +119,10 @@ export default async function TeamDashboardPage() {
               <p className="text-gray-400">Manager: {team.managerName}</p>
             </div>
           </div>
-          {activeSeason && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg">
-              <span className="text-[#E8A800] font-medium">Current Season:</span>
-              <span className="text-white">{activeSeason.name}</span>
-            </div>
-          )}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg">
+            <span className="text-[#E8A800] font-medium">Current Season:</span>
+            <span className="text-white">{activeSeason.name}</span>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -146,10 +134,10 @@ export default async function TeamDashboardPage() {
               <span className="text-2xl">💰</span>
             </div>
             <div className="text-3xl font-bold text-white">
-              ${currentSeasonTeam?.currentBudget.toLocaleString() || "0"}
+              ${currentSeasonTeam.currentBudget.toLocaleString()}
             </div>
             <div className="text-xs text-gray-400 mt-1">
-              Starting: ${activeSeason?.startingPurse.toLocaleString() || "0"}
+              Starting: ${activeSeason.startingPurse.toLocaleString()}
             </div>
           </div>
 
@@ -190,7 +178,7 @@ export default async function TeamDashboardPage() {
               <span className="text-2xl">🏆</span>
             </div>
             <div className="text-3xl font-bold text-white">
-              {currentSeasonTeam?.trophiesWon || 0}
+              {currentSeasonTeam.trophiesWon}
             </div>
             <div className="text-xs text-gray-400 mt-1">This season</div>
           </div>

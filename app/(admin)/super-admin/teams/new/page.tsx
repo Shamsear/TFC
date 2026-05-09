@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ImageKitUpload } from "@/components/upload/ImageKitUpload"
+import CredentialsDisplay from "@/components/ui/CredentialsDisplay"
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 // Icon Components
 const ArrowLeftIcon = () => (
@@ -24,15 +26,50 @@ const CheckIcon = () => (
   </svg>
 );
 
+interface Season {
+  id: string
+  name: string
+  isActive: boolean
+}
+
 export default function CreateTeamPage() {
   const router = useRouter()
+  const [seasons, setSeasons] = useState<Season[]>([])
   const [formData, setFormData] = useState({
     name: "",
     managerName: "",
-    logoUrl: ""
+    logoUrl: "",
+    seasonId: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [credentials, setCredentials] = useState<{
+    email: string
+    password: string
+    teamName: string
+  } | null>(null)
+
+  // Fetch seasons
+  useEffect(() => {
+    async function fetchSeasons() {
+      try {
+        const response = await fetch("/api/seasons")
+        if (response.ok) {
+          const data = await response.json()
+          setSeasons(data)
+          
+          // Set active season as default
+          const activeSeason = data.find((s: Season) => s.isActive)
+          if (activeSeason) {
+            setFormData(prev => ({ ...prev, seasonId: activeSeason.id }))
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch seasons:", err)
+      }
+    }
+    fetchSeasons()
+  }, [])
 
   const handleUploadSuccess = (url: string) => {
     setFormData(prev => ({ ...prev, logoUrl: url }))
@@ -68,18 +105,28 @@ export default function CreateTeamPage() {
         body: JSON.stringify(formData)
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create team")
+        throw new Error(data.error || "Failed to create team")
       }
 
-      router.push("/super-admin/teams")
-      router.refresh()
+      // Show credentials modal
+      setCredentials({
+        email: data.credentials.email,
+        password: data.credentials.password,
+        teamName: formData.name
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create team")
-    } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleCloseCredentials = () => {
+    setCredentials(null)
+    router.push("/super-admin/teams")
+    router.refresh()
   }
 
   return (
@@ -100,7 +147,7 @@ export default function CreateTeamPage() {
             </span>
           </h1>
           <p className="text-[#D4CCBB] text-sm sm:text-base">
-            Add a new team to the global registry
+            Add a new team and automatically create manager login credentials
           </p>
         </div>
 
@@ -128,6 +175,7 @@ export default function CreateTeamPage() {
                 className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
                 placeholder="Enter team name"
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -144,7 +192,32 @@ export default function CreateTeamPage() {
                 className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
                 placeholder="Enter manager name"
                 required
+                disabled={isSubmitting}
               />
+            </div>
+
+            {/* Season Selection */}
+            <div>
+              <label htmlFor="seasonId" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
+                Assign to Season
+              </label>
+              <select
+                id="seasonId"
+                value={formData.seasonId}
+                onChange={(e) => setFormData(prev => ({ ...prev, seasonId: e.target.value }))}
+                className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                disabled={isSubmitting}
+              >
+                <option value="">No season (assign later)</option>
+                {seasons.map((season) => (
+                  <option key={season.id} value={season.id}>
+                    {season.name} {season.isActive && "(Active)"}
+                  </option>
+                ))}
+              </select>
+              <p className="text-gray-400 text-xs mt-2">
+                Team manager will only see data for assigned seasons
+              </p>
             </div>
 
             {/* Logo Upload */}
@@ -179,6 +252,23 @@ export default function CreateTeamPage() {
               )}
             </div>
 
+            {/* Info Box */}
+            <div className="rounded-lg sm:rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-blue-400 font-medium text-sm">
+                    Automatic Credential Generation
+                  </p>
+                  <p className="text-blue-400/80 text-xs mt-1">
+                    Login credentials will be automatically generated and displayed after team creation. Make sure to save them!
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Preview Card */}
             {formData.name && formData.managerName && formData.logoUrl && (
               <div className="rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 p-4 sm:p-6">
@@ -209,9 +299,10 @@ export default function CreateTeamPage() {
             <button
               type="submit"
               disabled={isSubmitting || !formData.logoUrl}
-              className="flex-1 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-[#0a0a0a] px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50 text-sm sm:text-base"
+              className="flex-1 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-[#0a0a0a] px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50 text-sm sm:text-base flex items-center justify-center gap-2"
             >
-              {isSubmitting ? "Creating..." : "Create Team"}
+              {isSubmitting && <LoadingSpinner size="sm" />}
+              {isSubmitting ? "Creating..." : "Create Team & Generate Credentials"}
             </button>
             <Link
               href="/super-admin/teams"
@@ -222,6 +313,16 @@ export default function CreateTeamPage() {
           </div>
         </form>
       </div>
+
+      {/* Credentials Modal */}
+      {credentials && (
+        <CredentialsDisplay
+          email={credentials.email}
+          password={credentials.password}
+          teamName={credentials.teamName}
+          onClose={handleCloseCredentials}
+        />
+      )}
     </div>
   )
 }

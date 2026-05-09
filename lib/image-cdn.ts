@@ -6,8 +6,8 @@
 const GITHUB_REPO = 'https://raw.githubusercontent.com/Shamsear/TFC-Images/main';
 const CDN_BASE_URL = 'https://cdn.jsdelivr.net/gh/Shamsear/TFC-Images@main';
 
-// Use CDN for production, raw GitHub for development (faster updates)
-const USE_CDN = process.env.NODE_ENV === 'production';
+// Always use GitHub raw for now (CDN having issues)
+const USE_CDN = false;
 const BASE_URL = USE_CDN ? CDN_BASE_URL : GITHUB_REPO;
 
 /**

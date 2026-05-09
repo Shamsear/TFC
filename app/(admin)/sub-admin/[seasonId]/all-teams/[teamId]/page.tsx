@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
 import TeamDetailTabs from '@/components/team/TeamDetailTabs'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 interface TeamDetailPageProps {
   params: Promise<{

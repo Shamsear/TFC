@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 export async function GET(
   request: NextRequest,
@@ -37,7 +38,7 @@ export async function GET(
       return {
         id: transfer.id,
         playerName: transfer.basePlayer.name,
-        photoUrl: transfer.basePlayer.photoUrl,
+        photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.id}.webp`),
         position: playerStats?.position || 'N/A',
         realWorldClub: playerStats?.realWorldClub || 'N/A',
         overallRating: playerStats?.overallRating || 0,

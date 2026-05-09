@@ -38,7 +38,7 @@ export async function GET(
       return {
         id: transfer.id,
         playerName: transfer.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.id}.webp`),
+        photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
         position: playerStats?.position || 'N/A',
         realWorldClub: playerStats?.realWorldClub || 'N/A',
         overallRating: playerStats?.overallRating || 0,

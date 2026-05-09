@@ -60,7 +60,7 @@ async function getPlayersData() {
       return {
         id: stats.basePlayer.id,
         name: stats.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${stats.basePlayer.id}.webp`),
+        photoUrl: getPlayerPhotoUrl(`${stats.basePlayer.player_id || stats.basePlayer.id}.webp`),
         position: stats.position,
         nationality: stats.nationality || 'Unknown',
         realWorldClub: stats.realWorldClub,

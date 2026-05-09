@@ -66,7 +66,7 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     return {
       id: player.id,
       name: player.name,
-      photoUrl: getPlayerPhotoUrl(`${player.id}.webp`),
+      photoUrl: getPlayerPhotoUrl(`${player.player_id || player.id}.webp`),
       position: stats?.position || 'N/A',
       realWorldClub: stats?.realWorldClub || 'N/A',
       overallRating: stats?.overallRating || 0,

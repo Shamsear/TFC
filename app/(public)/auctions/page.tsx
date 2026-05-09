@@ -51,7 +51,7 @@ async function getAuctionsData() {
         id: result.basePlayer.id,
         playerId: result.basePlayer.id, // Using base player id as playerId
         name: result.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${result.basePlayer.id}.webp`),
+        photoUrl: getPlayerPhotoUrl(`${result.basePlayer.player_id || result.basePlayer.id}.webp`),
         position: result.basePlayer.seasonalPlayerStats[0]?.position || 'Unknown',
         overall: result.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
         nationality: result.basePlayer.seasonalPlayerStats[0]?.nationality || 'Unknown'

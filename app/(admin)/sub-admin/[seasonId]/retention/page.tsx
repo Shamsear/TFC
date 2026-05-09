@@ -120,7 +120,7 @@ export default async function RetentionModulePage({
       players: players.map(p => ({
         id: p.basePlayer.id,
         name: p.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${p.basePlayer.id}.webp`),
+        photoUrl: getPlayerPhotoUrl(`${p.basePlayer.player_id || p.basePlayer.id}.webp`),
         position: p.basePlayer.seasonalPlayerStats[0]?.position || "N/A",
         overallRating: p.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
         soldPrice: p.soldPrice

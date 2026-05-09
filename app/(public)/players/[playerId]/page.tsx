@@ -71,7 +71,7 @@ async function getPlayerData(playerId: string) {
     basePlayer: {
       id: playerData.id,
       name: playerData.name,
-      photoUrl: getPlayerPhotoUrl(`${playerData.id}.webp`),
+      photoUrl: getPlayerPhotoUrl(`${playerData.player_id || playerData.id}.webp`),
     },
     stats: {
       position: stats.position,

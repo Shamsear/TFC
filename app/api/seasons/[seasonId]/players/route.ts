@@ -42,7 +42,7 @@ export async function GET(
       .map(stat => ({
         id: stat.basePlayer.id,
         name: stat.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${stat.basePlayer.id}.webp`),
+        photoUrl: getPlayerPhotoUrl(`${stat.basePlayer.player_id || stat.basePlayer.id}.webp`),
         position: stat.position,
         realWorldClub: stat.realWorldClub,
         overallRating: stat.overallRating

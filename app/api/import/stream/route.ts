@@ -5,6 +5,7 @@ import { EFootballPlayer } from '@/lib/sqlite-parser';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes timeout for large imports
 
 interface ImportRequest {
   seasonId: string;
@@ -80,6 +81,8 @@ export async function POST(request: NextRequest) {
         const player = selectedPlayers[i];
 
         try {
+          console.log(`Processing player ${i + 1}/${selectedPlayers.length}: ${player.playerName}`);
+          
           // Send current player update
           controller.enqueue(
             encoder.encode(
@@ -126,7 +129,9 @@ export async function POST(request: NextRequest) {
                   updated,
                   skipped,
                   currentPlayer: player.playerName,
-                  errors
+                  errors,
+                  importedPlayers,
+                  updatedPlayers
                 })}\n\n`
               )
             );
@@ -349,7 +354,9 @@ export async function POST(request: NextRequest) {
               updated,
               skipped,
               currentPlayer: player.playerName,
-              errors
+              errors,
+              importedPlayers,
+              updatedPlayers
             })}\n\n`
           )
         );

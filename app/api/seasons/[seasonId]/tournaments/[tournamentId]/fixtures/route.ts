@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { generateMatchId } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -25,11 +26,14 @@ export async function POST(
     }
 
     // Create all fixtures in a transaction
-    const createdMatches = await prisma.$transaction(
-      fixtures.map((fixture: any, index: number) =>
-        prisma.matches.create({
+    const createdMatches = await prisma.$transaction(async (tx) => {
+      const matches = []
+      for (let index = 0; index < fixtures.length; index++) {
+        const fixture = fixtures[index]
+        const matchId = await generateMatchId()
+        const match = await tx.matches.create({
           data: {
-            id: `match-${Date.now()}-${index}`,
+            id: matchId,
             tournamentId,
             groupId: fixture.groupId || null,
             homeTeamId: fixture.homeTeamId,
@@ -42,8 +46,10 @@ export async function POST(
             updatedAt: new Date()
           }
         })
-      )
-    )
+        matches.push(match)
+      }
+      return matches
+    })
 
     // Create audit log
     const { seasonId } = await params

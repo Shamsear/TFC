@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import { config } from 'dotenv'
+import { generateUserId } from '../lib/id-generator'
 
 // Load environment variables
 config()
@@ -12,11 +13,12 @@ async function main() {
 
   // Create Super Admin user
   const superAdminPassword = await hash('superadmin123', 12)
+  const superAdminId = await generateUserId()
   const superAdmin = await prisma.users.upsert({
     where: { email: 'superadmin@turfcats.com' },
     update: {},
     create: {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: superAdminId,
       email: 'superadmin@turfcats.com',
       name: 'Super Admin',
       role: 'SUPER_ADMIN',
@@ -28,11 +30,12 @@ async function main() {
 
   // Create Sub Admin user
   const subAdminPassword = await hash('subadmin123', 12)
+  const subAdminId = await generateUserId()
   const subAdmin = await prisma.users.upsert({
     where: { email: 'subadmin@turfcats.com' },
     update: {},
     create: {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: subAdminId,
       email: 'subadmin@turfcats.com',
       name: 'Sub Admin',
       role: 'SUB_ADMIN',

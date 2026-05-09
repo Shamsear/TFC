@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { generateAuctionId, generateAuctionSlotId } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -36,9 +37,10 @@ export async function POST(
         }
 
         // Create auction calendar entry
+        const calendarId = await generateAuctionId()
         const calendar = await tx.auction_calendar.create({
           data: {
-            id: `calendar-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: calendarId,
             seasonId,
             auctionDate: new Date(auctionDate),
             description: description || null,
@@ -48,9 +50,10 @@ export async function POST(
 
         // Create position slots
         for (let i = 0; i < positions.length; i++) {
+          const slotId = await generateAuctionSlotId()
           await tx.auction_slots.create({
             data: {
-              id: `slot-${calendar.id}-${i}`,
+              id: slotId,
               auctionCalendarId: calendar.id,
               position: positions[i],
               slotOrder: i,

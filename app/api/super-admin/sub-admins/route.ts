@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createAuditLog } from '@/lib/audit'
+import { generateUserId } from '@/lib/id-generator'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -32,8 +33,8 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create sub-admin using Prisma
-    const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // Generate clean user ID
+    const userId = await generateUserId()
     
     const newUser = await prisma.users.create({
       data: {

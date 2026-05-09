@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { EFootballPlayer } from '@/lib/sqlite-parser';
+import { generatePlayerId, generatePlayerStatsId } from '@/lib/id-generator';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -158,9 +159,10 @@ export async function POST(request: NextRequest) {
               });
             } else {
               // Player doesn't exist, create new one
+              const newPlayerId = await generatePlayerId();
               basePlayer = await prisma.base_players.create({
                 data: {
-                  id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  id: newPlayerId,
                   player_id: player.playerId,
                   name: player.playerName,
                   photoUrl: `/players/${player.playerId}.webp`,
@@ -173,9 +175,10 @@ export async function POST(request: NextRequest) {
             }
           } else {
             // IMPORT MODE: Always create new player with unique ID
+            const newPlayerId = await generatePlayerId();
             basePlayer = await prisma.base_players.create({
               data: {
-                id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                id: newPlayerId,
                 player_id: player.playerId,
                 name: player.playerName,
                 photoUrl: `/players/${player.playerId}.webp`,
@@ -339,9 +342,10 @@ export async function POST(request: NextRequest) {
             }
           } else {
             // Create new seasonal stats
+            const statsId = await generatePlayerStatsId();
             await prisma.seasonal_player_stats.create({
               data: {
-                id: `stats-${seasonId}-${basePlayer.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                id: statsId,
                 basePlayerId: basePlayer.id,
                 seasonId: seasonId,
                 ...statsData

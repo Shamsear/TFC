@@ -54,14 +54,6 @@ async function getPlayerData(playerId: string, seasonId: string) {
     return null
   }
 
-  console.log('🔍 Database player data (sub-admin):', {
-    id: playerData.id,
-    player_id: playerData.player_id,
-    photoUrl: playerData.photoUrl,
-    name: playerData.name,
-    hasPlayerId: !!playerData.player_id
-  });
-
   const stats = playerData.seasonalPlayerStats[0]
   const currentSeasonTransfer = playerData.transferHistory.find(t => t.seasonId === seasonId)
 

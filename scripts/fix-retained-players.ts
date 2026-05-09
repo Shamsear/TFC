@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { generateTransferId } from '../lib/id-generator'
 
 const prisma = new PrismaClient()
 
@@ -56,9 +57,10 @@ async function fixRetainedPlayers() {
       }
 
       // Create transfer history for the new season
+      const transferId = await generateTransferId()
       await prisma.transfer_history.create({
         data: {
-          id: `transfer-${retention.seasonId}-${retention.basePlayerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: transferId,
           seasonId: retention.seasonId,
           basePlayerId: retention.basePlayerId,
           teamId: previousTransfer.teamId,

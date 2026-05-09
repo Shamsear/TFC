@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { generateAuditLogId } from './id-generator'
 
 export type AuditAction = 
   | 'CREATE_TOURNAMENT'
@@ -42,7 +43,7 @@ export interface AuditLogData {
  */
 export async function createAuditLog(data: AuditLogData) {
   try {
-    const id = `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const id = await generateAuditLogId()
     
     await prisma.$executeRaw`
       INSERT INTO audit_logs (

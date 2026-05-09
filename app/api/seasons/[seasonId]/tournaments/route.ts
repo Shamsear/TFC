@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { generateTournamentId, generateGroupId, generateStandingId } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -39,10 +40,13 @@ export async function POST(
 
     // Create tournament with groups and standings
     const tournament = await prisma.$transaction(async (tx) => {
+      // Generate clean tournament ID
+      const tournamentId = await generateTournamentId();
+      
       // Create the tournament with advanced configuration
       const newTournament = await tx.tournaments.create({
         data: {
-          id: `tournament-${Date.now()}`,
+          id: tournamentId,
           seasonId,
           name,
           tournamentType,
@@ -78,9 +82,10 @@ export async function POST(
         const groupCount = numGroups || 2
         
         for (let i = 0; i < groupCount; i++) {
+          const groupId = await generateGroupId();
           await tx.groups.create({
             data: {
-              id: `group-${newTournament.id}-${i}`,
+              id: groupId,
               tournamentId: newTournament.id,
               name: `Group ${groupNames[i]}`,
               groupOrder: i,
@@ -92,9 +97,10 @@ export async function POST(
 
       // Create standings for selected teams
       for (const teamId of selectedTeams) {
+        const standingId = await generateStandingId();
         await tx.standings.create({
           data: {
-            id: `standing-${newTournament.id}-${teamId}`,
+            id: standingId,
             tournamentId: newTournament.id,
             teamId,
             updatedAt: new Date()

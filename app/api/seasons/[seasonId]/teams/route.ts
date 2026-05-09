@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { generateSeasonTeamId, generateLedgerId } from '@/lib/id-generator'
 
 export async function GET(
   request: NextRequest,
@@ -92,7 +93,7 @@ export async function POST(
 
       // Add new teams and create ledger entries
       for (const teamId of teamsToAdd) {
-        const seasonTeamId = `st-${seasonId}-${teamId}-${Date.now()}`
+        const seasonTeamId = await generateSeasonTeamId()
         
         // Create season team
         await tx.season_teams.create({
@@ -107,9 +108,10 @@ export async function POST(
         })
 
         // Create initial financial ledger entry
+        const ledgerId = await generateLedgerId()
         await tx.financial_ledger.create({
           data: {
-            id: `ledger-${seasonTeamId}-${Date.now()}`,
+            id: ledgerId,
             seasonTeamId: seasonTeamId,
             seasonId,
             transactionType: 'INITIAL_PURSE',

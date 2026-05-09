@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
+import { generateRetentionId, generateTransferId, generateSeasonTeamId, generateFinancialId } from "@/lib/id-generator"
 
 /**
  * POST /api/seasons/[seasonId]/retention
@@ -194,9 +195,10 @@ export async function POST(
       
       for (const retention of retentions) {
         // Create retention record
+        const retentionId = await generateRetentionId()
         const retentionRecord = await tx.retentions.create({
           data: {
-            id: `retention-${seasonId}-${retention.basePlayerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: retentionId,
             seasonId,
             basePlayerId: retention.basePlayerId,
             retainedFromSeasonId: previousSeasonId
@@ -219,9 +221,10 @@ export async function POST(
         })
         
         // Create transfer history for the new season (retained at same price)
+        const transferId = await generateTransferId();
         await tx.transfer_history.create({
           data: {
-            id: `transfer-${seasonId}-${retention.basePlayerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: transferId,
             seasonId,
             basePlayerId: retention.basePlayerId,
             teamId: retention.teamId,

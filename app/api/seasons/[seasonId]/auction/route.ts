@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
+import { generateTransferId, generateSeasonTeamId, generateFinancialId } from "@/lib/id-generator"
 
 interface AuctionRequestBody {
   teamId: string
@@ -140,7 +141,7 @@ export async function POST(
       })
 
       // 7. Create transfer history record
-      const transferId = `transfer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const transferId = await generateTransferId();
       const transfer = await tx.transfer_history.create({
         data: {
           id: transferId,
@@ -152,9 +153,10 @@ export async function POST(
       })
 
       // 8. Create financial ledger entry
+      const ledgerId = await generateFinancialId();
       const ledgerEntry = await tx.financial_ledger.create({
         data: {
-          id: `ledger-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: ledgerId,
           seasonTeamId: seasonTeam.id,
           seasonId,
           transactionType: "PLAYER_PURCHASE",

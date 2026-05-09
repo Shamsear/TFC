@@ -5,6 +5,7 @@
 
 import { prisma } from './prisma';
 import { parseDBFile, DBPlayerRecord } from './db-parser';
+import { generatePlayerId, generateStatsId } from './id-generator';
 
 export interface ImportSummary {
   newPlayers: number;
@@ -94,9 +95,10 @@ export async function importSeasonData(
 
       if (!basePlayer) {
         // Create new base player
+        const playerId = await generatePlayerId()
         basePlayer = await prisma.base_players.create({
           data: {
-            id: `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: playerId,
             name: record.name,
             photoUrl: record.photoUrl || '/default-player.png',
             updatedAt: new Date()
@@ -138,9 +140,10 @@ export async function importSeasonData(
           summary.updatedStats++;
         } else {
           // Create new seasonal stats
+          const statsId = await generateStatsId()
           await prisma.seasonal_player_stats.create({
             data: {
-              id: `stats-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              id: statsId,
               basePlayerId: basePlayer.id,
               seasonId: seasonId,
               position: record.position,

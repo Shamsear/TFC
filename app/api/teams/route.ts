@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
+import { generateTeamId } from "@/lib/id-generator"
 
 /**
  * GET /api/teams
@@ -95,8 +96,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create team
-    const teamId = `team-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // Generate clean team ID
+    const teamId = await generateTeamId()
     const team = await prisma.teams.create({
       data: {
         id: teamId,

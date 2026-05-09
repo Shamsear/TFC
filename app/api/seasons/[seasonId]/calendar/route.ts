@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { generateAuctionId, generateAuctionSlotId } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -33,7 +34,7 @@ export async function POST(
       return NextResponse.json({ error: 'Season not found' }, { status: 404 })
     }
 
-    const calendarId = `cal-${Date.now()}`
+    const calendarId = await generateAuctionId()
 
     // Create auction calendar with slots
     const calendar = await prisma.$executeRaw`
@@ -53,11 +54,12 @@ export async function POST(
 
     // Create slots
     for (let i = 0; i < positions.length; i++) {
+      const slotId = await generateAuctionSlotId()
       await prisma.$executeRaw`
         INSERT INTO auction_slots (
           id, auction_calendar_id, position, slot_order, updated_at
         ) VALUES (
-          ${`slot-${calendarId}-${i}`},
+          ${slotId},
           ${calendarId},
           ${positions[i]},
           ${i},

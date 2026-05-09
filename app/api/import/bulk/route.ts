@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { EFootballPlayer } from '@/lib/sqlite-parser';
+import { generatePlayerId, generatePlayerStatsId } from '@/lib/id-generator';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -105,9 +106,10 @@ export async function POST(request: NextRequest) {
             // In bulk mode, always create a new base player with unique ID
             // even if another player with the same name exists
             // Store player_id for future update mode matching
+            const newPlayerId = await generatePlayerId();
             let basePlayer = await prisma.base_players.create({
               data: {
-                id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                id: newPlayerId,
                 player_id: player.playerId,
                 name: player.playerName,
                 photoUrl: `/players/${player.playerId}.webp`,
@@ -265,9 +267,10 @@ export async function POST(request: NextRequest) {
               });
             } else {
               // Create new seasonal stats for this player
+              const statsId = await generatePlayerStatsId();
               await prisma.seasonal_player_stats.create({
                 data: {
-                  id: `stats-${seasonId}-${basePlayer.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  id: statsId,
                   basePlayerId: basePlayer.id,
                   seasonId: seasonId,
                   ...statsData

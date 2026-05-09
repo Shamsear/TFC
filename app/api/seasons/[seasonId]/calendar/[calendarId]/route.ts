@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createAuditLog } from '@/lib/audit'
+import { generateAuctionSlotId } from '@/lib/id-generator'
 
 export async function GET(
   request: NextRequest,
@@ -81,15 +82,18 @@ export async function PATCH(
 
       // Create new slots
       if (positions && positions.length > 0) {
-        await tx.auction_slots.createMany({
-          data: positions.map((position: string, index: number) => ({
-            id: `slot-${calendarId}-${Date.now()}-${index}`,
-            auctionCalendarId: calendarId,
-            position,
-            slotOrder: index,
-            updatedAt: new Date()
-          }))
-        })
+        for (let index = 0; index < positions.length; index++) {
+          const slotId = await generateAuctionSlotId()
+          await tx.auction_slots.create({
+            data: {
+              id: slotId,
+              auctionCalendarId: calendarId,
+              position: positions[index],
+              slotOrder: index,
+              updatedAt: new Date()
+            }
+          })
+        }
       }
 
       return calendar

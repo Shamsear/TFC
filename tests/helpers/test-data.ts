@@ -1,6 +1,17 @@
 import { prisma } from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import type { UserRole } from '@prisma/client'
+import {
+  generateUserId,
+  generateTeamId,
+  generateSeasonId,
+  generatePlayerId,
+  generateStatsId,
+  generateSeasonTeamId,
+  generateTransferId,
+  generateLedgerId,
+  generateRetentionId
+} from '@/lib/id-generator'
 
 /**
  * Reset the test database by deleting all records in the correct order
@@ -29,10 +40,11 @@ export async function createTestUser(data?: {
   password?: string
 }) {
   const passwordHash = await hash(data?.password || 'password123', 10)
+  const userId = await generateUserId()
   
   return prisma.users.create({
     data: {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: userId,
       email: data?.email || `test-${Date.now()}@example.com`,
       name: data?.name || 'Test User',
       role: data?.role || 'SUB_ADMIN',
@@ -50,9 +62,10 @@ export async function createTestTeam(data?: {
   managerName?: string
   logoUrl?: string
 }) {
+  const teamId = await generateTeamId()
   return prisma.teams.create({
     data: {
-      id: `team-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: teamId,
       name: data?.name || `Test Team ${Date.now()}`,
       managerName: data?.managerName || 'Test Manager',
       logoUrl: data?.logoUrl || 'https://ik.imagekit.io/test/logo.png',
@@ -69,9 +82,10 @@ export async function createTestSeason(data?: {
   startingPurse?: number
   isActive?: boolean
 }) {
+  const seasonId = await generateSeasonId()
   return prisma.seasons.create({
     data: {
-      id: `season-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: seasonId,
       name: data?.name || `Season ${Date.now()}`,
       startingPurse: data?.startingPurse || 100000,
       isActive: data?.isActive ?? false,
@@ -87,9 +101,10 @@ export async function createTestPlayer(data?: {
   name?: string
   photoUrl?: string
 }) {
+  const playerId = await generatePlayerId()
   return prisma.base_players.create({
     data: {
-      id: `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: playerId,
       name: data?.name || `Test Player ${Date.now()}`,
       photoUrl: data?.photoUrl || 'https://ik.imagekit.io/test/player.png',
       updatedAt: new Date()
@@ -109,9 +124,10 @@ export async function createTestSeasonalStats(
     overallRating?: number
   }
 ) {
+  const statsId = await generateStatsId()
   return prisma.seasonal_player_stats.create({
     data: {
-      id: `stats-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: statsId,
       basePlayerId,
       seasonId,
       position: data?.position || 'CMF',
@@ -135,10 +151,11 @@ export async function createTestSeasonTeam(
   }
 ) {
   const season = await prisma.seasons.findUnique({ where: { id: seasonId } })
+  const seasonTeamId = await generateSeasonTeamId()
   
   return prisma.season_teams.create({
     data: {
-      id: `season-team-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: seasonTeamId,
       seasonId,
       teamId,
       currentBudget: data?.currentBudget ?? season?.startingPurse ?? 100000,
@@ -158,9 +175,10 @@ export async function createTestTransfer(
   teamId: string,
   soldPrice: number
 ) {
+  const transferId = await generateTransferId()
   return prisma.transfer_history.create({
     data: {
-      id: `transfer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: transferId,
       basePlayerId,
       seasonId,
       teamId,
@@ -183,9 +201,10 @@ export async function createTestLedgerEntry(
     description?: string
   }
 ) {
+  const ledgerId = await generateLedgerId()
   return prisma.financial_ledger.create({
     data: {
-      id: `ledger-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: ledgerId,
       seasonTeamId,
       seasonId,
       transactionType: data.transactionType,
@@ -205,9 +224,10 @@ export async function createTestRetention(
   basePlayerId: string,
   retainedFromSeasonId: string
 ) {
+  const retentionId = await generateRetentionId()
   return prisma.retentions.create({
     data: {
-      id: `retention-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: retentionId,
       seasonId,
       basePlayerId,
       retainedFromSeasonId,

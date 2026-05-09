@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
+import { generateSeasonId } from "@/lib/id-generator"
 
 /**
  * GET /api/seasons
@@ -95,8 +96,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create season
-    const seasonId = `season-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // Generate clean season ID
+    const seasonId = await generateSeasonId()
     const season = await prisma.seasons.create({
       data: {
         id: seasonId,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { EFootballPlayer } from '@/lib/sqlite-parser';
+import { generatePlayerId, generatePlayerStatsId } from '@/lib/id-generator';
 
 export interface ConfirmRequest {
   seasonId: string;
@@ -73,9 +74,11 @@ export async function POST(request: NextRequest) {
         // For 'add' or 'add-all' resolution, always create a new base player entry
         if (resolution === 'add' || resolution === 'add-all') {
           // Create new base player with unique ID
+          const newPlayerId = await generatePlayerId();
           basePlayer = await prisma.base_players.create({
             data: {
-              id: `player-${player.playerId}-${Date.now()}`,
+              id: newPlayerId,
+              player_id: player.playerId,
               name: player.playerName,
               photoUrl: `/players/${player.playerId}.webp`,
               updatedAt: new Date()
@@ -84,9 +87,11 @@ export async function POST(request: NextRequest) {
           imported++;
         } else if (!basePlayer) {
           // Create new base player
+          const newPlayerId = await generatePlayerId();
           basePlayer = await prisma.base_players.create({
             data: {
-              id: `player-${player.playerId}`,
+              id: newPlayerId,
+              player_id: player.playerId,
               name: player.playerName,
               photoUrl: `/players/${player.playerId}.webp`,
               updatedAt: new Date()
@@ -170,15 +175,16 @@ export async function POST(request: NextRequest) {
           updated++;
         } else {
           // Create new seasonal stats
+          const statsId = await generatePlayerStatsId();
           await prisma.seasonal_player_stats.create({
             data: {
-              id: `stats-${seasonId}-${basePlayer.id}-${Date.now()}`,
+              id: statsId,
               basePlayerId: basePlayer.id,
               seasonId: seasonId,
               ...statsData
             }
           });
-          if (basePlayer.id.startsWith('player-')) {
+          if (basePlayer.id.startsWith('TFCP-')) {
             // Already counted in imported
           } else {
             imported++;

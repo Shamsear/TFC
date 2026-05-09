@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { generateKnockoutRoundId, generateKnockoutPairingId } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -54,9 +55,10 @@ export async function POST(
     // Create knockout round with pairings
     const knockoutRound = await prisma.$transaction(async (tx) => {
       // Create the round
+      const roundId = await generateKnockoutRoundId()
       const round = await tx.knockout_rounds.create({
         data: {
-          id: `knockout-${tournamentId}-${roundName}-${Date.now()}`,
+          id: roundId,
           tournamentId,
           roundName,
           roundOrder,
@@ -73,9 +75,10 @@ export async function POST(
       if (autoPair) {
         // Automatic pairing: 1 vs last, 2 vs second-last, etc.
         for (let i = 0; i < numPairings; i++) {
+          const pairingId = await generateKnockoutPairingId()
           await tx.knockout_pairings.create({
             data: {
-              id: `pairing-${round.id}-${i}`,
+              id: pairingId,
               knockoutRoundId: round.id,
               team1Id: sortedTeams[i],
               team2Id: sortedTeams[sortedTeams.length - 1 - i],
@@ -86,9 +89,10 @@ export async function POST(
       } else {
         // Manual pairing: create empty pairings to be filled later
         for (let i = 0; i < numPairings; i++) {
+          const pairingId = await generateKnockoutPairingId()
           await tx.knockout_pairings.create({
             data: {
-              id: `pairing-${round.id}-${i}`,
+              id: pairingId,
               knockoutRoundId: round.id,
               team1Id: sortedTeams[i * 2],
               team2Id: sortedTeams[i * 2 + 1],

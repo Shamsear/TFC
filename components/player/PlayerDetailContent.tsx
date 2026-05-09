@@ -93,13 +93,6 @@ export default function PlayerDetailContent({
 
   // Extract player ID from base player - use player_id if available, otherwise extract from id
   const playerCardId = basePlayer.player_id || basePlayer.id.replace('player-', '').split('-')[0]
-  
-  console.log('🎴 PlayerDetailContent - Card ID:', {
-    basePlayerId: basePlayer.id,
-    basePlayerPlayerId: basePlayer.player_id,
-    extractedPlayerCardId: playerCardId,
-    basePlayerName: basePlayer.name
-  });
 
   const handleDownloadCard = async () => {
     try {

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 interface TransfersPageProps {
   params: Promise<{

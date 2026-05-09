@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import RetentionModule from "@/components/retention/RetentionModule"
+import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 
 export default async function RetentionModulePage({
   params,
@@ -119,7 +120,7 @@ export default async function RetentionModulePage({
       players: players.map(p => ({
         id: p.basePlayer.id,
         name: p.basePlayer.name,
-        photoUrl: p.basePlayer.photoUrl,
+        photoUrl: getPlayerPhotoUrl(`${p.basePlayer.id}.webp`),
         position: p.basePlayer.seasonalPlayerStats[0]?.position || "N/A",
         overallRating: p.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
         soldPrice: p.soldPrice

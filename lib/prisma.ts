@@ -11,13 +11,26 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
       url: process.env.DATABASE_URL,
     },
   },
+  // Add connection pool settings for Neon
+  // @ts-ignore - These options are valid but not in types
+  __internal: {
+    engine: {
+      connection_limit: 10,
+      pool_timeout: 10,
+    },
+  },
 });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-// Ensure connection is established
+// Handle connection errors gracefully
 prisma.$connect().catch((err) => {
   console.error("Failed to connect to database:", err);
+});
+
+// Handle disconnection on process exit
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
 });

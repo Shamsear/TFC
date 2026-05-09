@@ -9,7 +9,7 @@ import {
   generateStatsId,
   generateSeasonTeamId,
   generateTransferId,
-  generateLedgerId,
+  generateFinancialId,
   generateRetentionId
 } from '@/lib/id-generator'
 
@@ -201,7 +201,7 @@ export async function createTestLedgerEntry(
     description?: string
   }
 ) {
-  const ledgerId = await generateLedgerId()
+  const ledgerId = await generateFinancialId()
   return prisma.financial_ledger.create({
     data: {
       id: ledgerId,

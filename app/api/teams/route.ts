@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
-import { generateTeamId, generateUserId } from "@/lib/id-generator"
+import { generateTeamId, generateUserId, generateSeasonTeamId } from "@/lib/id-generator"
 import { generatePassword, generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator"
 import { hash } from "bcryptjs"
 
@@ -145,6 +145,20 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date()
         }
       })
+
+      // Create season_teams record if season is provided
+      if (season) {
+        const seasonTeamId = await generateSeasonTeamId()
+        await tx.season_teams.create({
+          data: {
+            id: seasonTeamId,
+            seasonId: season.id,
+            teamId: team.id,
+            currentBudget: season.startingPurse,
+            trophiesWon: 0
+          }
+        })
+      }
 
       // Create user (team manager)
       const user = await tx.users.create({

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
-import { generateTransferId, generateLedgerId } from '@/lib/id-generator'
+import { generateTransferId, generateFinancialId } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -101,7 +101,7 @@ export async function POST(
       })
 
       // Create financial ledger entry
-      const ledgerId = await generateLedgerId()
+      const ledgerId = await generateFinancialId()
       await tx.financial_ledger.create({
         data: {
           id: ledgerId,

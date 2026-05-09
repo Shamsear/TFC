@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
-import { generateSeasonTeamId, generateLedgerId } from '@/lib/id-generator'
+import { generateSeasonTeamId, generateFinancialId } from '@/lib/id-generator'
 
 export async function GET(
   request: NextRequest,
@@ -79,50 +79,62 @@ export async function POST(
     const teamsToAdd = teamIds.filter((id: string) => !existingTeamIds.includes(id))
     const teamsToRemove = existingTeamIds.filter(id => !teamIds.includes(id))
 
+    // Generate IDs outside transaction
+    const newSeasonTeams = await Promise.all(
+      teamsToAdd.map(async (teamId) => ({
+        id: await generateSeasonTeamId(),
+        teamId,
+        ledgerId: await generateFinancialId()
+      }))
+    )
+
     // Use transaction to add and remove teams
-    await prisma.$transaction(async (tx) => {
-      // Remove teams
-      if (teamsToRemove.length > 0) {
-        await tx.season_teams.deleteMany({
-          where: {
-            seasonId,
-            teamId: { in: teamsToRemove }
-          }
-        })
-      }
+    await prisma.$transaction(
+      async (tx) => {
+        // Remove teams
+        if (teamsToRemove.length > 0) {
+          await tx.season_teams.deleteMany({
+            where: {
+              seasonId,
+              teamId: { in: teamsToRemove }
+            }
+          })
+        }
 
-      // Add new teams and create ledger entries
-      for (const teamId of teamsToAdd) {
-        const seasonTeamId = await generateSeasonTeamId()
-        
-        // Create season team
-        await tx.season_teams.create({
-          data: {
-            id: seasonTeamId,
-            seasonId,
-            teamId,
-            currentBudget: season.startingPurse,
-            finalBudget: null,
-            updatedAt: new Date()
-          }
-        })
+        // Add new teams and create ledger entries
+        for (const { id: seasonTeamId, teamId, ledgerId } of newSeasonTeams) {
+          // Create season team
+          await tx.season_teams.create({
+            data: {
+              id: seasonTeamId,
+              seasonId,
+              teamId,
+              currentBudget: season.startingPurse,
+              finalBudget: null,
+              updatedAt: new Date()
+            }
+          })
 
-        // Create initial financial ledger entry
-        const ledgerId = await generateLedgerId()
-        await tx.financial_ledger.create({
-          data: {
-            id: ledgerId,
-            seasonTeamId: seasonTeamId,
-            seasonId,
-            transactionType: 'INITIAL_PURSE',
-            amount: season.startingPurse,
-            previousBalance: 0,
-            newBalance: season.startingPurse,
+          // Create initial financial ledger entry
+          await tx.financial_ledger.create({
+            data: {
+              id: ledgerId,
+              seasonTeamId: seasonTeamId,
+              seasonId,
+              transactionType: 'INITIAL_PURSE',
+              amount: season.startingPurse,
+              previousBalance: 0,
+              newBalance: season.startingPurse,
             description: 'Initial season purse'
           }
         })
       }
-    })
+    },
+    {
+      maxWait: 10000, // 10 seconds max wait
+      timeout: 30000, // 30 seconds timeout
+    }
+  )
 
     // Create audit log
     await createAuditLog({

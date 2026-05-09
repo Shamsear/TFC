@@ -5,7 +5,7 @@
 
 import { prisma } from './prisma';
 import { parseDBFile, DBPlayerRecord } from './db-parser';
-import { generatePlayerId, generateStatsId } from './id-generator';
+import { generatePlayerId, generatePlayerStatsId } from './id-generator';
 
 export interface ImportSummary {
   newPlayers: number;
@@ -140,7 +140,7 @@ export async function importSeasonData(
           summary.updatedStats++;
         } else {
           // Create new seasonal stats
-          const statsId = await generateStatsId()
+          const statsId = await generatePlayerStatsId()
           await prisma.seasonal_player_stats.create({
             data: {
               id: statsId,

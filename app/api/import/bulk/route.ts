@@ -104,9 +104,11 @@ export async function POST(request: NextRequest) {
             // Find or create base player
             // In bulk mode, always create a new base player with unique ID
             // even if another player with the same name exists
+            // Store player_id for future update mode matching
             let basePlayer = await prisma.base_players.create({
               data: {
                 id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                player_id: player.playerId,
                 name: player.playerName,
                 photoUrl: `/players/${player.playerId}.webp`,
                 updatedAt: new Date()

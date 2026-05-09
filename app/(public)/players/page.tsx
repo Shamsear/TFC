@@ -2,6 +2,7 @@ import PublicHeader from '@/components/layout/PublicHeader'
 import PublicFooter from '@/components/layout/PublicFooter'
 import PlayersSearchClient from '@/components/players/PlayersSearchClient'
 import { prisma } from '@/lib/prisma'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 async function getPlayersData() {
   try {
@@ -59,7 +60,7 @@ async function getPlayersData() {
       return {
         id: stats.basePlayer.id,
         name: stats.basePlayer.name,
-        photoUrl: stats.basePlayer.photoUrl,
+        photoUrl: getPlayerPhotoUrl(`${stats.basePlayer.id}.webp`),
         position: stats.position,
         nationality: stats.nationality || 'Unknown',
         realWorldClub: stats.realWorldClub,

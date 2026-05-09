@@ -159,7 +159,7 @@ export default async function TransfersPage({ params }: TransfersPageProps) {
                   <div className="flex items-center gap-3 sm:gap-4 flex-1">
                     <div className="relative w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-lg sm:rounded-xl overflow-hidden bg-gray-800 flex-shrink-0 ring-2 ring-white/10">
                       <Image
-                        src={transfer.basePlayer.photoUrl}
+                        src={getPlayerPhotoUrl(`${transfer.basePlayer.id}.webp`)}
                         alt={transfer.basePlayer.name}
                         fill
                         className="object-cover"

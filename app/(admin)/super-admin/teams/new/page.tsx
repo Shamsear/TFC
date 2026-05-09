@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ImageKitUpload } from "@/components/upload/ImageKitUpload"
-import CredentialsDisplay from "@/components/ui/CredentialsDisplay"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 // Icon Components
@@ -127,12 +126,6 @@ export default function CreateTeamPage() {
     }
   }
 
-  const handleCloseCredentials = () => {
-    setCredentials(null)
-    router.push("/super-admin/teams")
-    router.refresh()
-  }
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white px-4 sm:px-6 lg:px-8 pb-8">
       <div className="max-w-4xl mx-auto">
@@ -165,7 +158,96 @@ export default function CreateTeamPage() {
             </div>
           )}
 
-          <div className="space-y-4 sm:space-y-6">
+          {success && credentials && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg sm:rounded-xl mb-6 overflow-hidden">
+              {/* Success Header */}
+              <div className="bg-green-500/20 px-4 py-3 border-b border-green-500/30">
+                <div className="flex items-center gap-2">
+                  <CheckIcon />
+                  <span className="text-green-400 font-bold">Team Created Successfully!</span>
+                </div>
+              </div>
+
+              {/* Credentials Display */}
+              <div className="p-4 space-y-4">
+                <p className="text-gray-300 text-sm">
+                  Team <span className="font-bold text-white">{credentials.teamName}</span> has been created. Here are the login credentials:
+                </p>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Email</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={credentials.email}
+                      readOnly
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(credentials.email)}
+                      className="px-3 py-2 bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] rounded-lg hover:bg-[#E8A800]/30 transition-all text-sm"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Password</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={credentials.password}
+                      readOnly
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(credentials.password)}
+                      className="px-3 py-2 bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] rounded-lg hover:bg-[#E8A800]/30 transition-all text-sm"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Warning */}
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                  <p className="text-yellow-400 text-xs">
+                    ⚠️ Save these credentials! They won't be shown again.
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  <Link
+                    href="/super-admin/teams"
+                    className="flex-1 px-4 py-2 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-all text-center text-sm"
+                  >
+                    View All Teams
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSuccess(false)
+                      setCredentials(null)
+                      setFormData({ name: "", managerName: "", logoUrl: "", seasonId: "" })
+                    }}
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg font-bold transition-all text-sm"
+                  >
+                    Create Another Team
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!success && (
+            <>
+              <div className="space-y-4 sm:space-y-6">
             {/* Team Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
@@ -315,18 +397,10 @@ export default function CreateTeamPage() {
               Cancel
             </Link>
           </div>
+            </>
+          )}
         </form>
       </div>
-
-      {/* Credentials Modal */}
-      {credentials && (
-        <CredentialsDisplay
-          email={credentials.email}
-          password={credentials.password}
-          teamName={credentials.teamName}
-          onClose={handleCloseCredentials}
-        />
-      )}
     </div>
   )
 }

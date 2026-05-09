@@ -106,23 +106,18 @@ export async function POST(request: NextRequest) {
             );
 
             // Find or create base player
-            let basePlayer = await prisma.base_players.findFirst({
-              where: { name: player.playerName }
+            // In bulk mode, always create a new base player with unique ID
+            // even if another player with the same name exists
+            let basePlayer = await prisma.base_players.create({
+              data: {
+                id: `player-${player.playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name: player.playerName,
+                photoUrl: `/players/${player.playerId}.webp`,
+                updatedAt: new Date()
+              }
             });
-
-            if (!basePlayer) {
-              // Create new base player
-              basePlayer = await prisma.base_players.create({
-                data: {
-                  id: `player-${player.playerId}-${Date.now()}`,
-                  name: player.playerName,
-                  photoUrl: `/players/${player.playerId}.webp`,
-                  updatedAt: new Date()
-                }
-              });
-              imported++;
-              importedPlayers.push(player.playerName);
-            }
+            imported++;
+            importedPlayers.push(player.playerName);
 
             // Check if seasonal stats exist
             const existingStats = await prisma.seasonal_player_stats.findUnique({
@@ -264,7 +259,8 @@ export async function POST(request: NextRequest) {
             };
 
             if (existingStats) {
-              // Update existing stats
+              // This shouldn't happen in bulk mode since we always create new base players
+              // But handle it just in case
               await prisma.seasonal_player_stats.update({
                 where: { id: existingStats.id },
                 data: statsData
@@ -272,22 +268,16 @@ export async function POST(request: NextRequest) {
               updated++;
               updatedPlayers.push(player.playerName);
             } else {
-              // Create new stats
+              // Create new seasonal stats for this player
               await prisma.seasonal_player_stats.create({
                 data: {
-                  id: `stats-${seasonId}-${basePlayer.id}-${Date.now()}`,
+                  id: `stats-${seasonId}-${basePlayer.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                   basePlayerId: basePlayer.id,
                   seasonId: seasonId,
                   ...statsData
                 }
               });
-              // Only count as imported if we didn't already count the base player
-              if (basePlayer.id.startsWith('player-')) {
-                // Already counted above
-              } else {
-                imported++;
-                importedPlayers.push(player.playerName);
-              }
+              // Already counted as imported when we created the base player
             }
           } catch (error) {
             console.error(`Error processing player ${player.playerName}:`, error);

@@ -81,7 +81,7 @@ async function getTeamData(teamId: string, seasonId: string) {
     acc[position].push({
       id: transfer.basePlayer.id,
       name: transfer.basePlayer.name,
-      photoUrl: transfer.basePlayer.photoUrl,
+      photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
       position,
       overallRating: transfer.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
       realWorldClub: transfer.basePlayer.seasonalPlayerStats[0]?.realWorldClub || 'N/A',

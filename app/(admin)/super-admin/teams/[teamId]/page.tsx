@@ -276,7 +276,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                         {transfer.basePlayer.id && (
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
                             <Image
-                              src={getPlayerPhotoUrl(`${transfer.basePlayer.id}.webp`)}
+                              src={getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`)}
                               alt={transfer.basePlayer.name}
                               fill
                               className="object-cover"

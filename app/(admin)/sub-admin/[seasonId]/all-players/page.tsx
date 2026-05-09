@@ -7,15 +7,19 @@ interface AllPlayersPageProps {
   params: Promise<{
     seasonId: string
   }>
+  searchParams: Promise<{
+    page?: string
+  }>
 }
 
-export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
+export default async function AllPlayersPage({ params, searchParams }: AllPlayersPageProps) {
   const session = await auth()
   if (!session?.user) {
     redirect('/auth/signin')
   }
 
   const { seasonId } = await params
+  const { page: pageParam } = await searchParams
 
   const season = await prisma.seasons.findUnique({
     where: { id: seasonId }
@@ -25,7 +29,15 @@ export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
     notFound()
   }
 
-  // Get all base players with their seasonal stats and transfer history
+  // Pagination setup
+  const ITEMS_PER_PAGE = 24
+  const currentPage = Math.max(1, parseInt(pageParam || '1', 10))
+  const skip = (currentPage - 1) * ITEMS_PER_PAGE
+
+  // Get total count for pagination
+  const totalPlayers = await prisma.base_players.count()
+
+  // Get paginated base players with their seasonal stats and transfer history
   const allPlayers = await prisma.base_players.findMany({
     include: {
       seasonalPlayerStats: {
@@ -40,7 +52,9 @@ export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
     },
     orderBy: {
       name: 'asc'
-    }
+    },
+    skip,
+    take: ITEMS_PER_PAGE
   })
 
   // Transform data for client component
@@ -65,10 +79,18 @@ export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
     }
   })
 
-  // Get stats
-  const totalPlayers = playersData.length
-  const soldPlayers = playersData.filter(p => p.status === 'SOLD').length
-  const availablePlayers = playersData.filter(p => p.status === 'AVAILABLE').length
+  // Get stats for all players (not just current page)
+  const allPlayersForStats = await prisma.base_players.findMany({
+    include: {
+      transferHistory: {
+        where: { seasonId }
+      }
+    }
+  })
+
+  const soldPlayers = allPlayersForStats.filter(p => p.transferHistory.length > 0).length
+  const availablePlayers = allPlayersForStats.filter(p => p.transferHistory.length === 0).length
+  const totalPages = Math.ceil(totalPlayers / ITEMS_PER_PAGE)
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -108,7 +130,13 @@ export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
         </div>
 
         {/* Players List */}
-        <AllPlayersClient players={playersData} seasonId={seasonId} />
+        <AllPlayersClient 
+          players={playersData} 
+          seasonId={seasonId}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalPlayers={totalPlayers}
+        />
       </div>
     </div>
   )

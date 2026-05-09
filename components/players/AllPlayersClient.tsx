@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface Player {
   id: string
@@ -23,6 +24,9 @@ interface Player {
 interface AllPlayersClientProps {
   players: Player[]
   seasonId?: string
+  currentPage: number
+  totalPages: number
+  totalPlayers: number
 }
 
 // Icon Components
@@ -38,11 +42,31 @@ const FilterIcon = () => (
   </svg>
 );
 
-export default function AllPlayersClient({ players, seasonId }: AllPlayersClientProps) {
+const ChevronLeftIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+export default function AllPlayersClient({ players, seasonId, currentPage, totalPages, totalPlayers }: AllPlayersClientProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price'>('name')
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    router.push(`?${params.toString()}`)
+  }
 
   // Get unique positions
   const positions = useMemo(() => {
@@ -217,7 +241,7 @@ export default function AllPlayersClient({ players, seasonId }: AllPlayersClient
       {/* Results Count with Search Info */}
       <div className="flex items-center justify-between text-xs sm:text-sm text-[#D4CCBB] font-medium">
         <span>
-          Showing {filteredPlayers.length} of {players.length} players
+          Showing {((currentPage - 1) * 24) + 1}-{Math.min(currentPage * 24, totalPlayers)} of {totalPlayers} players
           {searchQuery && (
             <span className="text-[#E8A800] ml-2">
               • Searching for "{searchQuery}"
@@ -313,6 +337,82 @@ export default function AllPlayersClient({ players, seasonId }: AllPlayersClient
               )}
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6 sm:mt-8">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeftIcon />
+          </button>
+
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* First page */}
+            {currentPage > 3 && (
+              <>
+                <button
+                  onClick={() => handlePageChange(1)}
+                  className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-sm sm:text-base"
+                >
+                  1
+                </button>
+                {currentPage > 4 && (
+                  <span className="text-[#7A7367] px-2">...</span>
+                )}
+              </>
+            )}
+
+            {/* Page numbers around current page */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => {
+                return page === currentPage || 
+                       page === currentPage - 1 || 
+                       page === currentPage + 1 ||
+                       (currentPage <= 2 && page <= 3) ||
+                       (currentPage >= totalPages - 1 && page >= totalPages - 2)
+              })
+              .map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-bold transition-all ${
+                    page === currentPage
+                      ? 'bg-[#E8A800] text-[#0a0a0a]'
+                      : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+            {/* Last page */}
+            {currentPage < totalPages - 2 && (
+              <>
+                {currentPage < totalPages - 3 && (
+                  <span className="text-[#7A7367] px-2">...</span>
+                )}
+                <button
+                  onClick={() => handlePageChange(totalPages)}
+                  className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-sm sm:text-base"
+                >
+                  {totalPages}
+                </button>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronRightIcon />
+          </button>
         </div>
       )}
     </div>

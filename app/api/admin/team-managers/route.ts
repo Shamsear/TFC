@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hash } from "bcryptjs"
 import { z } from "zod"
-import { generateId } from "@/lib/id-generator"
+import { generateUserId, generateAuditId } from "@/lib/id-generator"
 
 // Validation schema
 const createTeamManagerSchema = z.object({
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hash(validatedData.password, 10)
 
     // Generate user ID
-    const userId = generateId("user")
+    const userId = await generateUserId()
 
     // Create team manager
     const teamManager = await prisma.users.create({
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     // Create audit log
     await prisma.audit_logs.create({
       data: {
-        id: generateId("auditLog"),
+        id: await generateAuditId(),
         userId: session.user.id,
         userEmail: session.user.email || "",
         userRole: session.user.role,

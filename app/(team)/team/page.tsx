@@ -43,7 +43,7 @@ export default async function TeamDashboardPage() {
     : null
 
   // If team is not in active season, redirect to not-in-season page
-  if (!currentSeasonTeam) {
+  if (!currentSeasonTeam || !activeSeason) {
     redirect("/team/not-in-season")
   }
 

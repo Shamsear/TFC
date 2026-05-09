@@ -5,7 +5,7 @@ import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
 import { generateTeamId, generateUserId, generateSeasonTeamId } from "@/lib/id-generator"
-import { generatePassword, generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator"
+import { generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator"
 import { hash } from "bcryptjs"
 
 /**
@@ -155,7 +155,8 @@ export async function POST(request: NextRequest) {
             seasonId: season.id,
             teamId: team.id,
             currentBudget: season.startingPurse,
-            trophiesWon: 0
+            trophiesWon: 0,
+            updatedAt: new Date()
           }
         })
       }

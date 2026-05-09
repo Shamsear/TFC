@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hash } from "bcryptjs"
 import { z } from "zod"
-import { generateId } from "@/lib/id-generator"
+import { generateAuditId } from "@/lib/id-generator"
 
 // Validation schema for updates
 const updateTeamManagerSchema = z.object({
@@ -125,7 +125,7 @@ export async function PATCH(
     // Create audit log
     await prisma.audit_logs.create({
       data: {
-        id: generateId("auditLog"),
+        id: await generateAuditId(),
         userId: session.user.id,
         userEmail: session.user.email || "",
         userRole: session.user.role,
@@ -205,13 +205,13 @@ export async function DELETE(
 
     // Delete team manager
     await prisma.users.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Create audit log
     await prisma.audit_logs.create({
       data: {
-        id: generateId("auditLog"),
+        id: await generateAuditId(),
         userId: session.user.id,
         userEmail: session.user.email || "",
         userRole: session.user.role,

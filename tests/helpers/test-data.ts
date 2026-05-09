@@ -6,7 +6,7 @@ import {
   generateTeamId,
   generateSeasonId,
   generatePlayerId,
-  generateStatsId,
+  generatePlayerStatsId,
   generateSeasonTeamId,
   generateTransferId,
   generateFinancialId,
@@ -79,14 +79,17 @@ export async function createTestTeam(data?: {
  */
 export async function createTestSeason(data?: {
   name?: string
+  seasonNumber?: number
   startingPurse?: number
   isActive?: boolean
 }) {
   const seasonId = await generateSeasonId()
+  const seasonNumber = data?.seasonNumber || Math.floor(Math.random() * 1000) + 1
   return prisma.seasons.create({
     data: {
       id: seasonId,
-      name: data?.name || `Season ${Date.now()}`,
+      seasonNumber,
+      name: data?.name || `Season ${seasonNumber}`,
       startingPurse: data?.startingPurse || 100000,
       isActive: data?.isActive ?? false,
       updatedAt: new Date()
@@ -124,7 +127,7 @@ export async function createTestSeasonalStats(
     overallRating?: number
   }
 ) {
-  const statsId = await generateStatsId()
+  const statsId = await generatePlayerStatsId()
   return prisma.seasonal_player_stats.create({
     data: {
       id: statsId,

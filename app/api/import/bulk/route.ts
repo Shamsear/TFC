@@ -103,11 +103,37 @@ export async function POST(request: NextRequest) {
             );
 
             // Find or create base player
-            // In bulk mode, always create a new base player with unique ID
-            // even if another player with the same name exists
-            // Store player_id for future update mode matching
+            // Check if player with this player_id already exists
+            let basePlayer = await prisma.base_players.findUnique({
+              where: { player_id: player.playerId }
+            });
+
+            if (basePlayer) {
+              // Player already exists, skip it
+              console.log(`Skipping existing player: ${player.playerName} (player_id: ${player.playerId})`);
+              skipped++;
+              
+              // Send progress update
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'progress',
+                    total: players.length,
+                    processed: i + 1,
+                    imported,
+                    skipped,
+                    currentPlayer: `${player.playerName} (skipped - already exists)`,
+                    errors,
+                    importedPlayers: importedPlayers.slice(-10)
+                  })}\n\n`
+                )
+              );
+              continue; // Skip to next player
+            }
+
+            // Create new base player
             const newPlayerId = await generatePlayerId();
-            let basePlayer = await prisma.base_players.create({
+            basePlayer = await prisma.base_players.create({
               data: {
                 id: newPlayerId,
                 player_id: player.playerId,

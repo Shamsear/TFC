@@ -25,9 +25,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body: BulkImportRequest = await request.json();
-  const { seasonId, players } = body;
+  const { seasonId, players, batchInfo } = body;
 
-  console.log(`Bulk import request: ${players?.length || 0} players for season ${seasonId}`);
+  const batchLabel = batchInfo 
+    ? `batch ${batchInfo.batchNumber}/${batchInfo.totalBatches}` 
+    : 'single batch';
+  
+  console.log(`Bulk import request: ${players?.length || 0} players for season ${seasonId} (${batchLabel})`);
 
   if (!seasonId || !players) {
     console.error('Missing required fields:', { seasonId: !!seasonId, players: !!players });
@@ -60,7 +64,11 @@ export async function POST(request: NextRequest) {
         const importedPlayers: string[] = [];
         const updatedPlayers: string[] = [];
 
-        console.log(`Starting bulk import of ${players.length} players`);
+        const batchLabel = batchInfo 
+          ? `batch ${batchInfo.batchNumber}/${batchInfo.totalBatches}` 
+          : 'batch';
+
+        console.log(`Starting bulk import of ${players.length} players (${batchLabel})`);
 
         // Send initial progress
         controller.enqueue(
@@ -289,7 +297,7 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          // Send progress update
+          // Send progress update (only send last 10 player names to reduce payload)
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({
@@ -301,15 +309,15 @@ export async function POST(request: NextRequest) {
                 skipped,
                 currentPlayer: player.playerName,
                 errors,
-                importedPlayers,
-                updatedPlayers
+                importedPlayers: importedPlayers.slice(-10),
+                updatedPlayers: updatedPlayers.slice(-10)
               })}\n\n`
             )
           );
 
-          // Small delay to prevent overwhelming the database
-          if (i < players.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 10));
+          // Small delay to prevent overwhelming the database (reduced for batched processing)
+          if (i < players.length - 1 && i % 10 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 5));
           }
         }
 

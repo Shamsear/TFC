@@ -157,6 +157,10 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                 const data = JSON.parse(line.slice(6))
 
                 if (data.type === 'progress') {
+                  // Only keep last 50 player names to avoid memory issues
+                  const recentImported = [...allImportedPlayers, ...(data.importedPlayers || [])].slice(-50)
+                  const recentUpdated = [...allUpdatedPlayers, ...(data.updatedPlayers || [])].slice(-50)
+                  
                   setProgress({
                     total: allPlayers.length,
                     processed: batchStart + data.processed,
@@ -165,8 +169,8 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                     skipped: totalSkipped + data.skipped,
                     errors: [...allErrors, ...data.errors],
                     currentPlayer: data.currentPlayer,
-                    importedPlayers: [...allImportedPlayers, ...(data.importedPlayers || [])],
-                    updatedPlayers: [...allUpdatedPlayers, ...(data.updatedPlayers || [])]
+                    importedPlayers: recentImported,
+                    updatedPlayers: recentUpdated
                   })
                 } else if (data.type === 'current') {
                   setProgress(prev => ({
@@ -677,7 +681,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
           {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Progress</span>
+              <span className="text-sm text-gray-400">Overall Progress</span>
               <span className="text-sm font-bold text-white">
                 {progress.processed} / {progress.total}
               </span>
@@ -689,6 +693,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   width: `${progress.total > 0 ? (progress.processed / progress.total) * 100 : 0}%` 
                 }}
               />
+            </div>
+            <div className="text-xs text-gray-500 mt-1 text-center">
+              {progress.total > 0 ? Math.round((progress.processed / progress.total) * 100) : 0}% complete
             </div>
           </div>
 
@@ -736,7 +743,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             </div>
           )}
 
-          {/* Player Lists */}
+          {/* Player Lists - Show only recent players */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Imported Players */}
             {progress.importedPlayers.length > 0 && (
@@ -748,11 +755,16 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   <h3 className="font-bold text-emerald-400">Added Players ({progress.importedPlayers.length})</h3>
                 </div>
                 <div className="max-h-60 overflow-y-auto space-y-1">
-                  {progress.importedPlayers.map((player, idx) => (
+                  {progress.importedPlayers.slice(-50).map((player, idx) => (
                     <div key={idx} className="p-2 rounded bg-black/30 text-white text-sm">
                       {player}
                     </div>
                   ))}
+                  {progress.importedPlayers.length > 50 && (
+                    <div className="text-xs text-gray-500 text-center py-2">
+                      Showing last 50 of {progress.importedPlayers.length} players
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -767,11 +779,16 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   <h3 className="font-bold text-orange-400">Updated Players ({progress.updatedPlayers.length})</h3>
                 </div>
                 <div className="max-h-60 overflow-y-auto space-y-1">
-                  {progress.updatedPlayers.map((player, idx) => (
+                  {progress.updatedPlayers.slice(-50).map((player, idx) => (
                     <div key={idx} className="p-2 rounded bg-black/30 text-white text-sm">
                       {player}
                     </div>
                   ))}
+                  {progress.updatedPlayers.length > 50 && (
+                    <div className="text-xs text-gray-500 text-center py-2">
+                      Showing last 50 of {progress.updatedPlayers.length} players
+                    </div>
+                  )}
                 </div>
               </div>
             )}

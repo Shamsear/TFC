@@ -1,49 +1,47 @@
-import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import BulkRoundSelectionClient from "@/components/team-auction/BulkRoundSelectionClient"
+import { checkAndFinalizeExpiredRound } from "@/lib/lazy-finalize-round"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 
-export const metadata = {
-  title: "Bulk Round | Team Dashboard",
-  description: "Select players for bulk round",
-}
+export default async function BulkRoundPage({
+  params
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const session = await auth()
 
-async function getBulkRoundData(roundId: string, teamId: string) {
-  // Get round details
+  if (!session?.user?.teamId) {
+    redirect("/auth/signin")
+  }
+
+  const teamId = session.user.teamId
+
+  // Check and finalize if expired (lazy finalization)
+  await checkAndFinalizeExpiredRound(id)
+
+  // Fetch round details
   const round = await prisma.rounds.findUnique({
-    where: { id: roundId },
-    include: {
-      season: true,
-      bulkRoundSelections: {
-        where: { teamId },
-        include: {
-          basePlayer: {
-            include: {
-              seasonalPlayerStats: {
-                where: { seasonId: { not: null } }
-              }
-            }
-          }
-        }
-      },
-      availablePlayers: {
-        include: {
-          basePlayer: {
-            include: {
-              seasonalPlayerStats: {
-                where: { seasonId: { not: null } }
-              }
-            }
-          }
-        }
-      }
-    }
+    where: { id }
   })
 
   if (!round || round.roundType !== 'bulk') {
-    return null
+    redirect("/team/auction")
+  }
+
+  // Get active season
+  const season = await prisma.seasons.findUnique({
+    where: { id: round.seasonId },
+    select: {
+      id: true,
+      name: true
+    }
+  })
+
+  if (!season) {
+    redirect("/team/auction")
   }
 
   // Get team info
@@ -52,95 +50,121 @@ async function getBulkRoundData(roundId: string, teamId: string) {
     select: {
       id: true,
       name: true,
-      logoUrl: true,
-      budget: true
+      logoUrl: true
     }
   })
 
-  // Transform players
-  const players = round.availablePlayers.map(ap => {
-    const stats = ap.basePlayer.seasonalPlayerStats[0]
-    return {
-      id: ap.basePlayer.id,
-      name: ap.basePlayer.name,
-      photoUrl: getPlayerPhotoUrl(`${ap.basePlayer.player_id || ap.basePlayer.id}.webp`),
-      position: stats?.position || 'Unknown',
-      overall: stats?.overallRating || 0,
-      nationality: stats?.nationality || 'Unknown',
-      pace: stats?.pace || 0,
-      shooting: stats?.shooting || 0,
-      passing: stats?.passing || 0,
-      dribbling: stats?.dribbling || 0,
-      defending: stats?.defending || 0,
-      physical: stats?.physical || 0
+  if (!team) {
+    redirect("/team/auction")
+  }
+
+  // Check if team is in season
+  const seasonTeam = await prisma.season_teams.findUnique({
+    where: {
+      seasonId_teamId: {
+        seasonId: round.seasonId,
+        teamId: teamId
+      }
+    },
+    select: {
+      id: true,
+      currentBudget: true
     }
   })
 
-  // Transform selections
-  const selections = round.bulkRoundSelections.map(sel => {
-    const stats = sel.basePlayer.seasonalPlayerStats[0]
-    return {
-      playerId: sel.playerId,
-      priority: sel.priority,
-      submitted: sel.submitted,
-      player: {
-        id: sel.basePlayer.id,
-        name: sel.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${sel.basePlayer.player_id || sel.basePlayer.id}.webp`),
-        position: stats?.position || 'Unknown',
-        overall: stats?.overallRating || 0
+  if (!seasonTeam) {
+    redirect("/team/auction")
+  }
+
+  // Get available players for this round
+  const seasonalPlayers = await prisma.seasonal_player_stats.findMany({
+    where: {
+      seasonId: round.seasonId,
+      ...(round.position ? { position: round.position } : {}),
+      // Exclude already owned players
+      basePlayer: {
+        transferHistory: {
+          none: {
+            seasonId: round.seasonId
+          }
+        }
+      }
+    },
+    select: {
+      basePlayerId: true,
+      position: true,
+      overallRating: true,
+      nationality: true,
+      pace: true,
+      shooting: true,
+      passing: true,
+      dribbling: true,
+      defending: true,
+      physical: true,
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+          player_id: true
+        }
+      }
+    },
+    orderBy: {
+      overallRating: 'desc'
+    }
+  })
+
+  // Transform to expected format
+  const players = seasonalPlayers.map(p => ({
+    id: p.basePlayerId,
+    name: p.basePlayer.name,
+    photoUrl: getPlayerPhotoUrl(`${p.basePlayer.player_id || p.basePlayer.id}.webp`),
+    position: p.position,
+    overall: p.overallRating,
+    nationality: p.nationality || 'Unknown',
+    pace: p.pace || 0,
+    shooting: p.shooting || 0,
+    passing: p.passing || 0,
+    dribbling: p.dribbling || 0,
+    defending: p.defending || 0,
+    physical: p.physical || 0
+  }))
+
+  // Get existing selections
+  const existingSelection = await prisma.bulk_round_selections.findUnique({
+    where: {
+      roundId_teamId: {
+        roundId: id,
+        teamId: teamId
       }
     }
   })
 
-  return {
-    round: {
-      id: round.id,
-      roundNumber: round.roundNumber,
-      position: round.position,
-      roundType: round.roundType,
-      status: round.status,
-      startTime: round.startTime,
-      endTime: round.endTime,
-      maxBidsPerTeam: round.maxBidsPerTeam,
-      basePrice: round.basePrice,
-      seasonId: round.seasonId
-    },
-    season: {
-      id: round.season.id,
-      name: round.season.name
-    },
-    team: team!,
-    players,
-    selections
-  }
-}
-
-export default async function BulkRoundPage({
-  params
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.teamId) {
-    redirect("/auth/signin")
-  }
-
-  const data = await getBulkRoundData(id, session.user.teamId)
-
-  if (!data) {
-    redirect("/team/auction")
-  }
+  const initialSelections = existingSelection
+    ? JSON.parse(existingSelection.selectedPlayers as string).players.map((playerId: string, index: number) => {
+        const player = players.find(p => p.id === playerId)
+        return {
+          playerId,
+          priority: index + 1,
+          submitted: existingSelection.submitted,
+          player: player ? {
+            id: player.id,
+            name: player.name,
+            photoUrl: player.photoUrl,
+            position: player.position,
+            overall: player.overall
+          } : null
+        }
+      }).filter((s: any) => s.player !== null)
+    : []
 
   return (
     <BulkRoundSelectionClient
-      round={data.round}
-      season={data.season}
-      team={data.team}
-      players={data.players}
-      initialSelections={data.selections}
+      round={round}
+      season={season}
+      team={{ ...team, budget: seasonTeam.currentBudget }}
+      players={players}
+      initialSelections={initialSelections}
     />
   )
 }

@@ -1,125 +1,8 @@
-import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import RoundBiddingClient from "@/components/team-auction/RoundBiddingClient"
-import { getPlayerPhotoUrl } from "@/lib/image-cdn"
-
-export const metadata = {
-  title: "Round Bidding | Team Dashboard",
-  description: "Place your bids for this auction round",
-}
-
-async function getRoundData(roundId: string, teamId: string) {
-  // Get round details
-  const round = await prisma.rounds.findUnique({
-    where: { id: roundId },
-    include: {
-      season: true,
-      availablePlayers: {
-        include: {
-          basePlayer: {
-            include: {
-              seasonalPlayerStats: {
-                where: { seasonId: { not: null } }
-              }
-            }
-          }
-        }
-      }
-    }
-  })
-
-  if (!round) {
-    return null
-  }
-
-  // Get team's bids for this round
-  const teamBids = await prisma.team_round_bids.findMany({
-    where: {
-      roundId,
-      teamId
-    },
-    include: {
-      basePlayer: {
-        include: {
-          seasonalPlayerStats: {
-            where: { seasonId: round.seasonId }
-          }
-        }
-      }
-    }
-  })
-
-  // Get team info
-  const team = await prisma.teams.findUnique({
-    where: { id: teamId },
-    select: {
-      id: true,
-      name: true,
-      logoUrl: true,
-      budget: true
-    }
-  })
-
-  // Transform players with their stats
-  const players = round.availablePlayers.map(ap => {
-    const stats = ap.basePlayer.seasonalPlayerStats[0]
-    return {
-      id: ap.basePlayer.id,
-      name: ap.basePlayer.name,
-      photoUrl: getPlayerPhotoUrl(`${ap.basePlayer.player_id || ap.basePlayer.id}.webp`),
-      position: stats?.position || 'Unknown',
-      overall: stats?.overallRating || 0,
-      nationality: stats?.nationality || 'Unknown',
-      pace: stats?.pace || 0,
-      shooting: stats?.shooting || 0,
-      passing: stats?.passing || 0,
-      dribbling: stats?.dribbling || 0,
-      defending: stats?.defending || 0,
-      physical: stats?.physical || 0
-    }
-  })
-
-  // Transform bids
-  const bids = teamBids.map(bid => {
-    const stats = bid.basePlayer.seasonalPlayerStats[0]
-    return {
-      playerId: bid.playerId,
-      bidAmount: bid.bidAmount,
-      submitted: bid.submitted,
-      player: {
-        id: bid.basePlayer.id,
-        name: bid.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${bid.basePlayer.player_id || bid.basePlayer.id}.webp`),
-        position: stats?.position || 'Unknown',
-        overall: stats?.overallRating || 0
-      }
-    }
-  })
-
-  return {
-    round: {
-      id: round.id,
-      roundNumber: round.roundNumber,
-      position: round.position,
-      roundType: round.roundType,
-      status: round.status,
-      startTime: round.startTime,
-      endTime: round.endTime,
-      maxBidsPerTeam: round.maxBidsPerTeam,
-      basePrice: round.basePrice,
-      seasonId: round.seasonId
-    },
-    season: {
-      id: round.season.id,
-      name: round.season.name
-    },
-    team: team!,
-    players,
-    bids
-  }
-}
+import { redirect } from "next/navigation"
+import NormalRoundBiddingClient from "@/components/team-auction/NormalRoundBiddingClient"
+import { checkAndFinalizeExpiredRound } from "@/lib/lazy-finalize-round"
 
 export default async function RoundBiddingPage({
   params
@@ -127,25 +10,115 @@ export default async function RoundBiddingPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.user?.teamId) {
     redirect("/auth/signin")
   }
 
-  const data = await getRoundData(id, session.user.teamId)
+  const teamId = session.user.teamId
 
-  if (!data) {
+  // Check and finalize if expired (lazy finalization)
+  await checkAndFinalizeExpiredRound(id)
+
+  // Fetch round details
+  const round = await prisma.rounds.findUnique({
+    where: { id },
+    include: {
+      season: {
+        select: {
+          id: true,
+          name: true
+        }
+      }
+    }
+  })
+
+  if (!round) {
     redirect("/team/auction")
   }
 
+  // Check if team is in season
+  const seasonTeam = await prisma.season_teams.findUnique({
+    where: {
+      seasonId_teamId: {
+        seasonId: round.seasonId,
+        teamId: teamId
+      }
+    },
+    select: {
+      id: true,
+      currentBudget: true
+    }
+  })
+
+  if (!seasonTeam) {
+    redirect("/team/auction")
+  }
+
+  // Get squad size
+  const squadSize = await prisma.transfer_history.count({
+    where: {
+      teamId: teamId,
+      seasonId: round.seasonId
+    }
+  })
+
+  // Get available players for this round
+  const players = await prisma.seasonal_player_stats.findMany({
+    where: {
+      seasonId: round.seasonId,
+      ...(round.position ? { position: round.position } : {}),
+      // Exclude already owned players
+      basePlayer: {
+        transferHistory: {
+          none: {
+            seasonId: round.seasonId
+          }
+        }
+      }
+    },
+    select: {
+      basePlayerId: true,
+      position: true,
+      overallRating: true,
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+          photoUrl: true
+        }
+      }
+    },
+    orderBy: {
+      overallRating: 'desc'
+    }
+  })
+
+  // Get existing bids
+  const existingBids = await prisma.team_round_bids.findUnique({
+    where: {
+      roundId_teamId: {
+        roundId: id,
+        teamId: teamId
+      }
+    },
+    select: {
+      encryptedBids: true,
+      submitted: true,
+      bidCount: true,
+      lastUpdated: true
+    }
+  })
+
   return (
-    <RoundBiddingClient
-      round={data.round}
-      season={data.season}
-      team={data.team}
-      players={data.players}
-      initialBids={data.bids}
+    <NormalRoundBiddingClient
+      round={round}
+      players={players}
+      budget={seasonTeam.currentBudget}
+      squadSize={squadSize}
+      existingBids={existingBids}
+      teamId={teamId}
     />
   )
 }

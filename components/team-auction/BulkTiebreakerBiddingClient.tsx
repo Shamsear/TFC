@@ -1,0 +1,410 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+
+interface BulkTiebreakerBiddingClientProps {
+  tiebreaker: {
+    id: number
+    basePrice: number
+    status: string
+    currentHighestBid: number | null
+    currentHighestTeamId: string | null
+    teamsRemaining: number
+    startTime: Date | null
+    maxEndTime: Date | null
+    basePlayer: {
+      id: string
+      name: string
+      photoUrl: string
+    }
+    round: {
+      id: string
+      roundNumber: number
+      position: string | null
+      season: {
+        id: string
+        name: string
+      }
+    }
+    participants: Array<{
+      id: number
+      teamId: string
+      status: string
+      currentBid: number | null
+      lastBidTime: Date | null
+      team: {
+        id: string
+        name: string
+        logoUrl: string
+      }
+    }>
+    bidHistory: Array<{
+      id: number
+      teamId: string
+      bidAmount: number
+      bidTime: Date
+      team: {
+        name: string
+      }
+    }>
+  }
+  team: {
+    id: string
+    name: string
+    logoUrl: string
+  }
+  budget: number
+  myParticipation: {
+    id: number
+    teamId: string
+    status: string
+    currentBid: number | null
+    lastBidTime: Date | null
+  } | null
+}
+
+export default function BulkTiebreakerBiddingClient({
+  tiebreaker,
+  team,
+  budget,
+  myParticipation
+}: BulkTiebreakerBiddingClientProps) {
+  const router = useRouter()
+  const [bidAmount, setBidAmount] = useState(
+    (tiebreaker.currentHighestBid || tiebreaker.basePrice) + 1000
+  )
+  const [submitting, setSubmitting] = useState(false)
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [timeRemaining, setTimeRemaining] = useState('')
+
+  // Auto-refresh every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh()
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [router])
+
+  // Timer
+  useEffect(() => {
+    if (!tiebreaker.maxEndTime) return
+
+    const updateTimer = () => {
+      const now = new Date()
+      const end = new Date(tiebreaker.maxEndTime!)
+      const diff = end.getTime() - now.getTime()
+
+      if (diff > 0) {
+        const hours = Math.floor(diff / (1000 * 60 * 60))
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
+      } else {
+        setTimeRemaining('Expired')
+      }
+    }
+
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+    return () => clearInterval(interval)
+  }, [tiebreaker.maxEndTime])
+
+  const handlePlaceBid = async () => {
+    setSubmitting(true)
+    setMessage(null)
+
+    try {
+      const minBid = (tiebreaker.currentHighestBid || tiebreaker.basePrice) + 1
+      if (bidAmount < minBid) {
+        throw new Error(`Bid must be at least £${minBid.toLocaleString()}`)
+      }
+
+      if (bidAmount > budget) {
+        throw new Error('Insufficient budget')
+      }
+
+      const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}/bid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bidAmount })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to place bid')
+      }
+
+      setMessage({ type: 'success', text: 'Bid placed successfully!' })
+      router.refresh()
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleWithdraw = async () => {
+    if (!confirm('Are you sure you want to withdraw? You will lose this player.')) {
+      return
+    }
+
+    setWithdrawing(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}/withdraw`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to withdraw')
+      }
+
+      setMessage({ type: 'success', text: 'Withdrawn successfully' })
+      router.refresh()
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setWithdrawing(false)
+    }
+  }
+
+  const isMyBidHighest = tiebreaker.currentHighestTeamId === team.id
+  const isActive = myParticipation?.status === 'active'
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header */}
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Link
+            href="/team/auction"
+            className="inline-flex items-center gap-2 text-[#D4CCBB] hover:text-white mb-4 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Auction
+          </Link>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
+                <Image
+                  src={tiebreaker.basePlayer.photoUrl}
+                  alt={tiebreaker.basePlayer.name}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-3xl font-black text-white mb-1">
+                  Bulk Tiebreaker
+                </h1>
+                <p className="text-sm text-[#D4CCBB]">
+                  {tiebreaker.basePlayer.name} — Round {tiebreaker.round.roundNumber}
+                </p>
+              </div>
+            </div>
+            {timeRemaining && (
+              <div className="px-4 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                <div className="text-xs text-purple-400 mb-1">Time Remaining</div>
+                <div className="text-lg font-bold text-purple-300">{timeRemaining}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+              <div className="text-xs text-[#7A7367] mb-1">Your Budget</div>
+              <div className="text-xl font-bold text-white">£{budget.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+              <div className="text-xs text-[#7A7367] mb-1">Current Highest</div>
+              <div className="text-xl font-bold text-white">
+                £{(tiebreaker.currentHighestBid || tiebreaker.basePrice).toLocaleString()}
+              </div>
+            </div>
+            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+              <div className="text-xs text-[#7A7367] mb-1">Teams Remaining</div>
+              <div className="text-xl font-bold text-white">{tiebreaker.teamsRemaining}</div>
+            </div>
+            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+              <div className="text-xs text-[#7A7367] mb-1">Your Status</div>
+              <div className={`text-xl font-bold ${
+                isActive ? (isMyBidHighest ? 'text-emerald-400' : 'text-amber-400') : 'text-red-400'
+              }`}>
+                {isActive ? (isMyBidHighest ? 'Winning' : 'Outbid') : 'Withdrawn'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Message */}
+        {message && (
+          <div className={`mb-6 p-4 rounded-lg border ${
+            message.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-red-500/10 border-red-500/30 text-red-300'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Bidding Panel */}
+          <div className="lg:col-span-2">
+            {isActive && tiebreaker.status === 'pending' && (
+              <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-6">
+                <h2 className="text-xl font-bold text-white mb-4">Place Your Bid</h2>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                    Bid Amount (minimum: £{((tiebreaker.currentHighestBid || tiebreaker.basePrice) + 1).toLocaleString()})
+                  </label>
+                  <input
+                    type="number"
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(parseInt(e.target.value) || 0)}
+                    min={(tiebreaker.currentHighestBid || tiebreaker.basePrice) + 1}
+                    max={budget}
+                    step={1000}
+                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white text-xl font-bold focus:outline-none focus:border-[#E8A800]"
+                  />
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={handlePlaceBid}
+                    disabled={submitting || bidAmount <= (tiebreaker.currentHighestBid || tiebreaker.basePrice) || bidAmount > budget}
+                    className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                  >
+                    {submitting ? 'Placing Bid...' : `Bid £${bidAmount.toLocaleString()}`}
+                  </button>
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={withdrawing}
+                    className="px-6 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all disabled:opacity-50 font-medium"
+                  >
+                    {withdrawing ? 'Withdrawing...' : 'Withdraw'}
+                  </button>
+                </div>
+
+                {isMyBidHighest && (
+                  <div className="mt-4 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-2 text-emerald-300">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="font-medium">You have the highest bid!</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!isActive && (
+              <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-6 mb-6 text-center">
+                <h3 className="text-xl font-bold text-white mb-2">Withdrawn</h3>
+                <p className="text-red-300">You have withdrawn from this tiebreaker.</p>
+              </div>
+            )}
+
+            {tiebreaker.status !== 'pending' && (
+              <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-6 text-center">
+                <h3 className="text-xl font-bold text-white mb-2">Tiebreaker Resolved</h3>
+                <p className="text-[#D4CCBB]">This tiebreaker has been resolved.</p>
+              </div>
+            )}
+
+            {/* Bid History */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Bid History</h2>
+              <div className="space-y-2">
+                {tiebreaker.bidHistory.length === 0 ? (
+                  <p className="text-[#7A7367] text-center py-4">No bids yet</p>
+                ) : (
+                  tiebreaker.bidHistory.map((bid) => (
+                    <div
+                      key={bid.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10"
+                    >
+                      <div>
+                        <div className="font-medium text-white">{bid.team.name}</div>
+                        <div className="text-xs text-[#7A7367]">
+                          {new Date(bid.bidTime).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-[#E8A800]">
+                        £{bid.bidAmount.toLocaleString()}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Participants Panel */}
+          <div className="lg:col-span-1">
+            <div className="rounded-xl bg-white/5 border border-white/10 p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Participants</h2>
+              <div className="space-y-3">
+                {tiebreaker.participants
+                  .sort((a, b) => (b.currentBid || 0) - (a.currentBid || 0))
+                  .map((participant) => (
+                    <div
+                      key={participant.id}
+                      className={`p-3 rounded-lg border ${
+                        participant.status === 'active'
+                          ? 'bg-white/5 border-white/10'
+                          : 'bg-red-500/5 border-red-500/20 opacity-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                          <Image
+                            src={participant.team.logoUrl}
+                            alt={participant.team.name}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-white text-sm">
+                            {participant.team.name}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-[#7A7367]">
+                          {participant.status === 'active' ? 'Active' : 'Withdrawn'}
+                        </span>
+                        {participant.currentBid && (
+                          <span className="text-sm font-bold text-[#E8A800]">
+                            £{participant.currentBid.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

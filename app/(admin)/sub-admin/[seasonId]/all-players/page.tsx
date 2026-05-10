@@ -10,6 +10,10 @@ interface AllPlayersPageProps {
   }>
   searchParams: Promise<{
     page?: string
+    search?: string
+    position?: string
+    team?: string
+    sort?: string
   }>
 }
 
@@ -20,7 +24,13 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
   }
 
   const { seasonId } = await params
-  const { page: pageParam } = await searchParams
+  const { 
+    page: pageParam, 
+    search: searchQuery, 
+    position: positionFilter, 
+    team: teamFilter,
+    sort: sortBy 
+  } = await searchParams
 
   const season = await prisma.seasons.findUnique({
     where: { id: seasonId }
@@ -35,11 +45,70 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
   const currentPage = Math.max(1, parseInt(pageParam || '1', 10))
   const skip = (currentPage - 1) * ITEMS_PER_PAGE
 
-  // Get total count for pagination
-  const totalPlayers = await prisma.base_players.count()
+  // Build where clause for filtering
+  const whereClause: any = {}
+  
+  // Search filter
+  if (searchQuery && searchQuery.trim()) {
+    const query = searchQuery.trim()
+    whereClause.OR = [
+      { name: { contains: query, mode: 'insensitive' } },
+      { seasonalPlayerStats: { some: { 
+        seasonId,
+        OR: [
+          { realWorldClub: { contains: query, mode: 'insensitive' } },
+          { position: { contains: query, mode: 'insensitive' } }
+        ]
+      }}},
+      { transferHistory: { some: { 
+        seasonId,
+        team: { name: { contains: query, mode: 'insensitive' } }
+      }}}
+    ]
+  }
+
+  // Position filter
+  if (positionFilter && positionFilter !== 'ALL') {
+    whereClause.seasonalPlayerStats = {
+      some: {
+        seasonId,
+        position: positionFilter
+      }
+    }
+  }
+
+  // Team filter
+  if (teamFilter && teamFilter !== 'ALL') {
+    if (teamFilter === 'Free Agent') {
+      whereClause.transferHistory = {
+        none: { seasonId }
+      }
+    } else {
+      whereClause.transferHistory = {
+        some: {
+          seasonId,
+          team: { name: teamFilter }
+        }
+      }
+    }
+  }
+
+  // Get total count with filters
+  const totalPlayers = await prisma.base_players.count({
+    where: whereClause
+  })
+
+  // Build orderBy clause
+  let orderBy: any = { name: 'asc' }
+  if (sortBy === 'rating') {
+    orderBy = { seasonalPlayerStats: { _count: 'desc' } }
+  } else if (sortBy === 'price') {
+    orderBy = { transferHistory: { _count: 'desc' } }
+  }
 
   // Get paginated base players with their seasonal stats and transfer history
   const allPlayers = await prisma.base_players.findMany({
+    where: whereClause,
     include: {
       seasonalPlayerStats: {
         where: { seasonId }
@@ -51,12 +120,25 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
         }
       }
     },
-    orderBy: {
-      name: 'asc'
-    },
+    orderBy,
     skip,
     take: ITEMS_PER_PAGE
   })
+
+  // Apply sorting in memory for rating and price (since Prisma orderBy on relations is limited)
+  if (sortBy === 'rating') {
+    allPlayers.sort((a, b) => {
+      const ratingA = a.seasonalPlayerStats[0]?.overallRating || 0
+      const ratingB = b.seasonalPlayerStats[0]?.overallRating || 0
+      return ratingB - ratingA
+    })
+  } else if (sortBy === 'price') {
+    allPlayers.sort((a, b) => {
+      const priceA = a.transferHistory[0]?.soldPrice || 0
+      const priceB = b.transferHistory[0]?.soldPrice || 0
+      return priceB - priceA
+    })
+  }
 
   // Transform data for client component
   const playersData = allPlayers.map(player => {
@@ -80,7 +162,7 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     }
   })
 
-  // Get stats for all players (not just current page)
+  // Get stats for all players (not just current page) - without filters for accurate totals
   const allPlayersForStats = await prisma.base_players.findMany({
     include: {
       transferHistory: {
@@ -92,6 +174,26 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
   const soldPlayers = allPlayersForStats.filter(p => p.transferHistory.length > 0).length
   const availablePlayers = allPlayersForStats.filter(p => p.transferHistory.length === 0).length
   const totalPages = Math.ceil(totalPlayers / ITEMS_PER_PAGE)
+
+  // Get all unique positions and teams for filters
+  const allPositions = await prisma.seasonalPlayerStats.findMany({
+    where: { seasonId },
+    select: { position: true },
+    distinct: ['position']
+  })
+
+  const allTeams = await prisma.teams.findMany({
+    where: {
+      transferHistory: {
+        some: { seasonId }
+      }
+    },
+    select: { name: true },
+    orderBy: { name: 'asc' }
+  })
+
+  const positions = ['ALL', ...allPositions.map(p => p.position).filter(Boolean).sort()]
+  const teams = ['ALL', ...allTeams.map(t => t.name), 'Free Agent']
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -137,6 +239,12 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
           currentPage={currentPage}
           totalPages={totalPages}
           totalPlayers={totalPlayers}
+          positions={positions}
+          teams={teams}
+          initialSearch={searchQuery || ''}
+          initialPosition={positionFilter || 'ALL'}
+          initialTeam={teamFilter || 'ALL'}
+          initialSort={(sortBy as 'name' | 'rating' | 'price') || 'name'}
         />
       </div>
     </div>

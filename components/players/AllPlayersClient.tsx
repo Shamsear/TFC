@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -27,6 +27,12 @@ interface AllPlayersClientProps {
   currentPage: number
   totalPages: number
   totalPlayers: number
+  positions: string[]
+  teams: string[]
+  initialSearch: string
+  initialPosition: string
+  initialTeam: string
+  initialSort: 'name' | 'rating' | 'price'
 }
 
 // Icon Components
@@ -54,90 +60,85 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
-export default function AllPlayersClient({ players, seasonId, currentPage, totalPages, totalPlayers }: AllPlayersClientProps) {
+export default function AllPlayersClient({ 
+  players, 
+  seasonId, 
+  currentPage, 
+  totalPages, 
+  totalPlayers,
+  positions,
+  teams,
+  initialSearch,
+  initialPosition,
+  initialTeam,
+  initialSort
+}: AllPlayersClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [positionFilter, setPositionFilter] = useState<string>('ALL')
-  const [teamFilter, setTeamFilter] = useState<string>('ALL')
-  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price'>('name')
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
+  const [positionFilter, setPositionFilter] = useState<string>(initialPosition)
+  const [teamFilter, setTeamFilter] = useState<string>(initialTeam)
+  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price'>(initialSort)
+
+  const updateURL = (updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString())
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value && value !== 'ALL' && value !== '') {
+        params.set(key, value)
+      } else {
+        params.delete(key)
+      }
+    })
+    
+    // Reset to page 1 when filters change
+    if ('search' in updates || 'position' in updates || 'team' in updates || 'sort' in updates) {
+      params.set('page', '1')
+    }
+    
+    router.push(`?${params.toString()}`)
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+  }
+
+  // Debounce search updates to URL
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      updateURL({ search: searchQuery })
+    }, 500)
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const handlePositionChange = (value: string) => {
+    setPositionFilter(value)
+    updateURL({ position: value })
+  }
+
+  const handleTeamChange = (value: string) => {
+    setTeamFilter(value)
+    updateURL({ team: value })
+  }
+
+  const handleSortChange = (value: 'name' | 'rating' | 'price') => {
+    setSortBy(value)
+    updateURL({ sort: value })
+  }
+
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setPositionFilter('ALL')
+    setTeamFilter('ALL')
+    setSortBy('name')
+    router.push(`?page=1`)
+  }
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('page', page.toString())
     router.push(`?${params.toString()}`)
   }
-
-  // Get unique positions
-  const positions = useMemo(() => {
-    const uniquePositions = new Set(players.map(p => p.position))
-    return ['ALL', ...Array.from(uniquePositions).sort()]
-  }, [players])
-
-  // Get unique teams
-  const teams = useMemo(() => {
-    const uniqueTeams = new Set<string>()
-    
-    players.forEach(p => {
-      if (p.team) {
-        uniqueTeams.add(p.team.name)
-      } else {
-        uniqueTeams.add('Free Agent')
-      }
-    })
-    
-    const sortedTeams = Array.from(uniqueTeams).sort()
-    return ['ALL', ...sortedTeams]
-  }, [players])
-
-  // Filter and sort players with improved search
-  const filteredPlayers = useMemo(() => {
-    let filtered = [...players] // Create a copy to avoid mutations
-
-    // Search filter - case insensitive and handles null values
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter(p => {
-        const name = p.name?.toLowerCase() || ''
-        const club = p.realWorldClub?.toLowerCase() || ''
-        const team = p.team?.name?.toLowerCase() || ''
-        const position = p.position?.toLowerCase() || ''
-        
-        return name.includes(query) || 
-               club.includes(query) || 
-               team.includes(query) ||
-               position.includes(query)
-      })
-    }
-
-    // Position filter
-    if (positionFilter !== 'ALL') {
-      filtered = filtered.filter(p => p.position === positionFilter)
-    }
-
-    // Team filter
-    if (teamFilter !== 'ALL') {
-      if (teamFilter === 'Free Agent') {
-        filtered = filtered.filter(p => !p.team)
-      } else {
-        filtered = filtered.filter(p => p.team?.name === teamFilter)
-      }
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      if (sortBy === 'name') {
-        return (a.name || '').localeCompare(b.name || '')
-      } else if (sortBy === 'rating') {
-        return (b.overallRating || 0) - (a.overallRating || 0)
-      } else if (sortBy === 'price') {
-        return (b.soldPrice || 0) - (a.soldPrice || 0)
-      }
-      return 0
-    })
-
-    return filtered
-  }, [players, searchQuery, positionFilter, teamFilter, sortBy])
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -153,7 +154,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search by name, club, team, or position..."
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 pl-10 sm:pl-12 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white placeholder-[#7A7367] focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
                 autoComplete="off"
@@ -171,7 +172,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
             </label>
             <select
               value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value)}
+              onChange={(e) => handlePositionChange(e.target.value)}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
             >
               {positions.map(pos => (
@@ -187,7 +188,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
             </label>
             <select
               value={teamFilter}
-              onChange={(e) => setTeamFilter(e.target.value)}
+              onChange={(e) => handleTeamChange(e.target.value)}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
             >
               {teams.map(team => (
@@ -205,7 +206,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
           <span className="text-xs sm:text-sm text-[#7A7367]">Sort by:</span>
           <div className="flex gap-2">
             <button
-              onClick={() => setSortBy('name')}
+              onClick={() => handleSortChange('name')}
               className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                 sortBy === 'name'
                   ? 'bg-[#E8A800] text-[#0a0a0a]'
@@ -215,7 +216,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
               Name
             </button>
             <button
-              onClick={() => setSortBy('rating')}
+              onClick={() => handleSortChange('rating')}
               className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                 sortBy === 'rating'
                   ? 'bg-[#E8A800] text-[#0a0a0a]'
@@ -225,7 +226,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
               Rating
             </button>
             <button
-              onClick={() => setSortBy('price')}
+              onClick={() => handleSortChange('price')}
               className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                 sortBy === 'price'
                   ? 'bg-[#E8A800] text-[#0a0a0a]'
@@ -250,11 +251,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
         </span>
         {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL') && (
           <button
-            onClick={() => {
-              setSearchQuery('')
-              setPositionFilter('ALL')
-              setTeamFilter('ALL')
-            }}
+            onClick={handleClearFilters}
             className="text-[#E8A800] hover:text-[#FFC93A] transition-colors text-xs"
           >
             Clear Filters
@@ -263,7 +260,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
       </div>
 
       {/* Players Grid */}
-      {filteredPlayers.length === 0 ? (
+      {players.length === 0 ? (
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4">
             <SearchIcon />
@@ -272,7 +269,7 @@ export default function AllPlayersClient({ players, seasonId, currentPage, total
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-          {filteredPlayers.map((player) => (
+          {players.map((player) => (
             <Link
               key={player.id}
               href={seasonId ? `/sub-admin/${seasonId}/all-players/${player.id}` : `/players/${player.id}`}

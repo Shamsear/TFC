@@ -105,12 +105,12 @@ export default async function TeamDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-4">
             {team.logoUrl && (
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white/5 ring-2 ring-[#E8A800]/20">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-transparent ring-2 ring-[#E8A800]/20">
                 <Image
                   src={team.logoUrl}
                   alt={team.name}
                   fill
-                  className="object-cover"
+                  className="object-contain p-2"
                 />
               </div>
             )}

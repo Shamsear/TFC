@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 
 interface Player {
   id: string
@@ -74,13 +74,15 @@ export default function AllPlayersClient({
   initialSort
 }: AllPlayersClientProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [positionFilter, setPositionFilter] = useState<string>(initialPosition)
   const [teamFilter, setTeamFilter] = useState<string>(initialTeam)
   const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price'>(initialSort)
 
-  const updateURL = (updates: Record<string, string>) => {
+  // Build a new URL string preserving current params and applying updates
+  const buildURL = useCallback((updates: Record<string, string>, resetPage = false) => {
     const params = new URLSearchParams(searchParams.toString())
     
     Object.entries(updates).forEach(([key, value]) => {
@@ -91,39 +93,39 @@ export default function AllPlayersClient({
       }
     })
     
-    // Reset to page 1 when filters change
-    if ('search' in updates || 'position' in updates || 'team' in updates || 'sort' in updates) {
+    if (resetPage) {
       params.set('page', '1')
     }
     
-    router.push(`?${params.toString()}`)
-  }
+    return `${pathname}?${params.toString()}`
+  }, [searchParams, pathname])
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
   }
 
-  // Debounce search updates to URL
+  // Debounce search updates to URL — uses buildURL captured at effect time (stable via useCallback)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      updateURL({ search: searchQuery })
+      router.push(buildURL({ search: searchQuery }, true))
     }, 500)
     return () => clearTimeout(timeoutId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
 
   const handlePositionChange = (value: string) => {
     setPositionFilter(value)
-    updateURL({ position: value })
+    router.push(buildURL({ position: value }, true))
   }
 
   const handleTeamChange = (value: string) => {
     setTeamFilter(value)
-    updateURL({ team: value })
+    router.push(buildURL({ team: value }, true))
   }
 
   const handleSortChange = (value: 'name' | 'rating' | 'price') => {
     setSortBy(value)
-    updateURL({ sort: value })
+    router.push(buildURL({ sort: value }, true))
   }
 
   const handleClearFilters = () => {
@@ -131,14 +133,11 @@ export default function AllPlayersClient({
     setPositionFilter('ALL')
     setTeamFilter('ALL')
     setSortBy('name')
-    router.push(`?page=1`)
+    router.push(`${pathname}?page=1`)
   }
 
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set('page', page.toString())
-    router.push(`?${params.toString()}`)
-  }
+  // Build URL for a specific page while preserving all current filters
+  const pageURL = (page: number) => buildURL({ page: page.toString() })
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -242,7 +241,9 @@ export default function AllPlayersClient({
       {/* Results Count with Search Info */}
       <div className="flex items-center justify-between text-xs sm:text-sm text-[#D4CCBB] font-medium">
         <span>
-          Showing {((currentPage - 1) * 24) + 1}-{Math.min(currentPage * 24, totalPlayers)} of {totalPlayers} players
+          {totalPlayers === 0
+            ? 'No players found'
+            : `Showing ${((currentPage - 1) * 24) + 1}–${Math.min(currentPage * 24, totalPlayers)} of ${totalPlayers} players`}
           {searchQuery && (
             <span className="text-[#E8A800] ml-2">
               • Searching for "{searchQuery}"
@@ -337,27 +338,32 @@ export default function AllPlayersClient({
         </div>
       )}
 
-      {/* Pagination */}
+      {/* Pagination — uses <Link> so page URL updates and browser back/forward works */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6 sm:mt-8">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            <ChevronLeftIcon />
-          </button>
+          {currentPage === 1 ? (
+            <span className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white opacity-50 cursor-not-allowed">
+              <ChevronLeftIcon />
+            </span>
+          ) : (
+            <Link
+              href={pageURL(currentPage - 1)}
+              className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all"
+            >
+              <ChevronLeftIcon />
+            </Link>
+          )}
 
           <div className="flex items-center gap-1 sm:gap-2">
             {/* First page */}
             {currentPage > 3 && (
               <>
-                <button
-                  onClick={() => handlePageChange(1)}
+                <Link
+                  href={pageURL(1)}
                   className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-sm sm:text-base"
                 >
                   1
-                </button>
+                </Link>
                 {currentPage > 4 && (
                   <span className="text-[#7A7367] px-2">...</span>
                 )}
@@ -374,17 +380,17 @@ export default function AllPlayersClient({
                        (currentPage >= totalPages - 1 && page >= totalPages - 2)
               })
               .map(page => (
-                <button
+                <Link
                   key={page}
-                  onClick={() => handlePageChange(page)}
+                  href={pageURL(page)}
                   className={`px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-bold transition-all ${
                     page === currentPage
-                      ? 'bg-[#E8A800] text-[#0a0a0a]'
+                      ? 'bg-[#E8A800] text-[#0a0a0a] pointer-events-none'
                       : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
                   }`}
                 >
                   {page}
-                </button>
+                </Link>
               ))}
 
             {/* Last page */}
@@ -393,23 +399,28 @@ export default function AllPlayersClient({
                 {currentPage < totalPages - 3 && (
                   <span className="text-[#7A7367] px-2">...</span>
                 )}
-                <button
-                  onClick={() => handlePageChange(totalPages)}
+                <Link
+                  href={pageURL(totalPages)}
                   className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-sm sm:text-base"
                 >
                   {totalPages}
-                </button>
+                </Link>
               </>
             )}
           </div>
 
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            <ChevronRightIcon />
-          </button>
+          {currentPage === totalPages ? (
+            <span className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white opacity-50 cursor-not-allowed">
+              <ChevronRightIcon />
+            </span>
+          ) : (
+            <Link
+              href={pageURL(currentPage + 1)}
+              className="px-3 sm:px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all"
+            >
+              <ChevronRightIcon />
+            </Link>
+          )}
         </div>
       )}
     </div>

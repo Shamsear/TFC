@@ -19,6 +19,8 @@ model base_players {
   retentions           retentions[]
   seasonalPlayerStats  seasonal_player_stats[]
   transferHistory      transfer_history[]
+  tiebreakers          tiebreakers[]
+  bulkTiebreakers      bulk_tiebreakers[]
 }
 
 model financial_ledger {
@@ -232,6 +234,7 @@ model seasons {
   transferHistory      transfer_history[]
   auctionCalendar      auction_calendar[]
   tournaments          tournaments[]
+  rounds               rounds[]
 }
 
 model teams {
@@ -507,4 +510,156 @@ enum RoundStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
+}
+
+// ============================================
+// AUCTION SYSTEM MODELS
+// ============================================
+
+model rounds {
+  id                  String    @id
+  seasonId            String    @map("season_id")
+  position            String?
+  roundNumber         Int       @map("round_number")
+  roundType           String    @map("round_type") // 'normal' | 'bulk'
+  maxBidsPerTeam      Int?      @map("max_bids_per_team")
+  basePrice           Int?      @map("base_price")
+  durationSeconds     Int       @map("duration_seconds")
+  startTime           DateTime? @map("start_time")
+  endTime             DateTime? @map("end_time")
+  status              String    @default("draft")
+  finalizationMode    String    @default("auto") @map("finalization_mode") // 'auto' | 'manual'
+  createdAt           DateTime  @default(now()) @map("created_at")
+  season              seasons   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  teamRoundBids       team_round_bids[]
+  tiebreakers         tiebreakers[]
+  bulkRoundSelections bulk_round_selections[]
+  bidAuditLogs        bid_audit_log[]
+
+  @@index([seasonId])
+  @@index([status])
+  @@index([endTime])
+}
+
+model team_round_bids {
+  id             String    @id
+  roundId        String    @map("round_id")
+  teamId         String    @map("team_id")
+  encryptedBids  String    @map("encrypted_bids") @db.Text
+  submitted      Boolean   @default(false)
+  bidCount       Int       @default(0) @map("bid_count")
+  lastUpdated    DateTime  @default(now()) @map("last_updated")
+  submittedAt    DateTime? @map("submitted_at")
+  round          rounds    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, teamId])
+  @@index([roundId])
+  @@index([teamId])
+}
+
+model tiebreakers {
+  id                 String    @id
+  roundId            String    @map("round_id")
+  basePlayerId       String    @map("base_player_id")
+  originalAmount     Int       @map("original_amount")
+  tiedTeamsCount     Int       @map("tied_teams_count")
+  status             String    @default("active")
+  winningTeamId      String?   @map("winning_team_id")
+  winningBid         Int?      @map("winning_bid")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  round              rounds    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  basePlayer         base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  teamTiebreakerBids team_tiebreaker_bids[]
+
+  @@index([roundId])
+  @@index([status])
+}
+
+model team_tiebreaker_bids {
+  id             String      @id
+  tiebreakerId   String      @map("tiebreaker_id")
+  teamId         String      @map("team_id")
+  oldBidAmount   Int         @map("old_bid_amount")
+  newBidAmount   Int?        @map("new_bid_amount")
+  submitted      Boolean     @default(false)
+  submittedAt    DateTime?   @map("submitted_at")
+  tiebreaker     tiebreakers @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+
+  @@unique([tiebreakerId, teamId])
+  @@index([tiebreakerId])
+  @@index([teamId])
+}
+
+model bulk_round_selections {
+  id               String    @id
+  roundId          String    @map("round_id")
+  teamId           String    @map("team_id")
+  selectedPlayers  String    @map("selected_players") @db.Text // JSON array of player IDs
+  submitted        Boolean   @default(false)
+  lastUpdated      DateTime  @default(now()) @map("last_updated")
+  round            rounds    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, teamId])
+  @@index([roundId])
+  @@index([teamId])
+}
+
+model bulk_tiebreakers {
+  id                    Int       @id @default(autoincrement())
+  roundId               String    @map("round_id")
+  basePlayerId          String    @map("base_player_id")
+  basePrice             Int       @map("base_price")
+  status                String    @default("pending")
+  currentHighestBid     Int?      @map("current_highest_bid")
+  currentHighestTeamId  String?   @map("current_highest_team_id")
+  teamsRemaining        Int       @map("teams_remaining")
+  startTime             DateTime? @map("start_time")
+  maxEndTime            DateTime? @map("max_end_time")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  basePlayer            base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  participants          bulk_tiebreaker_participants[]
+  bidHistory            bulk_tiebreaker_bid_history[]
+
+  @@index([roundId])
+  @@index([status])
+}
+
+model bulk_tiebreaker_participants {
+  id              Int               @id @default(autoincrement())
+  tiebreakerId    Int               @map("tiebreaker_id")
+  teamId          String            @map("team_id")
+  status          String            @default("active") // 'active' | 'withdrawn'
+  currentBid      Int?              @map("current_bid")
+  lastBidTime     DateTime?         @map("last_bid_time")
+  tiebreaker      bulk_tiebreakers  @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+
+  @@unique([tiebreakerId, teamId])
+  @@index([tiebreakerId])
+  @@index([teamId])
+}
+
+model bulk_tiebreaker_bid_history {
+  id           Int               @id @default(autoincrement())
+  tiebreakerId Int               @map("tiebreaker_id")
+  teamId       String            @map("team_id")
+  bidAmount    Int               @map("bid_amount")
+  bidTime      DateTime          @default(now()) @map("bid_time")
+  tiebreaker   bulk_tiebreakers  @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+
+  @@index([tiebreakerId])
+  @@index([teamId])
+}
+
+model bid_audit_log {
+  id             Int      @id @default(autoincrement())
+  roundId        String   @map("round_id")
+  teamId         String   @map("team_id")
+  action         String   // 'create' | 'update' | 'submit'
+  encryptedBids  String   @map("encrypted_bids") @db.Text
+  timestamp      DateTime @default(now())
+  round          rounds   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([roundId])
+  @@index([teamId])
+  @@index([timestamp])
 }

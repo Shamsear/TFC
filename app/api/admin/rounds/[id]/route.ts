@@ -1,0 +1,193 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+/**
+ * GET /api/admin/rounds/[id] - Get round details
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const roundId = params.id;
+
+    // Fetch round with related data
+    const round = await prisma.rounds.findUnique({
+      where: { id: roundId },
+      include: {
+        season: {
+          select: {
+            id: true,
+            name: true,
+            seasonNumber: true
+          }
+        },
+        teamRoundBids: {
+          select: {
+            teamId: true,
+            submitted: true,
+            bidCount: true,
+            lastUpdated: true,
+            submittedAt: true
+          }
+        },
+        tiebreakers: {
+          select: {
+            id: true,
+            basePlayerId: true,
+            originalAmount: true,
+            tiedTeamsCount: true,
+            status: true,
+            winningTeamId: true,
+            winningBid: true,
+            basePlayer: {
+              select: {
+                name: true,
+                photoUrl: true
+              }
+            }
+          }
+        },
+        _count: {
+          select: {
+            teamRoundBids: true,
+            tiebreakers: true
+          }
+        }
+      }
+    });
+
+    if (!round) {
+      return NextResponse.json({ error: 'Round not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      round
+    });
+  } catch (error) {
+    console.error('Get round error:', error);
+    return NextResponse.json(
+      { error: 'Failed to get round details' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/admin/rounds/[id] - Update round
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const roundId = params.id;
+    const body = await request.json();
+
+    // Check if round exists
+    const existingRound = await prisma.rounds.findUnique({
+      where: { id: roundId }
+    });
+
+    if (!existingRound) {
+      return NextResponse.json({ error: 'Round not found' }, { status: 404 });
+    }
+
+    // Only allow updates if round is in draft status
+    if (existingRound.status !== 'draft') {
+      return NextResponse.json(
+        { error: 'Can only update rounds in draft status' },
+        { status: 400 }
+      );
+    }
+
+    // Update round
+    const updatedRound = await prisma.rounds.update({
+      where: { id: roundId },
+      data: {
+        position: body.position,
+        maxBidsPerTeam: body.maxBidsPerTeam,
+        basePrice: body.basePrice,
+        durationSeconds: body.durationSeconds,
+        finalizationMode: body.finalizationMode
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      round: updatedRound
+    });
+  } catch (error) {
+    console.error('Update round error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update round' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/admin/rounds/[id] - Delete round
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const roundId = params.id;
+
+    // Check if round exists
+    const existingRound = await prisma.rounds.findUnique({
+      where: { id: roundId }
+    });
+
+    if (!existingRound) {
+      return NextResponse.json({ error: 'Round not found' }, { status: 404 });
+    }
+
+    // Only allow deletion if round is in draft status
+    if (existingRound.status !== 'draft') {
+      return NextResponse.json(
+        { error: 'Can only delete rounds in draft status' },
+        { status: 400 }
+      );
+    }
+
+    // Delete round (cascade will delete related records)
+    await prisma.rounds.delete({
+      where: { id: roundId }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Round deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete round error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete round' },
+      { status: 500 }
+    );
+  }
+}

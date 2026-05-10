@@ -176,7 +176,7 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
   const totalPages = Math.ceil(totalPlayers / ITEMS_PER_PAGE)
 
   // Get all unique positions and teams for filters
-  const allPositions = await prisma.seasonalPlayerStats.findMany({
+  const allPositions = await prisma.seasonal_player_stats.findMany({
     where: { seasonId },
     select: { position: true },
     distinct: ['position']
@@ -192,8 +192,8 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     orderBy: { name: 'asc' }
   })
 
-  const positions = ['ALL', ...allPositions.map(p => p.position).filter(Boolean).sort()]
-  const teams = ['ALL', ...allTeams.map(t => t.name), 'Free Agent']
+  const positions = ['ALL', ...allPositions.map((p: { position: string | null }) => p.position).filter(Boolean).sort()]
+  const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">

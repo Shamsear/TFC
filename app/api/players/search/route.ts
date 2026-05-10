@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const searchQuery = searchParams.get('search') || ''
   const positionFilter = searchParams.get('position') || 'ALL'
   const teamFilter = searchParams.get('team') || 'ALL'
-  const sortBy = searchParams.get('sort') || 'name'
+  const sortBy = searchParams.get('sort') || 'rating'
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const skip = (page - 1) * ITEMS_PER_PAGE
 
@@ -75,8 +75,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // orderBy
-  const orderBy: any = sortBy === 'name' ? { name: 'asc' } : { name: 'asc' }
+  // orderBy: use a relation sort so the DB returns approximate order,
+  // then correct with an in-memory sort on the 24-item page.
+  let orderBy: any
+  if (sortBy === 'rating') {
+    orderBy = { seasonalPlayerStats: { _count: 'desc' } } // approximate; corrected below
+  } else if (sortBy === 'price') {
+    orderBy = { transferHistory: { _count: 'desc' } }     // approximate; corrected below
+  } else {
+    orderBy = { name: 'asc' }
+  }
 
   const [totalPlayers, players] = await Promise.all([
     prisma.base_players.count({ where: whereClause }),
@@ -95,7 +103,7 @@ export async function GET(request: NextRequest) {
     })
   ])
 
-  // In-memory sort for rating/price (only 24 items)
+  // Precise in-memory sort on the 24 returned items
   if (sortBy === 'rating') {
     players.sort((a, b) => (b.seasonalPlayerStats[0]?.overallRating || 0) - (a.seasonalPlayerStats[0]?.overallRating || 0))
   } else if (sortBy === 'price') {

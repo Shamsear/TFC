@@ -69,7 +69,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
   const [searchQuery, setSearchQuery] = useState(() => getParam('search', ''))
   const [positionFilter, setPositionFilter] = useState(() => getParam('position', 'ALL'))
   const [teamFilter, setTeamFilter] = useState(() => getParam('team', 'ALL'))
-  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price'>(() => getParam('sort', 'name') as 'name' | 'rating' | 'price')
+  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price'>(() => getParam('sort', 'rating') as 'name' | 'rating' | 'price')
   const [currentPage, setCurrentPage] = useState(() => parseInt(getParam('page', '1'), 10))
 
   const [players, setPlayers] = useState<Player[]>([])

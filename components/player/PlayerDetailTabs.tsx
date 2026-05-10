@@ -25,31 +25,23 @@ interface PlayerDetailTabsProps {
     id: string
     name: string
   }
-  activeSkills: string[]
-  activeAttributes: string[]
-  formatSkillName: (camelCase: string) => string
-  isGK: boolean
 }
 
 export default function PlayerDetailTabs({ 
   transferHistory, 
   statsContent, 
   currentTeam, 
-  season,
-  activeSkills,
-  activeAttributes,
-  formatSkillName,
-  isGK
+  season
 }: PlayerDetailTabsProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview')
 
   return (
     <>
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto">
+      <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 sm:px-6 py-2 rounded-lg font-bold transition-colors whitespace-nowrap ${
+          className={`px-6 py-2 rounded-lg font-bold transition-colors ${
             activeTab === 'overview'
               ? 'bg-[#E8A800] text-[#0a0a0a]'
               : 'bg-white/5 text-gray-400 hover:bg-white/10'
@@ -58,18 +50,8 @@ export default function PlayerDetailTabs({
           OVERVIEW
         </button>
         <button
-          onClick={() => setActiveTab('skills')}
-          className={`px-4 sm:px-6 py-2 rounded-lg font-bold transition-colors whitespace-nowrap ${
-            activeTab === 'skills'
-              ? 'bg-[#E8A800] text-[#0a0a0a]'
-              : 'bg-white/5 text-gray-400 hover:bg-white/10'
-          }`}
-        >
-          SKILLS & ATTRIBUTES
-        </button>
-        <button
           onClick={() => setActiveTab('history')}
-          className={`px-4 sm:px-6 py-2 rounded-lg font-bold transition-colors whitespace-nowrap ${
+          className={`px-6 py-2 rounded-lg font-bold transition-colors ${
             activeTab === 'history'
               ? 'bg-[#E8A800] text-[#0a0a0a]'
               : 'bg-white/5 text-gray-400 hover:bg-white/10'

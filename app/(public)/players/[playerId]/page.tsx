@@ -130,7 +130,7 @@ async function getPlayerData(playerId: string) {
       scissorsFeint: stats.scissors_feint,
       doubleTouch: stats.double_touch,
       flipFlap: stats.flip_flap,
-      marseilleturn: stats.marseille_turn,
+      marseilleTurn: stats.marseille_turn,
       sombrero: stats.sombrero,
       chopTurn: stats.chop_turn,
       cutBehindTurn: stats.cut_behind_turn,

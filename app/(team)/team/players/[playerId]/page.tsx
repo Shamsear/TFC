@@ -69,6 +69,7 @@ async function getPlayerData(playerId: string, seasonId: string) {
       position: stats.position,
       realWorldClub: stats.realWorldClub,
       overallRating: stats.overallRating,
+      overallAtMaxLevel: stats.overall_at_max_level,
       starRating: stats.star_rating,
       nationality: stats.nationality,
       playingStyle: stats.playing_style,
@@ -248,7 +249,7 @@ export default async function TeamPlayerDetailPage({ params }: PlayerDetailPageP
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <main className="pt-24 pb-16">
+      <main className="pt-0">
         <PlayerDetailContent
           seasonId={seasonId}
           backLink="/team/players"

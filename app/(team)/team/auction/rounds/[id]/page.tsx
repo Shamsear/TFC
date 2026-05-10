@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import NormalRoundBiddingClient from "@/components/team-auction/NormalRoundBiddingClient"
-import { checkAndFinalizeExpiredRound } from "@/lib/lazy-finalize-round"
+import { checkAndFinalizeExpiredRound } from "@/lib/auction/lazy-finalize-round"
 
 export default async function RoundBiddingPage({
   params

@@ -238,15 +238,17 @@ model seasons {
 }
 
 model teams {
-  id              String             @id
-  name            String             @unique
-  managerName     String
-  logoUrl         String
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime
-  seasonTeams     season_teams[]
-  transferHistory transfer_history[]
-  teamManagers    users[]            @relation("TeamManager")
+  id                            String                           @id
+  name                          String                           @unique
+  managerName                   String
+  logoUrl                       String
+  createdAt                     DateTime                         @default(now())
+  updatedAt                     DateTime
+  seasonTeams                   season_teams[]
+  transferHistory               transfer_history[]
+  teamManagers                  users[]                          @relation("TeamManager")
+  bulkTiebreakerParticipants    bulk_tiebreaker_participants[]   @relation("BulkTiebreakerParticipants")
+  bulkTiebreakerBidHistory      bulk_tiebreaker_bid_history[]    @relation("BulkTiebreakerBidHistory")
 }
 
 model transfer_history {
@@ -534,6 +536,7 @@ model rounds {
   teamRoundBids       team_round_bids[]
   tiebreakers         tiebreakers[]
   bulkRoundSelections bulk_round_selections[]
+  bulkTiebreakers     bulk_tiebreakers[] @relation("BulkTiebreakerRound")
   bidAuditLogs        bid_audit_log[]
 
   @@index([seasonId])
@@ -616,6 +619,7 @@ model bulk_tiebreakers {
   startTime             DateTime? @map("start_time")
   maxEndTime            DateTime? @map("max_end_time")
   createdAt             DateTime  @default(now()) @map("created_at")
+  round                 rounds    @relation("BulkTiebreakerRound", fields: [roundId], references: [id], onDelete: Cascade)
   basePlayer            base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
   participants          bulk_tiebreaker_participants[]
   bidHistory            bulk_tiebreaker_bid_history[]
@@ -632,6 +636,7 @@ model bulk_tiebreaker_participants {
   currentBid      Int?              @map("current_bid")
   lastBidTime     DateTime?         @map("last_bid_time")
   tiebreaker      bulk_tiebreakers  @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+  team            teams             @relation("BulkTiebreakerParticipants", fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([tiebreakerId, teamId])
   @@index([tiebreakerId])
@@ -645,6 +650,7 @@ model bulk_tiebreaker_bid_history {
   bidAmount    Int               @map("bid_amount")
   bidTime      DateTime          @default(now()) @map("bid_time")
   tiebreaker   bulk_tiebreakers  @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+  team         teams             @relation("BulkTiebreakerBidHistory", fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([tiebreakerId])
   @@index([teamId])

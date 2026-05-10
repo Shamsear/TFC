@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import BulkRoundSelectionClient from "@/components/team-auction/BulkRoundSelectionClient"
-import { checkAndFinalizeExpiredRound } from "@/lib/lazy-finalize-round"
+import { checkAndFinalizeExpiredRound } from "@/lib/auction/lazy-finalize-round"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 
 export default async function BulkRoundPage({

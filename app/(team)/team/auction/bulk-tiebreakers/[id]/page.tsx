@@ -29,11 +29,7 @@ export default async function BulkTiebreakerPage({
         }
       },
       round: {
-        select: {
-          id: true,
-          roundNumber: true,
-          position: true,
-          seasonId: true,
+        include: {
           season: {
             select: {
               id: true,
@@ -72,15 +68,17 @@ export default async function BulkTiebreakerPage({
     }
   })
 
-  if (!tiebreaker) {
+  if (!tiebreaker || !tiebreaker.round) {
     redirect("/team/auction")
   }
+
+  const seasonId = tiebreaker.round.seasonId as string
 
   // Check if team is in season
   const seasonTeam = await prisma.season_teams.findUnique({
     where: {
       seasonId_teamId: {
-        seasonId: tiebreaker.round.seasonId,
+        seasonId,
         teamId: teamId
       }
     },

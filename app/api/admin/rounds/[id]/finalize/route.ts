@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { finalizeRound, applyFinalizationResults } from '@/lib/auction/finalize-round';
 import { finalizeBulkRound, applyBulkFinalizationResults } from '@/lib/auction/finalize-bulk-round';
 import { createTiebreakers } from '@/lib/auction/tiebreaker';
@@ -11,16 +10,17 @@ import { createTiebreakers } from '@/lib/auction/tiebreaker';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: roundId } = await params;
+  
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const roundId = params.id;
     const body = await request.json();
     const { force = false, preview = false } = body;
 
@@ -177,7 +177,7 @@ export async function POST(
     // Try to revert status
     try {
       await prisma.rounds.update({
-        where: { id: params.id },
+        where: { id: roundId },
         data: { status: 'active' }
       });
     } catch (revertError) {

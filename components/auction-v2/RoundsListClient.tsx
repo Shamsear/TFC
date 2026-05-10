@@ -30,6 +30,22 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
   const [rounds] = useState(initialRounds)
   const [filter, setFilter] = useState<'all' | 'draft' | 'active' | 'completed'>('all')
 
+  // Format date consistently for SSR/CSR
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${month}/${day}/${year}, ${hours}:${minutes}`
+  }
+
+  // Format number consistently for SSR/CSR
+  const formatNumber = (num: number) => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  }
+
   const filteredRounds = rounds.filter(round => {
     if (filter === 'all') return true
     return round.status === filter
@@ -185,14 +201,14 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
               {round.basePrice && (
                 <div className="flex justify-between text-[#D4CCBB]">
                   <span>Base Price:</span>
-                  <span className="font-medium text-white">£{round.basePrice.toLocaleString()}</span>
+                  <span className="font-medium text-white">£{formatNumber(round.basePrice)}</span>
                 </div>
               )}
               {round.startTime && (
                 <div className="flex justify-between text-[#D4CCBB]">
                   <span>Started:</span>
                   <span className="font-medium text-white">
-                    {new Date(round.startTime).toLocaleString()}
+                    {formatDate(round.startTime)}
                   </span>
                 </div>
               )}
@@ -200,7 +216,7 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
                 <div className="flex justify-between text-[#D4CCBB]">
                   <span>Ends:</span>
                   <span className="font-medium text-white">
-                    {new Date(round.endTime).toLocaleString()}
+                    {formatDate(round.endTime)}
                   </span>
                 </div>
               )}

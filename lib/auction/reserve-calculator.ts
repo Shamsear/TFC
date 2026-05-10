@@ -141,6 +141,13 @@ export function canAffordMultipleBids(
     minPlayerPrice
   );
   
+  console.log(`         Total cost: £${totalCost.toLocaleString()}`);
+  console.log(`         New squad size: ${newSquadSize}/${minSquadSize}`);
+  console.log(`         Budget after purchase: £${newBudget.toLocaleString()}`);
+  console.log(`         Slots still needed: ${reserve.slotsNeeded}`);
+  console.log(`         Reserve required: £${reserve.reserveAmount.toLocaleString()}`);
+  console.log(`         Can afford: ${newBudget >= reserve.reserveAmount ? 'YES' : 'NO'}`);
+  
   // Team must have enough budget to cover reserve
   return newBudget >= reserve.reserveAmount;
 }

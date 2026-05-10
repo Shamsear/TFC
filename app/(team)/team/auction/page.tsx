@@ -95,18 +95,16 @@ export default async function TeamAuctionPage() {
     }
   })
 
-  // Fetch active and upcoming rounds
+  // Fetch all rounds (active, completed, etc.)
   const rounds = await prisma.rounds.findMany({
     where: {
       seasonId: activeSeason.id,
-      status: {
-        in: ['draft', 'active', 'expired_pending_finalization', 'tiebreaker_pending']
-      }
     },
-    orderBy: {
-      roundNumber: 'asc'
-    },
-    take: 10
+    orderBy: [
+      { status: 'asc' }, // Active first, then completed
+      { roundNumber: 'desc' } // Most recent first
+    ],
+    take: 20
   })
 
   // Fetch team's bid status for each round

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { generateRoundId } from '@/lib/id-generator';
 
 /**
  * POST /api/admin/rounds - Create a new round
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate round ID
-    const roundId = `SSPSLR${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+    const roundId = await generateRoundId();
 
     // Create round
     const round = await prisma.rounds.create({

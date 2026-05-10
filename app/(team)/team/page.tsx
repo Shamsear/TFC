@@ -98,6 +98,59 @@ export default async function TeamDashboardPage() {
     take: 5,
   })
 
+  // Get active auction rounds
+  const activeRounds = await prisma.rounds.findMany({
+    where: {
+      seasonId: activeSeason.id,
+      status: 'active',
+      endTime: {
+        gte: new Date(), // Only rounds that haven't ended yet
+      },
+    },
+    include: {
+      teamRoundBids: {
+        where: {
+          teamId: team.id,
+        },
+        select: {
+          submitted: true,
+          bidCount: true,
+        },
+      },
+    },
+    orderBy: {
+      endTime: 'asc',
+    },
+    take: 3,
+  })
+
+  // Get pending tiebreakers for this team
+  const pendingTiebreakers = await prisma.bulk_tiebreakers.findMany({
+    where: {
+      round: {
+        seasonId: activeSeason.id,
+      },
+      tiedTeams: {
+        has: team.id,
+      },
+      resolved: false,
+    },
+    include: {
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      round: {
+        select: {
+          id: true,
+          roundNumber: true,
+        },
+      },
+    },
+  })
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
@@ -183,6 +236,138 @@ export default async function TeamDashboardPage() {
             <div className="text-xs text-[#7A7367]">This season</div>
           </div>
         </div>
+
+        {/* Pending Tiebreakers Alert */}
+        {pendingTiebreakers.length > 0 && (
+          <div className="mb-6 sm:mb-8">
+            <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-500 flex items-center justify-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-white">Tiebreaker Pending</h2>
+                  <p className="text-xs sm:text-sm text-[#D4CCBB]">
+                    {pendingTiebreakers.length} player{pendingTiebreakers.length > 1 ? 's' : ''} awaiting admin resolution
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {pendingTiebreakers.map((tie) => (
+                  <div
+                    key={tie.id}
+                    className="rounded-lg bg-black/30 border border-amber-500/30 p-3 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
+                      <div className="text-xs text-[#D4CCBB]">
+                        Round {tie.round.roundNumber} • £{tie.tieAmount.toLocaleString()} • {tie.tiedTeams.length} teams tied
+                      </div>
+                    </div>
+                    <Link
+                      href={`/team/auction/rounds/${tie.roundId}/results`}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-medium transition-all"
+                    >
+                      View
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Active Auction Rounds - Prominent Alert */}
+        {activeRounds.length > 0 && (
+          <div className="mb-6 sm:mb-8">
+            <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#E8A800]/20 to-[#FFB347]/20 border-2 border-[#E8A800]/50 p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800] flex items-center justify-center animate-pulse">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-white">Active Auction Rounds</h2>
+                  <p className="text-xs sm:text-sm text-[#D4CCBB]">{activeRounds.length} round{activeRounds.length > 1 ? 's' : ''} in progress</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {activeRounds.map((round) => {
+                  const teamBid = round.teamRoundBids[0]
+                  const timeRemaining = round.endTime ? new Date(round.endTime).getTime() - Date.now() : 0
+                  const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60))
+                  const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60))
+                  const isUrgent = hoursRemaining < 2
+
+                  return (
+                    <Link
+                      key={round.id}
+                      href={`/team/auction/rounds/${round.id}`}
+                      className="block bg-black/40 border border-white/20 rounded-lg p-4 hover:border-[#E8A800] hover:bg-black/60 transition-all group"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-white font-black text-base sm:text-lg">Round {round.roundNumber}</h3>
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                              LIVE
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[#D4CCBB]">
+                            <span className="font-medium">{round.position || 'All Positions'}</span>
+                            <span className="text-[#7A7367]">•</span>
+                            <span>{round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-lg sm:text-xl font-black ${isUrgent ? 'text-red-400' : 'text-[#FFB347]'}`}>
+                            {hoursRemaining > 0 && `${hoursRemaining}h `}
+                            {minutesRemaining}m
+                          </div>
+                          <div className="text-xs text-[#7A7367]">remaining</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          {teamBid ? (
+                            teamBid.submitted ? (
+                              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                                ✓ Submitted ({teamBid.bidCount} bids)
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30">
+                                In Progress ({teamBid.bidCount} bids)
+                              </span>
+                            )
+                          ) : (
+                            <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
+                              Not Started
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[#E8A800] group-hover:text-[#FFC93A] font-bold text-sm inline-flex items-center gap-1 transition-colors">
+                          {teamBid?.submitted ? 'View Bids' : 'Place Bids'}
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+              <Link
+                href="/team/auction"
+                className="mt-4 block text-center py-3 rounded-lg bg-[#E8A800] hover:bg-[#FFC93A] text-black font-bold text-sm transition-colors"
+              >
+                View All Auction Rounds
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -289,6 +474,17 @@ export default async function TeamDashboardPage() {
           <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <Link
+              href="/team/auction"
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Auction</div>
+            </Link>
+            <Link
               href="/team/squad"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
             >
@@ -320,18 +516,6 @@ export default async function TeamDashboardPage() {
                 </svg>
               </div>
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Tournaments</div>
-            </Link>
-            <Link
-              href="/team/profile"
-              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
-            >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Team Profile</div>
             </Link>
           </div>
         </div>

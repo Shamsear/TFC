@@ -25,11 +25,24 @@ export async function POST(
       )
     }
 
+    // Generate all IDs before the transaction to avoid nested transaction conflicts
+    const idsToGenerate: Array<{ calendarId: string; slotIds: string[] }> = []
+    for (const auction of auctionDates) {
+      idsToGenerate.push({
+        calendarId: await generateAuctionId(),
+        slotIds: await Promise.all(
+          auction.positions.map(() => generateAuctionSlotId())
+        )
+      })
+    }
+
     // Create all auction dates and their slots in a transaction
     const created = await prisma.$transaction(async (tx) => {
       const results = []
 
-      for (const auction of auctionDates) {
+      for (let idx = 0; idx < auctionDates.length; idx++) {
+        const auction = auctionDates[idx]
+        const ids = idsToGenerate[idx]
         const { auctionDate, description, positions } = auction
 
         if (!auctionDate || !positions || positions.length === 0) {
@@ -37,10 +50,9 @@ export async function POST(
         }
 
         // Create auction calendar entry
-        const calendarId = await generateAuctionId()
         const calendar = await tx.auction_calendar.create({
           data: {
-            id: calendarId,
+            id: ids.calendarId,
             seasonId,
             auctionDate: new Date(auctionDate),
             description: description || null,
@@ -50,10 +62,9 @@ export async function POST(
 
         // Create position slots
         for (let i = 0; i < positions.length; i++) {
-          const slotId = await generateAuctionSlotId()
           await tx.auction_slots.create({
             data: {
-              id: slotId,
+              id: ids.slotIds[i],
               auctionCalendarId: calendar.id,
               position: positions[i],
               slotOrder: i,

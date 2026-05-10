@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         hostname: "raw.githubusercontent.com",
         pathname: "/Shamsear/TFC-Images/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.sofifa.net",
+      },
     ],
   },
   env: {

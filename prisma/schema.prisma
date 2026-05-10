@@ -220,21 +220,23 @@ model seasonal_player_stats {
 }
 
 model seasons {
-  id                   String                  @id
-  seasonNumber         Int                     @unique @map("season_number")
-  name                 String                  @unique
-  startingPurse        Int
-  isActive             Boolean                 @default(false)
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime
-  financialLedger      financial_ledger[]
-  retentions           retentions[]
-  seasonTeams          season_teams[]
-  seasonalPlayerStats  seasonal_player_stats[]
-  transferHistory      transfer_history[]
-  auctionCalendar      auction_calendar[]
-  tournaments          tournaments[]
-  rounds               rounds[]
+  id                      String                  @id
+  seasonNumber            Int                     @unique @map("season_number")
+  name                    String                  @unique
+  startingPurse           Int
+  isActive                Boolean                 @default(false)
+  defaultMaxBidsPerTeam   Int?                    @default(10) @map("defaultMaxBidsPerTeam")
+  defaultBasePrice        Int?                    @default(100000) @map("defaultBasePrice")
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime
+  financialLedger         financial_ledger[]
+  retentions              retentions[]
+  seasonTeams             season_teams[]
+  seasonalPlayerStats     seasonal_player_stats[]
+  transferHistory         transfer_history[]
+  auctionCalendar         auction_calendar[]
+  tournaments             tournaments[]
+  rounds                  rounds[]
 }
 
 model teams {

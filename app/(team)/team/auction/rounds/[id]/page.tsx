@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import NormalRoundBiddingClient from "@/components/team-auction/NormalRoundBiddingClient"
 import { checkAndFinalizeExpiredRound } from "@/lib/auction/lazy-finalize-round"
+import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { decryptBids } from "@/lib/auction/encryption"
 
 export default async function RoundBiddingPage({
   params
@@ -37,6 +39,14 @@ export default async function RoundBiddingPage({
   if (!round) {
     redirect("/team/auction")
   }
+
+  // If round is completed, redirect to results
+  if (round.status === 'completed') {
+    redirect(`/team/auction/rounds/${id}/results`)
+  }
+
+  // If round is finalizing, show loading/wait state
+  // (will be handled by client component)
 
   // Check if team is in season
   const seasonTeam = await prisma.season_teams.findUnique({
@@ -82,11 +92,13 @@ export default async function RoundBiddingPage({
       basePlayerId: true,
       position: true,
       overallRating: true,
+      playing_style: true,
       basePlayer: {
         select: {
           id: true,
           name: true,
-          photoUrl: true
+          photoUrl: true,
+          player_id: true
         }
       }
     },
@@ -96,7 +108,7 @@ export default async function RoundBiddingPage({
   })
 
   // Get existing bids
-  const existingBids = await prisma.team_round_bids.findUnique({
+  const existingBidsRaw = await prisma.team_round_bids.findUnique({
     where: {
       roundId_teamId: {
         roundId: id,
@@ -111,10 +123,47 @@ export default async function RoundBiddingPage({
     }
   })
 
+  // Decrypt bids on server side
+  let existingBids = null
+  if (existingBidsRaw) {
+    try {
+      const decrypted = decryptBids(existingBidsRaw.encryptedBids)
+      const parsed = JSON.parse(decrypted)
+      const bidMap: Record<string, number> = {}
+      parsed.bids.forEach((bid: any) => {
+        bidMap[bid.base_player_id] = bid.amount
+      })
+      existingBids = {
+        bids: bidMap,
+        submitted: existingBidsRaw.submitted,
+        bidCount: existingBidsRaw.bidCount,
+        lastUpdated: existingBidsRaw.lastUpdated
+      }
+    } catch (error) {
+      console.error('Failed to decrypt bids on server:', error)
+      // If decryption fails, start fresh
+      existingBids = {
+        bids: {},
+        submitted: false,
+        bidCount: 0,
+        lastUpdated: new Date()
+      }
+    }
+  }
+
+  // Transform players with proper photo URLs
+  const transformedPlayers = players.map(p => ({
+    ...p,
+    basePlayer: {
+      ...p.basePlayer,
+      photoUrl: getPlayerPhotoUrl(`${p.basePlayer.player_id || p.basePlayer.id}.webp`)
+    }
+  }))
+
   return (
     <NormalRoundBiddingClient
       round={round}
-      players={players}
+      players={transformedPlayers}
       budget={seasonTeam.currentBudget}
       squadSize={squadSize}
       existingBids={existingBids}

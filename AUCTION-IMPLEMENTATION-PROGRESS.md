@@ -64,12 +64,12 @@
 
 ## Phase 6: Admin UI
 - [✅] 6.1 Create rounds list page
-- [ ] 6.2 Create round creation form
-- [ ] 6.3 Create round detail/management page
-- [ ] 6.4 Create tiebreaker management page
-- [ ] 6.5 Create bulk round creation form
-- [ ] 6.6 Create bulk tiebreaker management page
-- [ ] 6.7 Add navigation links
+- [✅] 6.2 Create round creation form
+- [✅] 6.3 Create round detail/management page
+- [✅] 6.4 Create tiebreaker management page (integrated into round detail)
+- [✅] 6.5 Create bulk round creation form (uses same form as normal rounds)
+- [✅] 6.6 Create bulk tiebreaker management page (integrated into round detail)
+- [✅] 6.7 Add navigation links (already in dashboard)
 
 ## Phase 7: Team UI
 - [✅] 7.1 Create auction dashboard
@@ -104,9 +104,9 @@
 
 ---
 
-## Current Status: Phase 7 Complete - Build Successful ✅
+## Current Status: Phase 6 Complete ✅
 
-**All team-side auction interfaces are now fully functional and the build compiles without errors!**
+**All admin auction UI pages are now complete and functional!**
 
 ### Build Status:
 - ✅ TypeScript compilation: **0 errors**
@@ -114,8 +114,20 @@
 - ✅ Prisma relations added
 - ✅ NextAuth v5 migration complete
 - ✅ Next.js 15+ params handling fixed
+- ✅ Hydration error fixed (removed toLocaleString())
+- ✅ SS player script fixed (updated field names)
 
-### What Was Fixed:
+### Recent Fixes:
+1. **Hydration Error Fixed**: Removed `toLocaleString()` from RoundDetailClient that caused server/client mismatch
+2. **SS Player Script Fixed**: Updated `add-ss-players.ts` to use correct schema fields:
+   - Changed `pace` → `speed`
+   - Changed `shooting` → `finishing`
+   - Changed `passing` → `low_pass`
+   - Changed `defending` → `tackling`
+   - Changed `physical` → `physical_contact`
+   - Added required `createdAt` and `updatedAt` fields
+
+### What Was Fixed Previously:
 1. **Missing closing brace** in BulkRoundSelectionClient
 2. **Wrong import paths** for lazy-finalize-round
 3. **NextAuth v5 migration** (20 API routes)

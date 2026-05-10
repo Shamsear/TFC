@@ -178,6 +178,7 @@ export default function AuctionDashboardClient({
   const pendingRounds = rounds.filter(r => 
     r.status === 'expired_pending_finalization' || r.status === 'tiebreaker_pending'
   )
+  const completedRounds = rounds.filter(r => r.status === 'completed')
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -418,6 +419,44 @@ export default function AuctionDashboardClient({
                     This round has not started yet
                   </p>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Completed Rounds */}
+        {completedRounds.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Completed Rounds</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {completedRounds.map(round => (
+                <Link
+                  key={round.id}
+                  href={`/team/auction/rounds/${round.id}/results`}
+                  className="block rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all p-6"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-1">
+                        Round {round.roundNumber}
+                      </h3>
+                      {round.position && (
+                        <p className="text-sm text-[#D4CCBB]">{round.position}</p>
+                      )}
+                    </div>
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium border bg-gray-500/20 text-gray-300 border-gray-500/30">
+                      Completed
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[#7A7367]">
+                      View results
+                    </span>
+                    <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>

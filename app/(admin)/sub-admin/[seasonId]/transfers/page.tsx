@@ -138,7 +138,7 @@ export default async function TransfersPage({ params }: TransfersPageProps) {
               No players have been sold in this season yet. Start an auction to see transfers here.
             </p>
             <Link
-              href={`/sub-admin/${seasonId}/auction`}
+              href={`/sub-admin/${seasonId}/auction-v2`}
               className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -27,6 +27,7 @@ export const ID_PREFIXES = {
   KNOCKOUT_PAIRING: 'TFCKP',
   GROUP: 'TFCG',
   STANDING: 'TFCSD',
+  ROUND: 'TFCR',
 } as const
 
 type IDPrefix = typeof ID_PREFIXES[keyof typeof ID_PREFIXES]
@@ -191,6 +192,13 @@ export async function generateGroupId(): Promise<string> {
  */
 export async function generateStandingId(): Promise<string> {
   return generateId(ID_PREFIXES.STANDING)
+}
+
+/**
+ * Generate a round ID
+ */
+export async function generateRoundId(): Promise<string> {
+  return generateId(ID_PREFIXES.ROUND)
 }
 
 /**

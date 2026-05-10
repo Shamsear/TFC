@@ -29,7 +29,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   const router = useRouter()
   const [seasonId, setSeasonId] = useState<string>('')
   const [auctionDates, setAuctionDates] = useState([
-    { auctionDate: '', description: '', positions: [] as string[] }
+    { auctionDate: '', auctionTime: '', description: '', positions: [] as string[] }
   ])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -40,7 +40,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   }, [params])
 
   const addAuctionDate = () => {
-    setAuctionDates([...auctionDates, { auctionDate: '', description: '', positions: [] }])
+    setAuctionDates([...auctionDates, { auctionDate: '', auctionTime: '', description: '', positions: [] }])
   }
 
   const removeAuctionDate = (index: number) => {
@@ -74,6 +74,10 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
         setError(`Please select a date for auction ${i + 1}`)
         return
       }
+      if (!auctionDates[i].auctionTime) {
+        setError(`Please select a time for auction ${i + 1}`)
+        return
+      }
       if (auctionDates[i].positions.length === 0) {
         setError(`Please select at least one position for auction ${i + 1}`)
         return
@@ -83,12 +87,19 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     setIsSubmitting(true)
 
     try {
+      // Combine date and time for each auction
+      const formattedAuctionDates = auctionDates.map(auction => ({
+        auctionDate: `${auction.auctionDate}T${auction.auctionTime}:00`,
+        description: auction.description,
+        positions: auction.positions
+      }))
+
       const response = await fetch(`/api/seasons/${seasonId}/calendar/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ auctionDates })
+        body: JSON.stringify({ auctionDates: formattedAuctionDates })
       })
 
       if (!response.ok) {
@@ -159,8 +170,8 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                 )}
               </div>
 
-              {/* Date and Description Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {/* Date, Time and Description Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                 {/* Date */}
                 <div>
                   <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
@@ -170,6 +181,20 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                     type="date"
                     value={auction.auctionDate}
                     onChange={(e) => updateAuctionDate(index, 'auctionDate', e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                    required
+                  />
+                </div>
+
+                {/* Time */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                    Time <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={auction.auctionTime}
+                    onChange={(e) => updateAuctionDate(index, 'auctionTime', e.target.value)}
                     className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
                     required
                   />
@@ -185,7 +210,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                     value={auction.description}
                     onChange={(e) => updateAuctionDate(index, 'description', e.target.value)}
                     className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
-                    placeholder="e.g., Day 1 - Goalkeepers and Defenders"
+                    placeholder="e.g., Day 1 - Goalkeepers"
                   />
                 </div>
               </div>
@@ -334,6 +359,11 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                         month: 'short',
                         day: 'numeric'
                       })}
+                      {auction.auctionTime && (
+                        <span className="text-[#E8A800] ml-2">
+                          @ {auction.auctionTime}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {auction.description && (

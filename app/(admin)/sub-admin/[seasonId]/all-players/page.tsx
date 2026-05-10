@@ -52,44 +52,63 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
   if (searchQuery && searchQuery.trim()) {
     const query = searchQuery.trim()
     whereClause.OR = [
-      { name: { contains: query, mode: 'insensitive' } },
+      { name: { contains: query, mode: 'insensitive' as const } },
       { seasonalPlayerStats: { some: { 
         seasonId,
         OR: [
-          { realWorldClub: { contains: query, mode: 'insensitive' } },
-          { position: { contains: query, mode: 'insensitive' } }
+          { realWorldClub: { contains: query, mode: 'insensitive' as const } },
+          { position: { contains: query, mode: 'insensitive' as const } }
         ]
       }}},
       { transferHistory: { some: { 
         seasonId,
-        team: { name: { contains: query, mode: 'insensitive' } }
+        team: { name: { contains: query, mode: 'insensitive' as const } }
       }}}
     ]
   }
 
-  // Position filter
+  // Position filter - combine with search if both exist
   if (positionFilter && positionFilter !== 'ALL') {
-    whereClause.seasonalPlayerStats = {
-      some: {
-        seasonId,
-        position: positionFilter
+    if (whereClause.OR) {
+      // If search exists, we need to add position as an AND condition
+      const searchCondition = { ...whereClause }
+      whereClause.AND = [
+        searchCondition,
+        {
+          seasonalPlayerStats: {
+            some: {
+              seasonId,
+              position: positionFilter
+            }
+          }
+        }
+      ]
+      delete whereClause.OR
+    } else {
+      whereClause.seasonalPlayerStats = {
+        some: {
+          seasonId,
+          position: positionFilter
+        }
       }
     }
   }
 
-  // Team filter
+  // Team filter - combine with existing conditions
   if (teamFilter && teamFilter !== 'ALL') {
-    if (teamFilter === 'Free Agent') {
-      whereClause.transferHistory = {
-        none: { seasonId }
-      }
+    const teamCondition = teamFilter === 'Free Agent'
+      ? { transferHistory: { none: { seasonId } } }
+      : { transferHistory: { some: { seasonId, team: { name: teamFilter } } } }
+
+    if (whereClause.AND) {
+      whereClause.AND.push(teamCondition)
+    } else if (whereClause.OR || whereClause.seasonalPlayerStats) {
+      const existingConditions = { ...whereClause }
+      whereClause.AND = [existingConditions, teamCondition]
+      delete whereClause.OR
+      delete whereClause.seasonalPlayerStats
     } else {
-      whereClause.transferHistory = {
-        some: {
-          seasonId,
-          team: { name: teamFilter }
-        }
-      }
+      Object.assign(whereClause, teamCondition)
     }
   }
 

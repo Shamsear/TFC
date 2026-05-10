@@ -334,7 +334,7 @@ export async function validateBulkSelections(
     playerIds.map(id => ({ base_player_id: id, amount: context.basePrice || 0 })),
     context.seasonId
   );
-  allErrors.push(...existenceResult.errors);
+  errors.push(...existenceResult.errors);
   
   // Validate players available
   const availabilityResult = await validatePlayersAvailable(

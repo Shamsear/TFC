@@ -284,7 +284,8 @@ export async function placeBulkTiebreakerBid(
       select: {
         status: true,
         currentHighestBid: true,
-        basePrice: true
+        basePrice: true,
+        roundId: true
       }
     });
 

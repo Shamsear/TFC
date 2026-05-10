@@ -112,11 +112,9 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     }
   }
 
-  // Get total count with filters
-  const totalPlayers = await prisma.base_players.count({
-    where: whereClause
-  })
-
+  // All data fetching is now handled in the optimized Promise.all block below
+  // to ensure maximum performance with 28k+ players.
+  
   // Build orderBy clause
   let orderBy: any = { name: 'asc' }
   if (sortBy === 'rating') {
@@ -125,24 +123,53 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     orderBy = { transferHistory: { _count: 'desc' } }
   }
 
-  // Get paginated base players with their seasonal stats and transfer history
-  const allPlayers = await prisma.base_players.findMany({
-    where: whereClause,
-    include: {
-      seasonalPlayerStats: {
-        where: { seasonId }
-      },
-      transferHistory: {
-        where: { seasonId },
-        include: {
-          team: true
+  // Fetch all necessary data in parallel
+  const [totalPlayers, soldPlayers, totalBasePlayers, allPositions, allTeams, allPlayers] = await Promise.all([
+    // 1. Get total count with filters for pagination
+    prisma.base_players.count({
+      where: whereClause
+    }),
+    // 2. Count sold players for this season (for stats cards)
+    prisma.transfer_history.count({
+      where: { seasonId }
+    }),
+    // 3. Count total players available (for stats cards)
+    prisma.base_players.count(),
+    // 4. Get unique positions (for filter dropdown)
+    prisma.seasonal_player_stats.findMany({
+      where: { seasonId },
+      select: { position: true },
+      distinct: ['position']
+    }),
+    // 5. Get teams with transfer history (for filter dropdown)
+    prisma.teams.findMany({
+      where: {
+        transferHistory: {
+          some: { seasonId }
         }
-      }
-    },
-    orderBy,
-    skip,
-    take: ITEMS_PER_PAGE
-  })
+      },
+      select: { name: true },
+      orderBy: { name: 'asc' }
+    }),
+    // 6. Get the actual paginated players
+    prisma.base_players.findMany({
+      where: whereClause,
+      include: {
+        seasonalPlayerStats: {
+          where: { seasonId }
+        },
+        transferHistory: {
+          where: { seasonId },
+          include: {
+            team: true
+          }
+        }
+      },
+      orderBy,
+      skip,
+      take: ITEMS_PER_PAGE
+    })
+  ])
 
   // Apply sorting in memory for rating and price (since Prisma orderBy on relations is limited)
   if (sortBy === 'rating') {
@@ -181,35 +208,8 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     }
   })
 
-  // Get stats for all players (not just current page) - without filters for accurate totals
-  const allPlayersForStats = await prisma.base_players.findMany({
-    include: {
-      transferHistory: {
-        where: { seasonId }
-      }
-    }
-  })
-
-  const soldPlayers = allPlayersForStats.filter(p => p.transferHistory.length > 0).length
-  const availablePlayers = allPlayersForStats.filter(p => p.transferHistory.length === 0).length
+  const availablePlayers = totalBasePlayers - soldPlayers
   const totalPages = Math.ceil(totalPlayers / ITEMS_PER_PAGE)
-
-  // Get all unique positions and teams for filters
-  const allPositions = await prisma.seasonal_player_stats.findMany({
-    where: { seasonId },
-    select: { position: true },
-    distinct: ['position']
-  })
-
-  const allTeams = await prisma.teams.findMany({
-    where: {
-      transferHistory: {
-        some: { seasonId }
-      }
-    },
-    select: { name: true },
-    orderBy: { name: 'asc' }
-  })
 
   const positions = ['ALL', ...allPositions.map((p: { position: string | null }) => p.position).filter(Boolean).sort()] as string[]
   const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']

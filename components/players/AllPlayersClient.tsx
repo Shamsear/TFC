@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 
 interface Player {
   id: string
@@ -27,12 +27,6 @@ interface AllPlayersClientProps {
 const SearchIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-  </svg>
-)
-
-const FilterIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
   </svg>
 )
 
@@ -69,7 +63,6 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
   const [searchQuery, setSearchQuery] = useState(() => getParam('search', ''))
   const [positionFilter, setPositionFilter] = useState(() => getParam('position', 'ALL'))
   const [teamFilter, setTeamFilter] = useState(() => getParam('team', 'ALL'))
-  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price'>(() => getParam('sort', 'rating') as 'name' | 'rating' | 'price')
   const [currentPage, setCurrentPage] = useState(() => parseInt(getParam('page', '1'), 10))
 
   const [players, setPlayers] = useState<Player[]>([])
@@ -86,35 +79,28 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     search: string
     position: string
     team: string
-    sort: string
     page: number
   }) => {
-    // Cancel previous in-flight request
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
 
     setLoading(true)
     setError(null)
 
-    const params = new URLSearchParams({ seasonId, page: String(opts.page) })
+    const params = new URLSearchParams({ seasonId, page: String(opts.page), sort: 'rating' })
     if (opts.search) params.set('search', opts.search)
     if (opts.position !== 'ALL') params.set('position', opts.position)
     if (opts.team !== 'ALL') params.set('team', opts.team)
-    if (opts.sort !== 'name') params.set('sort', opts.sort)
 
     try {
-      const res = await fetch(`/api/players/search?${params}`, {
-        signal: abortRef.current.signal
-      })
+      const res = await fetch(`/api/players/search?${params}`, { signal: abortRef.current.signal })
       if (!res.ok) throw new Error('Failed to fetch players')
       const data = await res.json()
       setPlayers(data.players)
       setTotalPlayers(data.totalPlayers)
       setTotalPages(data.totalPages)
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        setError('Failed to load players. Please try again.')
-      }
+      if (err.name !== 'AbortError') setError('Failed to load players. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -122,14 +108,13 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
 
   // ── Silently sync state → URL (no navigation, no reload) ────────────────────
   const syncURL = useCallback((opts: {
-    search: string; position: string; team: string; sort: string; page: number
+    search: string; position: string; team: string; page: number
   }) => {
     const params = new URLSearchParams()
     if (opts.page > 1) params.set('page', String(opts.page))
     if (opts.search) params.set('search', opts.search)
     if (opts.position !== 'ALL') params.set('position', opts.position)
     if (opts.team !== 'ALL') params.set('team', opts.team)
-    if (opts.sort !== 'name') params.set('sort', opts.sort)
     const qs = params.toString()
     window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname)
   }, [pathname])
@@ -141,8 +126,8 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     debounceRef.current = setTimeout(() => {
       const newPage = 1
       setCurrentPage(newPage)
-      syncURL({ search: searchQuery, position: positionFilter, team: teamFilter, sort: sortBy, page: newPage })
-      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, sort: sortBy, page: newPage })
+      syncURL({ search: searchQuery, position: positionFilter, team: teamFilter, page: newPage })
+      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, page: newPage })
     }, 400)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,24 +135,23 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
 
   // ── Instant filter changes ───────────────────────────────────────────────────
   const applyFilters = useCallback((overrides: Partial<{
-    position: string; team: string; sort: 'name' | 'rating' | 'price'; page: number
+    position: string; team: string; page: number
   }>) => {
     const next = {
       search: searchQuery,
       position: positionFilter,
       team: teamFilter,
-      sort: sortBy,
       page: 1,
       ...overrides
     }
     setCurrentPage(next.page)
     syncURL(next)
     fetchPlayers(next)
-  }, [searchQuery, positionFilter, teamFilter, sortBy, syncURL, fetchPlayers])
+  }, [searchQuery, positionFilter, teamFilter, syncURL, fetchPlayers])
 
   // ── Initial load ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, sort: sortBy, page: currentPage })
+    fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, page: currentPage })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -182,11 +166,6 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     applyFilters({ team: value })
   }
 
-  const handleSortChange = (value: 'name' | 'rating' | 'price') => {
-    setSortBy(value)
-    applyFilters({ sort: value })
-  }
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     applyFilters({ page })
@@ -197,8 +176,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     setSearchQuery('')
     setPositionFilter('ALL')
     setTeamFilter('ALL')
-    setSortBy('name')
-    const next = { search: '', position: 'ALL', team: 'ALL', sort: 'name', page: 1 }
+    const next = { search: '', position: 'ALL', team: 'ALL', page: 1 }
     syncURL(next)
     fetchPlayers(next)
   }
@@ -253,25 +231,6 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
                 <option key={team} value={team}>{team === 'ALL' ? 'All Teams' : team}</option>
               ))}
             </select>
-          </div>
-        </div>
-
-        {/* Sort Options */}
-        <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-2">
-          <FilterIcon />
-          <span className="text-xs sm:text-sm text-[#7A7367]">Sort by:</span>
-          <div className="flex gap-2">
-            {(['name', 'rating', 'price'] as const).map(opt => (
-              <button
-                key={opt}
-                onClick={() => handleSortChange(opt)}
-                className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all ${
-                  sortBy === opt ? 'bg-[#E8A800] text-[#0a0a0a]' : 'bg-black/30 text-[#7A7367] hover:bg-black/50'
-                }`}
-              >
-                {opt.charAt(0).toUpperCase() + opt.slice(1)}
-              </button>
-            ))}
           </div>
         </div>
       </div>

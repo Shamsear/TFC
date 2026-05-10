@@ -211,7 +211,7 @@ export default async function AllPlayersPage({ params, searchParams }: AllPlayer
     orderBy: { name: 'asc' }
   })
 
-  const positions = ['ALL', ...allPositions.map((p: { position: string | null }) => p.position).filter(Boolean).sort()]
+  const positions = ['ALL', ...allPositions.map((p: { position: string | null }) => p.position).filter(Boolean).sort()] as string[]
   const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']
 
   return (

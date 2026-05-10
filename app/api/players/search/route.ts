@@ -24,72 +24,201 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'seasonId is required' }, { status: 400 })
   }
 
-  // Build where clause
-  const whereClause: any = {}
+  // ── Build shared filter helpers ─────────────────────────────────────────────
+  const q = searchQuery.trim()
 
-  if (searchQuery.trim()) {
-    const query = searchQuery.trim()
-    whereClause.OR = [
-      { name: { contains: query, mode: 'insensitive' as const } },
-      { seasonalPlayerStats: { some: {
-        seasonId,
-        OR: [
-          { realWorldClub: { contains: query, mode: 'insensitive' as const } },
-          { position: { contains: query, mode: 'insensitive' as const } }
-        ]
-      }}},
-      { transferHistory: { some: {
-        seasonId,
-        team: { name: { contains: query, mode: 'insensitive' as const } }
-      }}}
+  // Filter conditions expressed as constraints on base_players
+  // Used when querying from base_players (name sort)
+  const basePLayerWhere: any = {}
+  if (q) {
+    basePLayerWhere.OR = [
+      { name: { contains: q, mode: 'insensitive' as const } },
+      { seasonalPlayerStats: { some: { seasonId, OR: [
+        { realWorldClub: { contains: q, mode: 'insensitive' as const } },
+        { position: { contains: q, mode: 'insensitive' as const } }
+      ]}}},
+      { transferHistory: { some: { seasonId, team: { name: { contains: q, mode: 'insensitive' as const } } }}}
     ]
   }
-
-  if (positionFilter && positionFilter !== 'ALL') {
-    const posCondition = { seasonalPlayerStats: { some: { seasonId, position: positionFilter } } }
-    if (whereClause.OR) {
-      whereClause.AND = [{ OR: whereClause.OR }, posCondition]
-      delete whereClause.OR
+  if (positionFilter !== 'ALL') {
+    const posCond = { seasonalPlayerStats: { some: { seasonId, position: positionFilter } } }
+    if (basePLayerWhere.OR) {
+      basePLayerWhere.AND = [{ OR: basePLayerWhere.OR }, posCond]
+      delete basePLayerWhere.OR
     } else {
-      Object.assign(whereClause, posCondition)
+      Object.assign(basePLayerWhere, posCond)
     }
   }
-
-  if (teamFilter && teamFilter !== 'ALL') {
-    const teamCondition = teamFilter === 'Free Agent'
+  if (teamFilter !== 'ALL') {
+    const teamCond = teamFilter === 'Free Agent'
       ? { transferHistory: { none: { seasonId } } }
       : { transferHistory: { some: { seasonId, team: { name: teamFilter } } } }
-
-    if (whereClause.AND) {
-      whereClause.AND.push(teamCondition)
-    } else if (whereClause.OR) {
-      whereClause.AND = [{ OR: whereClause.OR }, teamCondition]
-      delete whereClause.OR
-    } else if (Object.keys(whereClause).length > 0) {
-      whereClause.AND = [{ ...whereClause }, teamCondition]
-      for (const key of Object.keys(whereClause)) {
-        if (key !== 'AND') delete whereClause[key]
-      }
+    if (basePLayerWhere.AND) {
+      basePLayerWhere.AND.push(teamCond)
+    } else if (basePLayerWhere.OR) {
+      basePLayerWhere.AND = [{ OR: basePLayerWhere.OR }, teamCond]
+      delete basePLayerWhere.OR
+    } else if (Object.keys(basePLayerWhere).length > 0) {
+      basePLayerWhere.AND = [{ ...basePLayerWhere }, teamCond]
+      for (const k of Object.keys(basePLayerWhere)) { if (k !== 'AND') delete basePLayerWhere[k] }
     } else {
-      Object.assign(whereClause, teamCondition)
+      Object.assign(basePLayerWhere, teamCond)
     }
   }
 
-  // orderBy: use a relation sort so the DB returns approximate order,
-  // then correct with an in-memory sort on the 24-item page.
-  let orderBy: any
+  // ── Sort by RATING — query from seasonal_player_stats for correct DB-level ordering ──
   if (sortBy === 'rating') {
-    orderBy = { seasonalPlayerStats: { _count: 'desc' } } // approximate; corrected below
-  } else if (sortBy === 'price') {
-    orderBy = { transferHistory: { _count: 'desc' } }     // approximate; corrected below
-  } else {
-    orderBy = { name: 'asc' }
+    // Build the stats-level where (position filter goes directly here)
+    const statsWhere: any = { seasonId }
+
+    if (q) {
+      statsWhere.OR = [
+        { realWorldClub: { contains: q, mode: 'insensitive' as const } },
+        { position: { contains: q, mode: 'insensitive' as const } },
+        { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },
+        { basePlayer: { transferHistory: { some: { seasonId, team: { name: { contains: q, mode: 'insensitive' as const } } } } } }
+      ]
+    }
+    if (positionFilter !== 'ALL') {
+      if (statsWhere.OR) {
+        statsWhere.AND = [{ OR: statsWhere.OR }, { position: positionFilter }]
+        delete statsWhere.OR
+      } else {
+        statsWhere.position = positionFilter
+      }
+    }
+    if (teamFilter !== 'ALL') {
+      const teamCond = teamFilter === 'Free Agent'
+        ? { basePlayer: { transferHistory: { none: { seasonId } } } }
+        : { basePlayer: { transferHistory: { some: { seasonId, team: { name: teamFilter } } } } }
+      if (statsWhere.AND) {
+        statsWhere.AND.push(teamCond)
+      } else if (statsWhere.OR) {
+        statsWhere.AND = [{ OR: statsWhere.OR }, teamCond]
+        delete statsWhere.OR
+      } else {
+        Object.assign(statsWhere, teamCond)
+      }
+    }
+
+    const [totalPlayers, statsResults] = await Promise.all([
+      prisma.seasonal_player_stats.count({ where: statsWhere }),
+      prisma.seasonal_player_stats.findMany({
+        where: statsWhere,
+        orderBy: { overallRating: 'desc' }, // ← real DB-level sort
+        skip,
+        take: ITEMS_PER_PAGE,
+        include: {
+          basePlayer: {
+            include: {
+              transferHistory: {
+                where: { seasonId },
+                include: { team: { select: { id: true, name: true, logoUrl: true } } }
+              }
+            }
+          }
+        }
+      })
+    ])
+
+    const players = statsResults.map(stats => {
+      const player = stats.basePlayer
+      const transfer = player.transferHistory[0]
+      return {
+        id: player.id,
+        name: player.name,
+        photoUrl: getPlayerPhotoUrl(`${player.player_id || player.id}.webp`),
+        position: stats.position || 'N/A',
+        realWorldClub: stats.realWorldClub || 'N/A',
+        overallRating: stats.overallRating || 0,
+        team: transfer ? { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl } : null,
+        soldPrice: transfer?.soldPrice || null,
+        status: (transfer ? 'SOLD' : 'AVAILABLE') as 'SOLD' | 'AVAILABLE'
+      }
+    })
+
+    return NextResponse.json({
+      players,
+      totalPlayers,
+      totalPages: Math.ceil(totalPlayers / ITEMS_PER_PAGE),
+      currentPage: page
+    })
   }
 
-  const [totalPlayers, players] = await Promise.all([
-    prisma.base_players.count({ where: whereClause }),
+  // ── Sort by PRICE — query from transfer_history for correct DB-level ordering ──
+  if (sortBy === 'price') {
+    const transferWhere: any = { seasonId }
+    if (q) {
+      transferWhere.OR = [
+        { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },
+        { basePlayer: { seasonalPlayerStats: { some: { seasonId, OR: [
+          { realWorldClub: { contains: q, mode: 'insensitive' as const } },
+          { position: { contains: q, mode: 'insensitive' as const } }
+        ]}}}},
+        { team: { name: { contains: q, mode: 'insensitive' as const } } }
+      ]
+    }
+    if (positionFilter !== 'ALL') {
+      const posCond = { basePlayer: { seasonalPlayerStats: { some: { seasonId, position: positionFilter } } } }
+      if (transferWhere.OR) {
+        transferWhere.AND = [{ OR: transferWhere.OR }, posCond]; delete transferWhere.OR
+      } else { Object.assign(transferWhere, posCond) }
+    }
+    if (teamFilter === 'Free Agent') {
+      // Free agents have no transfer history — return empty for price sort
+      return NextResponse.json({ players: [], totalPlayers: 0, totalPages: 0, currentPage: page })
+    } else if (teamFilter !== 'ALL') {
+      const tCond = { team: { name: teamFilter } }
+      if (transferWhere.AND) transferWhere.AND.push(tCond)
+      else if (transferWhere.OR) { transferWhere.AND = [{ OR: transferWhere.OR }, tCond]; delete transferWhere.OR }
+      else Object.assign(transferWhere, tCond)
+    }
+
+    const [totalPlayers, transferResults] = await Promise.all([
+      prisma.transfer_history.count({ where: transferWhere }),
+      prisma.transfer_history.findMany({
+        where: transferWhere,
+        orderBy: { soldPrice: 'desc' }, // ← real DB-level sort
+        skip,
+        take: ITEMS_PER_PAGE,
+        include: {
+          team: { select: { id: true, name: true, logoUrl: true } },
+          basePlayer: {
+            include: { seasonalPlayerStats: { where: { seasonId } } }
+          }
+        }
+      })
+    ])
+
+    const players = transferResults.map(transfer => {
+      const player = transfer.basePlayer
+      const stats = player.seasonalPlayerStats[0]
+      return {
+        id: player.id,
+        name: player.name,
+        photoUrl: getPlayerPhotoUrl(`${player.player_id || player.id}.webp`),
+        position: stats?.position || 'N/A',
+        realWorldClub: stats?.realWorldClub || 'N/A',
+        overallRating: stats?.overallRating || 0,
+        team: { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl },
+        soldPrice: transfer.soldPrice,
+        status: 'SOLD' as const
+      }
+    })
+
+    return NextResponse.json({
+      players,
+      totalPlayers,
+      totalPages: Math.ceil(totalPlayers / ITEMS_PER_PAGE),
+      currentPage: page
+    })
+  }
+
+  // ── Default: Sort by NAME — query from base_players ─────────────────────────
+  const [totalPlayers, basePlayers] = await Promise.all([
+    prisma.base_players.count({ where: basePLayerWhere }),
     prisma.base_players.findMany({
-      where: whereClause,
+      where: basePLayerWhere,
       include: {
         seasonalPlayerStats: { where: { seasonId } },
         transferHistory: {
@@ -97,20 +226,13 @@ export async function GET(request: NextRequest) {
           include: { team: { select: { id: true, name: true, logoUrl: true } } }
         }
       },
-      orderBy,
+      orderBy: { name: 'asc' },
       skip,
       take: ITEMS_PER_PAGE
     })
   ])
 
-  // Precise in-memory sort on the 24 returned items
-  if (sortBy === 'rating') {
-    players.sort((a, b) => (b.seasonalPlayerStats[0]?.overallRating || 0) - (a.seasonalPlayerStats[0]?.overallRating || 0))
-  } else if (sortBy === 'price') {
-    players.sort((a, b) => (b.transferHistory[0]?.soldPrice || 0) - (a.transferHistory[0]?.soldPrice || 0))
-  }
-
-  const playersData = players.map(player => {
+  const players = basePlayers.map(player => {
     const stats = player.seasonalPlayerStats[0]
     const transfer = player.transferHistory[0]
     return {
@@ -127,7 +249,7 @@ export async function GET(request: NextRequest) {
   })
 
   return NextResponse.json({
-    players: playersData,
+    players,
     totalPlayers,
     totalPages: Math.ceil(totalPlayers / ITEMS_PER_PAGE),
     currentPage: page

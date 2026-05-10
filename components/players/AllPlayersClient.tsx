@@ -1,6 +1,4 @@
-'use client'
-
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
@@ -76,6 +74,7 @@ export default function AllPlayersClient({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
   const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [positionFilter, setPositionFilter] = useState<string>(initialPosition)
   const [teamFilter, setTeamFilter] = useState<string>(initialTeam)
@@ -107,7 +106,9 @@ export default function AllPlayersClient({
   // Debounce search updates to URL — uses buildURL captured at effect time (stable via useCallback)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      router.push(buildURL({ search: searchQuery }, true))
+      startTransition(() => {
+        router.push(buildURL({ search: searchQuery }, true))
+      })
     }, 500)
     return () => clearTimeout(timeoutId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,17 +116,23 @@ export default function AllPlayersClient({
 
   const handlePositionChange = (value: string) => {
     setPositionFilter(value)
-    router.push(buildURL({ position: value }, true))
+    startTransition(() => {
+      router.push(buildURL({ position: value }, true))
+    })
   }
 
   const handleTeamChange = (value: string) => {
     setTeamFilter(value)
-    router.push(buildURL({ team: value }, true))
+    startTransition(() => {
+      router.push(buildURL({ team: value }, true))
+    })
   }
 
   const handleSortChange = (value: 'name' | 'rating' | 'price') => {
     setSortBy(value)
-    router.push(buildURL({ sort: value }, true))
+    startTransition(() => {
+      router.push(buildURL({ sort: value }, true))
+    })
   }
 
   const handleClearFilters = () => {
@@ -133,7 +140,9 @@ export default function AllPlayersClient({
     setPositionFilter('ALL')
     setTeamFilter('ALL')
     setSortBy('name')
-    router.push(`${pathname}?page=1`)
+    startTransition(() => {
+      router.push(`${pathname}?page=1`)
+    })
   }
 
   // Build URL for a specific page while preserving all current filters
@@ -260,17 +269,18 @@ export default function AllPlayersClient({
         )}
       </div>
 
-      {/* Players Grid */}
-      {players.length === 0 ? (
-        <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4">
-            <SearchIcon />
+      {/* Players Grid — dims when search/filter is pending */}
+      <div className={`transition-opacity duration-200 ${isPending ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+        {players.length === 0 ? (
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4">
+              <SearchIcon />
+            </div>
+            <div className="text-[#D4CCBB] text-sm sm:text-base">No players found matching your filters</div>
           </div>
-          <div className="text-[#D4CCBB] text-sm sm:text-base">No players found matching your filters</div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-          {players.map((player) => (
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+            {players.map((player) => (
             <Link
               key={player.id}
               href={seasonId ? `/sub-admin/${seasonId}/all-players/${player.id}` : `/players/${player.id}`}
@@ -336,7 +346,8 @@ export default function AllPlayersClient({
             </Link>
           ))}
         </div>
-      )}
+        )}
+      </div>
 
       {/* Pagination — uses <Link> so page URL updates and browser back/forward works */}
       {totalPages > 1 && (

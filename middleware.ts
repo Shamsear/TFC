@@ -6,57 +6,83 @@ export default auth((req) => {
   const isAuthenticated = !!req.auth
   const userRole = req.auth?.user?.role
 
+  // Allow API, static files, and auth routes
+  if (pathname.startsWith("/api") || 
+      pathname.startsWith("/_next") || 
+      pathname.startsWith("/auth")) {
+    return NextResponse.next()
+  }
+
   // Redirect authenticated users from home page to their dashboard
   if (pathname === "/" && isAuthenticated) {
     if (userRole === "SUPER_ADMIN") {
       return NextResponse.redirect(new URL("/super-admin", req.url))
     } else if (userRole === "SUB_ADMIN") {
       return NextResponse.redirect(new URL("/sub-admin", req.url))
+    } else if (userRole === "TEAM_MANAGER") {
+      return NextResponse.redirect(new URL("/team", req.url))
     }
   }
 
-  // Redirect authenticated users from sign-in page to their dashboard
-  if (pathname === "/auth/signin" && isAuthenticated) {
-    if (userRole === "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/super-admin", req.url))
-    } else if (userRole === "SUB_ADMIN") {
-      return NextResponse.redirect(new URL("/sub-admin", req.url))
-    }
+  // Define role-based home routes
+  const roleRoutes = {
+    SUPER_ADMIN: "/super-admin",
+    SUB_ADMIN: "/sub-admin",
+    TEAM_MANAGER: "/team"
   }
 
-  // Protect admin routes
-  if (pathname.startsWith("/super-admin") || pathname.startsWith("/sub-admin")) {
-    if (!isAuthenticated) {
-      const signInUrl = new URL("/auth/signin", req.url)
-      signInUrl.searchParams.set("callbackUrl", pathname)
-      return NextResponse.redirect(signInUrl)
+  // Protect and restrict role-specific routes
+  if (isAuthenticated && userRole) {
+    const userHomeRoute = roleRoutes[userRole as keyof typeof roleRoutes]
+
+    // Super Admin routes
+    if (pathname.startsWith("/super-admin")) {
+      if (userRole !== "SUPER_ADMIN") {
+        return NextResponse.redirect(new URL(userHomeRoute, req.url))
+      }
+      return NextResponse.next()
     }
 
-    // Check role-based access
-    if (pathname.startsWith("/super-admin") && userRole !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/", req.url))
+    // Sub Admin routes
+    if (pathname.startsWith("/sub-admin")) {
+      if (userRole !== "SUB_ADMIN") {
+        return NextResponse.redirect(new URL(userHomeRoute, req.url))
+      }
+      return NextResponse.next()
     }
 
-    if (pathname.startsWith("/sub-admin") && userRole !== "SUB_ADMIN") {
-      return NextResponse.redirect(new URL("/", req.url))
+    // Team Manager routes
+    if (pathname.startsWith("/team")) {
+      if (userRole !== "TEAM_MANAGER") {
+        return NextResponse.redirect(new URL(userHomeRoute, req.url))
+      }
+      return NextResponse.next()
     }
-  }
 
-  // Restrict admins from accessing public pages
-  if (isAuthenticated) {
+    // Redirect all logged-in users away from public pages
+    // Public pages are anything that's not a role-specific route
     const isPublicPage = !pathname.startsWith("/super-admin") && 
                          !pathname.startsWith("/sub-admin") && 
-                         !pathname.startsWith("/auth") && 
-                         !pathname.startsWith("/api") &&
+                         !pathname.startsWith("/team") &&
                          pathname !== "/"
 
     if (isPublicPage) {
-      if (userRole === "SUPER_ADMIN") {
-        return NextResponse.redirect(new URL("/super-admin", req.url))
-      } else if (userRole === "SUB_ADMIN") {
-        return NextResponse.redirect(new URL("/sub-admin", req.url))
-      }
+      return NextResponse.redirect(new URL(userHomeRoute, req.url))
     }
+  }
+
+  // Protect team routes from unauthenticated access
+  if (pathname.startsWith("/team") && !isAuthenticated) {
+    const signInUrl = new URL("/auth/signin", req.url)
+    signInUrl.searchParams.set("callbackUrl", pathname)
+    return NextResponse.redirect(signInUrl)
+  }
+
+  // Protect admin routes from unauthenticated access
+  if ((pathname.startsWith("/super-admin") || pathname.startsWith("/sub-admin")) && !isAuthenticated) {
+    const signInUrl = new URL("/auth/signin", req.url)
+    signInUrl.searchParams.set("callbackUrl", pathname)
+    return NextResponse.redirect(signInUrl)
   }
 
   return NextResponse.next()

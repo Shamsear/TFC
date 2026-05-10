@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 
 interface TeamNavigationClientProps {
@@ -27,20 +27,35 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   // Different navigation based on season participation
   const activeSeasonNavigation = [
-    { name: "Dashboard", href: "/team", icon: "🏠" },
-    { name: "Squad", href: "/team/squad", icon: "👥" },
-    { name: "Matches", href: "/team/matches", icon: "⚽" },
-    { name: "Tournaments", href: "/team/tournaments", icon: "🏆" },
-    { name: "Finances", href: "/team/finances", icon: "💰" },
-    { name: "Profile", href: "/team/profile", icon: "⚙️" },
+    { name: "Dashboard", href: "/team" },
+    { name: "Squad", href: "/team/squad" },
+    { name: "Players", href: "/team/players" },
+    { name: "Matches", href: "/team/matches" },
+    { name: "Tournaments", href: "/team/tournaments" },
+    { name: "Calendar", href: "/team/calendar" },
+    { name: "Auctions", href: "/team/auctions" },
+    { name: "Finances", href: "/team/finances" },
+    { name: "Profile", href: "/team/profile" },
   ]
 
   const inactiveSeasonNavigation = [
-    { name: "Status", href: "/team/not-in-season", icon: "📊" },
-    { name: "Profile", href: "/team/profile", icon: "⚙️" },
+    { name: "Status", href: "/team/not-in-season" },
+    { name: "Profile", href: "/team/profile" },
   ]
 
   const navigation = isInActiveSeason ? activeSeasonNavigation : inactiveSeasonNavigation
@@ -53,74 +68,92 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo & Team Info */}
-          <div className="flex items-center gap-4">
-            <Link href="/team" className="flex items-center gap-3">
-              {team?.logoUrl && (
-                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/5">
-                  <Image
-                    src={team.logoUrl}
-                    alt={team.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              <div>
-                <div className="text-white font-bold text-lg">{team?.name || "Team"}</div>
-                {activeSeason && (
-                  <div className="text-xs text-gray-400">{activeSeason.name}</div>
-                )}
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo - Left Side */}
+          <Link href="/team" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="relative w-12 h-12 rounded-xl overflow-hidden ring-2 ring-[#E8A800]/20 bg-white/5">
+              <Image
+                src="/logo.jpeg"
+                alt="Turf Cats"
+                fill
+                className="object-contain p-1"
+                priority
+              />
+            </div>
+            <div>
+              <div className="text-xl font-black bg-gradient-to-r from-[#FFC93A] to-[#E8A800] bg-clip-text text-transparent">
+                Turf Cats
               </div>
-            </Link>
-          </div>
+              <div className="text-xs text-[#7A7367] font-medium">
+                Team Manager
+              </div>
+            </div>
+          </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-2">
+          <nav className="hidden md:flex items-center gap-8">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`text-sm font-bold transition-colors ${
                   isActive(item.href)
-                    ? "bg-[#E8A800] text-[#0a0a0a]"
-                    : "text-gray-300 hover:text-white hover:bg-white/5"
+                    ? "text-[#F5F0E8]"
+                    : "text-[#7A7367] hover:text-[#F5F0E8]"
                 }`}
               >
-                <span className="mr-2">{item.icon}</span>
                 {item.name}
               </Link>
             ))}
-          </div>
+          </nav>
 
-          {/* User Menu */}
-          <div className="hidden md:block relative">
+          {/* Team Info with Dropdown - Right Side */}
+          <div className="hidden md:block relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/5 transition-all"
+              className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
             >
+              {team?.logoUrl && (
+                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5">
+                  <Image
+                    src={team.logoUrl}
+                    alt={team.name}
+                    fill
+                    className="object-contain p-0.5"
+                  />
+                </div>
+              )}
               <div className="text-right">
-                <div className="text-sm font-medium text-white">{user.name || "Team Manager"}</div>
-                <div className="text-xs text-gray-400">{team?.name}</div>
+                <div className="text-sm font-bold text-white">{team?.name || "Team"}</div>
+                <div className="text-xs text-[#7A7367]">{user.name || "Manager"}</div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-[#E8A800] flex items-center justify-center text-[#0a0a0a] font-bold">
-                {user.name?.charAt(0) || "T"}
-              </div>
+              <svg 
+                className={`w-4 h-4 text-[#7A7367] transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
 
+            {/* Dropdown Menu */}
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl py-2">
-                <div className="px-4 py-2 border-b border-white/10">
-                  <div className="text-sm text-white font-medium">{user.name}</div>
-                  <div className="text-xs text-gray-400">{user.email}</div>
+              <div className="absolute right-0 mt-2 w-64 bg-[#1a1a1a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-2 overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/10">
+                  <div className="text-sm text-white font-bold mb-1">{user.name || "Team Manager"}</div>
+                  <div className="text-xs text-[#7A7367] mb-1">{user.email}</div>
+                  <div className="text-xs text-[#E8A800] font-medium">{team?.name}</div>
                 </div>
                 <button
-                  onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="w-full text-left px-4 py-3 text-sm text-[#7A7367] hover:bg-white/5 hover:text-white transition-all flex items-center gap-2"
                 >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
                   Sign Out
                 </button>
               </div>
@@ -130,7 +163,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-white/5 text-white"
+            className="md:hidden p-2 text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {mobileMenuOpen ? (
@@ -141,42 +174,56 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
             </svg>
           </button>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-[#0a0a0a]">
-          <div className="px-4 py-4 space-y-2">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive(item.href)
-                    ? "bg-[#E8A800] text-[#0a0a0a]"
-                    : "text-gray-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <span className="mr-2">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
-            <div className="pt-4 border-t border-white/10">
-              <div className="px-4 py-2">
-                <div className="text-sm text-white font-medium">{user.name}</div>
-                <div className="text-xs text-gray-400">{user.email}</div>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden py-4 border-t border-white/10">
+            <nav className="flex flex-col gap-4">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`text-sm font-bold transition-colors ${
+                    isActive(item.href)
+                      ? "text-[#F5F0E8]"
+                      : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              
+              {/* Mobile Team Info */}
+              <div className="pt-4 border-t border-white/10">
+                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10 mb-4">
+                  {team?.logoUrl && (
+                    <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5">
+                      <Image
+                        src={team.logoUrl}
+                        alt={team.name}
+                        fill
+                        className="object-contain p-0.5"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-sm font-bold text-white">{team?.name || "Team"}</div>
+                    <div className="text-xs text-[#7A7367]">{user.name || "Manager"}</div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="w-full px-6 py-2.5 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold text-center transition-all"
+                >
+                  Sign Out
+                </button>
               </div>
-              <button
-                onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all rounded-lg"
-              >
-                Sign Out
-              </button>
-            </div>
+            </nav>
           </div>
-        </div>
-      )}
-    </nav>
+        )}
+      </div>
+    </header>
   )
 }

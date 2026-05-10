@@ -38,9 +38,10 @@ interface Match {
 interface CalendarViewProps {
   auctions: Auction[]
   matches: Match[]
+  basePath?: string // Base path for links (e.g., '/team' or '')
 }
 
-export default function CalendarView({ auctions, matches }: CalendarViewProps) {
+export default function CalendarView({ auctions, matches, basePath = '' }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'list'>('month')
 
@@ -318,7 +319,7 @@ export default function CalendarView({ auctions, matches }: CalendarViewProps) {
                     {day.auctions.map(auction => (
                       <Link
                         key={auction.id}
-                        href={`/auctions?auctionId=${auction.id}&from=calendar`}
+                        href={`${basePath}/auctions?auctionId=${auction.id}&from=calendar`}
                         className="block p-2 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 hover:bg-[#E8A800]/20 transition-all"
                       >
                         <div className="flex items-center gap-1.5 mb-1">
@@ -342,7 +343,7 @@ export default function CalendarView({ auctions, matches }: CalendarViewProps) {
                     {day.matchGroups.map((group, idx) => (
                       <Link
                         key={`${group.tournamentId}-${group.round}-${idx}`}
-                        href={`/tournaments/${group.tournamentId}?round=${encodeURIComponent(group.round)}`}
+                        href={`${basePath}/tournaments/${group.tournamentId}?round=${encodeURIComponent(group.round)}`}
                         className="block p-2 rounded bg-[#FFB347]/10 border border-[#FFB347]/20 hover:bg-[#FFB347]/20 transition-all"
                       >
                         <div className="flex items-center gap-1.5 mb-1">
@@ -431,7 +432,7 @@ export default function CalendarView({ auctions, matches }: CalendarViewProps) {
                           {events.auctions.map(auction => (
                             <Link
                               key={auction.id}
-                              href={`/auctions?auctionId=${auction.id}&from=calendar`}
+                              href={`${basePath}/auctions?auctionId=${auction.id}&from=calendar`}
                               className="block p-1.5 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] cursor-pointer hover:bg-[#E8A800]/20 transition-all"
                               title={`Auction: ${auction.description || 'Auction Round'} - ${auction.auctionSlots.length} positions`}
                             >
@@ -444,7 +445,7 @@ export default function CalendarView({ auctions, matches }: CalendarViewProps) {
                           {events.matchGroups.map((group, idx) => (
                             <Link
                               key={`${group.tournamentId}-${group.round}-${idx}`}
-                              href={`/tournaments/${group.tournamentId}?round=${encodeURIComponent(group.round)}`}
+                              href={`${basePath}/tournaments/${group.tournamentId}?round=${encodeURIComponent(group.round)}`}
                               className="block p-1.5 rounded bg-[#FFB347]/10 border border-[#FFB347]/20 text-[#FFB347] cursor-pointer hover:bg-[#FFB347]/20 transition-all"
                               title={`${group.tournament} - ${group.round} (${group.matches.length} matches)`}
                             >
@@ -471,7 +472,7 @@ export default function CalendarView({ auctions, matches }: CalendarViewProps) {
               allEvents.map((event, index) => (
                 <Link
                   key={`${event.type}-${index}`}
-                  href={event.type === 'auction' ? `/auctions?auctionId=${event.data.id}&from=calendar` : `/tournaments/${event.data.tournamentId}?round=${encodeURIComponent(event.data.round)}`}
+                  href={event.type === 'auction' ? `${basePath}/auctions?auctionId=${event.data.id}&from=calendar` : `${basePath}/tournaments/${event.data.tournamentId}?round=${encodeURIComponent(event.data.round)}`}
                   className="block rounded-xl bg-white/[0.02] border border-white/10 p-6 hover:border-white/20 hover:bg-white/[0.04] transition-all"
                 >
                   <div className="flex items-center gap-4">

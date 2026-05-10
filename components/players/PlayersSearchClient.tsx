@@ -35,12 +35,13 @@ interface PlayersSearchClientProps {
     soldPlayers: number
     freeAgents: number
   }
+  basePath?: string // Optional base path for player links (defaults to /players)
 }
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'SS', 'LWF', 'RWF', 'CF']
 const ITEMS_PER_PAGE = 20
 
-export default function PlayersSearchClient({ players, teams, stats }: PlayersSearchClientProps) {
+export default function PlayersSearchClient({ players, teams, stats, basePath = '/players' }: PlayersSearchClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPosition, setSelectedPosition] = useState<string>('ALL')
   const [selectedTeam, setSelectedTeam] = useState<string>('ALL')
@@ -411,7 +412,7 @@ export default function PlayersSearchClient({ players, teams, stats }: PlayersSe
             {paginatedPlayers.map((player) => (
               <Link
                 key={player.id}
-                href={`/players/${player.id}`}
+                href={`${basePath}/${player.id}`}
                 className="group rounded-xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/10 p-4 transition-all"
               >
                 {/* Player Card - Horizontal Layout */}

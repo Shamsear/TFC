@@ -36,31 +36,45 @@ export const authConfig: NextAuthConfig = {
       const userRole = auth?.user?.role
       const pathname = nextUrl.pathname
 
-      // Allow public routes
+      // Allow API, static files, and auth routes
       if (pathname.startsWith("/api") || 
           pathname.startsWith("/_next") || 
           pathname.startsWith("/auth")) {
         return true
       }
 
-      // Protect admin routes
+      // Allow home page for everyone
+      if (pathname === "/") {
+        return true
+      }
+
+      // Protect and restrict super-admin routes
       if (pathname.startsWith("/super-admin")) {
         if (!isLoggedIn) return false
         if (userRole !== "SUPER_ADMIN") return false
+        return true
       }
       
+      // Protect and restrict sub-admin routes
       if (pathname.startsWith("/sub-admin")) {
         if (!isLoggedIn) return false
-        if (userRole !== "SUB_ADMIN" && userRole !== "SUPER_ADMIN") return false
+        if (userRole !== "SUB_ADMIN") return false
+        return true
       }
 
-      // Protect team routes
+      // Protect and restrict team routes
       if (pathname.startsWith("/team")) {
         if (!isLoggedIn) return false
         if (userRole !== "TEAM_MANAGER") return false
+        return true
       }
 
-      return true
+      // Public pages - only allow if NOT logged in
+      if (isLoggedIn) {
+        return false // Logged-in users cannot access public pages
+      }
+
+      return true // Allow unauthenticated users to access public pages
     }
   },
   pages: {

@@ -92,65 +92,61 @@ export default async function SquadPage() {
   const totalValue = transfers.reduce((sum, t) => sum + t.soldPrice, 0)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">{team?.name} Squad</h1>
-              <p className="text-gray-400">{activeSeason.name}</p>
-            </div>
-            <Link
-              href="/team"
-              className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white transition-all"
-            >
-              ← Back to Dashboard
-            </Link>
-          </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header */}
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
+            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
+              {team?.name} Squad
+            </span>
+          </h1>
+          <p className="text-[#D4CCBB] text-sm sm:text-base">{activeSeason.name}</p>
+        </div>
+      </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-              <div className="text-gray-400 text-sm mb-1">Total Players</div>
-              <div className="text-2xl font-bold text-white">{transfers.length}</div>
-            </div>
-            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-              <div className="text-gray-400 text-sm mb-1">Squad Value</div>
-              <div className="text-2xl font-bold text-white">${totalValue.toLocaleString()}</div>
-            </div>
-            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-              <div className="text-gray-400 text-sm mb-1">Avg. Player Value</div>
-              <div className="text-2xl font-bold text-white">
-                ${transfers.length > 0 ? Math.round(totalValue / transfers.length).toLocaleString() : 0}
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Players</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{transfers.length}</div>
+          </div>
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Squad Value</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">${totalValue.toLocaleString()}</div>
+          </div>
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Avg. Player Value</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">
+              ${transfers.length > 0 ? Math.round(totalValue / transfers.length).toLocaleString() : 0}
             </div>
           </div>
         </div>
 
         {/* Squad by Position */}
         {transfers.length > 0 ? (
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {sortedPositions.map((position) => (
               <div key={position}>
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="px-3 py-1 bg-[#E8A800]/20 border border-[#E8A800]/30 rounded-lg text-[#E8A800]">
+                <h2 className="text-lg sm:text-xl font-black text-white mb-4 flex items-center gap-2">
+                  <span className="px-3 py-1 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg text-[#E8A800] text-sm sm:text-base">
                     {position}
                   </span>
-                  <span className="text-gray-400 text-sm">
+                  <span className="text-[#7A7367] text-xs sm:text-sm">
                     ({playersByPosition[position].length} {playersByPosition[position].length === 1 ? "player" : "players"})
                   </span>
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                   {playersByPosition[position].map((player) => (
                     <Link
                       key={player.id}
                       href={`/team/squad/${player.basePlayer.id}`}
-                      className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:border-[#E8A800]/50 transition-all group"
+                      className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all group"
                     >
                       {/* Player Photo */}
-                      <div className="relative w-full aspect-square mb-3 rounded-lg overflow-hidden bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20">
+                      <div className="relative w-full aspect-square mb-3 rounded-lg overflow-hidden bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10">
                         <img
                           src={getPlayerPhotoUrl(player.basePlayer.player_id || player.basePlayer.id)}
                           alt={player.basePlayer.name}
@@ -171,22 +167,22 @@ export default async function SquadPage() {
 
                       {/* Player Info */}
                       <div className="space-y-2">
-                        <h3 className="text-white font-bold group-hover:text-[#E8A800] transition-colors line-clamp-1">
+                        <h3 className="text-white font-bold group-hover:text-[#E8A800] transition-colors line-clamp-1 text-sm sm:text-base">
                           {player.basePlayer.name}
                         </h3>
 
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400">{player.stats?.realWorldClub || "Unknown"}</span>
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-[#7A7367] truncate">{player.stats?.realWorldClub || "Unknown"}</span>
                           {player.stats?.star_rating && (
-                            <span className="text-[#E8A800]">
+                            <span className="text-[#E8A800] flex-shrink-0">
                               {"⭐".repeat(player.stats.star_rating)}
                             </span>
                           )}
                         </div>
 
                         <div className="pt-2 border-t border-white/10">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-400">Purchase Price</span>
+                          <div className="flex items-center justify-between text-xs sm:text-sm">
+                            <span className="text-[#7A7367]">Purchase Price</span>
                             <span className="text-white font-bold">${player.soldPrice.toLocaleString()}</span>
                           </div>
                         </div>
@@ -199,9 +195,13 @@ export default async function SquadPage() {
           </div>
         ) : (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">👥</div>
-            <h2 className="text-2xl font-bold text-white mb-2">No Players Yet</h2>
-            <p className="text-gray-400">Your squad is empty. Players will appear here after the auction.</p>
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#7A7367]/10 border border-[#7A7367]/20 flex items-center justify-center text-[#7A7367] mx-auto mb-4 sm:mb-6">
+              <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white mb-2">No Players Yet</h2>
+            <p className="text-[#7A7367] text-sm sm:text-base">Your squad is empty. Players will appear here after the auction.</p>
           </div>
         )}
       </div>

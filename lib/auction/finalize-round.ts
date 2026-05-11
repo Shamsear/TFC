@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'
+import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
 import { decryptBids } from './encryption';
 import { calculateReserve, canAffordMultipleBids } from './reserve-calculator';
 
@@ -25,6 +26,8 @@ export interface Allocation {
   basePlayerId: string;
   playerName: string;
   amount: number;
+  acquisitionType: 'bid_won' | 'auto_assigned' | 'tiebreaker_won';
+  acquisitionNotes?: string;
 }
 
 export interface TieInfo {
@@ -40,6 +43,13 @@ export interface FinalizationResult {
   tieDetected: boolean;
   ties?: TieInfo[];
   error?: string;
+  resuming?: boolean; // Indicates if this is resuming from a previous tiebreaker
+}
+
+interface FinalizationState {
+  allocatedTeams: string[];
+  allocatedPlayers: string[];
+  processedAllocations: Allocation[];
 }
 
 /**
@@ -190,7 +200,9 @@ async function allocateToSubmittedTeams(
       teamId: highestBid.teamId,
       basePlayerId: highestBid.playerId,
       playerName: playerNames.get(highestBid.playerId) || highestBid.playerId,
-      amount: highestBid.amount
+      amount: highestBid.amount,
+      acquisitionType: 'bid_won',
+      acquisitionNotes: `Won with highest bid of £${highestBid.amount.toLocaleString()}`
     });
 
     allocatedTeams.add(highestBid.teamId);
@@ -375,7 +387,9 @@ async function handleNonSubmittedTeams(
         teamId: teamId,
         basePlayerId: availablePlayer.id,
         playerName: availablePlayer.name,
-        amount: avgPrice
+        amount: avgPrice,
+        acquisitionType: 'auto_assigned',
+        acquisitionNotes: `Auto-assigned (team did not submit bids). Price averaged from ${submittedAllocations.length} winning bid(s) at £${avgPrice.toLocaleString()}`
       });
       
       console.log(`      ✅ Assigned ${availablePlayer.name} at £${avgPrice.toLocaleString()}\n`);
@@ -388,7 +402,7 @@ async function handleNonSubmittedTeams(
 }
 
 /**
- * Finalize a normal round
+ * Finalize a normal round with sequential tiebreaker resolution
  */
 export async function finalizeRound(roundId: string): Promise<FinalizationResult> {
   console.log('\n' + '='.repeat(80));
@@ -398,7 +412,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
   console.log(`Timestamp: ${new Date().toISOString()}\n`);
 
   try {
-    // 1. Get round details
+    // 1. Get round details and check for existing finalization state
     console.log('📋 Step 1: Fetching round details...');
     const round = await prisma.rounds.findUnique({
       where: { id: roundId },
@@ -406,7 +420,8 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
         seasonId: true,
         roundNumber: true,
         position: true,
-        status: true
+        status: true,
+        finalizationState: true
       }
     });
 
@@ -423,7 +438,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
     console.log(`   ✓ Round ${round.roundNumber} found`);
     console.log(`   ✓ Season: ${round.seasonId}`);
     console.log(`   ✓ Position: ${round.position || 'All positions'}`);
-    console.log(`   ✓ Status: ${round.status}\n`);
+    console.log(`   ✓ Status: ${round.status}`);
 
     if (round.status === 'completed') {
       console.log('⚠️  Round already finalized\n');
@@ -435,7 +450,28 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
       };
     }
 
-    // 2. Fetch all team bids
+    // 2. Check if resuming from previous tiebreaker
+    let allocatedTeams = new Set<string>();
+    let allocatedPlayers = new Set<string>();
+    let existingAllocations: Allocation[] = [];
+    let isResuming = false;
+
+    if (round.finalizationState) {
+      const state = round.finalizationState as FinalizationState;
+      allocatedTeams = new Set(state.allocatedTeams || []);
+      allocatedPlayers = new Set(state.allocatedPlayers || []);
+      existingAllocations = state.processedAllocations || [];
+      isResuming = true;
+      
+      console.log(`   🔄 RESUMING from previous state`);
+      console.log(`   ✓ Already allocated teams: ${allocatedTeams.size}`);
+      console.log(`   ✓ Already allocated players: ${allocatedPlayers.size}`);
+      console.log(`   ✓ Existing allocations: ${existingAllocations.length}\n`);
+    } else {
+      console.log('   ✓ Starting fresh finalization\n');
+    }
+
+    // 3. Fetch all team bids
     console.log('📦 Step 2: Fetching and decrypting team bids...');
     const teamBids = await fetchAllBids(roundId);
     const submittedCount = teamBids.filter(tb => tb.submitted).length;
@@ -445,82 +481,207 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
     console.log(`   ✓ Submitted bids: ${submittedCount}`);
     console.log(`   ✓ Draft/Not submitted: ${draftCount}\n`);
 
-    // 3. Build player bids map (submitted teams only)
+    // 4. Build player bids map (submitted teams only)
     console.log('🗺️  Step 3: Building player bids map...');
     const playerBidsMap = buildPlayerBidsMap(teamBids);
-    console.log(`   ✓ Players with bids: ${playerBidsMap.size}\n`);
+    console.log(`   ✓ Players with bids: ${playerBidsMap.size}`);
+
+    // 5. Filter out already allocated teams and players
+    if (isResuming) {
+      console.log('   🔍 Filtering out already allocated teams and players...');
+      for (const [playerId, bids] of Array.from(playerBidsMap.entries())) {
+        if (allocatedPlayers.has(playerId)) {
+          playerBidsMap.delete(playerId);
+          continue;
+        }
+
+        // Remove allocated teams from this player's bids
+        const filteredBids = bids.filter(b => !allocatedTeams.has(b.teamId));
+        if (filteredBids.length === 0) {
+          playerBidsMap.delete(playerId);
+        } else {
+          playerBidsMap.set(playerId, filteredBids);
+        }
+      }
+      console.log(`   ✓ Remaining players to process: ${playerBidsMap.size}\n`);
+    } else {
+      console.log('');
+    }
 
     // Log bid details
-    console.log('📊 Bid Details:');
+    if (playerBidsMap.size > 0) {
+      console.log('📊 Bid Details:');
+      for (const [playerId, bids] of playerBidsMap.entries()) {
+        const sortedBids = [...bids].sort((a, b) => b.amount - a.amount);
+        console.log(`   Player ${playerId}:`);
+        sortedBids.forEach((bid, idx) => {
+          console.log(`      ${idx + 1}. Team ${bid.teamId}: £${bid.amount.toLocaleString()}`);
+        });
+      }
+      console.log('');
+    }
+
+    // 6. Process bids ONE AT A TIME using GLOBAL HIGHEST BID FIRST approach
+    console.log('🎲 Step 4: Processing bids (highest bid first globally)...');
+    
+    // Collect ALL bids into a single array
+    interface GlobalBid {
+      playerId: string;
+      playerName: string;
+      teamId: string;
+      amount: number;
+    }
+    
+    const allBids: GlobalBid[] = [];
+    const playerNames = new Map<string, string>();
+    
+    // Get player names
+    const allPlayerIds = Array.from(playerBidsMap.keys());
+    if (allPlayerIds.length > 0) {
+      const players = await prisma.base_players.findMany({
+        where: { id: { in: allPlayerIds } },
+        select: { id: true, name: true }
+      });
+      players.forEach(p => playerNames.set(p.id, p.name));
+    }
+    
+    // Collect all bids
     for (const [playerId, bids] of playerBidsMap.entries()) {
-      const sortedBids = [...bids].sort((a, b) => b.amount - a.amount);
-      console.log(`   Player ${playerId}:`);
-      sortedBids.forEach((bid, idx) => {
-        console.log(`      ${idx + 1}. Team ${bid.teamId}: £${bid.amount.toLocaleString()}`);
-      });
+      for (const bid of bids) {
+        allBids.push({
+          playerId,
+          playerName: playerNames.get(playerId) || playerId,
+          teamId: bid.teamId,
+          amount: bid.amount
+        });
+      }
     }
-    console.log('');
-
-    // 4. Allocate to submitted teams
-    console.log('🎲 Step 4: Allocating players to submitted teams...');
-    const { allocations: submittedAllocations, ties } = await allocateToSubmittedTeams(
-      playerBidsMap,
-      round.seasonId
-    );
-
-    console.log(`   ✓ Successful allocations: ${submittedAllocations.length}`);
-    console.log(`   ✓ Ties detected: ${ties.length}\n`);
-
-    if (submittedAllocations.length > 0) {
-      console.log('✅ Submitted Team Allocations:');
-      submittedAllocations.forEach((alloc, idx) => {
-        console.log(`   ${idx + 1}. ${alloc.playerName} → Team ${alloc.teamId} for £${alloc.amount.toLocaleString()}`);
+    
+    // Sort ALL bids by amount descending (HIGHEST FIRST)
+    allBids.sort((a, b) => b.amount - a.amount);
+    
+    console.log(`   📊 Total bids collected: ${allBids.length}`);
+    console.log(`   🔝 Highest bid: £${allBids[0]?.amount.toLocaleString() || 0}`);
+    console.log(`   🔻 Lowest bid: £${allBids[allBids.length - 1]?.amount.toLocaleString() || 0}\n`);
+    
+    // Get total teams in season to know when to stop
+    const totalTeams = await prisma.season_teams.count({
+      where: { seasonId: round.seasonId }
+    });
+    
+    console.log(`   🎯 Target: Allocate to ${totalTeams} teams\n`);
+    
+    // Process bids from highest to lowest
+    for (let i = 0; i < allBids.length; i++) {
+      const currentBid = allBids[i];
+      
+      // Skip if player already allocated
+      if (allocatedPlayers.has(currentBid.playerId)) {
+        continue;
+      }
+      
+      // Skip if team already allocated
+      if (allocatedTeams.has(currentBid.teamId)) {
+        continue;
+      }
+      
+      // Check for tie: Find all bids for this player at this exact amount from non-allocated teams
+      const tiedBids = allBids.filter(b => 
+        b.playerId === currentBid.playerId && 
+        b.amount === currentBid.amount &&
+        !allocatedTeams.has(b.teamId)
+      );
+      
+      if (tiedBids.length > 1) {
+        // TIE DETECTED - STOP HERE AND CREATE ONE TIEBREAKER
+        console.log(`   ⚠️  TIE DETECTED for ${currentBid.playerName}`);
+        console.log(`      Amount: £${currentBid.amount.toLocaleString()}`);
+        console.log(`      Tied teams: ${tiedBids.map(b => b.teamId).join(', ')}`);
+        console.log(`   ⏸️  PAUSING finalization - saving state...\n`);
+        
+        // Save current state
+        await prisma.rounds.update({
+          where: { id: roundId },
+          data: {
+            finalizationState: {
+              allocatedTeams: Array.from(allocatedTeams),
+              allocatedPlayers: Array.from(allocatedPlayers),
+              processedAllocations: existingAllocations
+            }
+          }
+        });
+        
+        console.log('✅ State saved - ready for tiebreaker creation\n');
+        
+        // Return with tie info (will create ONE tiebreaker)
+        return {
+          success: false,
+          allocations: existingAllocations,
+          tieDetected: true,
+          resuming: isResuming,
+          ties: [{
+            basePlayerId: currentBid.playerId,
+            playerName: currentBid.playerName,
+            amount: currentBid.amount,
+            tiedTeams: tiedBids.map(b => b.teamId)
+          }]
+        };
+      }
+      
+      // No tie - Allocate this player to this team
+      console.log(`   ✓ Allocating ${currentBid.playerName} → Team ${currentBid.teamId} (£${currentBid.amount.toLocaleString()})`);
+      
+      existingAllocations.push({
+        teamId: currentBid.teamId,
+        basePlayerId: currentBid.playerId,
+        playerName: currentBid.playerName,
+        amount: currentBid.amount,
+        acquisitionType: 'bid_won',
+        acquisitionNotes: `Won with highest bid of £${currentBid.amount.toLocaleString()}`
       });
-      console.log('');
+      
+      allocatedTeams.add(currentBid.teamId);
+      allocatedPlayers.add(currentBid.playerId);
+      
+      // Check if all teams have been allocated
+      if (allocatedTeams.size >= totalTeams) {
+        console.log(`\n   🎉 All ${totalTeams} teams have been allocated a player!`);
+        break;
+      }
     }
 
-    // 5. Check for ties
-    if (ties.length > 0) {
-      console.log('⚠️  TIES DETECTED - Tiebreaker Required:');
-      ties.forEach((tie, idx) => {
-        console.log(`   ${idx + 1}. ${tie.playerName} - £${tie.amount.toLocaleString()}`);
-        console.log(`      Tied teams: ${tie.tiedTeams.join(', ')}`);
-      });
-      console.log('\n❌ Finalization halted - resolve ties first\n');
-      return {
-        success: false,
-        allocations: [],
-        tieDetected: true,
-        ties,
-        error: 'Tiebreaker required'
-      };
+    console.log(`\n   ✓ Submitted team allocations: ${existingAllocations.length}\n`);
+
+    // 7. Handle non-submitted teams (only if not resuming)
+    let forcedAllocations: Allocation[] = [];
+    if (!isResuming) {
+      console.log('🎰 Step 5: Handling non-submitted teams...');
+      forcedAllocations = await handleNonSubmittedTeams(
+        teamBids,
+        round.seasonId,
+        round.roundNumber,
+        round.position || undefined,
+        existingAllocations
+      );
+
+      console.log(`   ✓ Random allocations: ${forcedAllocations.length}\n`);
+
+      if (forcedAllocations.length > 0) {
+        console.log('🎲 Random Allocations (Non-submitted teams):');
+        forcedAllocations.forEach((alloc, idx) => {
+          console.log(`   ${idx + 1}. ${alloc.playerName} → Team ${alloc.teamId} for £${alloc.amount.toLocaleString()}`);
+        });
+        console.log('');
+      }
+    } else {
+      console.log('🎰 Step 5: Skipping non-submitted teams (resuming from tiebreaker)\n');
     }
 
-    // 6. Handle non-submitted teams
-    console.log('🎰 Step 5: Handling non-submitted teams...');
-    const forcedAllocations = await handleNonSubmittedTeams(
-      teamBids,
-      round.seasonId,
-      round.roundNumber,
-      round.position || undefined,
-      submittedAllocations
-    );
-
-    console.log(`   ✓ Random allocations: ${forcedAllocations.length}\n`);
-
-    if (forcedAllocations.length > 0) {
-      console.log('🎲 Random Allocations (Non-submitted teams):');
-      forcedAllocations.forEach((alloc, idx) => {
-        console.log(`   ${idx + 1}. ${alloc.playerName} → Team ${alloc.teamId} for £${alloc.amount.toLocaleString()}`);
-      });
-      console.log('');
-    }
-
-    // 7. Combine all allocations
-    const allAllocations = [...submittedAllocations, ...forcedAllocations];
+    // 8. Combine all allocations
+    const allAllocations = [...existingAllocations, ...forcedAllocations];
     console.log(`📊 Total allocations: ${allAllocations.length}\n`);
 
-    // 8. Validate budgets
+    // 9. Validate budgets
     console.log('💰 Step 6: Validating team budgets...');
     const budgetValidation = await validateAllocations(allAllocations, round.seasonId);
     
@@ -538,13 +699,22 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
 
     console.log('   ✓ All budgets validated\n');
 
-    console.log('✅ FINALIZATION SUCCESSFUL');
+    // 10. Clear finalization state (finalization complete)
+    await prisma.rounds.update({
+      where: { id: roundId },
+      data: {
+        finalizationState: null
+      }
+    });
+
+    console.log('✅ FINALIZATION SUCCESSFUL - No more ties');
     console.log('='.repeat(80) + '\n');
 
     return {
       success: true,
       allocations: allAllocations,
-      tieDetected: false
+      tieDetected: false,
+      resuming: isResuming
     };
   } catch (error) {
     console.error('\n❌ FINALIZATION ERROR:', error);
@@ -677,23 +847,35 @@ export async function applyFinalizationResults(
 
   const seasonTeamMap = new Map(seasonTeams.map(st => [st.teamId, st]));
 
-  // Calculate team updates
+  // Calculate team updates and collect player names
   const teamUpdates = new Map<string, number>();
+  const teamPlayerNames = new Map<string, string[]>();
   for (const alloc of allocations) {
     const current = teamUpdates.get(alloc.teamId) || 0;
     teamUpdates.set(alloc.teamId, current + alloc.amount);
+    
+    const playerNames = teamPlayerNames.get(alloc.teamId) || [];
+    playerNames.push(alloc.playerName);
+    teamPlayerNames.set(alloc.teamId, playerNames);
   }
 
   await prisma.$transaction(async (tx) => {
     // 1. Insert transfer history records
     console.log('📝 Step 1: Creating transfer history records...');
-    const transferRecords = allocations.map(alloc => ({
-      id: `SSPSLTH${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
-      basePlayerId: alloc.basePlayerId,
-      seasonId: round.seasonId,
-      teamId: alloc.teamId,
-      soldPrice: alloc.amount
-    }));
+    
+    // Generate transfer IDs for all allocations
+    const transferRecords = await Promise.all(
+      allocations.map(async (alloc) => ({
+        id: await generateTransferId(),
+        basePlayerId: alloc.basePlayerId,
+        seasonId: round.seasonId,
+        teamId: alloc.teamId,
+        roundId: roundId,
+        soldPrice: alloc.amount,
+        acquisitionType: alloc.acquisitionType,
+        acquisitionNotes: alloc.acquisitionNotes || null
+      }))
+    );
 
     await tx.transfer_history.createMany({
       data: transferRecords
@@ -726,16 +908,19 @@ export async function applyFinalizationResults(
         console.log(`   ✓ Team ${teamId}: £${seasonTeam.currentBudget.toLocaleString()} → £${newBudget.toLocaleString()} (-£${totalSpent.toLocaleString()})`);
 
         // 3. Insert financial ledger entry
+        const ledgerId = await generateFinancialId();
+        const playerNames = teamPlayerNames.get(teamId) || [];
         await tx.financial_ledger.create({
           data: {
-            id: `SSPSLFL${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+            id: ledgerId,
             seasonTeamId: seasonTeam.id,
             seasonId: round.seasonId,
             transactionType: 'PLAYER_PURCHASE',
             amount: -totalSpent,
             previousBalance: seasonTeam.currentBudget,
             newBalance: newBudget,
-            description: `Round ${roundId} player purchases`
+            description: `Round ${roundId} player purchases`,
+            playerName: playerNames.join(', ')
           }
         });
       }

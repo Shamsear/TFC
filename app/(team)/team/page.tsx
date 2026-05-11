@@ -124,16 +124,19 @@ export default async function TeamDashboardPage() {
     take: 3,
   })
 
-  // Get pending tiebreakers for this team
-  const pendingTiebreakers = await prisma.bulk_tiebreakers.findMany({
+  // Get pending tiebreakers for this team (bulk tiebreakers)
+  const pendingBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
     where: {
       round: {
         seasonId: activeSeason.id,
       },
-      tiedTeams: {
-        has: team.id,
-      },
-      resolved: false,
+      status: 'pending',
+      participants: {
+        some: {
+          teamId: team.id,
+          status: 'active'
+        }
+      }
     },
     include: {
       basePlayer: {
@@ -148,8 +151,58 @@ export default async function TeamDashboardPage() {
           roundNumber: true,
         },
       },
+      participants: {
+        where: {
+          status: 'active'
+        },
+        select: {
+          teamId: true
+        }
+      }
     },
   })
+
+  // Get pending normal tiebreakers for this team
+  const pendingNormalTiebreakers = await prisma.tiebreakers.findMany({
+    where: {
+      round: {
+        seasonId: activeSeason.id,
+      },
+      status: 'active',
+      teamTiebreakerBids: {
+        some: {
+          teamId: team.id
+        }
+      }
+    },
+    include: {
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+          photoUrl: true,
+        },
+      },
+      round: {
+        select: {
+          id: true,
+          roundNumber: true,
+        },
+      },
+      teamTiebreakerBids: {
+        where: {
+          teamId: team.id
+        },
+        select: {
+          submitted: true,
+          oldBidAmount: true,
+          newBidAmount: true
+        }
+      }
+    },
+  })
+
+  const totalPendingTiebreakers = pendingBulkTiebreakers.length + pendingNormalTiebreakers.length
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -238,40 +291,85 @@ export default async function TeamDashboardPage() {
         </div>
 
         {/* Pending Tiebreakers Alert */}
-        {pendingTiebreakers.length > 0 && (
+        {totalPendingTiebreakers > 0 && (
           <div className="mb-6 sm:mb-8">
-            <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 p-4 sm:p-6">
+            <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50 p-4 sm:p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-500 flex items-center justify-center">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500 flex items-center justify-center animate-pulse">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white">Tiebreaker Pending</h2>
+                  <h2 className="text-lg sm:text-xl font-black text-white">Action Required: Tiebreakers</h2>
                   <p className="text-xs sm:text-sm text-[#D4CCBB]">
-                    {pendingTiebreakers.length} player{pendingTiebreakers.length > 1 ? 's' : ''} awaiting admin resolution
+                    {totalPendingTiebreakers} tiebreaker{totalPendingTiebreakers > 1 ? 's' : ''} need{totalPendingTiebreakers === 1 ? 's' : ''} your bid
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
-                {pendingTiebreakers.map((tie) => (
+                {/* Normal Tiebreakers */}
+                {pendingNormalTiebreakers.map((tie) => {
+                  const teamBid = tie.teamTiebreakerBids[0]
+                  return (
+                    <Link
+                      key={tie.id}
+                      href={`/team/auction/tiebreakers/${tie.id}`}
+                      className="block rounded-lg bg-black/30 border border-purple-500/30 p-3 hover:bg-black/40 hover:border-purple-500/50 transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
+                            <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30">
+                              Normal Round
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#D4CCBB]">
+                            Round {tie.round.roundNumber} • Original bid: £{tie.originalAmount.toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {teamBid?.submitted ? (
+                            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                              ✓ Submitted
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30 animate-pulse">
+                              Bid Now
+                            </span>
+                          )}
+                          <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+                
+                {/* Bulk Tiebreakers */}
+                {pendingBulkTiebreakers.map((tie) => (
                   <div
                     key={tie.id}
-                    className="rounded-lg bg-black/30 border border-amber-500/30 p-3 flex items-center justify-between"
+                    className="rounded-lg bg-black/30 border border-amber-500/30 p-3"
                   >
-                    <div>
-                      <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                      <div className="text-xs text-[#D4CCBB]">
-                        Round {tie.round.roundNumber} • £{tie.tieAmount.toLocaleString()} • {tie.tiedTeams.length} teams tied
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                            Bulk Round
+                          </span>
+                        </div>
+                        <div className="text-xs text-[#D4CCBB]">
+                          Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
+                        </div>
                       </div>
+                      <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30">
+                        Awaiting Admin
+                      </span>
                     </div>
-                    <Link
-                      href={`/team/auction/rounds/${tie.roundId}/results`}
-                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-medium transition-all"
-                    >
-                      View
-                    </Link>
                   </div>
                 ))}
               </div>
@@ -301,11 +399,14 @@ export default async function TeamDashboardPage() {
                   const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60))
                   const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60))
                   const isUrgent = hoursRemaining < 2
+                  const roundPath = round.roundType === 'bulk'
+                    ? `/team/auction/bulk-rounds/${round.id}`
+                    : `/team/auction/rounds/${round.id}`
 
                   return (
                     <Link
                       key={round.id}
-                      href={`/team/auction/rounds/${round.id}`}
+                      href={roundPath}
                       className="block bg-black/40 border border-white/20 rounded-lg p-4 hover:border-[#E8A800] hover:bg-black/60 transition-all group"
                     >
                       <div className="flex items-start justify-between gap-4 mb-3">

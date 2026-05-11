@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -80,23 +80,77 @@ export default function BulkTiebreakerBiddingClient({
   const [withdrawing, setWithdrawing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [timeRemaining, setTimeRemaining] = useState('')
+  const [liveData, setLiveData] = useState(tiebreaker)
+  const [isPolling, setIsPolling] = useState(true)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [pendingBidAmount, setPendingBidAmount] = useState(0)
+  const [lastBidTime, setLastBidTime] = useState<number | null>(null)
+  const [bidLockSeconds, setBidLockSeconds] = useState(0)
+  const lastHighestBidRef = useRef(liveData.currentHighestBid)
+  const [newBidAnimation, setNewBidAnimation] = useState(false)
 
-  // Auto-refresh every 5 seconds
+  // Live update polling - fetch fresh data every 2 seconds for real-time updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh()
-    }, 5000)
+    const fetchLiveData = async () => {
+      try {
+        const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}`)
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.tiebreaker) {
+            // Check if highest bid changed (new bid from another team)
+            if (lastHighestBidRef.current !== result.tiebreaker.currentHighestBid) {
+              setNewBidAnimation(true)
+              setTimeout(() => setNewBidAnimation(false), 1000)
+            }
+            lastHighestBidRef.current = result.tiebreaker.currentHighestBid
+            
+            setLiveData(result.tiebreaker)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch live data:', error)
+      }
+    }
 
-    return () => clearInterval(interval)
-  }, [router])
+    // Initial fetch
+    fetchLiveData()
 
-  // Timer
+    // Only poll if tiebreaker is active
+    if (liveData.status === 'pending' && isPolling) {
+      const interval = setInterval(fetchLiveData, 2000) // Poll every 2 seconds for real-time feel
+      return () => clearInterval(interval)
+    }
+  }, [tiebreaker.id, liveData.status, isPolling])
+
+  // Bid lock countdown timer
   useEffect(() => {
-    if (!tiebreaker.maxEndTime) return
+    if (lastBidTime) {
+      const updateLockTimer = () => {
+        const now = Date.now()
+        const elapsed = Math.floor((now - lastBidTime) / 1000)
+        const remaining = Math.max(0, 10 - elapsed) // 10 second lock
+        setBidLockSeconds(remaining)
+        
+        if (remaining === 0) {
+          setLastBidTime(null)
+        }
+      }
+
+      updateLockTimer()
+      const interval = setInterval(updateLockTimer, 1000)
+      return () => clearInterval(interval)
+    } else {
+      setBidLockSeconds(0)
+    }
+  }, [lastBidTime])
+
+  // Timer - use live data
+  useEffect(() => {
+    if (!liveData.maxEndTime) return
 
     const updateTimer = () => {
       const now = new Date()
-      const end = new Date(tiebreaker.maxEndTime!)
+      const end = new Date(liveData.maxEndTime!)
       const diff = end.getTime() - now.getTime()
 
       if (diff > 0) {
@@ -107,32 +161,45 @@ export default function BulkTiebreakerBiddingClient({
         setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
       } else {
         setTimeRemaining('Expired')
+        setIsPolling(false) // Stop polling when expired
       }
     }
 
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
     return () => clearInterval(interval)
-  }, [tiebreaker.maxEndTime])
+  }, [liveData.maxEndTime])
 
   const handlePlaceBid = async () => {
+    // Check if within 10 seconds of last bid - show confirmation modal
+    if (lastBidTime && bidLockSeconds > 0) {
+      setPendingBidAmount(bidAmount)
+      setShowConfirmModal(true)
+      return
+    }
+
+    await executeBid(bidAmount)
+  }
+
+  const executeBid = async (amount: number) => {
     setSubmitting(true)
     setMessage(null)
+    setShowConfirmModal(false)
 
     try {
-      const minBid = (tiebreaker.currentHighestBid || tiebreaker.basePrice) + 1
-      if (bidAmount < minBid) {
+      const minBid = (liveData.currentHighestBid || liveData.basePrice) + 1
+      if (amount < minBid) {
         throw new Error(`Bid must be at least £${minBid.toLocaleString()}`)
       }
 
-      if (bidAmount > budget) {
+      if (amount > budget) {
         throw new Error('Insufficient budget')
       }
 
-      const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}/bid`, {
+      const response = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}/bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bidAmount })
+        body: JSON.stringify({ bidAmount: amount })
       })
 
       if (!response.ok) {
@@ -141,7 +208,16 @@ export default function BulkTiebreakerBiddingClient({
       }
 
       setMessage({ type: 'success', text: 'Bid placed successfully!' })
-      router.refresh()
+      setLastBidTime(Date.now()) // Start 10-second lock
+      
+      // Immediately fetch updated data
+      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}`)
+      if (refreshResponse.ok) {
+        const result = await refreshResponse.json()
+        if (result.success && result.tiebreaker) {
+          setLiveData(result.tiebreaker)
+        }
+      }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -158,7 +234,7 @@ export default function BulkTiebreakerBiddingClient({
     setMessage(null)
 
     try {
-      const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}/withdraw`, {
+      const response = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}/withdraw`, {
         method: 'POST'
       })
 
@@ -168,7 +244,16 @@ export default function BulkTiebreakerBiddingClient({
       }
 
       setMessage({ type: 'success', text: 'Withdrawn successfully' })
-      router.refresh()
+      setIsPolling(false) // Stop polling after withdrawal
+      
+      // Immediately fetch updated data
+      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}`)
+      if (refreshResponse.ok) {
+        const result = await refreshResponse.json()
+        if (result.success && result.tiebreaker) {
+          setLiveData(result.tiebreaker)
+        }
+      }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -176,11 +261,60 @@ export default function BulkTiebreakerBiddingClient({
     }
   }
 
-  const isMyBidHighest = tiebreaker.currentHighestTeamId === team.id
+  const isMyBidHighest = liveData.currentHighestTeamId === team.id
   const isActive = myParticipation?.status === 'active'
+  const isBidLocked = bidLockSeconds > 0
+
+  // Update bid amount suggestion when highest bid changes
+  useEffect(() => {
+    const suggestedBid = (liveData.currentHighestBid || liveData.basePrice) + 1000
+    if (suggestedBid > bidAmount) {
+      setBidAmount(suggestedBid)
+    }
+  }, [liveData.currentHighestBid, liveData.basePrice])
+
+  // Quick bid buttons
+  const quickBidAmounts = [1000, 5000, 10000, 25000]
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1a1a1a] border border-amber-500/30 rounded-xl p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Confirm Consecutive Bid</h3>
+                <p className="text-sm text-amber-400">You just placed a bid {bidLockSeconds}s ago</p>
+              </div>
+            </div>
+            <p className="text-[#D4CCBB] mb-6">
+              Are you sure you want to place another bid of <span className="font-bold text-[#E8A800]">£{pendingBidAmount.toLocaleString()}</span>? 
+              This will override your previous bid.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => executeBid(pendingBidAmount)}
+                disabled={submitting}
+                className="flex-1 px-4 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+              >
+                {submitting ? 'Placing...' : 'Confirm Bid'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -198,8 +332,8 @@ export default function BulkTiebreakerBiddingClient({
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
                 <Image
-                  src={tiebreaker.basePlayer.photoUrl}
-                  alt={tiebreaker.basePlayer.name}
+                  src={liveData.basePlayer.photoUrl}
+                  alt={liveData.basePlayer.name}
                   width={64}
                   height={64}
                   className="w-full h-full object-cover"
@@ -210,16 +344,25 @@ export default function BulkTiebreakerBiddingClient({
                   Bulk Tiebreaker
                 </h1>
                 <p className="text-sm text-[#D4CCBB]">
-                  {tiebreaker.basePlayer.name} — Round {tiebreaker.round.roundNumber}
+                  {liveData.basePlayer.name} — Round {liveData.round.roundNumber}
                 </p>
               </div>
             </div>
-            {timeRemaining && (
-              <div className="px-4 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                <div className="text-xs text-purple-400 mb-1">Time Remaining</div>
-                <div className="text-lg font-bold text-purple-300">{timeRemaining}</div>
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {/* Live Indicator */}
+              {liveData.status === 'pending' && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                  <span className="text-sm font-medium text-red-300">LIVE</span>
+                </div>
+              )}
+              {timeRemaining && (
+                <div className="px-4 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <div className="text-xs text-purple-400 mb-1">Time Remaining</div>
+                  <div className="text-lg font-bold text-purple-300">{timeRemaining}</div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Stats */}
@@ -228,15 +371,17 @@ export default function BulkTiebreakerBiddingClient({
               <div className="text-xs text-[#7A7367] mb-1">Your Budget</div>
               <div className="text-xl font-bold text-white">£{budget.toLocaleString()}</div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+            <div className={`rounded-lg bg-white/5 border border-white/10 p-4 transition-all ${
+              newBidAnimation ? 'ring-2 ring-[#E8A800] scale-105' : ''
+            }`}>
               <div className="text-xs text-[#7A7367] mb-1">Current Highest</div>
-              <div className="text-xl font-bold text-white">
-                £{(tiebreaker.currentHighestBid || tiebreaker.basePrice).toLocaleString()}
+              <div className="text-xl font-bold text-[#E8A800]">
+                £{(liveData.currentHighestBid || liveData.basePrice).toLocaleString()}
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Teams Remaining</div>
-              <div className="text-xl font-bold text-white">{tiebreaker.teamsRemaining}</div>
+              <div className="text-xl font-bold text-white">{liveData.teamsRemaining}</div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Your Status</div>
@@ -265,32 +410,69 @@ export default function BulkTiebreakerBiddingClient({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Bidding Panel */}
           <div className="lg:col-span-2">
-            {isActive && tiebreaker.status === 'pending' && (
+            {isActive && liveData.status === 'pending' && (
               <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-6">
                 <h2 className="text-xl font-bold text-white mb-4">Place Your Bid</h2>
 
-                <div className="mb-6">
+                {/* Bid Lock Warning */}
+                {isBidLocked && (
+                  <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
+                    <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-amber-300">
+                        Bid Lock Active ({bidLockSeconds}s remaining)
+                      </div>
+                      <div className="text-xs text-amber-400/80">
+                        You'll be asked to confirm if you bid again
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mb-4">
                   <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
-                    Bid Amount (minimum: £{((tiebreaker.currentHighestBid || tiebreaker.basePrice) + 1).toLocaleString()})
+                    Bid Amount (minimum: £{((liveData.currentHighestBid || liveData.basePrice) + 1).toLocaleString()})
                   </label>
                   <input
                     type="number"
                     value={bidAmount}
                     onChange={(e) => setBidAmount(parseInt(e.target.value) || 0)}
-                    min={(tiebreaker.currentHighestBid || tiebreaker.basePrice) + 1}
+                    min={(liveData.currentHighestBid || liveData.basePrice) + 1}
                     max={budget}
                     step={1000}
                     className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white text-xl font-bold focus:outline-none focus:border-[#E8A800]"
                   />
                 </div>
 
+                {/* Quick Bid Buttons */}
+                <div className="mb-6">
+                  <div className="text-xs text-[#7A7367] mb-2">Quick Add:</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {quickBidAmounts.map((amount) => (
+                      <button
+                        key={amount}
+                        onClick={() => setBidAmount(Math.min(bidAmount + amount, budget))}
+                        className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-medium transition-all"
+                      >
+                        +£{(amount / 1000).toFixed(0)}k
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex gap-4">
                   <button
                     onClick={handlePlaceBid}
-                    disabled={submitting || bidAmount <= (tiebreaker.currentHighestBid || tiebreaker.basePrice) || bidAmount > budget}
-                    className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                    disabled={submitting || bidAmount <= (liveData.currentHighestBid || liveData.basePrice) || bidAmount > budget}
+                    className={`flex-1 px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50 ${
+                      isBidLocked 
+                        ? 'bg-amber-500 hover:bg-amber-600 text-black' 
+                        : 'bg-[#E8A800] hover:bg-[#E8A800]/90 text-black'
+                    }`}
                   >
-                    {submitting ? 'Placing Bid...' : `Bid £${bidAmount.toLocaleString()}`}
+                    {submitting ? 'Placing Bid...' : isBidLocked ? `⚠️ Bid £${bidAmount.toLocaleString()}` : `Bid £${bidAmount.toLocaleString()}`}
                   </button>
                   <button
                     onClick={handleWithdraw}
@@ -307,7 +489,7 @@ export default function BulkTiebreakerBiddingClient({
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="font-medium">You have the highest bid!</span>
+                      <span className="font-medium">You have the highest bid! Last team standing wins.</span>
                     </div>
                   </div>
                 )}
@@ -321,7 +503,7 @@ export default function BulkTiebreakerBiddingClient({
               </div>
             )}
 
-            {tiebreaker.status !== 'pending' && (
+            {liveData.status !== 'pending' && (
               <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-6 text-center">
                 <h3 className="text-xl font-bold text-white mb-2">Tiebreaker Resolved</h3>
                 <p className="text-[#D4CCBB]">This tiebreaker has been resolved.</p>
@@ -332,10 +514,10 @@ export default function BulkTiebreakerBiddingClient({
             <div className="rounded-xl bg-white/5 border border-white/10 p-6">
               <h2 className="text-xl font-bold text-white mb-4">Bid History</h2>
               <div className="space-y-2">
-                {tiebreaker.bidHistory.length === 0 ? (
+                {liveData.bidHistory.length === 0 ? (
                   <p className="text-[#7A7367] text-center py-4">No bids yet</p>
                 ) : (
-                  tiebreaker.bidHistory.map((bid) => (
+                  liveData.bidHistory.map((bid) => (
                     <div
                       key={bid.id}
                       className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10"
@@ -361,7 +543,7 @@ export default function BulkTiebreakerBiddingClient({
             <div className="rounded-xl bg-white/5 border border-white/10 p-6">
               <h2 className="text-xl font-bold text-white mb-4">Participants</h2>
               <div className="space-y-3">
-                {tiebreaker.participants
+                {liveData.participants
                   .sort((a, b) => (b.currentBid || 0) - (a.currentBid || 0))
                   .map((participant) => (
                     <div

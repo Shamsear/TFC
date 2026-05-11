@@ -271,10 +271,13 @@ export default function AuctionDashboardClient({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {activeRounds.map(round => {
                 const bidStatus = getBidStatus(round.id, round.roundType)
+                const roundPath = round.roundType === 'bulk' 
+                  ? `/team/auction/bulk-rounds/${round.id}`
+                  : `/team/auction/rounds/${round.id}`
                 return (
                   <Link
                     key={round.id}
-                    href={`/team/auction/rounds/${round.id}`}
+                    href={roundPath}
                     className="block rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all p-6"
                   >
                     <div className="flex items-start justify-between mb-4">
@@ -429,12 +432,16 @@ export default function AuctionDashboardClient({
           <div className="mb-8">
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Completed Rounds</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {completedRounds.map(round => (
-                <Link
-                  key={round.id}
-                  href={`/team/auction/rounds/${round.id}/results`}
-                  className="block rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all p-6"
-                >
+              {completedRounds.map(round => {
+                const resultsPath = round.roundType === 'bulk'
+                  ? `/team/auction/bulk-rounds/${round.id}/results`
+                  : `/team/auction/rounds/${round.id}/results`
+                return (
+                  <Link
+                    key={round.id}
+                    href={resultsPath}
+                    className="block rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all p-6"
+                  >
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-bold text-white mb-1">
@@ -457,7 +464,8 @@ export default function AuctionDashboardClient({
                     </svg>
                   </div>
                 </Link>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

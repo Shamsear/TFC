@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
-import RoundsListClient from '@/components/auction-v2/RoundsListClient'
+import RoundsListClient from '@/components/auction/RoundsListClient'
 
 interface AuctionV2PageProps {
   params: Promise<{ seasonId: string }>
@@ -47,6 +47,39 @@ export default async function AuctionV2Page({ params }: AuctionV2PageProps) {
     ]
   })
 
+  // Fetch active bulk tiebreakers
+  const activeTiebreakers = await prisma.bulk_tiebreakers.findMany({
+    where: {
+      round: {
+        seasonId
+      },
+      status: 'pending'
+    },
+    include: {
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+          photoUrl: true
+        }
+      },
+      round: {
+        select: {
+          roundNumber: true
+        }
+      },
+      _count: {
+        select: {
+          participants: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    take: 10
+  })
+
   // Calculate stats
   const totalRounds = rounds.length
   const activeRounds = rounds.filter(r => r.status === 'active').length
@@ -70,7 +103,7 @@ export default async function AuctionV2Page({ params }: AuctionV2PageProps) {
               </p>
             </div>
             <Link
-              href={`/sub-admin/${seasonId}/auction-v2/create`}
+              href={`/sub-admin/${seasonId}/auction/create`}
               className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -83,6 +116,62 @@ export default async function AuctionV2Page({ params }: AuctionV2PageProps) {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Active Tiebreakers Alert */}
+        {activeTiebreakers.length > 0 && (
+          <div className="mb-6 sm:mb-8 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-2 border-purple-500/30 p-4 sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg sm:text-xl font-black text-purple-300 mb-2">
+                  🔴 Active Tiebreakers ({activeTiebreakers.length})
+                </h3>
+                <p className="text-sm sm:text-base text-[#D4CCBB] mb-4">
+                  Teams are currently bidding in live tiebreakers. Click to monitor in real-time.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {activeTiebreakers.map((tb) => (
+                    <Link
+                      key={tb.id}
+                      href={`/sub-admin/${seasonId}/auction/bulk-tiebreakers/${tb.id}`}
+                      className="block p-4 rounded-lg bg-black/30 border border-purple-500/20 hover:bg-purple-500/10 hover:border-purple-500/40 transition-all"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                          <img
+                            src={tb.basePlayer.photoUrl}
+                            alt={tb.basePlayer.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-white text-sm truncate">
+                            {tb.basePlayer.name}
+                          </div>
+                          <div className="text-xs text-[#7A7367]">
+                            Round {tb.round.roundNumber}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-purple-400">
+                          {tb._count.participants} teams
+                        </span>
+                        <span className="text-[#E8A800] font-medium">
+                          £{(tb.currentHighestBid || tb.basePrice).toLocaleString()}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
@@ -116,7 +205,7 @@ export default async function AuctionV2Page({ params }: AuctionV2PageProps) {
               Create your first auction round to start the bidding process
             </p>
             <Link
-              href={`/sub-admin/${seasonId}/auction-v2/create`}
+              href={`/sub-admin/${seasonId}/auction/create`}
               className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

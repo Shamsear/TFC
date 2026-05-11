@@ -14,7 +14,9 @@ export const ID_PREFIXES = {
   TEAM: 'TFCM', // M for Team
   FIXTURE: 'TFCF',
   MATCH: 'TFCMA',
-  TRANSFER: 'TFCTR',
+  TRANSFER: 'TFCTH', // TH for Transfer History
+  TIEBREAKER: 'TFCTB', // TB for Tiebreaker
+  BID_AUDIT: 'TFCBA', // BA for Bid Audit
   AUCTION: 'TFCA',
   AUCTION_SLOT: 'TFCAS',
   RETENTION: 'TFCR',
@@ -108,6 +110,20 @@ export async function generateMatchId(): Promise<string> {
  */
 export async function generateTransferId(): Promise<string> {
   return generateId(ID_PREFIXES.TRANSFER)
+}
+
+/**
+ * Generate a tiebreaker ID
+ */
+export async function generateTiebreakerId(): Promise<string> {
+  return generateId(ID_PREFIXES.TIEBREAKER)
+}
+
+/**
+ * Generate a bid audit log ID
+ */
+export async function generateBidAuditId(): Promise<string> {
+  return generateId(ID_PREFIXES.BID_AUDIT)
 }
 
 /**

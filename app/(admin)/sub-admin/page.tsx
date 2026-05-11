@@ -240,7 +240,7 @@ export default async function SubAdminDashboard() {
                   </Link>
 
                   <Link
-                    href={`/sub-admin/${activeSeason.id}/auction-v2`}
+                    href={`/sub-admin/${activeSeason.id}/auction`}
                     className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
                   >
                     <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
@@ -357,7 +357,7 @@ export default async function SubAdminDashboard() {
                         <ArrowRightIcon />
                       </Link>
                       <Link
-                        href={`/sub-admin/${season.id}/auction-v2`}
+                        href={`/sub-admin/${season.id}/auction`}
                         className="flex items-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
                       >
                         Auction

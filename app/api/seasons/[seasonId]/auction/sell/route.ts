@@ -111,7 +111,8 @@ export async function POST(
           amount: soldPrice,
           previousBalance: seasonTeam.currentBudget,
           newBalance: newBudget,
-          description: `Player purchase: ${player?.name || playerId}`
+          description: `Player purchase: ${player?.name || playerId}`,
+          playerName: player?.name || null
         }
       })
 

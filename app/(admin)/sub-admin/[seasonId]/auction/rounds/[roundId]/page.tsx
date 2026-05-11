@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import RoundDetailClient from '@/components/auction-v2/RoundDetailClient'
+import RoundDetailClient from '@/components/auction/RoundDetailClient'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 interface RoundDetailPageProps {
@@ -70,23 +70,13 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
 
   // Fetch auction results (transfer history) for completed rounds
   let auctionResults = null
+  let previewAllocations = null
+  
   if (round.status === 'completed') {
     const rawResults = await prisma.transfer_history.findMany({
       where: {
         seasonId,
-        // Filter by players that were in this round
-        basePlayer: {
-          seasonalPlayerStats: {
-            some: {
-              seasonId,
-              position: round.position || undefined
-            }
-          }
-        },
-        // Only get transfers created around the round completion time
-        createdAt: {
-          gte: round.startTime || undefined,
-        }
+        roundId: roundId
       },
       include: {
         basePlayer: {
@@ -139,6 +129,44 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         }
       }
     })
+  } else if (round.status === 'preview_finalized') {
+    // Get preview allocations from database table
+    const rawPreviewAllocations = await prisma.preview_allocations.findMany({
+      where: { roundId },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true
+          }
+        },
+        basePlayer: {
+          select: {
+            id: true,
+            name: true,
+            photoUrl: true
+          }
+        }
+      },
+      orderBy: {
+        amount: 'desc'
+      }
+    })
+
+    previewAllocations = rawPreviewAllocations.map(alloc => ({
+      teamId: alloc.teamId,
+      basePlayerId: alloc.basePlayerId,
+      playerName: alloc.playerName,
+      amount: alloc.amount,
+      acquisitionType: alloc.acquisitionType,
+      acquisitionNotes: alloc.acquisitionNotes,
+      team: alloc.team,
+      basePlayer: {
+        ...alloc.basePlayer,
+        photoUrl: getPlayerPhotoUrl(alloc.basePlayer.photoUrl)
+      }
+    }))
   }
 
   return (
@@ -148,6 +176,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           round={round}
           teams={seasonTeams.map(st => st.team)}
           auctionResults={auctionResults}
+          previewAllocations={previewAllocations}
         />
       </div>
     </div>

@@ -163,7 +163,8 @@ export async function POST(
           amount: -amount, // Negative for deduction
           previousBalance,
           newBalance,
-          description: `Purchased ${basePlayer.name} for $${amount.toLocaleString()}`
+          description: `Purchased ${basePlayer.name} for $${amount.toLocaleString()}`,
+          playerName: basePlayer.name
         }
       })
 

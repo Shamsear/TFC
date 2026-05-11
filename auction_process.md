@@ -113,16 +113,68 @@ The auction has 3 phases with different rules:
 ### Characteristics
 - **No time limit** (`duration_minutes = NULL`)
 - Runs until all tied teams submit new bids
+- **Sequential creation** - ONE tiebreaker at a time
 - Can create **recursive tiebreakers** (if new bids also tie)
+
+### Sequential Resolution Process
+
+**IMPORTANT:** Tiebreakers are created **ONE AT A TIME**, not all at once. This prevents the same teams from being in multiple tiebreakers simultaneously.
+
+**Example Scenario:**
+```
+3 players with ties:
+- Player A: Team 1, Team 2, Team 3 all bid £50k
+- Player B: Team 1, Team 2, Team 3 all bid £45k
+- Player C: Team 1, Team 2, Team 3 all bid £40k
+```
+
+**Correct Sequential Flow:**
+```
+1. FIRST FINALIZATION
+   - Process Player A
+   - Detect tie (Team 1, 2, 3)
+   - Create Tiebreaker 1 ONLY
+   - PAUSE finalization
+   - Round status: 'tiebreaker_pending'
+
+2. TIEBREAKER 1 RESOLUTION
+   - Teams submit: Team 1 (£55k), Team 2 (£52k), Team 3 (£51k)
+   - Winner: Team 1
+   - Apply allocation: Player A → Team 1
+   - Remove Team 1 from bid pool
+
+3. RESUME FINALIZATION
+   - Process Player B
+   - Remaining teams: Team 2, Team 3 (Team 1 already allocated)
+   - Detect tie (Team 2, 3)
+   - Create Tiebreaker 2 ONLY
+   - PAUSE finalization again
+
+4. TIEBREAKER 2 RESOLUTION
+   - Teams submit: Team 2 (£48k), Team 3 (£47k)
+   - Winner: Team 2
+   - Apply allocation: Player B → Team 2
+   - Remove Team 2 from bid pool
+
+5. RESUME FINALIZATION AGAIN
+   - Process Player C
+   - Remaining teams: Team 3 only
+   - No tie (only 1 team left)
+   - Allocate Player C → Team 3 automatically
+   - Finalization complete
+```
+
+**Result:** Each team gets exactly 1 player ✓
 
 ### Process (`lib/tiebreaker.ts`)
 
 ```
-1. CREATE TIEBREAKER
+1. CREATE TIEBREAKER (ONE AT A TIME)
    - Generate readable ID (SSPSLTR00001)
    - Store original amount and tied teams
    - Create team_tiebreaker records for each team
    - Mark round as 'tiebreaker_pending'
+   - Save finalization state (allocated teams/players)
 
 2. TEAMS SUBMIT NEW BIDS
    - Each team submits higher bid
@@ -137,12 +189,28 @@ The auction has 3 phases with different rules:
       - If NO TIE: Mark winner
    d. Update tiebreaker status to 'resolved'
    e. Store winning_team_id and winning_bid
+   f. Apply allocation to database
+   g. Remove winner from bid pool
 
-4. FINALIZATION USES TIEBREAKER RESULT
-   - When round finalizes again
-   - Uses winning_bid instead of original bid
-   - Allocates player to winning team
+4. AUTO-RESUME FINALIZATION
+   - System automatically resumes finalization
+   - Processes remaining bids (excluding allocated teams)
+   - If another tie found: Create next tiebreaker and pause
+   - If no more ties: Complete finalization
 ```
+
+### Why Sequential?
+
+**Problem with creating all tiebreakers at once:**
+- Same teams in multiple tiebreakers
+- Team can win multiple players (violates 1-player rule)
+- Confusion about which tiebreaker to focus on
+
+**Benefits of sequential approach:**
+- Each team gets maximum 1 player
+- Only one active tiebreaker at a time
+- Clear focus for teams
+- Automatic resolution if only 1 team remains
 
 ### Database Tables
 ```sql

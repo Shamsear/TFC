@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { encryptBids } from '@/lib/auction/encryption';
+import { generateBidAuditId } from '@/lib/id-generator';
 import { validateBids, BidData } from '@/lib/auction/bid-validator';
 
 /**
@@ -169,8 +170,10 @@ export async function POST(
 
     // Optional: Create audit log entry
     try {
+      const auditId = await generateBidAuditId();
       await prisma.bid_audit_log.create({
         data: {
+          id: auditId,
           roundId,
           teamId,
           action: teamRoundBid ? 'update' : 'create',

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -20,17 +21,23 @@ interface Allocation {
   basePlayerId: string
   teamId: string
   soldPrice: number
+  acquisitionType: string
+  acquisitionNotes: string | null
   basePlayer: Player
   team: Team
 }
 
 interface Tiebreaker {
-  id: string
+  id: number
   basePlayerId: string
-  tiedTeams: string[]
-  tieAmount: number
-  resolved: boolean
+  basePrice: number
+  status: string
+  currentHighestBid: number | null
+  teamsRemaining: number
   basePlayer: Player
+  participants: Array<{
+    teamId: string
+  }>
 }
 
 interface Round {
@@ -49,18 +56,33 @@ interface RoundResultsClientProps {
   allocations: Allocation[]
   tiebreakers: Tiebreaker[]
   teamId: string
+  bidsByPlayer: Record<string, Array<{ teamId: string; teamName: string; amount: number }>>
 }
 
 export default function RoundResultsClient({
   round,
   allocations,
   tiebreakers,
-  teamId
+  teamId,
+  bidsByPlayer
 }: RoundResultsClientProps) {
   const router = useRouter()
+  const [expandedPlayers, setExpandedPlayers] = useState<Set<string>>(new Set())
 
   const myAllocations = allocations.filter(a => a.teamId === teamId)
   const hasTiebreakers = tiebreakers.length > 0
+
+  const togglePlayer = (playerId: string) => {
+    setExpandedPlayers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(playerId)) {
+        newSet.delete(playerId)
+      } else {
+        newSet.add(playerId)
+      }
+      return newSet
+    })
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -118,7 +140,7 @@ export default function RoundResultsClient({
                         <div>
                           <h4 className="font-bold text-white">{tie.basePlayer.name}</h4>
                           <p className="text-sm text-[#D4CCBB]">
-                            Tied at £{tie.tieAmount.toLocaleString()} with {tie.tiedTeams.length} team{tie.tiedTeams.length > 1 ? 's' : ''}
+                            Base price: £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
                           </p>
                         </div>
                       </div>
@@ -172,37 +194,127 @@ export default function RoundResultsClient({
           <div className="space-y-3">
             {allocations.map(alloc => {
               const isMyTeam = alloc.teamId === teamId
+              const isExpanded = expandedPlayers.has(alloc.basePlayerId)
+              const playerBids = bidsByPlayer[alloc.basePlayerId] || []
+              const hasBids = playerBids.length > 0
+
               return (
                 <div
                   key={alloc.id}
-                  className={`rounded-xl p-4 ${
+                  className={`rounded-xl ${
                     isMyTeam
                       ? 'bg-emerald-500/10 border-2 border-emerald-500/30'
                       : 'bg-white/5 border border-white/10'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                        <Image
-                          src={alloc.basePlayer.photoUrl}
-                          alt={alloc.basePlayer.name}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover"
-                        />
+                  <div
+                    className={`p-4 ${hasBids ? 'cursor-pointer hover:bg-white/5' : ''}`}
+                    onClick={() => hasBids && togglePlayer(alloc.basePlayerId)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                          <Image
+                            src={alloc.basePlayer.photoUrl}
+                            alt={alloc.basePlayer.name}
+                            width={48}
+                            height={48}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-white">{alloc.basePlayer.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm ${isMyTeam ? 'text-emerald-400' : 'text-[#D4CCBB]'}`}>
+                              {alloc.team.name}
+                            </p>
+                            {alloc.acquisitionType === 'auto_assigned' && (
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Auto-assigned
+                              </span>
+                            )}
+                            {alloc.acquisitionType === 'tiebreaker_won' && (
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                Tiebreaker
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-white">{alloc.basePlayer.name}</h3>
-                        <p className={`text-sm ${isMyTeam ? 'text-emerald-400' : 'text-[#D4CCBB]'}`}>
-                          {alloc.team.name}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className={`text-xl font-bold ${isMyTeam ? 'text-emerald-300' : 'text-white'}`}>
+                          £{alloc.soldPrice.toLocaleString()}
+                        </div>
+                        {hasBids && (
+                          <svg
+                            className={`w-5 h-5 text-[#7A7367] transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
                       </div>
-                    </div>
-                    <div className={`text-xl font-bold ${isMyTeam ? 'text-emerald-300' : 'text-white'}`}>
-                      £{alloc.soldPrice.toLocaleString()}
                     </div>
                   </div>
+
+                  {/* Expanded Bid Details */}
+                  {isExpanded && (
+                    <div className="border-t border-white/10 p-4 bg-black/20">
+                      {/* Acquisition Notes */}
+                      {alloc.acquisitionNotes && (
+                        <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                          <div className="flex items-start gap-2">
+                            <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-sm text-blue-200">{alloc.acquisitionNotes}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bid History */}
+                      {hasBids && (
+                        <>
+                          <h4 className="text-sm font-bold text-[#D4CCBB] mb-3">All Bids</h4>
+                          <div className="space-y-2">
+                            {playerBids.map((bid, idx) => {
+                              const isWinner = bid.teamId === alloc.teamId
+                              return (
+                                <div
+                                  key={`${bid.teamId}-${idx}`}
+                                  className={`flex items-center justify-between p-3 rounded-lg ${
+                                    isWinner
+                                      ? 'bg-emerald-500/20 border border-emerald-500/30'
+                                      : 'bg-white/5 border border-white/10'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-sm font-medium ${
+                                      isWinner ? 'text-emerald-300' : 'text-white'
+                                    }`}>
+                                      {bid.teamName}
+                                    </span>
+                                    {isWinner && (
+                                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/30 text-emerald-200">
+                                        WON
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className={`text-sm font-bold ${
+                                    isWinner ? 'text-emerald-300' : 'text-[#D4CCBB]'
+                                  }`}>
+                                    £{bid.amount.toLocaleString()}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}

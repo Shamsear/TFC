@@ -21,8 +21,20 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    // Parse body (optional - defaults to force=false, preview=false)
+    let body: { force?: boolean; preview?: boolean } = {};
+    try {
+      const contentType = request.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        body = await request.json();
+      }
+    } catch (error) {
+      // Empty or invalid body - use defaults
+      console.log('No JSON body provided, using defaults');
+    }
     const { force = false, preview = false } = body;
+
+    console.log(`\n🎯 Finalization request: force=${force}, preview=${preview}`);
 
     // Get round details
     const round = await prisma.rounds.findUnique({
@@ -50,14 +62,14 @@ export async function POST(
       );
     }
 
-    if (!force && !['active', 'expired_pending_finalization', 'pending_finalization'].includes(round.status)) {
+    if (!force && !['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'].includes(round.status)) {
       return NextResponse.json(
         { error: `Cannot finalize round with status: ${round.status}` },
         { status: 400 }
       );
     }
 
-    // Preview mode: Calculate results without applying
+    // Preview mode: Calculate results and create tiebreakers, but don't apply allocations
     if (preview) {
       if (round.roundType === 'bulk') {
         const result = await finalizeBulkRound(roundId);
@@ -69,23 +81,82 @@ export async function POST(
           error: result.error
         });
       } else {
+        // For normal rounds in preview mode
         const result = await finalizeRound(roundId);
+        
+        if (result.tieDetected && result.ties) {
+          // Create tiebreakers in preview mode
+          console.log(`\n🎯 Preview mode: Creating tiebreakers...`);
+          const tiebreakers = await createTiebreakers(roundId, result.ties);
+
+          // Update status to tiebreaker_pending, mark as preview mode, and change to manual finalization
+          await prisma.rounds.update({
+            where: { id: roundId },
+            data: { 
+              status: 'tiebreaker_pending',
+              finalizationMode: 'manual', // Switch to manual since admin chose to preview
+              finalizationState: {
+                previewMode: true,
+                allocatedTeams: result.allocations?.map(a => a.teamId) || [],
+                allocatedPlayers: result.allocations?.map(a => a.basePlayerId) || [],
+                processedAllocations: result.allocations || []
+              }
+            }
+          });
+
+          return NextResponse.json({
+            success: true,
+            preview: true,
+            tieDetected: true,
+            tiebreakers,
+            message: 'Preview mode: Tiebreakers created. Teams can resolve them, but results will not be applied until you finalize.'
+          });
+        }
+        
+        // No ties - save preview results and switch to manual mode
+        // Delete any existing preview allocations for this round
+        await prisma.preview_allocations.deleteMany({
+          where: { roundId }
+        });
+
+        // Save preview allocations
+        await prisma.preview_allocations.createMany({
+          data: result.allocations.map(alloc => ({
+            roundId,
+            teamId: alloc.teamId,
+            basePlayerId: alloc.basePlayerId,
+            playerName: alloc.playerName,
+            amount: alloc.amount,
+            acquisitionType: alloc.acquisitionType,
+            acquisitionNotes: alloc.acquisitionNotes || null
+          }))
+        });
+
+        // Update round to preview_finalized and switch to manual mode
+        await prisma.rounds.update({
+          where: { id: roundId },
+          data: {
+            status: 'preview_finalized',
+            finalizationMode: 'manual', // Switch to manual since admin chose to preview
+            finalizationState: null // Clear state since no tiebreakers
+          }
+        });
+
         return NextResponse.json({
           success: true,
           preview: true,
           allocations: result.allocations,
-          tieDetected: result.tieDetected,
-          ties: result.ties,
-          error: result.error
+          tieDetected: false,
+          message: 'Preview results saved. Click "Make Public" to apply these results and make them visible to teams.'
         });
       }
     }
 
-    // Acquire lock
+    // Acquire lock (allow tiebreaker_pending to be finalized)
     const lockResult = await prisma.rounds.updateMany({
       where: {
         id: roundId,
-        status: { in: ['active', 'expired_pending_finalization', 'pending_finalization'] }
+        status: { in: ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'] }
       },
       data: {
         status: 'finalizing'
@@ -128,11 +199,12 @@ export async function POST(
           : 'Round finalized successfully'
       });
     } else {
-      // Normal round
+      // Normal round - sequential tiebreaker resolution
       const result = await finalizeRound(roundId);
 
       if (result.tieDetected && result.ties) {
-        // Create tiebreakers
+        // Create ONLY the first tiebreaker (sequential approach)
+        console.log(`\n🎯 Creating tiebreaker for first tie (sequential resolution)...`);
         const tiebreakers = await createTiebreakers(roundId, result.ties);
 
         // Update status
@@ -145,7 +217,10 @@ export async function POST(
           success: true,
           tieDetected: true,
           tiebreakers,
-          message: 'Tiebreakers created. Teams must submit new bids.'
+          resuming: result.resuming,
+          message: result.resuming 
+            ? 'Another tiebreaker created. Teams must submit new bids.'
+            : 'Tiebreaker created. Teams must submit new bids.'
         });
       }
 
@@ -165,10 +240,21 @@ export async function POST(
       // Apply results
       await applyFinalizationResults(roundId, result.allocations);
 
+      // Determine final status based on whether this was a preview finalization
+      const finalStatus = force && preview ? 'preview_finalized' : 'completed';
+      
+      await prisma.rounds.update({
+        where: { id: roundId },
+        data: { status: finalStatus }
+      });
+
       return NextResponse.json({
         success: true,
         allocations: result.allocations,
-        message: 'Round finalized successfully'
+        previewMode: finalStatus === 'preview_finalized',
+        message: finalStatus === 'preview_finalized' 
+          ? 'Round finalized in preview mode. Results are hidden from teams. Click "Make Public" to show results.'
+          : 'Round finalized successfully'
       });
     }
   } catch (error) {

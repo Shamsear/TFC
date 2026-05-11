@@ -463,10 +463,10 @@ export default function NormalRoundBiddingClient({
                   placeholder={`Min £${round.basePrice?.toLocaleString() || 0}`}
                   value={bids[player.basePlayerId] || ''}
                   onChange={(e) => handleBidChange(player.basePlayerId, e.target.value)}
-                  disabled={isSubmitted || (maxBidsReached && !bids[player.basePlayerId])}
+                  disabled={round.status !== 'active' || isSubmitted || (maxBidsReached && !bids[player.basePlayerId])}
                   className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                {bids[player.basePlayerId] > 0 && !isSubmitted && (
+                {bids[player.basePlayerId] > 0 && !isSubmitted && round.status === 'active' && (
                   <button
                     onClick={() => handleRemoveBid(player.basePlayerId)}
                     className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"

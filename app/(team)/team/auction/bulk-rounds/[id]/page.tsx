@@ -76,6 +76,14 @@ export default async function BulkRoundPage({
     redirect("/team/auction")
   }
 
+  // Get current squad size
+  const squadSize = await prisma.transfer_history.count({
+    where: {
+      teamId: teamId,
+      seasonId: round.seasonId
+    }
+  })
+
   // Get available players for this round
   const seasonalPlayers = await prisma.seasonal_player_stats.findMany({
     where: {
@@ -95,12 +103,13 @@ export default async function BulkRoundPage({
       position: true,
       overallRating: true,
       nationality: true,
-      pace: true,
-      shooting: true,
-      passing: true,
+      playing_style: true,
+      speed: true,
+      finishing: true,
+      low_pass: true,
       dribbling: true,
-      defending: true,
-      physical: true,
+      tackling: true,
+      physical_contact: true,
       basePlayer: {
         select: {
           id: true,
@@ -122,12 +131,12 @@ export default async function BulkRoundPage({
     position: p.position,
     overall: p.overallRating,
     nationality: p.nationality || 'Unknown',
-    pace: p.pace || 0,
-    shooting: p.shooting || 0,
-    passing: p.passing || 0,
+    pace: p.speed || 0,
+    shooting: p.finishing || 0,
+    passing: p.low_pass || 0,
     dribbling: p.dribbling || 0,
-    defending: p.defending || 0,
-    physical: p.physical || 0
+    defending: p.tackling || 0,
+    physical: p.physical_contact || 0
   }))
 
   // Get existing selections
@@ -165,6 +174,8 @@ export default async function BulkRoundPage({
       team={{ ...team, budget: seasonTeam.currentBudget }}
       players={players}
       initialSelections={initialSelections}
+      squadSize={squadSize}
+      minSquadSize={16}
     />
   )
 }

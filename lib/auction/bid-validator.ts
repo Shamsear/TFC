@@ -324,10 +324,8 @@ export async function validateBulkSelections(
     errors.push('Duplicate player selections are not allowed');
   }
   
-  // Validate max selections
-  if (context.maxBidsPerTeam && playerIds.length > context.maxBidsPerTeam) {
-    errors.push(`Maximum ${context.maxBidsPerTeam} players allowed. You selected ${playerIds.length}.`);
-  }
+  // Note: maxBidsPerTeam is NOT checked for bulk rounds
+  // Teams can select as many players as they need for their squad
   
   // Validate players exist
   const existenceResult = await validatePlayersExist(
@@ -348,7 +346,7 @@ export async function validateBulkSelections(
     const totalCost = playerIds.length * context.basePrice;
     if (totalCost > context.currentBudget) {
       errors.push(
-        `Total cost (${totalCost}) exceeds current budget (${context.currentBudget})`
+        `Total cost £${totalCost.toLocaleString()} exceeds current budget £${context.currentBudget.toLocaleString()}`
       );
     }
   }

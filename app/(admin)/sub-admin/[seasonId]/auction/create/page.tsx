@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import CreateRoundClient from '@/components/auction-v2/CreateRoundClient'
+import CreateRoundClient from '@/components/auction/CreateRoundClient'
 
 interface CreateRoundPageProps {
   params: Promise<{ seasonId: string }>
@@ -84,6 +84,16 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
     }
   })
 
+  // Fetch the latest round number for this season
+  const latestRound = await prisma.rounds.findFirst({
+    where: { seasonId },
+    orderBy: { roundNumber: 'desc' },
+    select: { roundNumber: true }
+  })
+
+  // Calculate next round number (latest + 1, or 1 if no rounds exist)
+  const nextRoundNumber = latestRound ? latestRound.roundNumber + 1 : 1
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
@@ -108,6 +118,7 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
           availablePlayers={availablePlayers}
           teams={seasonTeams.map(st => st.team)}
           auctionCalendar={auctionCalendar}
+          nextRoundNumber={nextRoundNumber}
           seasonDefaults={{
             maxBidsPerTeam: season.defaultMaxBidsPerTeam || seasonTeams.length,
             basePrice: season.defaultBasePrice || 100000

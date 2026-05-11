@@ -21,6 +21,7 @@ model base_players {
   transferHistory      transfer_history[]
   tiebreakers          tiebreakers[]
   bulkTiebreakers      bulk_tiebreakers[]
+  previewAllocations   preview_allocations[]
 }
 
 model financial_ledger {
@@ -32,6 +33,7 @@ model financial_ledger {
   previousBalance Int
   newBalance      Int
   description     String?
+  playerName      String?
   createdAt       DateTime        @default(now())
   season          seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   seasonTeam      season_teams    @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
@@ -251,18 +253,26 @@ model teams {
   teamManagers                  users[]                          @relation("TeamManager")
   bulkTiebreakerParticipants    bulk_tiebreaker_participants[]   @relation("BulkTiebreakerParticipants")
   bulkTiebreakerBidHistory      bulk_tiebreaker_bid_history[]    @relation("BulkTiebreakerBidHistory")
+  previewAllocations            preview_allocations[]
 }
 
 model transfer_history {
-  id           String       @id
-  basePlayerId String
-  seasonId     String
-  teamId       String
-  soldPrice    Int
-  createdAt    DateTime     @default(now())
-  basePlayer   base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
-  season       seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  team         teams        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id               String       @id
+  basePlayerId     String
+  seasonId         String
+  teamId           String
+  roundId          String?      @map("round_id")
+  soldPrice        Int
+  acquisitionType  String       @default("bid_won") @map("acquisition_type") // 'bid_won' | 'auto_assigned' | 'tiebreaker_won'
+  acquisitionNotes String?      @map("acquisition_notes") @db.Text
+  createdAt        DateTime     @default(now())
+  basePlayer       base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  season           seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team             teams        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round            rounds?      @relation("TransferHistoryRound", fields: [roundId], references: [id], onDelete: SetNull)
+
+  @@index([roundId])
+  @@index([acquisitionType], map: "idx_transfer_history_acquisition_type")
 }
 
 model users {
@@ -533,6 +543,7 @@ model rounds {
   endTime             DateTime? @map("end_time")
   status              String    @default("draft")
   finalizationMode    String    @default("auto") @map("finalization_mode") // 'auto' | 'manual'
+  finalizationState   Json?     @map("finalization_state") // Stores incremental finalization state for sequential tiebreaker resolution
   createdAt           DateTime  @default(now()) @map("created_at")
   season              seasons   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   teamRoundBids       team_round_bids[]
@@ -540,6 +551,8 @@ model rounds {
   bulkRoundSelections bulk_round_selections[]
   bulkTiebreakers     bulk_tiebreakers[] @relation("BulkTiebreakerRound")
   bidAuditLogs        bid_audit_log[]
+  transferHistory     transfer_history[] @relation("TransferHistoryRound")
+  previewAllocations  preview_allocations[]
 
   @@index([seasonId])
   @@index([status])
@@ -659,7 +672,7 @@ model bulk_tiebreaker_bid_history {
 }
 
 model bid_audit_log {
-  id             Int      @id @default(autoincrement())
+  id             String   @id
   roundId        String   @map("round_id")
   teamId         String   @map("team_id")
   action         String   // 'create' | 'update' | 'submit'
@@ -670,4 +683,25 @@ model bid_audit_log {
   @@index([roundId])
   @@index([teamId])
   @@index([timestamp])
+}
+
+model preview_allocations {
+  id                Int           @id @default(autoincrement())
+  roundId           String        @map("round_id")
+  teamId            String        @map("team_id")
+  basePlayerId      String        @map("base_player_id")
+  playerName        String        @map("player_name")
+  amount            Int
+  acquisitionType   String        @map("acquisition_type") // 'bid_won' | 'auto_assigned' | 'tiebreaker_won'
+  acquisitionNotes  String?       @map("acquisition_notes") @db.Text
+  createdAt         DateTime      @default(now()) @map("created_at")
+  round             rounds        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  team              teams         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  basePlayer        base_players  @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, teamId])
+  @@unique([roundId, basePlayerId])
+  @@index([roundId])
+  @@index([teamId])
+  @@index([basePlayerId])
 }

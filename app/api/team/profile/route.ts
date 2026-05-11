@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { canEditTeam } from "@/lib/team-auth"
 import { z } from "zod"
+import { generateAuditId } from "@/lib/id-generator"
 
 // Validation schema for team profile updates
 const updateTeamSchema = z.object({
@@ -110,9 +111,10 @@ export async function PATCH(request: NextRequest) {
     })
 
     // Create audit log
+    const auditId = await generateAuditId();
     await prisma.audit_logs.create({
       data: {
-        id: `TFCAL-${Date.now()}`,
+        id: auditId,
         userId: session.user.id,
         userEmail: session.user.email || "",
         userRole: session.user.role,

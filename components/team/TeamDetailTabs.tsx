@@ -193,7 +193,7 @@ export default function TeamDetailTabs({
               <div className="text-center py-12">
                 <div className="text-[#7A7367] mb-4">No players in squad</div>
                 <Link
-                  href={`/sub-admin/${seasonId}/auction-v2`}
+                  href={`/sub-admin/${seasonId}/auction`}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800] text-[#0a0a0a] rounded-lg font-bold hover:bg-[#FFC93A] transition-all"
                 >
                   Go to Auction

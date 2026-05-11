@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'
+import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
 
 /**
  * Bulk tiebreaker finalization logic
@@ -144,7 +145,10 @@ export async function applyBulkTiebreakerResult(
     where: { id: tiebreakerId },
     select: {
       basePlayerId: true,
-      roundId: true
+      roundId: true,
+      basePlayer: {
+        select: { name: true }
+      }
     }
   });
 
@@ -164,9 +168,10 @@ export async function applyBulkTiebreakerResult(
 
   await prisma.$transaction(async (tx) => {
     // 1. Create transfer history
+    const transferId = await generateTransferId();
     await tx.transfer_history.create({
       data: {
-        id: `SSPSLTH${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+        id: transferId,
         basePlayerId: tiebreaker.basePlayerId,
         seasonId: round.seasonId,
         teamId: winnerId,
@@ -198,16 +203,18 @@ export async function applyBulkTiebreakerResult(
       });
 
       // 3. Insert financial ledger entry
+      const ledgerId = await generateFinancialId();
       await tx.financial_ledger.create({
         data: {
-          id: `SSPSLFL${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+          id: ledgerId,
           seasonTeamId: seasonTeam.id,
           seasonId: round.seasonId,
           transactionType: 'PLAYER_PURCHASE',
           amount: -winningBid,
           previousBalance: seasonTeam.currentBudget,
           newBalance: newBudget,
-          description: `Bulk tiebreaker ${tiebreakerId} - Player purchase`
+          description: `Bulk tiebreaker ${tiebreakerId} - Player purchase`,
+          playerName: tiebreaker.basePlayer.name
         }
       });
     }

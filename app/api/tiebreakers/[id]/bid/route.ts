@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { calculateReserve } from '@/lib/auction/reserve-calculator';
+import { checkTiebreakerComplete, resolveTiebreaker, resumeFinalizationAfterTiebreaker } from '@/lib/auction/tiebreaker';
 
 /**
  * POST /api/tiebreakers/[id]/bid - Submit tiebreaker bid
@@ -123,10 +124,11 @@ export async function POST(
     });
 
     // Check budget with reserves
-    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize);
+    const minPlayerPrice = 10; // Minimum bid amount
+    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize, 16, minPlayerPrice);
     if (newBidAmount > reserve.availableBudget) {
       return NextResponse.json(
-        { error: `Insufficient budget. Available: ${reserve.availableBudget}` },
+        { error: `Insufficient budget. Available: £${reserve.availableBudget.toLocaleString()}` },
         { status: 400 }
       );
     }
@@ -145,6 +147,49 @@ export async function POST(
         submittedAt: new Date()
       }
     });
+
+    // Check if all teams have submitted
+    const allSubmitted = await checkTiebreakerComplete(tiebreakerId);
+
+    if (allSubmitted) {
+      console.log(`\n🎯 All teams submitted for tiebreaker ${tiebreakerId} - auto-resolving...`);
+      
+      // Resolve tiebreaker
+      const resolveResult = await resolveTiebreaker(tiebreakerId);
+
+      if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
+        console.log(`   ✓ Tiebreaker resolved - Winner: Team ${resolveResult.winnerId}`);
+        
+        // Auto-resume finalization
+        const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
+
+        if (resumeResult.success) {
+          if (resumeResult.finalizationComplete) {
+            console.log('   ✅ Round finalization COMPLETE\n');
+            return NextResponse.json({
+              success: true,
+              newBidAmount,
+              message: 'Tiebreaker bid submitted and round finalized successfully',
+              tiebreakerResolved: true,
+              roundComplete: true
+            });
+          } else if (resumeResult.nextTiebreakerCreated) {
+            console.log('   ⏸️  Next tiebreaker created\n');
+            return NextResponse.json({
+              success: true,
+              newBidAmount,
+              message: 'Tiebreaker bid submitted. Another tiebreaker created.',
+              tiebreakerResolved: true,
+              nextTiebreakerCreated: true
+            });
+          }
+        } else {
+          console.error('   ❌ Failed to resume finalization:', resumeResult.error);
+        }
+      } else {
+        console.error('   ❌ Failed to resolve tiebreaker:', resolveResult.error);
+      }
+    }
 
     return NextResponse.json({
       success: true,

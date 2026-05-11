@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'
+import { generateTransferId, generateTiebreakerId, generateFinancialId } from '@/lib/id-generator';
 
 /**
  * Tiebreaker creation and resolution logic
@@ -28,7 +29,8 @@ export async function createTiebreakers(
   const createdTiebreakers: TiebreakerInfo[] = [];
 
   for (const tie of ties) {
-    const tiebreakerId = `SSPSLTB${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+    // Generate tiebreaker ID using centralized ID generator
+    const tiebreakerId = await generateTiebreakerId();
 
     // Create tiebreaker
     await prisma.tiebreakers.create({
@@ -146,7 +148,7 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
     await prisma.tiebreakers.update({
       where: { id: tiebreakerId },
       data: {
-        status: 'resolved',
+        status: 'completed',
         winningTeamId: winner.teamId,
         winningBid: winner.newBidAmount!
       }
@@ -181,6 +183,9 @@ export async function applyTiebreakerResult(
       roundId: true,
       round: {
         select: { seasonId: true }
+      },
+      basePlayer: {
+        select: { name: true }
       }
     }
   });
@@ -191,9 +196,10 @@ export async function applyTiebreakerResult(
 
   await prisma.$transaction(async (tx) => {
     // 1. Create transfer history
+    const transferId = await generateTransferId();
     await tx.transfer_history.create({
       data: {
-        id: `SSPSLTH${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+        id: transferId,
         basePlayerId: tiebreaker.basePlayerId,
         seasonId: tiebreaker.round.seasonId,
         teamId: winnerId,
@@ -225,16 +231,18 @@ export async function applyTiebreakerResult(
       });
 
       // 3. Insert financial ledger entry
+      const ledgerId = await generateFinancialId();
       await tx.financial_ledger.create({
         data: {
-          id: `SSPSLFL${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+          id: ledgerId,
           seasonTeamId: seasonTeam.id,
           seasonId: tiebreaker.round.seasonId,
           transactionType: 'PLAYER_PURCHASE',
           amount: -winningBid,
           previousBalance: seasonTeam.currentBudget,
           newBalance: newBudget,
-          description: `Tiebreaker ${tiebreakerId} - Player purchase`
+          description: `Tiebreaker ${tiebreakerId} - Player purchase`,
+          playerName: tiebreaker.basePlayer.name
         }
       });
     }
@@ -321,4 +329,246 @@ export async function resolveAllTiebreakers(roundId: string): Promise<{
     failed,
     errors
   };
+}
+
+/**
+ * Auto-resume finalization after tiebreaker resolution
+ * This is called when a tiebreaker is resolved to continue the finalization process
+ */
+export async function resumeFinalizationAfterTiebreaker(
+  tiebreakerId: string
+): Promise<{
+  success: boolean;
+  finalizationComplete: boolean;
+  nextTiebreakerCreated: boolean;
+  previewMode?: boolean;
+  error?: string;
+}> {
+  try {
+    console.log('\n' + '='.repeat(80));
+    console.log('🔄 AUTO-RESUMING FINALIZATION AFTER TIEBREAKER');
+    console.log('='.repeat(80));
+    console.log(`Tiebreaker ID: ${tiebreakerId}\n`);
+
+    // Get tiebreaker details
+    const tiebreaker = await prisma.tiebreakers.findUnique({
+      where: { id: tiebreakerId },
+      select: {
+        roundId: true,
+        status: true,
+        winningTeamId: true,
+        winningBid: true,
+        round: {
+          select: {
+            finalizationState: true
+          }
+        }
+      }
+    });
+
+    if (!tiebreaker) {
+      return {
+        success: false,
+        finalizationComplete: false,
+        nextTiebreakerCreated: false,
+        error: 'Tiebreaker not found'
+      };
+    }
+
+    if (tiebreaker.status !== 'completed') {
+      return {
+        success: false,
+        finalizationComplete: false,
+        nextTiebreakerCreated: false,
+        error: 'Tiebreaker not resolved yet'
+      };
+    }
+
+    // Check if we're in preview mode
+    const finalizationState = tiebreaker.round.finalizationState as any;
+    const isPreviewMode = finalizationState?.previewMode === true;
+
+    console.log(`   ✓ Tiebreaker resolved`);
+    console.log(`   ✓ Winner: Team ${tiebreaker.winningTeamId}`);
+    console.log(`   ✓ Winning bid: £${tiebreaker.winningBid?.toLocaleString()}`);
+    console.log(`   ✓ Preview mode: ${isPreviewMode ? 'YES' : 'NO'}\n`);
+
+    // Check if there are other active tiebreakers for this round
+    const otherActiveTiebreakers = await prisma.tiebreakers.count({
+      where: {
+        roundId: tiebreaker.roundId,
+        status: 'active',
+        id: { not: tiebreakerId }
+      }
+    });
+
+    if (otherActiveTiebreakers > 0) {
+      console.log(`   ⏸️  Other active tiebreakers exist (${otherActiveTiebreakers})`);
+      console.log(`   ℹ️  Waiting for all tiebreakers to resolve before resuming\n`);
+      return {
+        success: true,
+        finalizationComplete: false,
+        nextTiebreakerCreated: false,
+        previewMode: isPreviewMode
+      };
+    }
+
+    console.log('   ✓ No other active tiebreakers - resuming finalization...\n');
+
+    // Get player name for the allocation
+    const tiebreakerWithPlayer = await prisma.tiebreakers.findUnique({
+      where: { id: tiebreakerId },
+      select: {
+        basePlayerId: true,
+        winningTeamId: true,
+        winningBid: true,
+        basePlayer: {
+          select: {
+            name: true
+          }
+        }
+      }
+    });
+
+    // Update finalization state to include the tiebreaker winner's allocation
+    if (tiebreakerWithPlayer && finalizationState) {
+      const tiebreakerAllocation = {
+        teamId: tiebreakerWithPlayer.winningTeamId!,
+        basePlayerId: tiebreakerWithPlayer.basePlayerId,
+        playerName: tiebreakerWithPlayer.basePlayer.name,
+        amount: tiebreakerWithPlayer.winningBid!,
+        acquisitionType: 'tiebreaker_won' as const,
+        acquisitionNotes: `Won tiebreaker with bid of £${tiebreakerWithPlayer.winningBid!.toLocaleString()}`
+      };
+
+      const updatedState = {
+        ...finalizationState,
+        allocatedTeams: [...(finalizationState.allocatedTeams || []), tiebreakerWithPlayer.winningTeamId!],
+        allocatedPlayers: [...(finalizationState.allocatedPlayers || []), tiebreakerWithPlayer.basePlayerId],
+        processedAllocations: [...(finalizationState.processedAllocations || []), tiebreakerAllocation]
+      };
+
+      await prisma.rounds.update({
+        where: { id: tiebreaker.roundId },
+        data: {
+          finalizationState: updatedState
+        }
+      });
+
+      console.log(`   ✓ Updated state with tiebreaker winner: ${tiebreakerWithPlayer.basePlayer.name} → Team ${tiebreakerWithPlayer.winningTeamId}\n`);
+    }
+
+    // Import finalizeRound dynamically to avoid circular dependency
+    const { finalizeRound, applyFinalizationResults } = await import('./finalize-round');
+
+    // Resume finalization
+    const result = await finalizeRound(tiebreaker.roundId);
+
+    if (result.tieDetected && result.ties && result.ties.length > 0) {
+      // Another tie found - create next tiebreaker
+      console.log('   ⚠️  Another tie detected - creating next tiebreaker...\n');
+      
+      const nextTiebreakers = await createTiebreakers(tiebreaker.roundId, result.ties);
+      
+      console.log(`   ✓ Created ${nextTiebreakers.length} tiebreaker(s)`);
+      console.log('   ⏸️  Finalization paused again\n');
+      console.log('='.repeat(80) + '\n');
+
+      return {
+        success: true,
+        finalizationComplete: false,
+        nextTiebreakerCreated: true,
+        previewMode: isPreviewMode
+      };
+    } else if (result.success) {
+      // Finalization complete
+      console.log('   ✅ No more ties\n');
+      
+      if (isPreviewMode) {
+        // Preview mode - Save results to preview_allocations table
+        console.log('   👁️  PREVIEW MODE - Saving results to preview_allocations table');
+        console.log('   📊 Results calculated and ready for admin review\n');
+        
+        // Delete any existing preview allocations for this round (in case of re-preview)
+        await prisma.preview_allocations.deleteMany({
+          where: { roundId: tiebreaker.roundId }
+        });
+
+        // Insert preview allocations
+        await prisma.preview_allocations.createMany({
+          data: result.allocations.map(alloc => ({
+            roundId: tiebreaker.roundId,
+            teamId: alloc.teamId,
+            basePlayerId: alloc.basePlayerId,
+            playerName: alloc.playerName,
+            amount: alloc.amount,
+            acquisitionType: alloc.acquisitionType,
+            acquisitionNotes: alloc.acquisitionNotes || null
+          }))
+        });
+
+        console.log(`   ✓ Saved ${result.allocations.length} allocations to preview table`);
+        
+        await prisma.rounds.update({
+          where: { id: tiebreaker.roundId },
+          data: { 
+            status: 'preview_finalized',
+            finalizationState: null // Clear state after saving to table
+          }
+        });
+
+        console.log('   ✅ Round marked as preview_finalized');
+        console.log('='.repeat(80) + '\n');
+
+        return {
+          success: true,
+          finalizationComplete: true,
+          nextTiebreakerCreated: false,
+          previewMode: true
+        };
+      } else {
+        // Normal mode - apply results
+        console.log('   💾 Applying final results to database...\n');
+        
+        await applyFinalizationResults(tiebreaker.roundId, result.allocations);
+        
+        // Mark round as completed
+        await prisma.rounds.update({
+          where: { id: tiebreaker.roundId },
+          data: { 
+            status: 'completed',
+            finalizationState: null // Clear state
+          }
+        });
+
+        console.log('   ✅ Round finalization COMPLETE');
+        console.log('='.repeat(80) + '\n');
+
+        return {
+          success: true,
+          finalizationComplete: true,
+          nextTiebreakerCreated: false,
+          previewMode: false
+        };
+      }
+    } else {
+      console.log('   ❌ Finalization failed:', result.error);
+      console.log('='.repeat(80) + '\n');
+
+      return {
+        success: false,
+        finalizationComplete: false,
+        nextTiebreakerCreated: false,
+        error: result.error
+      };
+    }
+  } catch (error) {
+    console.error('Resume finalization error:', error);
+    return {
+      success: false,
+      finalizationComplete: false,
+      nextTiebreakerCreated: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 }

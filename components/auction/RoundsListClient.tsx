@@ -153,7 +153,7 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
         {filteredRounds.map((round) => (
           <Link
             key={round.id}
-            href={`/sub-admin/${seasonId}/auction-v2/rounds/${round.id}`}
+            href={`/sub-admin/${seasonId}/auction/rounds/${round.id}`}
             className="block rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all p-6"
           >
             {/* Header */}

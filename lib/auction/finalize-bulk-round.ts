@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { calculateReserve } from './reserve-calculator';
+import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
 
 /**
  * Bulk round finalization logic
@@ -297,9 +298,10 @@ export async function applyBulkFinalizationResults(
   await prisma.$transaction(async (tx) => {
     // 1. Insert transfer history records
     for (const alloc of allocations) {
+      const transferId = await generateTransferId();
       await tx.transfer_history.create({
         data: {
-          id: `SSPSLTH${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+          id: transferId,
           basePlayerId: alloc.basePlayerId,
           seasonId: round.seasonId,
           teamId: alloc.teamId,
@@ -308,11 +310,16 @@ export async function applyBulkFinalizationResults(
       });
     }
 
-    // 2. Update team budgets
+    // 2. Update team budgets and collect player names
     const teamUpdates = new Map<string, number>();
+    const teamPlayerNames = new Map<string, string[]>();
     for (const alloc of allocations) {
       const current = teamUpdates.get(alloc.teamId) || 0;
       teamUpdates.set(alloc.teamId, current + alloc.amount);
+      
+      const playerNames = teamPlayerNames.get(alloc.teamId) || [];
+      playerNames.push(alloc.playerName);
+      teamPlayerNames.set(alloc.teamId, playerNames);
     }
 
     for (const [teamId, totalSpent] of teamUpdates.entries()) {
@@ -339,16 +346,19 @@ export async function applyBulkFinalizationResults(
         });
 
         // 3. Insert financial ledger entry
+        const ledgerId = await generateFinancialId();
+        const playerNames = teamPlayerNames.get(teamId) || [];
         await tx.financial_ledger.create({
           data: {
-            id: `SSPSLFL${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+            id: ledgerId,
             seasonTeamId: seasonTeam.id,
             seasonId: round.seasonId,
             transactionType: 'PLAYER_PURCHASE',
             amount: -totalSpent,
             previousBalance: seasonTeam.currentBudget,
             newBalance: newBudget,
-            description: `Bulk round ${roundId} player purchases`
+            description: `Bulk round ${roundId} player purchases`,
+            playerName: playerNames.join(', ')
           }
         });
       }

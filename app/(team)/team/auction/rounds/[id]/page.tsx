@@ -40,9 +40,37 @@ export default async function RoundBiddingPage({
     redirect("/team/auction")
   }
 
+  // If this is a bulk round, redirect to bulk round page
+  if (round.roundType === 'bulk') {
+    redirect(`/team/auction/bulk-rounds/${id}`)
+  }
+
   // If round is completed, redirect to results
   if (round.status === 'completed') {
     redirect(`/team/auction/rounds/${id}/results`)
+  }
+
+  // If round has tiebreakers pending, redirect to tiebreaker page
+  if (round.status === 'tiebreaker_pending') {
+    // Check if there's an active tiebreaker for this team
+    const activeTiebreaker = await prisma.tiebreakers.findFirst({
+      where: {
+        roundId: id,
+        status: 'active',
+        teamTiebreakerBids: {
+          some: {
+            teamId: teamId
+          }
+        }
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (activeTiebreaker) {
+      redirect(`/team/auction/tiebreakers/${activeTiebreaker.id}`)
+    }
   }
 
   // If round is finalizing, show loading/wait state

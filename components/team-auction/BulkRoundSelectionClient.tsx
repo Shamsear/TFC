@@ -63,6 +63,8 @@ interface BulkRoundSelectionClientProps {
   team: Team
   players: Player[]
   initialSelections: Selection[]
+  squadSize: number
+  minSquadSize: number
 }
 
 export default function BulkRoundSelectionClient({
@@ -70,7 +72,9 @@ export default function BulkRoundSelectionClient({
   season,
   team,
   players,
-  initialSelections
+  initialSelections,
+  squadSize,
+  minSquadSize
 }: BulkRoundSelectionClientProps) {
   const router = useRouter()
   const [selections, setSelections] = useState<string[]>(
@@ -123,8 +127,11 @@ export default function BulkRoundSelectionClient({
       if (prev.includes(playerId)) {
         return prev.filter(id => id !== playerId)
       } else {
-        if (round.maxBidsPerTeam && prev.length >= round.maxBidsPerTeam) {
-          alert(`Maximum ${round.maxBidsPerTeam} selections allowed`)
+        // Calculate how many more players needed to reach minimum squad size
+        const slotsNeeded = minSquadSize - squadSize
+        
+        // Don't allow more selections than needed (this shouldn't happen with disabled buttons)
+        if (slotsNeeded > 0 && prev.length >= slotsNeeded) {
           return prev
         }
         return [...prev, playerId]
@@ -153,14 +160,17 @@ export default function BulkRoundSelectionClient({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          players: selections,
+          playerIds: selections,
           submitted: false
         })
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to save draft')
+        const errorMessage = error.errors 
+          ? `Validation failed:\n${error.errors.join('\n')}`
+          : error.error || 'Failed to save draft'
+        throw new Error(errorMessage)
       }
 
       alert('Draft saved successfully')
@@ -188,14 +198,17 @@ export default function BulkRoundSelectionClient({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          players: selections,
+          playerIds: selections,
           submitted: true
         })
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to submit selections')
+        const errorMessage = error.errors 
+          ? `Validation failed:\n${error.errors.join('\n')}`
+          : error.error || 'Failed to submit selections'
+        throw new Error(errorMessage)
       }
 
       setSubmitted(true)
@@ -241,13 +254,13 @@ export default function BulkRoundSelectionClient({
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Budget</div>
-              <div className="text-xl font-bold text-white">£{team.budget.toLocaleString()}</div>
+              <div className="text-xs text-[#7A7367] mb-1">Current Squad</div>
+              <div className="text-xl font-bold text-white">{squadSize} / {minSquadSize}</div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Selected</div>
               <div className="text-xl font-bold text-white">
-                {selections.length} / {round.maxBidsPerTeam || '∞'}
+                {selections.length} / {Math.max(0, minSquadSize - squadSize)}
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
@@ -362,6 +375,8 @@ export default function BulkRoundSelectionClient({
           {filteredPlayers.map(player => {
             const isSelected = selections.includes(player.id)
             const priority = isSelected ? selections.indexOf(player.id) + 1 : null
+            const slotsNeeded = minSquadSize - squadSize
+            const limitReached = !isSelected && selections.length >= slotsNeeded
 
             return (
               <div
@@ -395,17 +410,24 @@ export default function BulkRoundSelectionClient({
                   )}
                 </div>
 
-                <button
-                  onClick={() => handleToggleSelection(player.id)}
-                  disabled={submitted}
-                  className={`w-full px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 ${
-                    isSelected
-                      ? 'bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20'
-                      : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                  }`}
-                >
-                  {isSelected ? 'Remove' : 'Select'}
-                </button>
+                {!limitReached && (
+                  <button
+                    onClick={() => handleToggleSelection(player.id)}
+                    disabled={submitted}
+                    className={`w-full px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 ${
+                      isSelected
+                        ? 'bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20'
+                        : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    {isSelected ? 'Remove' : 'Select'}
+                  </button>
+                )}
+                {limitReached && (
+                  <div className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[#7A7367] text-center text-sm">
+                    Selection limit reached
+                  </div>
+                )}
               </div>
             )
           })}

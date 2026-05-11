@@ -37,6 +37,7 @@ interface CreateRoundClientProps {
   availablePlayers: Player[]
   teams: Team[]
   auctionCalendar: AuctionCalendar[]
+  nextRoundNumber: number
   seasonDefaults: {
     maxBidsPerTeam: number
     basePrice: number
@@ -48,6 +49,7 @@ export default function CreateRoundClient({
   availablePlayers, 
   teams,
   auctionCalendar,
+  nextRoundNumber,
   seasonDefaults
 }: CreateRoundClientProps) {
   const router = useRouter()
@@ -56,7 +58,7 @@ export default function CreateRoundClient({
   
   // Form state
   const [roundType, setRoundType] = useState<'normal' | 'bulk'>('normal')
-  const [roundNumber, setRoundNumber] = useState('')
+  const [finalizationMode, setFinalizationMode] = useState<'auto' | 'manual'>('auto')
   const [durationHours, setDurationHours] = useState('1')
   const [durationMinutes, setDurationMinutes] = useState('0')
   const [selectedCalendarId, setSelectedCalendarId] = useState('')
@@ -86,7 +88,7 @@ export default function CreateRoundClient({
     setLoading(true)
 
     try {
-      if (!roundNumber || !selectedCalendarId || !selectedSlotId) {
+      if (!selectedCalendarId || !selectedSlotId) {
         throw new Error('Please fill in all required fields')
       }
 
@@ -106,13 +108,13 @@ export default function CreateRoundClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           seasonId,
-          roundNumber: parseInt(roundNumber),
+          roundNumber: nextRoundNumber,
           durationSeconds,
           position: selectedPosition,
           roundType: roundType,
           maxBidsPerTeam: seasonDefaults.maxBidsPerTeam,
           basePrice: seasonDefaults.basePrice,
-          finalizationMode: 'auto'
+          finalizationMode: finalizationMode
         })
       })
 
@@ -121,7 +123,7 @@ export default function CreateRoundClient({
         throw new Error(data.error || 'Failed to create round')
       }
 
-      router.push(`/sub-admin/${seasonId}/auction-v2`)
+      router.push(`/sub-admin/${seasonId}/auction`)
       router.refresh()
     } catch (err: any) {
       setError(err.message)
@@ -170,20 +172,49 @@ export default function CreateRoundClient({
         </div>
       </div>
 
+      {/* Finalization Mode */}
+      <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
+        <label className="block text-sm font-bold text-white mb-3">Finalization Mode</label>
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={() => setFinalizationMode('auto')}
+            className={`p-4 rounded-xl border-2 transition-all ${
+              finalizationMode === 'auto'
+                ? 'border-emerald-500 bg-emerald-500/10'
+                : 'border-white/10 bg-white/5 hover:border-white/20'
+            }`}
+          >
+            <div className="font-bold text-white mb-1">Auto Finalize</div>
+            <div className="text-xs text-gray-400">Results applied when timer ends</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFinalizationMode('manual')}
+            className={`p-4 rounded-xl border-2 transition-all ${
+              finalizationMode === 'manual'
+                ? 'border-blue-500 bg-blue-500/10'
+                : 'border-white/10 bg-white/5 hover:border-white/20'
+            }`}
+          >
+            <div className="font-bold text-white mb-1">Manual Preview</div>
+            <div className="text-xs text-gray-400">Review results before applying</div>
+          </button>
+        </div>
+      </div>
+
       {/* Auction Calendar Selection */}
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-bold text-white mb-2">Round Number</label>
-            <input
-              type="number"
-              min="1"
-              value={roundNumber}
-              onChange={(e) => setRoundNumber(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none"
-              placeholder="e.g., 1"
-              required
-            />
+            <div className="w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-white flex items-center justify-between">
+              <span className="text-2xl font-black text-[#E8A800]">{nextRoundNumber}</span>
+              <span className="text-xs text-gray-400">Auto-generated</span>
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Based on existing rounds in this season
+            </div>
           </div>
 
           <div>
@@ -321,7 +352,7 @@ export default function CreateRoundClient({
       {/* Actions */}
       <div className="flex gap-4">
         <Link
-          href={`/sub-admin/${seasonId}/auction-v2`}
+          href={`/sub-admin/${seasonId}/auction`}
           className="flex-1 px-6 py-3 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-all text-center"
         >
           Cancel

@@ -37,16 +37,26 @@ interface TiebreakerBiddingClientProps {
     submitted: boolean
     submittedAt: Date | null
   } | null
+  allTiedTeams: Array<{
+    teamId: string
+    teamName: string
+    teamLogo: string | null
+    oldBidAmount: number
+    submitted: boolean
+    submittedAt: Date | null
+    isCurrentTeam: boolean
+  }>
 }
 
 export default function TiebreakerBiddingClient({
   tiebreaker,
   team,
   budget,
-  myBid
+  myBid,
+  allTiedTeams
 }: TiebreakerBiddingClientProps) {
   const router = useRouter()
-  const [newBidAmount, setNewBidAmount] = useState(myBid?.newBidAmount || tiebreaker.originalAmount + 1000)
+  const [newBidAmount, setNewBidAmount] = useState(myBid?.newBidAmount || tiebreaker.originalAmount + 1)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
@@ -176,6 +186,69 @@ export default function TiebreakerBiddingClient({
           </div>
         </div>
 
+        {/* Tied Teams Status */}
+        <div className="mb-6 rounded-xl bg-white/5 border border-white/10 p-6">
+          <h2 className="text-xl font-bold text-white mb-4">Tied Teams ({allTiedTeams.length})</h2>
+          <div className="space-y-3">
+            {allTiedTeams.map((tiedTeam) => (
+              <div
+                key={tiedTeam.teamId}
+                className={`flex items-center justify-between p-4 rounded-lg border ${
+                  tiedTeam.isCurrentTeam
+                    ? 'bg-[#E8A800]/10 border-[#E8A800]/30'
+                    : 'bg-black/30 border-white/10'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {tiedTeam.teamLogo && (
+                    <Image
+                      src={tiedTeam.teamLogo}
+                      alt={tiedTeam.teamName}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded"
+                    />
+                  )}
+                  <div>
+                    <div className="font-bold text-white flex items-center gap-2">
+                      {tiedTeam.teamName}
+                      {tiedTeam.isCurrentTeam && (
+                        <span className="px-2 py-0.5 rounded-full bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold border border-[#E8A800]/30">
+                          You
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Original bid: £{tiedTeam.oldBidAmount.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  {tiedTeam.submitted ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                      <span className="text-sm font-bold text-emerald-400">Submitted</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+                      <span className="text-sm font-bold text-amber-400">Pending</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-400">Submission Progress</span>
+              <span className="font-bold text-white">
+                {allTiedTeams.filter(t => t.submitted).length} / {allTiedTeams.length} submitted
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Bidding Form */}
         {!myBid?.submitted && tiebreaker.status === 'active' && (
           <div className="rounded-xl bg-white/5 border border-white/10 p-6">
@@ -194,6 +267,25 @@ export default function TiebreakerBiddingClient({
                 step={1000}
                 className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white text-xl font-bold focus:outline-none focus:border-[#E8A800]"
               />
+              
+              {/* Quick Increment Buttons */}
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => setNewBidAmount(prev => Math.min(prev + 5, budget))}
+                  disabled={newBidAmount + 5 > budget}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                >
+                  +£5
+                </button>
+                <button
+                  onClick={() => setNewBidAmount(prev => Math.min(prev + 10, budget))}
+                  disabled={newBidAmount + 10 > budget}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                >
+                  +£10
+                </button>
+              </div>
+              
               <p className="text-xs text-[#7A7367] mt-2">
                 Minimum: £{(tiebreaker.originalAmount + 1).toLocaleString()} • Maximum: £{budget.toLocaleString()}
               </p>

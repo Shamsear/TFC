@@ -60,6 +60,42 @@ export default async function TiebreakerPage({
     redirect("/team/auction")
   }
 
+  // Fetch all tied teams and their submission status
+  const allTiedTeams = await prisma.team_tiebreaker_bids.findMany({
+    where: {
+      tiebreakerId: id
+    },
+    select: {
+      teamId: true,
+      oldBidAmount: true,
+      submitted: true,
+      submittedAt: true
+    }
+  })
+
+  // Get team names for all tied teams
+  const tiedTeamsWithNames = await Promise.all(
+    allTiedTeams.map(async (bid) => {
+      const team = await prisma.teams.findUnique({
+        where: { id: bid.teamId },
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true
+        }
+      })
+      return {
+        teamId: bid.teamId,
+        teamName: team?.name || 'Unknown Team',
+        teamLogo: team?.logoUrl || null,
+        oldBidAmount: bid.oldBidAmount,
+        submitted: bid.submitted,
+        submittedAt: bid.submittedAt,
+        isCurrentTeam: bid.teamId === teamId
+      }
+    })
+  )
+
   // Check if team is in season
   const seasonTeam = await prisma.season_teams.findUnique({
     where: {
@@ -98,6 +134,7 @@ export default async function TiebreakerPage({
       team={team}
       budget={seasonTeam.currentBudget}
       myBid={tiebreaker.teamTiebreakerBids[0] || null}
+      allTiedTeams={tiedTeamsWithNames}
     />
   )
 }

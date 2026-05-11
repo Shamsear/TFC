@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { decryptBids } from "@/lib/auction/encryption"
 import RoundResultsClient from "@/components/team-auction/RoundResultsClient"
 
 export default async function RoundResultsPage({
@@ -49,16 +50,19 @@ export default async function RoundResultsPage({
     redirect("/team/auction")
   }
 
-  // Get all allocations for this round
+  // Get all allocations for this round using roundId
   const allocations = await prisma.transfer_history.findMany({
     where: {
-      seasonId: round.seasonId,
-      createdAt: {
-        gte: round.startTime,
-        lte: round.endTime || new Date()
-      }
+      roundId: id
     },
-    include: {
+    select: {
+      id: true,
+      basePlayerId: true,
+      teamId: true,
+      soldPrice: true,
+      acquisitionType: true,
+      acquisitionNotes: true,
+      createdAt: true,
       basePlayer: {
         select: {
           id: true,
@@ -78,14 +82,70 @@ export default async function RoundResultsPage({
     }
   })
 
+  // Get all bids for this round to show bid history
+  const teamBids = await prisma.team_round_bids.findMany({
+    where: {
+      roundId: id,
+      submitted: true
+    },
+    select: {
+      teamId: true,
+      encryptedBids: true
+    }
+  })
+
+  // Get team names for all teams that bid
+  const teamIds = teamBids.map(tb => tb.teamId)
+  const teams = await prisma.teams.findMany({
+    where: {
+      id: { in: teamIds }
+    },
+    select: {
+      id: true,
+      name: true
+    }
+  })
+  const teamMap = new Map(teams.map(t => [t.id, t.name]))
+
+  // Decrypt and organize bids by player
+  const bidsByPlayer: Record<string, Array<{ teamId: string; teamName: string; amount: number }>> = {}
+  
+  for (const teamBid of teamBids) {
+    try {
+      const decrypted = decryptBids(teamBid.encryptedBids)
+      const parsed = JSON.parse(decrypted)
+      
+      parsed.bids.forEach((bid: any) => {
+        if (!bidsByPlayer[bid.base_player_id]) {
+          bidsByPlayer[bid.base_player_id] = []
+        }
+        bidsByPlayer[bid.base_player_id].push({
+          teamId: teamBid.teamId,
+          teamName: teamMap.get(teamBid.teamId) || 'Unknown Team',
+          amount: bid.amount
+        })
+      })
+    } catch (error) {
+      console.error(`Failed to decrypt bids for team ${teamBid.teamId}:`, error)
+    }
+  }
+
+  // Sort bids for each player by amount (highest first)
+  Object.keys(bidsByPlayer).forEach(playerId => {
+    bidsByPlayer[playerId].sort((a, b) => b.amount - a.amount)
+  })
+
   // Check for tiebreakers involving this team
   const tiebreakers = await prisma.bulk_tiebreakers.findMany({
     where: {
       roundId: id,
-      tiedTeams: {
-        has: teamId
-      },
-      resolved: false
+      status: 'pending',
+      participants: {
+        some: {
+          teamId: teamId,
+          status: 'active'
+        }
+      }
     },
     include: {
       basePlayer: {
@@ -93,6 +153,14 @@ export default async function RoundResultsPage({
           id: true,
           name: true,
           player_id: true
+        }
+      },
+      participants: {
+        where: {
+          status: 'active'
+        },
+        select: {
+          teamId: true
         }
       }
     }
@@ -122,6 +190,7 @@ export default async function RoundResultsPage({
       allocations={transformedAllocations}
       tiebreakers={transformedTiebreakers}
       teamId={teamId}
+      bidsByPlayer={bidsByPlayer}
     />
   )
 }

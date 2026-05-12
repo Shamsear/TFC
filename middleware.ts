@@ -59,16 +59,9 @@ export default auth((req) => {
       return NextResponse.next()
     }
 
-    // Redirect all logged-in users away from public pages
-    // Public pages are anything that's not a role-specific route
-    const isPublicPage = !pathname.startsWith("/super-admin") && 
-                         !pathname.startsWith("/sub-admin") && 
-                         !pathname.startsWith("/team") &&
-                         pathname !== "/"
-
-    if (isPublicPage) {
-      return NextResponse.redirect(new URL(userHomeRoute, req.url))
-    }
+    // Allow authenticated users to access public pages
+    // Only redirect if they're trying to access another role's protected route
+    return NextResponse.next()
   }
 
   // Protect team routes from unauthenticated access

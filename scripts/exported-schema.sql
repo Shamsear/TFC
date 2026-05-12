@@ -1,5 +1,5 @@
 -- TFC Database Schema Export
--- Generated: 2026-05-09T15:04:57.133Z
+-- Generated: 2026-05-12T12:52:01.950Z
 -- Database: Neon PostgreSQL
 -- 
 -- This schema can be used to create a replica database
@@ -107,6 +107,93 @@ CREATE TABLE "base_players" (
 -- Indexes for base_players
 CREATE UNIQUE INDEX base_players_player_id_key ON public.base_players USING btree (player_id);
 
+-- Table: bid_audit_log
+CREATE TABLE "bid_audit_log" (
+  "id" TEXT NOT NULL,
+  "round_id" TEXT NOT NULL,
+  "team_id" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "encrypted_bids" TEXT NOT NULL,
+  "timestamp" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for bid_audit_log
+CREATE INDEX bid_audit_log_round_id_idx ON public.bid_audit_log USING btree (round_id);
+CREATE INDEX bid_audit_log_team_id_idx ON public.bid_audit_log USING btree (team_id);
+CREATE INDEX bid_audit_log_timestamp_idx ON public.bid_audit_log USING btree ("timestamp");
+
+-- Table: bulk_round_selections
+CREATE TABLE "bulk_round_selections" (
+  "id" VARCHAR(50) NOT NULL,
+  "round_id" VARCHAR(20) NOT NULL,
+  "team_id" VARCHAR(20) NOT NULL,
+  "selected_players" TEXT NOT NULL DEFAULT '{}'::text,
+  "submitted" BOOLEAN DEFAULT false,
+  "last_updated" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for bulk_round_selections
+CREATE INDEX idx_bulk_round_selections_round ON public.bulk_round_selections USING btree (round_id);
+CREATE INDEX idx_bulk_round_selections_team ON public.bulk_round_selections USING btree (team_id);
+CREATE UNIQUE INDEX unique_bulk_round_team ON public.bulk_round_selections USING btree (round_id, team_id);
+
+-- Table: bulk_tiebreaker_bid_history
+CREATE TABLE "bulk_tiebreaker_bid_history" (
+  "id" INTEGER NOT NULL DEFAULT nextval('bulk_tiebreaker_bid_history_id_seq'::regclass),
+  "tiebreaker_id" INTEGER NOT NULL,
+  "team_id" VARCHAR(20) NOT NULL,
+  "bid_amount" INTEGER NOT NULL,
+  "bid_time" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for bulk_tiebreaker_bid_history
+CREATE INDEX idx_bulk_tiebreaker_bid_history_team ON public.bulk_tiebreaker_bid_history USING btree (team_id);
+CREATE INDEX idx_bulk_tiebreaker_bid_history_tiebreaker ON public.bulk_tiebreaker_bid_history USING btree (tiebreaker_id);
+CREATE INDEX idx_bulk_tiebreaker_bid_history_time ON public.bulk_tiebreaker_bid_history USING btree (bid_time DESC);
+
+-- Table: bulk_tiebreaker_participants
+CREATE TABLE "bulk_tiebreaker_participants" (
+  "id" INTEGER NOT NULL DEFAULT nextval('bulk_tiebreaker_participants_id_seq'::regclass),
+  "tiebreaker_id" INTEGER NOT NULL,
+  "team_id" VARCHAR(20) NOT NULL,
+  "status" VARCHAR(20) DEFAULT 'active'::character varying,
+  "current_bid" INTEGER,
+  "last_bid_time" TIMESTAMP WITH TIME ZONE,
+  "withdrawn_at" TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for bulk_tiebreaker_participants
+CREATE INDEX idx_bulk_tiebreaker_participants_status ON public.bulk_tiebreaker_participants USING btree (tiebreaker_id, status);
+CREATE INDEX idx_bulk_tiebreaker_participants_team ON public.bulk_tiebreaker_participants USING btree (team_id);
+CREATE INDEX idx_bulk_tiebreaker_participants_tiebreaker ON public.bulk_tiebreaker_participants USING btree (tiebreaker_id);
+CREATE UNIQUE INDEX unique_bulk_tiebreaker_team ON public.bulk_tiebreaker_participants USING btree (tiebreaker_id, team_id);
+
+-- Table: bulk_tiebreakers
+CREATE TABLE "bulk_tiebreakers" (
+  "id" INTEGER NOT NULL DEFAULT nextval('bulk_tiebreakers_id_seq'::regclass),
+  "round_id" VARCHAR(20) NOT NULL,
+  "base_player_id" VARCHAR(20) NOT NULL,
+  "base_price" INTEGER NOT NULL,
+  "status" VARCHAR(20) DEFAULT 'pending'::character varying,
+  "current_highest_bid" INTEGER,
+  "current_highest_team_id" VARCHAR(20),
+  "teams_remaining" INTEGER NOT NULL,
+  "start_time" TIMESTAMP WITH TIME ZONE,
+  "max_end_time" TIMESTAMP WITH TIME ZONE,
+  "completed_at" TIMESTAMP WITH TIME ZONE,
+  "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for bulk_tiebreakers
+CREATE INDEX idx_bulk_tiebreakers_player ON public.bulk_tiebreakers USING btree (base_player_id);
+CREATE INDEX idx_bulk_tiebreakers_round ON public.bulk_tiebreakers USING btree (round_id);
+CREATE INDEX idx_bulk_tiebreakers_status ON public.bulk_tiebreakers USING btree (status);
+
 -- Table: financial_ledger
 CREATE TABLE "financial_ledger" (
   "id" TEXT NOT NULL,
@@ -118,6 +205,7 @@ CREATE TABLE "financial_ledger" (
   "newBalance" INTEGER NOT NULL,
   "description" TEXT,
   "createdAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "playername" TEXT,
   PRIMARY KEY ("id")
 );
 
@@ -134,6 +222,14 @@ CREATE TABLE "groups" (
 
 -- Indexes for groups
 CREATE UNIQUE INDEX "groups_tournamentId_name_key" ON public.groups USING btree ("tournamentId", name);
+
+-- Table: id_counters
+CREATE TABLE "id_counters" (
+  "prefix" VARCHAR(10) NOT NULL,
+  "counter" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY ("prefix")
+);
 
 -- Table: knockout_pairings
 CREATE TABLE "knockout_pairings" (
@@ -187,6 +283,27 @@ CREATE TABLE "matches" (
   PRIMARY KEY ("id")
 );
 
+-- Table: preview_allocations
+CREATE TABLE "preview_allocations" (
+  "id" INTEGER NOT NULL DEFAULT nextval('preview_allocations_id_seq'::regclass),
+  "round_id" VARCHAR(20) NOT NULL,
+  "team_id" VARCHAR(20) NOT NULL,
+  "base_player_id" VARCHAR(20) NOT NULL,
+  "player_name" VARCHAR(255) NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "acquisition_type" VARCHAR(50) NOT NULL,
+  "acquisition_notes" TEXT,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for preview_allocations
+CREATE INDEX idx_preview_allocations_player_id ON public.preview_allocations USING btree (base_player_id);
+CREATE INDEX idx_preview_allocations_round_id ON public.preview_allocations USING btree (round_id);
+CREATE INDEX idx_preview_allocations_team_id ON public.preview_allocations USING btree (team_id);
+CREATE UNIQUE INDEX preview_allocations_round_id_base_player_id_key ON public.preview_allocations USING btree (round_id, base_player_id);
+CREATE UNIQUE INDEX preview_allocations_round_id_team_id_key ON public.preview_allocations USING btree (round_id, team_id);
+
 -- Table: retentions
 CREATE TABLE "retentions" (
   "id" TEXT NOT NULL,
@@ -199,6 +316,34 @@ CREATE TABLE "retentions" (
 
 -- Indexes for retentions
 CREATE UNIQUE INDEX "retentions_seasonId_basePlayerId_key" ON public.retentions USING btree ("seasonId", "basePlayerId");
+
+-- Table: rounds
+CREATE TABLE "rounds" (
+  "id" VARCHAR(20) NOT NULL,
+  "season_id" VARCHAR(20) NOT NULL,
+  "position" VARCHAR(50),
+  "round_number" INTEGER NOT NULL,
+  "round_type" VARCHAR(10) NOT NULL,
+  "max_bids_per_team" INTEGER,
+  "base_price" INTEGER,
+  "duration_seconds" INTEGER NOT NULL,
+  "start_time" TIMESTAMP WITH TIME ZONE,
+  "end_time" TIMESTAMP WITH TIME ZONE,
+  "status" VARCHAR(30) DEFAULT 'draft'::character varying,
+  "finalization_mode" VARCHAR(20) DEFAULT 'auto'::character varying,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  "finalization_state" JSONB,
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for rounds
+CREATE INDEX idx_rounds_end_time ON public.rounds USING btree (end_time) WHERE ((status)::text = 'active'::text);
+CREATE INDEX idx_rounds_round_type ON public.rounds USING btree (round_type);
+CREATE INDEX idx_rounds_season_id ON public.rounds USING btree (season_id);
+CREATE INDEX idx_rounds_season_status ON public.rounds USING btree (season_id, status);
+CREATE INDEX idx_rounds_status ON public.rounds USING btree (status);
+CREATE UNIQUE INDEX unique_season_round_number ON public.rounds USING btree (season_id, round_number);
 
 -- Table: season_teams
 CREATE TABLE "season_teams" (
@@ -351,6 +496,8 @@ CREATE TABLE "seasons" (
   "createdAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   "season_number" INTEGER NOT NULL,
+  "defaultMaxBidsPerTeam" INTEGER DEFAULT 10,
+  "defaultBasePrice" INTEGER DEFAULT 100000,
   PRIMARY KEY ("id")
 );
 
@@ -381,6 +528,44 @@ CREATE TABLE "standings" (
 -- Indexes for standings
 CREATE UNIQUE INDEX "standings_tournamentId_teamId_groupName_key" ON public.standings USING btree ("tournamentId", "teamId", "groupName");
 
+-- Table: team_round_bids
+CREATE TABLE "team_round_bids" (
+  "id" VARCHAR(50) NOT NULL,
+  "round_id" VARCHAR(20) NOT NULL,
+  "team_id" VARCHAR(20) NOT NULL,
+  "encrypted_bids" TEXT NOT NULL,
+  "submitted" BOOLEAN DEFAULT false,
+  "bid_count" INTEGER DEFAULT 0,
+  "last_updated" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  "submitted_at" TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for team_round_bids
+CREATE INDEX idx_team_round_bids_round ON public.team_round_bids USING btree (round_id);
+CREATE INDEX idx_team_round_bids_submitted ON public.team_round_bids USING btree (round_id, submitted);
+CREATE INDEX idx_team_round_bids_team ON public.team_round_bids USING btree (team_id);
+CREATE UNIQUE INDEX unique_round_team ON public.team_round_bids USING btree (round_id, team_id);
+
+-- Table: team_tiebreaker_bids
+CREATE TABLE "team_tiebreaker_bids" (
+  "id" VARCHAR(50) NOT NULL,
+  "tiebreaker_id" VARCHAR(20) NOT NULL,
+  "team_id" VARCHAR(20) NOT NULL,
+  "old_bid_amount" INTEGER NOT NULL,
+  "new_bid_amount" INTEGER,
+  "submitted" BOOLEAN DEFAULT false,
+  "submitted_at" TIMESTAMP WITH TIME ZONE,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for team_tiebreaker_bids
+CREATE INDEX idx_team_tiebreaker_bids_submitted ON public.team_tiebreaker_bids USING btree (tiebreaker_id, submitted);
+CREATE INDEX idx_team_tiebreaker_bids_team ON public.team_tiebreaker_bids USING btree (team_id);
+CREATE INDEX idx_team_tiebreaker_bids_tiebreaker ON public.team_tiebreaker_bids USING btree (tiebreaker_id);
+CREATE UNIQUE INDEX unique_tiebreaker_team ON public.team_tiebreaker_bids USING btree (tiebreaker_id, team_id);
+
 -- Table: teams
 CREATE TABLE "teams" (
   "id" TEXT NOT NULL,
@@ -394,6 +579,27 @@ CREATE TABLE "teams" (
 
 -- Indexes for teams
 CREATE UNIQUE INDEX teams_name_key ON public.teams USING btree (name);
+
+-- Table: tiebreakers
+CREATE TABLE "tiebreakers" (
+  "id" VARCHAR(20) NOT NULL,
+  "round_id" VARCHAR(20) NOT NULL,
+  "base_player_id" VARCHAR(20) NOT NULL,
+  "original_amount" INTEGER NOT NULL,
+  "tied_teams_count" INTEGER NOT NULL,
+  "status" VARCHAR(20) DEFAULT 'active'::character varying,
+  "winning_team_id" VARCHAR(20),
+  "winning_bid" INTEGER,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  "resolved_at" TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY ("id")
+);
+
+-- Indexes for tiebreakers
+CREATE INDEX idx_tiebreakers_player ON public.tiebreakers USING btree (base_player_id);
+CREATE INDEX idx_tiebreakers_round ON public.tiebreakers USING btree (round_id);
+CREATE INDEX idx_tiebreakers_round_status ON public.tiebreakers USING btree (round_id, status);
+CREATE INDEX idx_tiebreakers_status ON public.tiebreakers USING btree (status);
 
 -- Table: tournament_teams
 CREATE TABLE "tournament_teams" (
@@ -443,8 +649,15 @@ CREATE TABLE "transfer_history" (
   "teamId" TEXT NOT NULL,
   "soldPrice" INTEGER NOT NULL,
   "createdAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "round_id" VARCHAR(255),
+  "acquisition_type" VARCHAR(50) DEFAULT 'bid_won'::character varying,
+  "acquisition_notes" TEXT,
   PRIMARY KEY ("id")
 );
+
+-- Indexes for transfer_history
+CREATE INDEX idx_transfer_history_acquisition_type ON public.transfer_history USING btree (acquisition_type);
+CREATE INDEX idx_transfer_history_round_id ON public.transfer_history USING btree (round_id);
 
 -- Table: users
 CREATE TABLE "users" (
@@ -472,6 +685,16 @@ CREATE INDEX users_team_id_idx ON public.users USING btree (team_id);
 ALTER TABLE "auction_calendar" ADD CONSTRAINT "auction_calendar_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "auction_slots" ADD CONSTRAINT "auction_slots_auctionCalendarId_fkey" FOREIGN KEY ("auctionCalendarId") REFERENCES "auction_calendar" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE "bid_audit_log" ADD CONSTRAINT "bid_audit_log_round_id_fkey" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_round_selections" ADD CONSTRAINT "fk_bulk_round_selections_round" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_round_selections" ADD CONSTRAINT "fk_bulk_round_selections_team" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_tiebreaker_bid_history" ADD CONSTRAINT "fk_bulk_tiebreaker_bid_history_team" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_tiebreaker_bid_history" ADD CONSTRAINT "fk_bulk_tiebreaker_bid_history_tiebreaker" FOREIGN KEY ("tiebreaker_id") REFERENCES "bulk_tiebreakers" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_tiebreaker_participants" ADD CONSTRAINT "fk_bulk_tiebreaker_participants_team" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_tiebreaker_participants" ADD CONSTRAINT "fk_bulk_tiebreaker_participants_tiebreaker" FOREIGN KEY ("tiebreaker_id") REFERENCES "bulk_tiebreakers" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_tiebreakers" ADD CONSTRAINT "fk_bulk_tiebreakers_highest_team" FOREIGN KEY ("current_highest_team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE SET NULL;
+ALTER TABLE "bulk_tiebreakers" ADD CONSTRAINT "fk_bulk_tiebreakers_player" FOREIGN KEY ("base_player_id") REFERENCES "base_players" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "bulk_tiebreakers" ADD CONSTRAINT "fk_bulk_tiebreakers_round" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 ALTER TABLE "financial_ledger" ADD CONSTRAINT "financial_ledger_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "financial_ledger" ADD CONSTRAINT "financial_ledger_seasonTeamId_fkey" FOREIGN KEY ("seasonTeamId") REFERENCES "season_teams" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "groups" ADD CONSTRAINT "groups_tournamentId_fkey" FOREIGN KEY ("tournamentId") REFERENCES "tournaments" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
@@ -481,21 +704,40 @@ ALTER TABLE "matches" ADD CONSTRAINT "matches_awayTeamId_fkey" FOREIGN KEY ("awa
 ALTER TABLE "matches" ADD CONSTRAINT "matches_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "groups" ("id") ON UPDATE CASCADE ON DELETE SET NULL;
 ALTER TABLE "matches" ADD CONSTRAINT "matches_homeTeamId_fkey" FOREIGN KEY ("homeTeamId") REFERENCES "season_teams" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "matches" ADD CONSTRAINT "matches_tournamentId_fkey" FOREIGN KEY ("tournamentId") REFERENCES "tournaments" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE "preview_allocations" ADD CONSTRAINT "preview_allocations_base_player_id_fkey" FOREIGN KEY ("base_player_id") REFERENCES "base_players" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "preview_allocations" ADD CONSTRAINT "preview_allocations_round_id_fkey" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "preview_allocations" ADD CONSTRAINT "preview_allocations_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 ALTER TABLE "retentions" ADD CONSTRAINT "retentions_basePlayerId_fkey" FOREIGN KEY ("basePlayerId") REFERENCES "base_players" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "retentions" ADD CONSTRAINT "retentions_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE "rounds" ADD CONSTRAINT "fk_rounds_season" FOREIGN KEY ("season_id") REFERENCES "seasons" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 ALTER TABLE "season_teams" ADD CONSTRAINT "season_teams_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "season_teams" ADD CONSTRAINT "season_teams_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "seasonal_player_stats" ADD CONSTRAINT "seasonal_player_stats_basePlayerId_fkey" FOREIGN KEY ("basePlayerId") REFERENCES "base_players" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "seasonal_player_stats" ADD CONSTRAINT "seasonal_player_stats_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "standings" ADD CONSTRAINT "standings_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "season_teams" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "standings" ADD CONSTRAINT "standings_tournamentId_fkey" FOREIGN KEY ("tournamentId") REFERENCES "tournaments" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE "team_round_bids" ADD CONSTRAINT "fk_team_round_bids_round" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "team_round_bids" ADD CONSTRAINT "fk_team_round_bids_team" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "team_tiebreaker_bids" ADD CONSTRAINT "fk_team_tiebreaker_bids_team" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "team_tiebreaker_bids" ADD CONSTRAINT "fk_team_tiebreaker_bids_tiebreaker" FOREIGN KEY ("tiebreaker_id") REFERENCES "tiebreakers" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "tiebreakers" ADD CONSTRAINT "fk_tiebreakers_player" FOREIGN KEY ("base_player_id") REFERENCES "base_players" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "tiebreakers" ADD CONSTRAINT "fk_tiebreakers_round" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "tiebreakers" ADD CONSTRAINT "fk_tiebreakers_winning_team" FOREIGN KEY ("winning_team_id") REFERENCES "teams" ("id") ON UPDATE NO ACTION ON DELETE SET NULL;
 ALTER TABLE "tournament_teams" ADD CONSTRAINT "tournament_teams_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "season_teams" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "tournament_teams" ADD CONSTRAINT "tournament_teams_tournament_id_fkey" FOREIGN KEY ("tournament_id") REFERENCES "tournaments" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "tournaments" ADD CONSTRAINT "tournaments_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE "transfer_history" ADD CONSTRAINT "fk_transfer_history_round" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON UPDATE NO ACTION ON DELETE SET NULL;
 ALTER TABLE "transfer_history" ADD CONSTRAINT "transfer_history_basePlayerId_fkey" FOREIGN KEY ("basePlayerId") REFERENCES "base_players" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "transfer_history" ADD CONSTRAINT "transfer_history_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "transfer_history" ADD CONSTRAINT "transfer_history_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams" ("id") ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE "users" ADD CONSTRAINT "users_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON UPDATE CASCADE ON DELETE SET NULL;
 
 -- Unique Constraints
+ALTER TABLE "bulk_round_selections" ADD CONSTRAINT "unique_bulk_round_team" UNIQUE ("round_id", "team_id");
+ALTER TABLE "bulk_tiebreaker_participants" ADD CONSTRAINT "unique_bulk_tiebreaker_team" UNIQUE ("tiebreaker_id", "team_id");
+ALTER TABLE "preview_allocations" ADD CONSTRAINT "preview_allocations_round_id_base_player_id_key" UNIQUE ("base_player_id", "round_id");
+ALTER TABLE "preview_allocations" ADD CONSTRAINT "preview_allocations_round_id_team_id_key" UNIQUE ("team_id", "round_id");
+ALTER TABLE "rounds" ADD CONSTRAINT "unique_season_round_number" UNIQUE ("round_number", "season_id");
 ALTER TABLE "seasons" ADD CONSTRAINT "seasons_season_number_key" UNIQUE ("season_number");
+ALTER TABLE "team_round_bids" ADD CONSTRAINT "unique_round_team" UNIQUE ("round_id", "team_id");
+ALTER TABLE "team_tiebreaker_bids" ADD CONSTRAINT "unique_tiebreaker_team" UNIQUE ("tiebreaker_id", "team_id");

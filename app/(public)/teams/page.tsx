@@ -3,6 +3,9 @@ import PublicFooter from '@/components/layout/PublicFooter'
 import { prisma } from '@/lib/prisma'
 import TeamsClient from '@/components/teams/TeamsClient'
 
+// Force dynamic rendering to avoid stale cache
+export const dynamic = 'force-dynamic'
+
 async function getTeamsData() {
   try {
     // Get all seasons

@@ -4,6 +4,9 @@ import PlayersSearchClient from '@/components/players/PlayersSearchClient'
 import { prisma } from '@/lib/prisma'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
+// Force dynamic rendering to avoid stale cache
+export const dynamic = 'force-dynamic'
+
 async function getPlayersData() {
   try {
     // Get active season
@@ -12,6 +15,7 @@ async function getPlayersData() {
     })
 
     if (!activeSeason) {
+      console.warn('⚠️ No active season found - players page will be empty')
       return { 
         players: [], 
         teams: [],
@@ -25,6 +29,8 @@ async function getPlayersData() {
         } 
       }
     }
+
+    console.log(`✓ Active season found: ${activeSeason.name} (ID: ${activeSeason.id})`)
 
     // Get all players with seasonal stats
     const allPlayers = await prisma.seasonal_player_stats.findMany({
@@ -45,6 +51,12 @@ async function getPlayersData() {
       },
       orderBy: { overallRating: 'desc' }
     })
+
+    console.log(`✓ Found ${allPlayers.length} players with seasonal stats for season ${activeSeason.id}`)
+
+    if (allPlayers.length === 0) {
+      console.warn(`⚠️ No seasonal_player_stats records found for active season ${activeSeason.id}`)
+    }
 
     // Get all teams in the season
     const seasonTeams = await prisma.season_teams.findMany({

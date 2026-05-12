@@ -3,6 +3,9 @@ import PublicFooter from '@/components/layout/PublicFooter'
 import { prisma } from '@/lib/prisma'
 import CalendarView from '@/components/calendar/CalendarView'
 
+// Force dynamic rendering to avoid stale cache
+export const dynamic = 'force-dynamic'
+
 async function getCalendarData() {
   try {
     // Get active season

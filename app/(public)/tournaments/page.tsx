@@ -3,6 +3,9 @@ import PublicFooter from '@/components/layout/PublicFooter'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 
+// Force dynamic rendering to avoid stale cache
+export const dynamic = 'force-dynamic'
+
 async function getTournamentsData() {
   try {
     // Get active season

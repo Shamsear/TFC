@@ -52,7 +52,8 @@ export default auth((req) => {
     }
 
     // Team Manager routes
-    if (pathname.startsWith("/team")) {
+    // Use exact match or /team/ to avoid catching /teams (public page)
+    if (pathname === "/team" || pathname.startsWith("/team/")) {
       if (userRole !== "TEAM_MANAGER") {
         return NextResponse.redirect(new URL(userHomeRoute, req.url))
       }
@@ -64,8 +65,9 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // Protect team routes from unauthenticated access
-  if (pathname.startsWith("/team") && !isAuthenticated) {
+  // Protect team manager routes from unauthenticated access
+  // Use exact match or /team/ to avoid catching /teams (public page)
+  if ((pathname === "/team" || pathname.startsWith("/team/")) && !isAuthenticated) {
     const signInUrl = new URL("/auth/signin", req.url)
     signInUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(signInUrl)

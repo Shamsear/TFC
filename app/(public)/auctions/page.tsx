@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import AuctionsView from '@/components/auctions/AuctionsView'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
+// Force dynamic rendering to avoid stale cache
+export const dynamic = 'force-dynamic'
+
 async function getAuctionsData() {
   try {
     // Get active season

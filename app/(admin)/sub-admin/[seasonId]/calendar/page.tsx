@@ -42,7 +42,17 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
     include: {
       auctionCalendar: {
         include: {
-          auctionSlots: true
+          auctionSlots: {
+            select: {
+              id: true,
+              position: true,
+              position_group: true,
+              slotOrder: true
+            },
+            orderBy: {
+              slotOrder: 'asc'
+            }
+          }
         },
         orderBy: {
           auctionDate: 'asc'

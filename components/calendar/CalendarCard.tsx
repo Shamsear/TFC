@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
 interface CalendarCardProps {
   calendar: {
@@ -12,6 +13,7 @@ interface CalendarCardProps {
     auctionSlots: Array<{
       id: string
       position: string
+      position_group?: string | null
     }>
   }
   seasonId: string
@@ -88,9 +90,12 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
               calendar.auctionSlots.map((slot) => (
                 <div
                   key={slot.id}
-                  className="px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs sm:text-sm font-bold"
+                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs sm:text-sm font-bold"
                 >
-                  {slot.position}
+                  <span>{slot.position}</span>
+                  {slot.position_group && slot.position_group !== 'ALL' && (
+                    <PositionGroupBadge position={slot.position} group={slot.position_group} size="sm" />
+                  )}
                 </div>
               ))
             )}

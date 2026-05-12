@@ -71,6 +71,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
   // Fetch auction results (transfer history) for completed rounds
   let auctionResults = null
   let previewAllocations = null
+  let bulkConflicts: any[] | null = null
   
   if (round.status === 'completed') {
     const rawResults = await prisma.transfer_history.findMany({
@@ -169,6 +170,72 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
     }))
   }
 
+  // Fetch bulk tiebreakers for tiebreaker_pending rounds
+  if (round.status === 'tiebreaker_pending' && round.roundType === 'bulk') {
+    const tiebreakers = await prisma.bulk_tiebreakers.findMany({
+      where: { roundId },
+      include: {
+        basePlayer: {
+          select: {
+            id: true,
+            name: true,
+            photoUrl: true
+          }
+        },
+        participants: {
+          include: {
+            team: {
+              select: {
+                id: true,
+                name: true,
+                logoUrl: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    })
+
+    // Get seasonal stats for players
+    const playerIds = tiebreakers.map(tb => tb.basePlayerId)
+    if (playerIds.length > 0) {
+      const seasonalStats = await prisma.seasonal_player_stats.findMany({
+        where: {
+          seasonId,
+          basePlayerId: { in: playerIds }
+        },
+        select: {
+          basePlayerId: true,
+          position: true,
+          overallRating: true
+        }
+      })
+
+      const statsMap = new Map(seasonalStats.map(s => [s.basePlayerId, s]))
+
+      bulkConflicts = tiebreakers.map(tb => ({
+        tiebreakerId: tb.id,
+        basePlayerId: tb.basePlayerId,
+        playerName: tb.basePlayer.name,
+        photoUrl: getPlayerPhotoUrl(tb.basePlayer.photoUrl),
+        position: statsMap.get(tb.basePlayerId)?.position || 'Unknown',
+        overallRating: statsMap.get(tb.basePlayerId)?.overallRating || 0,
+        basePrice: tb.basePrice,
+        status: tb.status,
+        teams: tb.participants.map(p => ({
+          id: p.teamId,
+          name: p.team.name,
+          logoUrl: p.team.logoUrl,
+          participantStatus: p.status
+        })),
+        createdAt: tb.createdAt
+      }))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
@@ -177,6 +244,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           teams={seasonTeams.map(st => st.team)}
           auctionResults={auctionResults}
           previewAllocations={previewAllocations}
+          bulkConflicts={bulkConflicts}
         />
       </div>
     </div>

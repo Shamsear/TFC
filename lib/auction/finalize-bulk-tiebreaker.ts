@@ -56,6 +56,8 @@ export async function finalizeBulkTiebreaker(
   tiebreakerId: number
 ): Promise<BulkTiebreakerResult> {
   try {
+    console.log(`🎯 Finalizing bulk tiebreaker ${tiebreakerId}...`);
+    
     // Get tiebreaker details
     const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
       where: { id: tiebreakerId },
@@ -75,15 +77,22 @@ export async function finalizeBulkTiebreaker(
     });
 
     if (!tiebreaker) {
+      console.log(`❌ Tiebreaker not found`);
       return { success: false, error: 'Tiebreaker not found' };
     }
 
-    if (tiebreaker.status !== 'pending') {
+    console.log(`📊 Tiebreaker status: ${tiebreaker.status}, teams remaining: ${tiebreaker.teamsRemaining}`);
+    console.log(`📊 Active participants:`, tiebreaker.participants);
+
+    if (tiebreaker.status !== 'active') {
+      console.log(`❌ Tiebreaker not active (status: ${tiebreaker.status})`);
       return { success: false, error: 'Tiebreaker already finalized' };
     }
 
     // Check if should auto-finalize
     const shouldFinalize = await shouldAutoFinalizeBulkTiebreaker(tiebreakerId);
+    console.log(`📊 Should finalize check: ${shouldFinalize}`);
+    
     if (!shouldFinalize) {
       return { success: false, error: 'Tiebreaker not ready to finalize' };
     }
@@ -93,23 +102,41 @@ export async function finalizeBulkTiebreaker(
     let winningBid: number | null = null;
 
     if (tiebreaker.teamsRemaining === 1) {
-      // Only 1 team remaining - they win
-      const activeParticipant = tiebreaker.participants.find(p => p.currentBid !== null);
+      console.log(`🏆 Only 1 team remaining - finding winner...`);
+      console.log(`📊 Active participants:`, tiebreaker.participants);
+      
+      // Only 1 team remaining - they win with their current bid (or highest bid)
+      const activeParticipant = tiebreaker.participants[0]; // Should only be 1 active
+      
       if (activeParticipant) {
         winnerId = activeParticipant.teamId;
-        winningBid = activeParticipant.currentBid!;
+        // Use their current bid, or fall back to the tiebreaker's highest bid
+        winningBid = activeParticipant.currentBid || tiebreaker.currentHighestBid;
+        console.log(`🏆 Winner: ${winnerId} with bid £${winningBid}`);
+      } else {
+        console.log(`⚠️ No active participant found, checking highest bidder...`);
+        // Fallback: use the highest bidder from the tiebreaker
+        if (tiebreaker.currentHighestTeamId && tiebreaker.currentHighestBid) {
+          winnerId = tiebreaker.currentHighestTeamId;
+          winningBid = tiebreaker.currentHighestBid;
+          console.log(`🏆 Winner (fallback): ${winnerId} with bid £${winningBid}`);
+        }
       }
     } else if (tiebreaker.currentHighestTeamId && tiebreaker.currentHighestBid) {
+      console.log(`⏰ 24 hours elapsed - highest bidder wins`);
       // 24 hours elapsed - highest bidder wins
       winnerId = tiebreaker.currentHighestTeamId;
       winningBid = tiebreaker.currentHighestBid;
+      console.log(`🏆 Winner: ${winnerId} with bid £${winningBid}`);
     }
 
     if (!winnerId || !winningBid) {
+      console.log(`❌ No valid winner found`);
       return { success: false, error: 'No valid winner found' };
     }
 
     // Update tiebreaker status
+    console.log(`💾 Updating tiebreaker status to completed...`);
     await prisma.bulk_tiebreakers.update({
       where: { id: tiebreakerId },
       data: {
@@ -119,6 +146,7 @@ export async function finalizeBulkTiebreaker(
       }
     });
 
+    console.log(`✅ Tiebreaker finalized successfully!`);
     return {
       success: true,
       winnerId,
@@ -257,12 +285,23 @@ export async function withdrawFromBulkTiebreaker(
       }
     });
 
+    // Small delay to ensure transaction is committed
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Check if should auto-finalize
+    console.log(`🔍 Checking auto-finalization for tiebreaker ${tiebreakerId}...`);
     const shouldFinalize = await shouldAutoFinalizeBulkTiebreaker(tiebreakerId);
+    console.log(`📊 Should finalize: ${shouldFinalize}`);
+    
     if (shouldFinalize) {
+      console.log(`🎯 Auto-finalizing tiebreaker ${tiebreakerId}...`);
       const result = await finalizeBulkTiebreaker(tiebreakerId);
+      console.log(`📊 Finalization result:`, result);
+      
       if (result.success && result.winnerId && result.winningBid) {
+        console.log(`💰 Applying result: Winner=${result.winnerId}, Bid=£${result.winningBid}`);
         await applyBulkTiebreakerResult(tiebreakerId, result.winnerId, result.winningBid);
+        console.log(`✅ Tiebreaker ${tiebreakerId} finalized successfully!`);
       }
     }
 
@@ -300,7 +339,7 @@ export async function placeBulkTiebreakerBid(
       return { success: false, error: 'Tiebreaker not found' };
     }
 
-    if (tiebreaker.status !== 'pending') {
+    if (tiebreaker.status !== 'active') {
       return { success: false, error: 'Tiebreaker is not active' };
     }
 

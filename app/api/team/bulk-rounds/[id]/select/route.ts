@@ -134,14 +134,14 @@ export async function POST(
     const selection = await prisma.bulk_round_selections.upsert({
       where: {
         roundId_teamId: {
-          roundId,
-          teamId
+          roundId: String(roundId),
+          teamId: String(teamId)
         }
       },
       create: {
         id: `${roundId}_${teamId}`,
-        roundId,
-        teamId,
+        roundId: String(roundId),
+        teamId: String(teamId),
         selectedPlayers: JSON.stringify(selectionData),
         submitted,
         lastUpdated: new Date()

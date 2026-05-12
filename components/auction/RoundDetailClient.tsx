@@ -55,14 +55,33 @@ interface AuctionResult {
   }
 }
 
+interface BulkConflict {
+  tiebreakerId: number
+  basePlayerId: string
+  playerName: string
+  photoUrl: string
+  position: string
+  overallRating: number
+  basePrice: number
+  status: string
+  teams: Array<{
+    id: string
+    name: string
+    logoUrl: string
+    participantStatus: string
+  }>
+  createdAt: Date
+}
+
 interface RoundDetailClientProps {
   round: Round
   teams: Team[]
   auctionResults: AuctionResult[] | null
   previewAllocations?: any[] // Preview allocations from finalization state
+  bulkConflicts?: BulkConflict[] | null
 }
 
-export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations }: RoundDetailClientProps) {
+export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts }: RoundDetailClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -727,6 +746,132 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   </div>
                 )
               })}
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Round Conflicts - Show when tiebreaker_pending for bulk rounds */}
+      {round.status === 'tiebreaker_pending' && round.roundType === 'bulk' && bulkConflicts && bulkConflicts.length > 0 && (
+        <div className="rounded-xl bg-orange-500/10 border-2 border-orange-500/30 p-6 mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              <svg className="w-6 h-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-orange-300">Bulk Tiebreakers</h2>
+              <p className="text-sm text-orange-200">
+                {bulkConflicts.filter(c => c.status === 'pending').length} pending • 
+                {bulkConflicts.filter(c => c.status === 'active').length} active • 
+                {bulkConflicts.filter(c => c.status === 'completed').length} completed
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {bulkConflicts.map((conflict) => {
+              const isPending = conflict.status === 'pending'
+              const isActive = conflict.status === 'active'
+              const isCompleted = conflict.status === 'completed'
+              
+              return (
+                <div key={conflict.tiebreakerId} className={`rounded-lg border p-4 ${
+                  isPending ? 'bg-yellow-500/5 border-yellow-500/20' :
+                  isActive ? 'bg-purple-500/5 border-purple-500/20' :
+                  'bg-emerald-500/5 border-emerald-500/20'
+                }`}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <img 
+                      src={conflict.photoUrl} 
+                      alt={conflict.playerName} 
+                      className="w-16 h-16 rounded-lg object-cover bg-white/5"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder-player.png'
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="font-black text-white text-lg mb-1">{conflict.playerName}</div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                          isPending ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
+                          isActive ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
+                          'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        }`}>
+                          {conflict.status.toUpperCase()}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 text-xs font-bold border border-orange-500/30">
+                          {conflict.position}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold">
+                          OVR {conflict.overallRating}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        Base Price: £{conflict.basePrice} • {conflict.teams.length} teams
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Participating teams */}
+                  <div className="space-y-2 mb-3 pt-3 border-t border-white/10">
+                    <div className="text-xs text-gray-400 mb-2">Participating Teams:</div>
+                    {conflict.teams.map(team => (
+                      <div key={team.id} className="flex items-center gap-2 p-2 rounded bg-black/20">
+                        {team.logoUrl && (
+                          <img src={team.logoUrl} alt={team.name} className="w-6 h-6 rounded" />
+                        )}
+                        <span className="text-sm font-bold text-white flex-1">{team.name}</span>
+                        {team.participantStatus !== 'active' && (
+                          <span className="text-xs text-gray-400">({team.participantStatus})</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Action buttons */}
+                  {isPending && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Start tiebreaker for ${conflict.playerName}? Teams will be able to bid.`)) return
+                        
+                        setLoading(true)
+                        setError('')
+                        
+                        try {
+                          const response = await fetch(`/api/admin/bulk-tiebreakers/${conflict.tiebreakerId}/start`, {
+                            method: 'POST'
+                          })
+                          
+                          if (!response.ok) {
+                            const error = await response.json()
+                            throw new Error(error.error || 'Failed to start tiebreaker')
+                          }
+                          
+                          router.refresh()
+                        } catch (err: any) {
+                          setError(err.message)
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}
+                      disabled={loading}
+                      className="w-full px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-all disabled:opacity-50"
+                    >
+                      {loading ? 'Starting...' : '▶ Start Tiebreaker'}
+                    </button>
+                  )}
+                  
+                  {(isActive || isCompleted) && (
+                    <a
+                      href={`/sub-admin/${round.seasonId}/auction/bulk-tiebreakers/${conflict.tiebreakerId}`}
+                      className="block w-full px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:bg-purple-500/30 transition-all text-center font-medium"
+                    >
+                      {isActive ? '👁 Monitor Tiebreaker' : '✓ View Results'}
+                    </a>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

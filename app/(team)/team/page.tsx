@@ -124,13 +124,15 @@ export default async function TeamDashboardPage() {
     take: 3,
   })
 
-  // Get pending tiebreakers for this team (bulk tiebreakers)
+  // Get pending and active bulk tiebreakers for this team
   const pendingBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
     where: {
       round: {
         seasonId: activeSeason.id,
       },
-      status: 'pending',
+      status: {
+        in: ['pending', 'active']
+      },
       participants: {
         some: {
           teamId: team.id,
@@ -349,29 +351,61 @@ export default async function TeamDashboardPage() {
                 })}
                 
                 {/* Bulk Tiebreakers */}
-                {pendingBulkTiebreakers.map((tie) => (
-                  <div
-                    key={tie.id}
-                    className="rounded-lg bg-black/30 border border-amber-500/30 p-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
-                            Bulk Round
+                {pendingBulkTiebreakers.map((tie) => {
+                  const isActive = tie.status === 'active'
+                  const isPending = tie.status === 'pending'
+                  
+                  if (isActive) {
+                    return (
+                      <Link
+                        key={tie.id}
+                        href={`/team/auction/bulk-tiebreakers/${tie.id}`}
+                        className="block rounded-lg bg-black/30 border border-amber-500/30 hover:bg-amber-500/5 p-3 cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
+                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                                Bulk Round
+                              </span>
+                            </div>
+                            <div className="text-xs text-[#D4CCBB]">
+                              Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                            Active - Bid Now →
                           </span>
                         </div>
-                        <div className="text-xs text-[#D4CCBB]">
-                          Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
+                      </Link>
+                    )
+                  }
+                  
+                  return (
+                    <div
+                      key={tie.id}
+                      className="rounded-lg bg-black/30 border border-gray-500/30 p-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                              Bulk Round
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#D4CCBB]">
+                            Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
+                          </div>
                         </div>
+                        <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30">
+                          Awaiting Admin
+                        </span>
                       </div>
-                      <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30">
-                        Awaiting Admin
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>

@@ -35,25 +35,44 @@ export const ID_PREFIXES = {
 type IDPrefix = typeof ID_PREFIXES[keyof typeof ID_PREFIXES]
 
 /**
+ * Generate multiple IDs with the given prefix in batch
+ * @param prefix - The prefix for the ID (e.g., 'TFCP' for players)
+ * @param count - Number of IDs to generate
+ * @returns Array of new unique IDs
+ */
+export async function generateIds(prefix: IDPrefix, count: number): Promise<string[]> {
+  if (count <= 0) return [];
+  
+  // Use PostgreSQL's UPDATE ... RETURNING for atomic increment
+  const result = await prisma.$queryRaw<Array<{ counter: number }>>`
+    INSERT INTO id_counters (prefix, counter, updated_at)
+    VALUES (${prefix}, ${count}, NOW())
+    ON CONFLICT (prefix) 
+    DO UPDATE SET 
+      counter = id_counters.counter + ${count},
+      updated_at = NOW()
+    RETURNING counter
+  `
+
+  const endCounter = result[0]?.counter || count;
+  const startCounter = endCounter - count + 1;
+  
+  const ids: string[] = [];
+  for (let i = startCounter; i <= endCounter; i++) {
+    ids.push(`${prefix}-${i}`);
+  }
+  
+  return ids;
+}
+
+/**
  * Generate a new ID with the given prefix using atomic counter
  * @param prefix - The prefix for the ID (e.g., 'TFCP' for players)
  * @returns A new unique ID (e.g., 'TFCP-1', 'TFCP-2', etc.)
  */
 export async function generateId(prefix: IDPrefix): Promise<string> {
-  // Use PostgreSQL's UPDATE ... RETURNING for atomic increment
-  // This ensures thread-safety even with concurrent requests
-  const result = await prisma.$queryRaw<Array<{ counter: number }>>`
-    INSERT INTO id_counters (prefix, counter, updated_at)
-    VALUES (${prefix}, 1, NOW())
-    ON CONFLICT (prefix) 
-    DO UPDATE SET 
-      counter = id_counters.counter + 1,
-      updated_at = NOW()
-    RETURNING counter
-  `
-
-  const counter = result[0]?.counter || 1
-  return `${prefix}-${counter}`
+  const ids = await generateIds(prefix, 1);
+  return ids[0];
 }
 
 /**

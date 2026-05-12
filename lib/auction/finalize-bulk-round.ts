@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { calculateReserve } from './reserve-calculator';
-import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
+import { generateIds, ID_PREFIXES } from '@/lib/id-generator';
 
 /**
  * Bulk round finalization logic
@@ -160,7 +160,8 @@ async function allocateSingleBidders(
     });
 
     // Check budget with reserves
-    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize);
+    // For bulk rounds, use basePrice as the minimum player price for reserve calculation
+    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize, 16, basePrice);
     if (basePrice > reserve.availableBudget) {
       errors.push(
         `Team ${teamId} cannot afford ${playerNames.get(playerId)} ` +
@@ -186,7 +187,10 @@ async function allocateSingleBidders(
  */
 export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizationResult> {
   try {
+    console.log(`\n🎯 Starting bulk round finalization for ${roundId}`);
+    
     // 1. Get round details
+    console.log(`📋 Step 1: Fetching round details...`);
     const round = await prisma.rounds.findUnique({
       where: { id: roundId },
       select: {
@@ -197,6 +201,7 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
     });
 
     if (!round) {
+      console.error(`❌ Round ${roundId} not found`);
       return {
         success: false,
         allocations: [],
@@ -206,6 +211,7 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
     }
 
     if (round.status === 'completed') {
+      console.error(`❌ Round ${roundId} already finalized`);
       return {
         success: false,
         allocations: [],
@@ -215,6 +221,7 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
     }
 
     if (!round.basePrice) {
+      console.error(`❌ Base price not set for round ${roundId}`);
       return {
         success: false,
         allocations: [],
@@ -223,27 +230,43 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
       };
     }
 
+    console.log(`   ✓ Round found: seasonId=${round.seasonId}, basePrice=£${round.basePrice}, status=${round.status}`);
+
     // 2. Fetch all selections
+    console.log(`📋 Step 2: Fetching team selections...`);
     const selections = await fetchAllSelections(roundId);
+    console.log(`   ✓ Found ${selections.length} team selections`);
+    
+    const submittedCount = selections.filter(s => s.submitted).length;
+    console.log(`   ✓ ${submittedCount} teams submitted their selections`);
 
     // 3. Build player -> teams map
+    console.log(`📋 Step 3: Building player selection map...`);
     const playerTeamsMap = buildPlayerTeamsMap(selections);
+    console.log(`   ✓ ${playerTeamsMap.size} unique players selected`);
 
     // 4. Separate single bidders from conflicts
+    console.log(`📋 Step 4: Identifying conflicts...`);
     const { singleBidders, conflicts } = separateAllocationsAndConflicts(playerTeamsMap);
+    console.log(`   ✓ ${singleBidders.size} players with single bidder (no conflict)`);
+    console.log(`   ✓ ${conflicts.size} players with multiple bidders (conflict)`);
 
     // 5. Allocate single bidders
+    console.log(`📋 Step 5: Allocating players to teams...`);
     const { allocations, errors } = await allocateSingleBidders(
       singleBidders,
       round.seasonId,
       round.basePrice
     );
+    console.log(`   ✓ ${allocations.length} successful allocations`);
 
     if (errors.length > 0) {
-      console.warn('Bulk allocation errors:', errors);
+      console.warn(`   ⚠️  ${errors.length} allocation errors (budget/availability issues)`);
+      errors.forEach(err => console.warn(`      - ${err}`));
     }
 
     // 6. Build conflicts list
+    console.log(`📋 Step 6: Building conflicts list...`);
     const conflictsList: BulkConflict[] = [];
     const playerIds = Array.from(conflicts.keys());
     
@@ -261,7 +284,16 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
           teamIds
         });
       }
+      console.log(`   ✓ ${conflictsList.length} conflicts require tiebreakers`);
+    } else {
+      console.log(`   ✓ No conflicts - all players allocated`);
     }
+
+    console.log(`\n✅ Bulk round finalization complete!`);
+    console.log(`   📊 Summary:`);
+    console.log(`      - Allocations: ${allocations.length}`);
+    console.log(`      - Conflicts: ${conflictsList.length}`);
+    console.log(`      - Errors: ${errors.length}`);
 
     return {
       success: true,
@@ -269,7 +301,7 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
       conflicts: conflictsList
     };
   } catch (error) {
-    console.error('Bulk finalization error:', error);
+    console.error('❌ Bulk finalization error:', error);
     return {
       success: false,
       allocations: [],
@@ -284,8 +316,11 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
  */
 export async function applyBulkFinalizationResults(
   roundId: string,
-  allocations: BulkAllocation[]
+  allocations: BulkAllocation[],
+  conflicts: BulkConflict[] = []
 ): Promise<void> {
+  console.log(`\n💾 Applying bulk finalization results to database...`);
+  
   const round = await prisma.rounds.findUnique({
     where: { id: roundId },
     select: { seasonId: true }
@@ -295,34 +330,57 @@ export async function applyBulkFinalizationResults(
     throw new Error('Round not found');
   }
 
+  console.log(`📋 Pre-generating IDs for ${allocations.length} allocations...`);
+  
+  // Pre-generate all IDs in batch outside the transaction to avoid timeout
+  const transferIds = await generateIds(ID_PREFIXES.TRANSFER, allocations.length);
+  console.log(`   ✓ Generated ${transferIds.length} transfer IDs in batch`);
+
+  // Group allocations by team for batch processing
+  const teamAllocations = new Map<string, BulkAllocation[]>();
+  for (const alloc of allocations) {
+    if (!teamAllocations.has(alloc.teamId)) {
+      teamAllocations.set(alloc.teamId, []);
+    }
+    teamAllocations.get(alloc.teamId)!.push(alloc);
+  }
+  console.log(`   ✓ Grouped allocations for ${teamAllocations.size} teams`);
+
+  // Pre-generate financial IDs in batch for each team
+  const financialIds = await generateIds(ID_PREFIXES.FINANCIAL, teamAllocations.size);
+  const financialIdMap = new Map<string, string>();
+  let idIndex = 0;
+  for (const teamId of teamAllocations.keys()) {
+    financialIdMap.set(teamId, financialIds[idIndex++]);
+  }
+  console.log(`   ✓ Generated ${financialIds.length} financial ledger IDs in batch`);
+
+  console.log(`\n💾 Starting database transaction...`);
+  
   await prisma.$transaction(async (tx) => {
-    // 1. Insert transfer history records
-    for (const alloc of allocations) {
-      const transferId = await generateTransferId();
-      await tx.transfer_history.create({
-        data: {
-          id: transferId,
+    // 1. Batch insert transfer history records
+    if (allocations.length > 0) {
+      console.log(`   📝 Inserting ${allocations.length} transfer history records...`);
+      await tx.transfer_history.createMany({
+        data: allocations.map((alloc, index) => ({
+          id: transferIds[index],
           basePlayerId: alloc.basePlayerId,
           seasonId: round.seasonId,
           teamId: alloc.teamId,
           soldPrice: alloc.amount
-        }
+        }))
       });
+      console.log(`      ✓ Transfer history records created`);
     }
 
-    // 2. Update team budgets and collect player names
-    const teamUpdates = new Map<string, number>();
-    const teamPlayerNames = new Map<string, string[]>();
-    for (const alloc of allocations) {
-      const current = teamUpdates.get(alloc.teamId) || 0;
-      teamUpdates.set(alloc.teamId, current + alloc.amount);
-      
-      const playerNames = teamPlayerNames.get(alloc.teamId) || [];
-      playerNames.push(alloc.playerName);
-      teamPlayerNames.set(alloc.teamId, playerNames);
-    }
+    // 2. Update team budgets and create financial ledger entries
+    console.log(`   💰 Updating budgets for ${teamAllocations.size} teams...`);
+    let teamCount = 0;
+    for (const [teamId, teamAllocs] of teamAllocations.entries()) {
+      teamCount++;
+      const totalSpent = teamAllocs.reduce((sum, alloc) => sum + alloc.amount, 0);
+      const playerNames = teamAllocs.map(alloc => alloc.playerName);
 
-    for (const [teamId, totalSpent] of teamUpdates.entries()) {
       const seasonTeam = await tx.season_teams.findUnique({
         where: {
           seasonId_teamId: {
@@ -345,12 +403,10 @@ export async function applyBulkFinalizationResults(
           data: { currentBudget: newBudget }
         });
 
-        // 3. Insert financial ledger entry
-        const ledgerId = await generateFinancialId();
-        const playerNames = teamPlayerNames.get(teamId) || [];
+        // Insert financial ledger entry
         await tx.financial_ledger.create({
           data: {
-            id: ledgerId,
+            id: financialIdMap.get(teamId)!,
             seasonTeamId: seasonTeam.id,
             seasonId: round.seasonId,
             transactionType: 'PLAYER_PURCHASE',
@@ -361,21 +417,30 @@ export async function applyBulkFinalizationResults(
             playerName: playerNames.join(', ')
           }
         });
+        
+        console.log(`      ✓ [${teamCount}/${teamAllocations.size}] ${teamId}: £${totalSpent} spent, ${teamAllocs.length} players`);
       }
     }
 
-    // 4. Update round status
-    // If there are conflicts, mark as pending_tiebreakers
-    // Otherwise, mark as completed
-    const hasConflicts = await tx.bulk_round_selections.count({
-      where: { roundId }
-    }) > allocations.length;
-
+    // 3. Update round status
+    const hasConflicts = conflicts.length > 0;
+    const newStatus = hasConflicts ? 'tiebreaker_pending' : 'completed';
+    
+    console.log(`   🔄 Updating round status to: ${newStatus}`);
     await tx.rounds.update({
       where: { id: roundId },
       data: {
-        status: hasConflicts ? 'pending_tiebreakers' : 'completed'
+        status: newStatus
       }
     });
+    console.log(`      ✓ Round status updated`);
+  }, {
+    timeout: 15000 // Increase timeout to 15 seconds for large bulk rounds
   });
+
+  console.log(`\n✅ Database transaction complete!`);
+  console.log(`   📊 Applied ${allocations.length} allocations across ${teamAllocations.size} teams`);
+  if (conflicts.length > 0) {
+    console.log(`   ⚠️  ${conflicts.length} conflicts require bulk tiebreakers`);
+  }
 }

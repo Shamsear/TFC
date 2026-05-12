@@ -86,7 +86,7 @@ export async function GET(
 
     // Calculate time remaining
     let timeRemaining = null;
-    if (tiebreaker.maxEndTime && tiebreaker.status === 'pending') {
+    if (tiebreaker.maxEndTime && tiebreaker.status === 'active') {
       const now = new Date();
       const endTime = new Date(tiebreaker.maxEndTime);
       const diffMs = endTime.getTime() - now.getTime();

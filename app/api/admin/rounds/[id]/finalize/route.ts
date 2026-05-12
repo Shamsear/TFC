@@ -188,14 +188,46 @@ export async function POST(
       }
 
       // Apply results
-      await applyBulkFinalizationResults(roundId, result.allocations);
+      await applyBulkFinalizationResults(roundId, result.allocations, result.conflicts);
+
+      // Auto-create bulk tiebreakers for conflicts (status='pending')
+      if (result.conflicts.length > 0) {
+        console.log(`\n🎯 Auto-creating ${result.conflicts.length} bulk tiebreakers...`);
+        
+        for (const conflict of result.conflicts) {
+          const startTime = new Date();
+          const maxEndTime = new Date(startTime.getTime() + (24 * 60 * 60 * 1000));
+          
+          await prisma.bulk_tiebreakers.create({
+            data: {
+              roundId,
+              basePlayerId: conflict.basePlayerId,
+              basePrice: round.basePrice || 10,
+              status: 'pending',
+              teamsRemaining: conflict.teamIds.length,
+              startTime,
+              maxEndTime,
+              participants: {
+                create: conflict.teamIds.map((teamId: string) => ({
+                  teamId,
+                  status: 'active'
+                }))
+              }
+            }
+          });
+          
+          console.log(`   ✓ Created tiebreaker for ${conflict.playerName} (${conflict.teamIds.length} teams)`);
+        }
+        
+        console.log(`   ✅ All bulk tiebreakers created with status='pending'`);
+      }
 
       return NextResponse.json({
         success: true,
         allocations: result.allocations,
         conflicts: result.conflicts,
         message: result.conflicts.length > 0
-          ? 'Round finalized with conflicts. Create bulk tiebreakers to resolve.'
+          ? `Round finalized with ${result.conflicts.length} conflicts. Bulk tiebreakers created - review and start them when ready.`
           : 'Round finalized successfully'
       });
     } else {

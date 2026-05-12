@@ -78,13 +78,12 @@ export default function BulkRoundSelectionClient({
 }: BulkRoundSelectionClientProps) {
   const router = useRouter()
   const [selections, setSelections] = useState<string[]>(
-    initialSelections
-      .sort((a, b) => a.priority - b.priority)
-      .map(s => s.playerId)
+    initialSelections.map(s => s.playerId)
   )
   const [submitted, setSubmitted] = useState(initialSelections.some(s => s.submitted))
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [unlocking, setUnlocking] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('all')
   const [timeRemaining, setTimeRemaining] = useState('')
@@ -139,19 +138,6 @@ export default function BulkRoundSelectionClient({
     })
   }
 
-  const handleReorder = (playerId: string, direction: 'up' | 'down') => {
-    const index = selections.indexOf(playerId)
-    if (index === -1) return
-
-    const newSelections = [...selections]
-    if (direction === 'up' && index > 0) {
-      [newSelections[index], newSelections[index - 1]] = [newSelections[index - 1], newSelections[index]]
-    } else if (direction === 'down' && index < newSelections.length - 1) {
-      [newSelections[index], newSelections[index + 1]] = [newSelections[index + 1], newSelections[index]]
-    }
-    setSelections(newSelections)
-  }
-
   const handleSaveDraft = async () => {
     setSaving(true)
 
@@ -183,7 +169,7 @@ export default function BulkRoundSelectionClient({
   }
 
   const handleSubmit = async () => {
-    if (!confirm('Are you sure you want to submit? You cannot change your selections after submission.')) {
+    if (!confirm('Are you sure you want to submit? You can still edit your selections before the round ends.')) {
       return
     }
 
@@ -218,6 +204,38 @@ export default function BulkRoundSelectionClient({
       alert(error.message)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleUnlockSelections = async () => {
+    if (!confirm('Are you sure you want to edit your selections? Your submission status will be changed to draft.')) {
+      return
+    }
+
+    setUnlocking(true)
+
+    try {
+      const response = await fetch(`/api/team/bulk-rounds/${round.id}/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerIds: selections,
+          submitted: false
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to unlock selections')
+      }
+
+      setSubmitted(false)
+      alert('Selections unlocked. You can now edit them.')
+      router.refresh()
+    } catch (error: any) {
+      alert(error.message)
+    } finally {
+      setUnlocking(false)
     }
   }
 
@@ -282,22 +300,19 @@ export default function BulkRoundSelectionClient({
         {selections.length > 0 && (
           <div className="mb-6 rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-6">
             <h2 className="text-lg font-bold text-white mb-4">
-              Your Selections (Priority Order)
+              Your Selections ({selections.length} {selections.length === 1 ? 'player' : 'players'})
             </h2>
-            <div className="space-y-2">
-              {selections.map((playerId, index) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {selections.map((playerId) => {
                 const player = players.find(p => p.id === playerId)
                 if (!player) return null
 
                 return (
                   <div
                     key={playerId}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/10"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10"
                   >
-                    <div className="text-lg font-bold text-[#E8A800] w-8">
-                      #{index + 1}
-                    </div>
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
                       <Image
                         src={player.photoUrl}
                         alt={player.name}
@@ -306,41 +321,22 @@ export default function BulkRoundSelectionClient({
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-white">{player.name}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-white truncate">{player.name}</div>
                       <div className="text-xs text-[#D4CCBB]">
                         {player.position} • OVR {player.overall}
                       </div>
                     </div>
                     {!submitted && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleReorder(playerId, 'up')}
-                          disabled={index === 0}
-                          className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 transition-all"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleReorder(playerId, 'down')}
-                          disabled={index === selections.length - 1}
-                          className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 transition-all"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleToggleSelection(playerId)}
-                          className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleToggleSelection(playerId)}
+                        className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all flex-shrink-0"
+                        title="Remove player"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     )}
                   </div>
                 )
@@ -374,7 +370,6 @@ export default function BulkRoundSelectionClient({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {filteredPlayers.map(player => {
             const isSelected = selections.includes(player.id)
-            const priority = isSelected ? selections.indexOf(player.id) + 1 : null
             const slotsNeeded = minSquadSize - squadSize
             const limitReached = !isSelected && selections.length >= slotsNeeded
 
@@ -403,18 +398,19 @@ export default function BulkRoundSelectionClient({
                       {player.position} • OVR {player.overall}
                     </p>
                   </div>
-                  {isSelected && priority && (
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-sm">
-                      #{priority}
+                  {isSelected && (
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                     </div>
                   )}
                 </div>
 
-                {!limitReached && (
+                {!limitReached && !submitted && (
                   <button
                     onClick={() => handleToggleSelection(player.id)}
-                    disabled={submitted}
-                    className={`w-full px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 ${
+                    className={`w-full px-4 py-2 rounded-lg font-medium transition-all ${
                       isSelected
                         ? 'bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20'
                         : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
@@ -423,9 +419,14 @@ export default function BulkRoundSelectionClient({
                     {isSelected ? 'Remove' : 'Select'}
                   </button>
                 )}
-                {limitReached && (
+                {limitReached && !submitted && (
                   <div className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[#7A7367] text-center text-sm">
                     Selection limit reached
+                  </div>
+                )}
+                {submitted && (
+                  <div className="w-full px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-center text-sm font-medium">
+                    {isSelected ? '✓ Selected' : 'Not Selected'}
                   </div>
                 )}
               </div>
@@ -434,22 +435,34 @@ export default function BulkRoundSelectionClient({
         </div>
 
         {/* Actions */}
-        {!submitted && round.status === 'active' && (
+        {round.status === 'active' && (
           <div className="flex gap-4">
-            <button
-              onClick={handleSaveDraft}
-              disabled={saving || selections.length === 0}
-              className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
-            >
-              {saving ? 'Saving...' : 'Save Draft'}
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || selections.length === 0}
-              className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
-            >
-              {submitting ? 'Submitting...' : 'Submit Selections'}
-            </button>
+            {!submitted ? (
+              <>
+                <button
+                  onClick={handleSaveDraft}
+                  disabled={saving || selections.length === 0}
+                  className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
+                >
+                  {saving ? 'Saving...' : 'Save Draft'}
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || selections.length === 0}
+                  className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                >
+                  {submitting ? 'Submitting...' : 'Submit Selections'}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleUnlockSelections}
+                disabled={unlocking}
+                className="flex-1 px-6 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all disabled:opacity-50 font-medium"
+              >
+                {unlocking ? 'Unlocking...' : 'Edit Selections'}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -121,7 +121,10 @@ export default function BulkTiebreakerBiddingClient({
           }
         }
       } catch (error) {
-        console.error('Failed to fetch live data:', error)
+        // Suppress errors if tiebreaker is completed (polling will stop anyway)
+        if (liveData.status !== 'completed') {
+          console.error('Failed to fetch live data:', error)
+        }
       }
     }
 
@@ -184,13 +187,14 @@ export default function BulkTiebreakerBiddingClient({
   }, [liveData.maxEndTime])
 
   const handlePlaceBid = async () => {
-    // Check if within 10 seconds of last bid - show confirmation modal
-    if (lastBidTime && bidLockSeconds > 0) {
+    // If team is winning, always show confirmation modal
+    if (isMyBidHighest) {
       setPendingBidAmount(bidAmount)
       setShowConfirmModal(true)
       return
     }
 
+    // If not winning, bid directly
     await executeBid(bidAmount)
   }
 
@@ -289,8 +293,8 @@ export default function BulkTiebreakerBiddingClient({
 
   const isMyBidHighest = liveData.currentHighestTeamId === team.id
   const isActive = myParticipation?.status === 'active'
-  // Bid lock only applies when you're winning - if outbid, lock is removed
-  const isBidLocked = bidLockSeconds > 0 && isMyBidHighest
+  // Show warning UI when winning (regardless of time)
+  const isBidLocked = isMyBidHighest
 
   // Update bid amount suggestion when highest bid changes
   useEffect(() => {
@@ -316,8 +320,8 @@ export default function BulkTiebreakerBiddingClient({
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Confirm Consecutive Bid</h3>
-                <p className="text-sm text-amber-400">You just placed a bid {bidLockSeconds}s ago</p>
+                <h3 className="text-xl font-bold text-white">Confirm Bid Increase</h3>
+                <p className="text-sm text-amber-400">You're currently winning</p>
               </div>
             </div>
             <p className="text-[#D4CCBB] mb-6">
@@ -404,6 +408,11 @@ export default function BulkTiebreakerBiddingClient({
               <div className="text-xl font-bold text-[#E8A800]">
                 £{(liveData.currentHighestBid || liveData.basePrice).toLocaleString()}
               </div>
+              {liveData.currentHighestTeamId && (
+                <div className="text-xs text-[#D4CCBB] mt-1">
+                  {participantTeamMap.get(liveData.currentHighestTeamId)?.name || 'Unknown Team'}
+                </div>
+              )}
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Teams Remaining</div>
@@ -412,9 +421,17 @@ export default function BulkTiebreakerBiddingClient({
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Your Status</div>
               <div className={`text-xl font-bold ${
-                isActive ? (isMyBidHighest ? 'text-emerald-400' : 'text-amber-400') : 'text-red-400'
+                !liveData.currentHighestBid || liveData.currentHighestBid === liveData.basePrice
+                  ? 'text-[#D4CCBB]'
+                  : isActive 
+                    ? (isMyBidHighest ? 'text-emerald-400' : 'text-amber-400') 
+                    : 'text-red-400'
               }`}>
-                {isActive ? (isMyBidHighest ? 'Winning' : 'Outbid') : 'Withdrawn'}
+                {!liveData.currentHighestBid || liveData.currentHighestBid === liveData.basePrice
+                  ? 'No Bids Yet'
+                  : isActive 
+                    ? (isMyBidHighest ? 'Winning' : 'Outbid') 
+                    : 'Withdrawn'}
               </div>
             </div>
           </div>
@@ -477,14 +494,14 @@ export default function BulkTiebreakerBiddingClient({
                 {isBidLocked && (
                   <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
                     <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div className="flex-1">
                       <div className="text-sm font-medium text-amber-300">
-                        Bid Lock Active ({bidLockSeconds}s remaining)
+                        You're Currently Winning
                       </div>
                       <div className="text-xs text-amber-400/80">
-                        You're winning! Bidding again will require confirmation.
+                        Bidding again will require confirmation to prevent accidental increases.
                       </div>
                     </div>
                   </div>
@@ -535,8 +552,9 @@ export default function BulkTiebreakerBiddingClient({
                   </button>
                   <button
                     onClick={handleWithdraw}
-                    disabled={withdrawing}
-                    className="px-6 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all disabled:opacity-50 font-medium"
+                    disabled={withdrawing || isMyBidHighest}
+                    className="px-6 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    title={isMyBidHighest ? 'Cannot withdraw while winning' : 'Withdraw from tiebreaker'}
                   >
                     {withdrawing ? 'Withdrawing...' : 'Withdraw'}
                   </button>
@@ -574,7 +592,7 @@ export default function BulkTiebreakerBiddingClient({
                         >
                           <div>
                             <div className="font-medium text-white">{teamData.name}</div>
-                            <div className="text-xs text-[#7A7367]">
+                            <div className="text-xs text-[#7A7367]" suppressHydrationWarning>
                               {new Date(bid.bidTime).toLocaleString()}
                             </div>
                           </div>
@@ -595,10 +613,10 @@ export default function BulkTiebreakerBiddingClient({
               <h2 className="text-xl font-bold text-white mb-4">Participants</h2>
               <div className="space-y-3">
                 {liveData.participants
+                  .filter((participant) => participantTeamMap.has(participant.teamId))
                   .sort((a, b) => (b.currentBid || 0) - (a.currentBid || 0))
                   .map((participant) => {
-                    const teamData = participantTeamMap.get(participant.teamId)
-                    if (!teamData) return null
+                    const teamData = participantTeamMap.get(participant.teamId)!
                     
                     return (
                       <div

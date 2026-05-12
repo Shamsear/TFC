@@ -92,6 +92,32 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [extending, setExtending] = useState(false)
   const [previewResults, setPreviewResults] = useState<any>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [isPolling, setIsPolling] = useState(true)
+
+  // Live polling - refresh data every 3 seconds for active/pending rounds
+  useEffect(() => {
+    // Only poll for rounds that are active or have pending actions
+    const shouldPoll = isPolling && (
+      round.status === 'active' || 
+      round.status === 'pending_finalization' ||
+      round.status === 'tiebreaker_pending' ||
+      round.status === 'finalizing'
+    )
+
+    if (!shouldPoll) return
+
+    const fetchLiveData = async () => {
+      try {
+        router.refresh()
+      } catch (error) {
+        console.error('Failed to refresh data:', error)
+      }
+    }
+
+    // Poll every 3 seconds for real-time updates
+    const interval = setInterval(fetchLiveData, 3000)
+    return () => clearInterval(interval)
+  }, [isPolling, round.status, router])
 
   // Calculate time remaining for active rounds
   useEffect(() => {
@@ -440,6 +466,29 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Live Indicator */}
+            {isPolling && (round.status === 'active' || round.status === 'pending_finalization' || round.status === 'tiebreaker_pending' || round.status === 'finalizing') && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-xs font-medium text-emerald-300">Live</span>
+              </div>
+            )}
+            <button
+              onClick={() => setIsPolling(!isPolling)}
+              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs font-medium text-[#D4CCBB]"
+              title={isPolling ? 'Pause live updates' : 'Resume live updates'}
+            >
+              {isPolling ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </button>
             <div className={`px-4 py-2 rounded-lg border font-bold text-sm ${getStatusColor(round.status)}`}>
               {round.status.toUpperCase()}
             </div>

@@ -196,7 +196,7 @@ export default function BulkTiebreakerMonitorClient({
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Last Update</div>
-              <div className="text-sm font-medium text-white">
+              <div className="text-sm font-medium text-white" suppressHydrationWarning>
                 {lastUpdate.toLocaleTimeString()}
               </div>
             </div>

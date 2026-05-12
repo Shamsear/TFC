@@ -194,16 +194,20 @@ export async function applyBulkTiebreakerResult(
     throw new Error('Round not found');
   }
 
+  // Pre-generate IDs outside transaction
+  const transferId = await generateTransferId();
+  const ledgerId = await generateFinancialId();
+
   await prisma.$transaction(async (tx) => {
     // 1. Create transfer history
-    const transferId = await generateTransferId();
     await tx.transfer_history.create({
       data: {
         id: transferId,
         basePlayerId: tiebreaker.basePlayerId,
         seasonId: round.seasonId,
         teamId: winnerId,
-        soldPrice: winningBid
+        soldPrice: winningBid,
+        roundId: tiebreaker.roundId
       }
     });
 
@@ -231,7 +235,6 @@ export async function applyBulkTiebreakerResult(
       });
 
       // 3. Insert financial ledger entry
-      const ledgerId = await generateFinancialId();
       await tx.financial_ledger.create({
         data: {
           id: ledgerId,
@@ -246,6 +249,8 @@ export async function applyBulkTiebreakerResult(
         }
       });
     }
+  }, {
+    timeout: 10000 // 10 second timeout
   });
 }
 
@@ -257,6 +262,30 @@ export async function withdrawFromBulkTiebreaker(
   teamId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Check if team is the highest bidder
+    const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
+      where: { id: tiebreakerId },
+      select: { 
+        currentHighestTeamId: true,
+        status: true
+      }
+    });
+
+    if (!tiebreaker) {
+      return { success: false, error: 'Tiebreaker not found' };
+    }
+
+    if (tiebreaker.status !== 'active') {
+      return { success: false, error: 'Tiebreaker is not active' };
+    }
+
+    if (tiebreaker.currentHighestTeamId === teamId) {
+      return { 
+        success: false, 
+        error: 'Cannot withdraw while you have the highest bid. Wait to be outbid first.' 
+      };
+    }
+
     await prisma.$transaction(async (tx) => {
       // Update participant status
       await tx.bulk_tiebreaker_participants.updateMany({
@@ -283,6 +312,9 @@ export async function withdrawFromBulkTiebreaker(
           }
         });
       }
+    }, {
+      timeout: 15000, // 15 second timeout
+      maxWait: 10000  // Wait max 10 seconds to acquire connection
     });
 
     // Small delay to ensure transaction is committed

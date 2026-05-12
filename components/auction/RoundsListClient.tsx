@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -27,8 +27,32 @@ interface RoundsListClientProps {
 
 export default function RoundsListClient({ seasonId, initialRounds }: RoundsListClientProps) {
   const router = useRouter()
-  const [rounds] = useState(initialRounds)
+  const [rounds, setRounds] = useState(initialRounds)
   const [filter, setFilter] = useState<'all' | 'draft' | 'active' | 'completed'>('all')
+  const [isPolling, setIsPolling] = useState(true)
+
+  // Live polling - refresh data every 5 seconds
+  useEffect(() => {
+    if (!isPolling) return
+
+    const fetchLiveData = async () => {
+      try {
+        // Use router.refresh() to trigger server component re-fetch
+        router.refresh()
+      } catch (error) {
+        console.error('Failed to refresh data:', error)
+      }
+    }
+
+    // Poll every 5 seconds
+    const interval = setInterval(fetchLiveData, 5000)
+    return () => clearInterval(interval)
+  }, [isPolling, router])
+
+  // Update rounds when initialRounds changes (from router.refresh)
+  useEffect(() => {
+    setRounds(initialRounds)
+  }, [initialRounds])
 
   // Format date consistently for SSR/CSR
   const formatDate = (date: Date | string) => {
@@ -104,6 +128,24 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
 
   return (
     <div>
+      {/* Live Indicator & Controls */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {isPolling && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-xs font-medium text-emerald-300">Live Updates</span>
+            </div>
+          )}
+          <button
+            onClick={() => setIsPolling(!isPolling)}
+            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs font-medium text-[#D4CCBB]"
+          >
+            {isPolling ? 'Pause' : 'Resume'} Updates
+          </button>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         <button

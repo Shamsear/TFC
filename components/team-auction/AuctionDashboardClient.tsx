@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -91,7 +92,48 @@ export default function AuctionDashboardClient({
   tiebreakers,
   bulkTiebreakers
 }: AuctionDashboardClientProps) {
+  const router = useRouter()
   const [timeRemainingMap, setTimeRemainingMap] = useState<Record<string, string>>({})
+  const [isPolling, setIsPolling] = useState(true)
+  const [liveData, setLiveData] = useState({
+    rounds,
+    teamBids,
+    bulkSelections,
+    tiebreakers,
+    bulkTiebreakers,
+    budget,
+    squadSize
+  })
+
+  // Live polling - refresh data every 5 seconds
+  useEffect(() => {
+    if (!isPolling) return
+
+    const fetchLiveData = async () => {
+      try {
+        router.refresh()
+      } catch (error) {
+        console.error('Failed to refresh data:', error)
+      }
+    }
+
+    // Poll every 5 seconds
+    const interval = setInterval(fetchLiveData, 5000)
+    return () => clearInterval(interval)
+  }, [isPolling, router])
+
+  // Update live data when props change (from router.refresh)
+  useEffect(() => {
+    setLiveData({
+      rounds,
+      teamBids,
+      bulkSelections,
+      tiebreakers,
+      bulkTiebreakers,
+      budget,
+      squadSize
+    })
+  }, [rounds, teamBids, bulkSelections, tiebreakers, bulkTiebreakers, budget, squadSize])
 
   // Calculate time remaining for active rounds
   useEffect(() => {
@@ -129,7 +171,7 @@ export default function AuctionDashboardClient({
     const interval = setInterval(updateTimers, 1000)
     
     return () => clearInterval(interval)
-  }, [rounds])
+  }, [liveData.rounds])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -161,24 +203,27 @@ export default function AuctionDashboardClient({
 
   const getBidStatus = (roundId: string, roundType: string) => {
     if (roundType === 'bulk') {
-      const selection = bulkSelections.find(s => s.roundId === roundId)
+      const selection = liveData.bulkSelections.find(s => s.roundId === roundId)
       if (!selection) return { label: 'Not Started', color: 'text-gray-400' }
       if (selection.submitted) return { label: 'Submitted', color: 'text-emerald-400' }
       return { label: 'Draft Saved', color: 'text-amber-400' }
     } else {
-      const bid = teamBids.find(b => b.roundId === roundId)
+      const bid = liveData.teamBids.find(b => b.roundId === roundId)
       if (!bid) return { label: 'Not Started', color: 'text-gray-400' }
       if (bid.submitted) return { label: `Submitted (${bid.bidCount})`, color: 'text-emerald-400' }
       return { label: `Draft (${bid.bidCount})`, color: 'text-amber-400' }
     }
   }
 
-  const activeRounds = rounds.filter(r => r.status === 'active')
-  const upcomingRounds = rounds.filter(r => r.status === 'draft')
-  const pendingRounds = rounds.filter(r => 
+  const activeRounds = liveData.rounds.filter(r => r.status === 'active')
+  const upcomingRounds = liveData.rounds.filter(r => r.status === 'draft')
+  const pendingRounds = liveData.rounds.filter(r => 
     r.status === 'expired_pending_finalization' || r.status === 'tiebreaker_pending'
   )
-  const completedRounds = rounds.filter(r => r.status === 'completed')
+  const completedRounds = liveData.rounds.filter(r => r.status === 'completed')
+
+  // Count action items
+  const actionItemsCount = liveData.tiebreakers.length + liveData.bulkTiebreakers.length
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -195,13 +240,38 @@ export default function AuctionDashboardClient({
                 className="w-full h-full object-cover"
               />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">
                 Auction
               </h1>
               <p className="text-sm sm:text-base text-[#D4CCBB]">
                 {season.name} — Place your bids
               </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Live Indicator */}
+              {isPolling && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <span className="text-xs font-medium text-emerald-300">Live</span>
+                </div>
+              )}
+              <button
+                onClick={() => setIsPolling(!isPolling)}
+                className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs font-medium text-[#D4CCBB]"
+                title={isPolling ? 'Pause live updates' : 'Resume live updates'}
+              >
+                {isPolling ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
 
@@ -210,12 +280,12 @@ export default function AuctionDashboardClient({
             <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Budget</div>
               <div className="text-lg sm:text-xl font-bold text-white">
-                £{budget.toLocaleString()}
+                £{liveData.budget.toLocaleString()}
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Squad Size</div>
-              <div className="text-lg sm:text-xl font-bold text-white">{squadSize}</div>
+              <div className="text-lg sm:text-xl font-bold text-white">{liveData.squadSize}</div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Active Rounds</div>
@@ -226,7 +296,7 @@ export default function AuctionDashboardClient({
             <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Tiebreakers</div>
               <div className="text-lg sm:text-xl font-bold text-purple-400">
-                {tiebreakers.length + bulkTiebreakers.length}
+                {actionItemsCount}
               </div>
             </div>
           </div>
@@ -235,7 +305,7 @@ export default function AuctionDashboardClient({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Tiebreakers Alert */}
-        {(tiebreakers.length > 0 || bulkTiebreakers.length > 0) && (
+        {actionItemsCount > 0 && (
           <div className="mb-6 rounded-xl bg-purple-500/10 border border-purple-500/30 p-4 sm:p-6">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
@@ -248,7 +318,7 @@ export default function AuctionDashboardClient({
                   Action Required: Tiebreakers
                 </h3>
                 <p className="text-sm text-purple-200 mb-3">
-                  You have {tiebreakers.length + bulkTiebreakers.length} tiebreaker(s) waiting for your bid
+                  You have {actionItemsCount} tiebreaker(s) waiting for your bid
                 </p>
                 <Link
                   href="#tiebreakers"

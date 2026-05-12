@@ -367,7 +367,8 @@ export async function applyBulkFinalizationResults(
           basePlayerId: alloc.basePlayerId,
           seasonId: round.seasonId,
           teamId: alloc.teamId,
-          soldPrice: alloc.amount
+          soldPrice: alloc.amount,
+          roundId: roundId
         }))
       });
       console.log(`      ✓ Transfer history records created`);

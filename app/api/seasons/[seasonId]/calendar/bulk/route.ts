@@ -31,7 +31,7 @@ export async function POST(
       idsToGenerate.push({
         calendarId: await generateAuctionId(),
         slotIds: await Promise.all(
-          auction.positions.map(() => generateAuctionSlotId())
+          auction.positionSlots.map(() => generateAuctionSlotId())
         )
       })
     }
@@ -43,10 +43,10 @@ export async function POST(
       for (let idx = 0; idx < auctionDates.length; idx++) {
         const auction = auctionDates[idx]
         const ids = idsToGenerate[idx]
-        const { auctionDate, description, positions } = auction
+        const { auctionDate, description, positionSlots } = auction
 
-        if (!auctionDate || !positions || positions.length === 0) {
-          throw new Error('Each auction must have a date and at least one position')
+        if (!auctionDate || !positionSlots || positionSlots.length === 0) {
+          throw new Error('Each auction must have a date and at least one position slot')
         }
 
         // Create auction calendar entry
@@ -60,13 +60,15 @@ export async function POST(
           }
         })
 
-        // Create position slots
-        for (let i = 0; i < positions.length; i++) {
+        // Create position slots with groups
+        for (let i = 0; i < positionSlots.length; i++) {
+          const slot = positionSlots[i]
           await tx.auction_slots.create({
             data: {
               id: ids.slotIds[i],
               auctionCalendarId: calendar.id,
-              position: positions[i],
+              position: slot.position,
+              position_group: slot.group || 'ALL',
               slotOrder: i,
               updatedAt: new Date()
             }

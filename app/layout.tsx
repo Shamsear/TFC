@@ -6,7 +6,7 @@ import { ToastProvider } from "@/components/ui/ToastProvider";
 import Header from "@/components/layout/Header";
 
 export const metadata: Metadata = {
-  title: "Turf Cats Tournament Platform",
+  title: "Turf Cats i need to create sub groups for ",
   description: "Multi-season eFootball tournament management platform",
   icons: {
     icon: [

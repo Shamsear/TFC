@@ -7,8 +7,16 @@ import { usePathname } from 'next/navigation'
 export default function Header() {
   const pathname = usePathname()
   
-  // Don't show header on auth pages
-  if (pathname?.startsWith('/auth')) {
+  // Don't show header on auth pages or public pages
+  if (pathname?.startsWith('/auth') || 
+      pathname === '/' ||
+      pathname?.startsWith('/teams') ||
+      pathname?.startsWith('/players') ||
+      pathname?.startsWith('/auctions') ||
+      pathname?.startsWith('/calendar') ||
+      pathname?.startsWith('/seasons') ||
+      pathname?.startsWith('/tournaments') ||
+      pathname?.startsWith('/matches')) {
     return null
   }
 

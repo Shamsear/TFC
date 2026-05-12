@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { applyFinalizationResults } from '@/lib/auction/finalize-round';
+import { Prisma } from '@prisma/client';
 
 /**
  * POST /api/admin/rounds/[id]/make-public
@@ -43,7 +44,7 @@ export async function POST(
     }
 
     // Get preview allocations from database table
-    const previewAllocations = await prisma.preview_allocations.findMany({
+    const rawPreviewAllocations = await prisma.preview_allocations.findMany({
       where: { roundId },
       select: {
         teamId: true,
@@ -55,12 +56,19 @@ export async function POST(
       }
     });
 
-    if (!previewAllocations || previewAllocations.length === 0) {
+    if (!rawPreviewAllocations || rawPreviewAllocations.length === 0) {
       return NextResponse.json(
         { error: 'No preview allocations found. Please finalize the round first.' },
         { status: 400 }
       );
     }
+
+    // Cast acquisitionType to the correct type
+    const previewAllocations = rawPreviewAllocations.map(alloc => ({
+      ...alloc,
+      acquisitionType: alloc.acquisitionType as 'bid_won' | 'auto_assigned' | 'tiebreaker_won',
+      acquisitionNotes: alloc.acquisitionNotes ?? undefined
+    }));
 
     console.log('\n' + '='.repeat(80));
     console.log('📢 MAKING ROUND RESULTS PUBLIC');
@@ -76,7 +84,7 @@ export async function POST(
       where: { id: roundId },
       data: { 
         status: 'completed',
-        finalizationState: null // Clear any remaining state
+        finalizationState: Prisma.JsonNull
       }
     });
 

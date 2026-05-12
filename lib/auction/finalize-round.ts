@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
 import { decryptBids } from './encryption';
 import { calculateReserve, canAffordMultipleBids } from './reserve-calculator';
+import { Prisma } from '@prisma/client';
 
 /**
  * Normal round finalization logic
@@ -457,7 +458,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
     let isResuming = false;
 
     if (round.finalizationState) {
-      const state = round.finalizationState as FinalizationState;
+      const state = round.finalizationState as unknown as FinalizationState;
       allocatedTeams = new Set(state.allocatedTeams || []);
       allocatedPlayers = new Set(state.allocatedPlayers || []);
       existingAllocations = state.processedAllocations || [];
@@ -603,11 +604,11 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
         await prisma.rounds.update({
           where: { id: roundId },
           data: {
-            finalizationState: {
+            finalizationState: JSON.parse(JSON.stringify({
               allocatedTeams: Array.from(allocatedTeams),
               allocatedPlayers: Array.from(allocatedPlayers),
               processedAllocations: existingAllocations
-            }
+            }))
           }
         });
         
@@ -703,7 +704,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
     await prisma.rounds.update({
       where: { id: roundId },
       data: {
-        finalizationState: null
+        finalizationState: Prisma.JsonNull
       }
     });
 

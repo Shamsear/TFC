@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { finalizeRound, applyFinalizationResults } from '@/lib/auction/finalize-round';
 import { finalizeBulkRound, applyBulkFinalizationResults } from '@/lib/auction/finalize-bulk-round';
 import { createTiebreakers } from '@/lib/auction/tiebreaker';
+import { Prisma } from '@prisma/client';
 
 /**
  * POST /api/admin/rounds/[id]/finalize - Finalize a round
@@ -43,7 +44,8 @@ export async function POST(
         status: true,
         roundType: true,
         endTime: true,
-        finalizationMode: true
+        finalizationMode: true,
+        basePrice: true
       }
     });
 
@@ -95,12 +97,12 @@ export async function POST(
             data: { 
               status: 'tiebreaker_pending',
               finalizationMode: 'manual', // Switch to manual since admin chose to preview
-              finalizationState: {
+              finalizationState: JSON.parse(JSON.stringify({
                 previewMode: true,
                 allocatedTeams: result.allocations?.map(a => a.teamId) || [],
                 allocatedPlayers: result.allocations?.map(a => a.basePlayerId) || [],
                 processedAllocations: result.allocations || []
-              }
+              }))
             }
           });
 
@@ -138,7 +140,7 @@ export async function POST(
           data: {
             status: 'preview_finalized',
             finalizationMode: 'manual', // Switch to manual since admin chose to preview
-            finalizationState: null // Clear state since no tiebreakers
+            finalizationState: Prisma.JsonNull
           }
         });
 

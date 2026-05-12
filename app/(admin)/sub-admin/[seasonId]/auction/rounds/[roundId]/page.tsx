@@ -243,7 +243,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           round={round}
           teams={seasonTeams.map(st => st.team)}
           auctionResults={auctionResults}
-          previewAllocations={previewAllocations}
+          previewAllocations={previewAllocations ?? undefined}
           bulkConflicts={bulkConflicts}
         />
       </div>

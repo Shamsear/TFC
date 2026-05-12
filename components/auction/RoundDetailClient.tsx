@@ -912,7 +912,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   
                   {(isActive || isCompleted) && (
                     <a
-                      href={`/sub-admin/${round.seasonId}/auction/bulk-tiebreakers/${conflict.tiebreakerId}`}
+                      href={`/sub-admin/${round.season.id}/auction/bulk-tiebreakers/${conflict.tiebreakerId}`}
                       className="block w-full px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:bg-purple-500/30 transition-all text-center font-medium"
                     >
                       {isActive ? '👁 Monitor Tiebreaker' : '✓ View Results'}

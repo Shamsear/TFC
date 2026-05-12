@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { generateTransferId, generateTiebreakerId, generateFinancialId } from '@/lib/id-generator';
+import { Prisma } from '@prisma/client';
 
 /**
  * Tiebreaker creation and resolution logic
@@ -451,7 +452,7 @@ export async function resumeFinalizationAfterTiebreaker(
       await prisma.rounds.update({
         where: { id: tiebreaker.roundId },
         data: {
-          finalizationState: updatedState
+          finalizationState: JSON.parse(JSON.stringify(updatedState))
         }
       });
 
@@ -513,7 +514,7 @@ export async function resumeFinalizationAfterTiebreaker(
           where: { id: tiebreaker.roundId },
           data: { 
             status: 'preview_finalized',
-            finalizationState: null // Clear state after saving to table
+            finalizationState: Prisma.JsonNull
           }
         });
 
@@ -537,7 +538,7 @@ export async function resumeFinalizationAfterTiebreaker(
           where: { id: tiebreaker.roundId },
           data: { 
             status: 'completed',
-            finalizationState: null // Clear state
+            finalizationState: Prisma.JsonNull
           }
         });
 

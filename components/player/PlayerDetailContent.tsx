@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import PlayerCardImage from '@/components/player/PlayerCardImage'
 import PlayerDetailTabs from '@/components/player/PlayerDetailTabs'
+import { getPlayerCardById } from '@/lib/image-cdn'
 
 interface PlayerDetailContentProps {
   seasonId: string
@@ -277,23 +278,27 @@ export default function PlayerDetailContent({
 
   const handleDownloadCard = async () => {
     try {
-      const localCardUrl = `/player_cards/${playerCardId}.png`
-      let imageUrl = localCardUrl
-      let filename = `${basePlayer.name.replace(/\s+/g, '_')}_card.png`
+      const cardUrl = getPlayerCardById(playerCardId)
+      const filename = `${basePlayer.name.replace(/\s+/g, '_')}_card.png`
       
-      try {
-        const testResponse = await fetch(localCardUrl, { method: 'HEAD' })
-        if (!testResponse.ok) {
-          imageUrl = basePlayer.photoUrl || '/players/placeholder.svg'
-          filename = `${basePlayer.name.replace(/\s+/g, '_')}_photo.${imageUrl.split('.').pop()}`
-        }
-      } catch {
-        imageUrl = basePlayer.photoUrl || '/players/placeholder.svg'
-        filename = `${basePlayer.name.replace(/\s+/g, '_')}_photo.${imageUrl.split('.').pop()}`
+      const response = await fetch(cardUrl)
+      if (!response.ok) {
+        // Try fallback image
+        const fallbackUrl = basePlayer.photoUrl || '/players/placeholder.svg'
+        const fallbackResponse = await fetch(fallbackUrl)
+        if (!fallbackResponse.ok) throw new Error('Failed to fetch image')
+        
+        const blob = await fallbackResponse.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${basePlayer.name.replace(/\s+/g, '_')}_photo.${fallbackUrl.split('.').pop()}`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        return
       }
-      
-      const response = await fetch(imageUrl)
-      if (!response.ok) throw new Error('Failed to fetch image')
       
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -311,8 +316,8 @@ export default function PlayerDetailContent({
     } catch (error) {
       console.error('Failed to download card:', error)
       try {
-        const imageUrl = `/player_cards/${playerCardId}.png`
-        window.open(imageUrl, '_blank')
+        const cardUrl = getPlayerCardById(playerCardId)
+        window.open(cardUrl, '_blank')
       } catch (fallbackError) {
         alert('Download failed. Please try right-clicking the image and selecting "Save image as..."')
       }
@@ -321,52 +326,36 @@ export default function PlayerDetailContent({
 
   const handleShareCard = async () => {
     try {
-      const cardUrl = `/player_cards/${playerCardId}.png`
+      const cardUrl = getPlayerCardById(playerCardId)
       
       // Try to fetch the image as a blob
       const response = await fetch(cardUrl)
       
-      if (response.ok) {
-        // Card image exists, try to share it
-        const blob = await response.blob()
-        const file = new File([blob], `${basePlayer.name.replace(/\s+/g, '_')}_card.png`, { type: 'image/png' })
-        
-        // Check if Web Share API supports files
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `${basePlayer.name} - Player Card`,
-            text: `Check out ${basePlayer.name}'s player card! ${stats.position} • ${displayOverall} OVR`,
-          })
-          return
-        }
+      if (!response.ok) {
+        throw new Error('Card image not found')
       }
       
-      // Fallback: Share player page link if card not found or file sharing not supported
-      if (navigator.share) {
-        const playerUrl = `${window.location.origin}/players/${basePlayer.id}`
+      // Card image exists, convert to file
+      const blob = await response.blob()
+      const file = new File([blob], `${basePlayer.name.replace(/\s+/g, '_')}_card.png`, { type: 'image/png' })
+      
+      // Check if Web Share API supports files
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: `${basePlayer.name} - Player Card`,
-          text: `Check out ${basePlayer.name}'s player card! ${stats.position} • ${displayOverall} OVR`,
-          url: playerUrl,
+          files: [file],
         })
+        
+        // Haptic feedback on successful share
+        if (window.navigator && window.navigator.vibrate) {
+          window.navigator.vibrate(100)
+        }
       } else {
-        // Final fallback: copy image URL to clipboard
-        const fullCardUrl = `${window.location.origin}${cardUrl}`
-        await navigator.clipboard.writeText(fullCardUrl)
-        alert('Card image URL copied to clipboard!')
+        // Browser doesn't support file sharing
+        alert('Your browser does not support image sharing. Please use the download button instead.')
       }
     } catch (error) {
       console.error('Failed to share:', error)
-      // Fallback: copy player URL to clipboard
-      try {
-        const playerUrl = `${window.location.origin}/players/${basePlayer.id}`
-        await navigator.clipboard.writeText(playerUrl)
-        alert('Player page link copied to clipboard!')
-      } catch (clipboardError) {
-        console.error('Failed to copy to clipboard:', clipboardError)
-        alert('Unable to share. Please try again.')
-      }
+      alert('Unable to share the player card. Please try the download button instead.')
     }
   }
   

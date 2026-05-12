@@ -204,8 +204,8 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
                     <div className="flex items-center justify-between pt-4 border-t border-white/10">
                       <div className="flex items-center gap-2">
                         {result.teamLogo && (
-                          <div className="w-6 h-6 rounded overflow-hidden">
-                            <img src={result.teamLogo} alt={result.teamName} className="w-full h-full object-cover" />
+                          <div className="w-6 h-6 rounded overflow-hidden bg-white/5">
+                            <img src={result.teamLogo} alt={result.teamName} className="w-full h-full object-contain p-0.5" />
                           </div>
                         )}
                         <span className="text-sm text-gray-400 truncate">{result.teamName}</span>

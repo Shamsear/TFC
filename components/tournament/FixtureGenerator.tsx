@@ -325,7 +325,7 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
                         />
                         <div className="w-5 h-5 sm:w-6 sm:h-6 rounded bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {team.logoUrl ? (
-                            <img src={team.logoUrl} alt="" className="w-full h-full object-cover" />
+                            <img src={team.logoUrl} alt="" className="w-full h-full object-contain p-0.5" />
                           ) : (
                             <span className="text-xs">⚽</span>
                           )}

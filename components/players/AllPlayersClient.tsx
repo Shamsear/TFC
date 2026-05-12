@@ -325,7 +325,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
                       <div className="rounded-lg sm:rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 sm:p-4">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 ring-2 ring-emerald-500/20">
-                            <Image src={player.team.logoUrl} alt={player.team.name} fill className="object-cover" />
+                            <Image src={player.team.logoUrl} alt={player.team.name} fill className="object-contain p-1" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-xs text-emerald-400 mb-0.5 font-bold">SOLD TO</div>

@@ -276,7 +276,7 @@ export default function TournamentForm({ seasonId, teams }: TournamentFormProps)
               <div className="text-center">
                 <div className="w-12 h-12 mx-auto mb-2 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
                   {team.logoUrl ? (
-                    <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+                    <img src={team.logoUrl} alt={team.name} className="w-full h-full object-contain p-1" />
                   ) : (
                     <span className="text-2xl">⚽</span>
                   )}

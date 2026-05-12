@@ -177,7 +177,7 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                       }`}>
                         <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {team1?.logoUrl ? (
-                            <img src={team1.logoUrl} alt="" className="w-full h-full object-cover" />
+                            <img src={team1.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                           ) : (
                             <span className="text-sm">⚽</span>
                           )}
@@ -200,7 +200,7 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                       }`}>
                         <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {team2?.logoUrl ? (
-                            <img src={team2.logoUrl} alt="" className="w-full h-full object-cover" />
+                            <img src={team2.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                           ) : (
                             <span className="text-sm">⚽</span>
                           )}

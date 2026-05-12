@@ -211,7 +211,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                         <div className="flex items-center gap-3 flex-1">
                           <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
                             {match.homeTeam.team.logoUrl ? (
-                              <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                              <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                             ) : (
                               <span className="text-sm">⚽</span>
                             )}
@@ -225,7 +225,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                           <span className="text-white font-bold">{match.awayTeam.team.name}</span>
                           <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
                             {match.awayTeam.team.logoUrl ? (
-                              <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                              <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                             ) : (
                               <span className="text-sm">⚽</span>
                             )}

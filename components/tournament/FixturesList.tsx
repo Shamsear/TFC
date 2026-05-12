@@ -161,7 +161,7 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
                     </div>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {match.homeTeam.team.logoUrl ? (
-                        <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                       ) : (
                         <span className="text-lg sm:text-xl">⚽</span>
                       )}
@@ -196,7 +196,7 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
                   }`}>
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {match.awayTeam.team.logoUrl ? (
-                        <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                       ) : (
                         <span className="text-lg sm:text-xl">⚽</span>
                       )}

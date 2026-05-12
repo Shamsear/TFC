@@ -125,7 +125,7 @@ export default function MatchEditor({ match, seasonId, tournamentId }: MatchEdit
           }`}>
             <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl bg-white/5 flex items-center justify-center overflow-hidden">
               {match.homeTeam.team.logoUrl ? (
-                <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-2" />
               ) : (
                 <span className="text-3xl sm:text-4xl lg:text-5xl">⚽</span>
               )}
@@ -226,7 +226,7 @@ export default function MatchEditor({ match, seasonId, tournamentId }: MatchEdit
           }`}>
             <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl bg-white/5 flex items-center justify-center overflow-hidden">
               {match.awayTeam.team.logoUrl ? (
-                <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-2" />
               ) : (
                 <span className="text-3xl sm:text-4xl lg:text-5xl">⚽</span>
               )}

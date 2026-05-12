@@ -89,7 +89,7 @@ export default function StandingsTable({ standings, groups }: StandingsTableProp
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {standing.seasonTeam.team.logoUrl ? (
-                            <img src={standing.seasonTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                            <img src={standing.seasonTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                           ) : (
                             <span className="text-sm">⚽</span>
                           )}

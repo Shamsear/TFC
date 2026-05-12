@@ -45,7 +45,7 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
                       </div>
                       <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                         {standing.seasonTeam.team.logoUrl ? (
-                          <img src={standing.seasonTeam.team.logoUrl} alt="" className="w-full h-full object-cover" />
+                          <img src={standing.seasonTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-0.5" />
                         ) : (
                           <span className="text-xs">⚽</span>
                         )}

@@ -241,6 +241,24 @@ model seasons {
   auctionCalendar         auction_calendar[]
   tournaments             tournaments[]
   rounds                  rounds[]
+  starredPlayers          starred_players[]
+}
+
+model starred_players {
+  id            Int          @id @default(autoincrement())
+  seasonTeamId  String       @map("seasonTeamId")
+  playerId      String       @map("playerId")
+  seasonId      String       @map("seasonId")
+  starred_at    DateTime     @default(now())
+  seasonTeam    season_teams @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
+  basePlayer    base_players @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season        seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonTeamId, playerId, seasonId], name: "starred_players_unique")
+  @@index([seasonTeamId])
+  @@index([playerId])
+  @@index([seasonId])
+  @@index([seasonTeamId, seasonId])
 }
 
 model teams {

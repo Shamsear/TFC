@@ -671,6 +671,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
     if (!isResuming) {
       console.log('🎰 Step 5: Handling non-submitted teams...');
       forcedAllocations = await handleNonSubmittedTeams(
+        roundId,
         teamBids,
         round.seasonId,
         round.roundNumber,

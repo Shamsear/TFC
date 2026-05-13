@@ -6,31 +6,14 @@
 -- and optional maximum squad sizes.
 
 -- ============================================
--- 0. Check existing auction_settings structure
+-- 1. Fix auction_settings table structure
 -- ============================================
--- First, let's see if the table exists and drop it if needed
-DO $$
-BEGIN
-  -- If auction_settings exists but doesn't have the right structure, we need to handle it
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'auction_settings') THEN
-    -- Check if it has the old structure (without season_id column)
-    IF NOT EXISTS (
-      SELECT FROM information_schema.columns 
-      WHERE table_name = 'auction_settings' AND column_name = 'season_id'
-    ) THEN
-      -- Drop the old table (backup data first if needed)
-      RAISE NOTICE 'Dropping old auction_settings table with incompatible structure';
-      DROP TABLE IF EXISTS auction_settings CASCADE;
-    END IF;
-  END IF;
-END $$;
+-- Drop and recreate the table with correct structure
+DROP TABLE IF EXISTS auction_settings CASCADE;
 
--- ============================================
--- 1. Create auction_settings table if not exists
--- ============================================
-CREATE TABLE IF NOT EXISTS auction_settings (
+CREATE TABLE auction_settings (
   id SERIAL PRIMARY KEY,
-  season_id VARCHAR(50) NOT NULL UNIQUE,
+  "seasonId" TEXT NOT NULL UNIQUE,
   auction_window VARCHAR(50) DEFAULT 'season_start',
   
   -- Phase boundaries
@@ -52,70 +35,68 @@ CREATE TABLE IF NOT EXISTS auction_settings (
   min_balance_per_round INTEGER DEFAULT 30,
   
   created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  updated_at TIMESTAMP DEFAULT NOW(),
+  
+  -- Foreign key to seasons table
+  CONSTRAINT "auction_settings_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons"("id") ON DELETE CASCADE
 );
 
 -- ============================================
--- 2. Add min/max squad size columns to teams table
+-- 2. Add min/max squad size columns to season_teams table
 -- ============================================
 -- Add columns if they don't exist
 DO $$ 
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'teams' AND column_name = 'football_min_slots'
+    WHERE table_name = 'season_teams' AND column_name = 'football_min_slots'
   ) THEN
-    ALTER TABLE teams ADD COLUMN football_min_slots INTEGER DEFAULT 25;
+    ALTER TABLE season_teams ADD COLUMN football_min_slots INTEGER DEFAULT 25;
   END IF;
   
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'teams' AND column_name = 'football_max_slots'
+    WHERE table_name = 'season_teams' AND column_name = 'football_max_slots'
   ) THEN
-    ALTER TABLE teams ADD COLUMN football_max_slots INTEGER DEFAULT 30;
+    ALTER TABLE season_teams ADD COLUMN football_max_slots INTEGER DEFAULT 30;
   END IF;
 END $$;
 
 -- ============================================
--- 3. Update existing teams with default values
+-- 3. Update existing season_teams with default values
 -- ============================================
-UPDATE teams 
+UPDATE season_teams 
 SET 
   football_min_slots = COALESCE(football_min_slots, 25),
   football_max_slots = COALESCE(football_max_slots, 30)
 WHERE football_min_slots IS NULL OR football_max_slots IS NULL;
 
 -- ============================================
--- 4. Add constraints
+-- 4. Add constraints and indexes
 -- ============================================
--- Ensure max >= min
-ALTER TABLE teams 
-  DROP CONSTRAINT IF EXISTS check_football_slots_valid;
+-- Create index for performance
+CREATE INDEX IF NOT EXISTS idx_auction_settings_seasonId 
+  ON auction_settings("seasonId");
 
-ALTER TABLE teams 
-  ADD CONSTRAINT check_football_slots_valid 
-  CHECK (football_max_slots >= football_min_slots);
-
--- Same for auction_settings
-ALTER TABLE auction_settings 
-  DROP CONSTRAINT IF EXISTS check_squad_size_valid;
-
+-- Ensure max >= min for auction_settings
 ALTER TABLE auction_settings 
   ADD CONSTRAINT check_squad_size_valid 
   CHECK (max_squad_size >= min_squad_size);
 
--- ============================================
--- 5. Create indexes for performance
--- ============================================
-CREATE INDEX IF NOT EXISTS idx_auction_settings_season_id 
-  ON auction_settings(season_id);
+-- Ensure max >= min for season_teams
+ALTER TABLE season_teams 
+  DROP CONSTRAINT IF EXISTS check_football_slots_valid;
+
+ALTER TABLE season_teams 
+  ADD CONSTRAINT check_football_slots_valid 
+  CHECK (football_max_slots >= football_min_slots);
 
 -- ============================================
--- 6. Insert default auction settings for existing seasons
+-- 5. Insert default auction settings for existing seasons
 -- ============================================
 -- This will create default settings for any season that doesn't have them
 INSERT INTO auction_settings (
-  season_id,
+  "seasonId",
   auction_window,
   phase_1_end_round,
   phase_1_min_balance,
@@ -129,7 +110,7 @@ INSERT INTO auction_settings (
   min_balance_per_round
 )
 SELECT DISTINCT
-  season_id,
+  "id",
   'season_start',
   18,
   30,
@@ -141,9 +122,9 @@ SELECT DISTINCT
   25,
   2,
   30
-FROM teams
-WHERE season_id NOT IN (SELECT season_id FROM auction_settings)
-ON CONFLICT (season_id) DO NOTHING;
+FROM seasons
+WHERE "id" NOT IN (SELECT "seasonId" FROM auction_settings)
+ON CONFLICT ("seasonId") DO NOTHING;
 
 -- ============================================
 -- VERIFICATION QUERIES
@@ -153,11 +134,11 @@ ON CONFLICT (season_id) DO NOTHING;
 -- Check auction_settings table
 -- SELECT * FROM auction_settings;
 
--- Check teams with new columns
--- SELECT id, season_id, football_min_slots, football_max_slots, football_players_count 
--- FROM teams LIMIT 10;
+-- Check season_teams with new columns
+-- SELECT "id", "seasonId", football_min_slots, football_max_slots 
+-- FROM season_teams LIMIT 10;
 
 -- Verify constraints
 -- SELECT conname, contype, pg_get_constraintdef(oid) 
 -- FROM pg_constraint 
--- WHERE conrelid = 'teams'::regclass AND conname LIKE '%slots%';
+-- WHERE conrelid = 'season_teams'::regclass AND conname LIKE '%slots%';

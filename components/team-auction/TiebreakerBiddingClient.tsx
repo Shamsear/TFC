@@ -212,9 +212,6 @@ export default function TiebreakerBiddingClient({
               </div>
             </div>
           )}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

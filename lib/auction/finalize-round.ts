@@ -218,6 +218,7 @@ async function allocateToSubmittedTeams(
  * Handle non-submitted teams - assign random players at average winning price
  */
 async function handleNonSubmittedTeams(
+  roundId: string,
   teamBids: TeamBids[],
   seasonId: string,
   roundNumber: number,

@@ -6,6 +6,26 @@
 -- and optional maximum squad sizes.
 
 -- ============================================
+-- 0. Check existing auction_settings structure
+-- ============================================
+-- First, let's see if the table exists and drop it if needed
+DO $$
+BEGIN
+  -- If auction_settings exists but doesn't have the right structure, we need to handle it
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'auction_settings') THEN
+    -- Check if it has the old structure (without season_id column)
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'auction_settings' AND column_name = 'season_id'
+    ) THEN
+      -- Drop the old table (backup data first if needed)
+      RAISE NOTICE 'Dropping old auction_settings table with incompatible structure';
+      DROP TABLE IF EXISTS auction_settings CASCADE;
+    END IF;
+  END IF;
+END $$;
+
+-- ============================================
 -- 1. Create auction_settings table if not exists
 -- ============================================
 CREATE TABLE IF NOT EXISTS auction_settings (

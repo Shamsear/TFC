@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import PlayerCardImage from '@/components/player/PlayerCardImage'
 import PlayerDetailTabs from '@/components/player/PlayerDetailTabs'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 import { getPlayerCardById } from '@/lib/image-cdn'
 
 interface PlayerDetailContentProps {
@@ -18,6 +19,7 @@ interface PlayerDetailContentProps {
   }
   stats: {
     position: string
+    position_group?: string | null
     realWorldClub: string | null
     overallRating: number | null
     overallAtMaxLevel: number | null
@@ -463,6 +465,7 @@ export default function PlayerDetailContent({
                       <span className="px-3 py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-sm font-bold uppercase">
                         {stats.position}
                       </span>
+                      <PositionGroupBadge position={stats.position} group={stats.position_group} size="md" />
                       {stats.playingStyle && (
                         <span className="px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 text-sm font-medium">
                           {stats.playingStyle}

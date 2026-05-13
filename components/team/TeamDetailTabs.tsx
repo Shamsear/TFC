@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
 interface Team {
   id: string
@@ -16,6 +17,7 @@ interface Player {
   name: string
   photoUrl: string
   position: string
+  position_group?: string | null
   overallRating: number
   realWorldClub: string
   soldPrice: number
@@ -233,10 +235,11 @@ export default function TeamDetailTabs({
                               <div className="text-xs text-[#7A7367] truncate">
                                 {player.realWorldClub}
                               </div>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <span className="text-xs font-bold text-[#E8A800]">
                                   {player.overallRating} OVR
                                 </span>
+                                <PositionGroupBadge position={player.position} group={player.position_group} size="sm" />
                                 <span className="text-xs text-gray-400">
                                   {formatCurrency(player.soldPrice)}
                                 </span>

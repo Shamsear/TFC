@@ -54,6 +54,9 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
     notFound()
   }
 
+  // Get position group from round if it exists
+  const roundPositionGroup = round.position_group || 'ALL'
+
   // Fetch teams in this season
   const seasonTeams = await prisma.season_teams.findMany({
     where: { seasonId },
@@ -111,6 +114,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
       select: {
         basePlayerId: true,
         position: true,
+        position_group: true,
         overallRating: true,
         nationality: true
       }
@@ -210,6 +214,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         select: {
           basePlayerId: true,
           position: true,
+          position_group: true,
           overallRating: true
         }
       })

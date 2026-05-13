@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 interface TransfersPageProps {
@@ -176,6 +177,11 @@ export default async function TransfersPage({ params }: TransfersPageProps) {
                         <span className={`px-2 py-0.5 sm:py-1 rounded-lg border text-xs font-bold ${getPositionColor(transfer.basePlayer.seasonalPlayerStats[0]?.position || 'N/A')}`}>
                           {transfer.basePlayer.seasonalPlayerStats[0]?.position || 'N/A'}
                         </span>
+                        <PositionGroupBadge 
+                          position={transfer.basePlayer.seasonalPlayerStats[0]?.position || ''} 
+                          group={transfer.basePlayer.seasonalPlayerStats[0]?.position_group} 
+                          size="sm" 
+                        />
                         <span className="px-2 py-0.5 sm:py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold">
                           {transfer.basePlayer.seasonalPlayerStats[0]?.overallRating || 0} OVR
                         </span>

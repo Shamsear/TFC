@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
   const searchQuery = searchParams.get('search') || ''
   const positionFilter = searchParams.get('position') || 'ALL'
   const teamFilter = searchParams.get('team') || 'ALL'
+  const groupFilter = searchParams.get('group') || 'ALL'
   const sortBy = searchParams.get('sort') || 'rating'
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const skip = (page - 1) * ITEMS_PER_PAGE
@@ -41,7 +42,12 @@ export async function GET(request: NextRequest) {
     ]
   }
   if (positionFilter !== 'ALL') {
-    const posCond = { seasonalPlayerStats: { some: { seasonId, position: positionFilter } } }
+    const statsFilter: any = { seasonId, position: positionFilter }
+    // Add group filter if specified and position supports groups
+    if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {
+      statsFilter.position_group = groupFilter
+    }
+    const posCond = { seasonalPlayerStats: { some: statsFilter } }
     if (basePLayerWhere.OR) {
       basePLayerWhere.AND = [{ OR: basePLayerWhere.OR }, posCond]
       delete basePLayerWhere.OR
@@ -80,11 +86,16 @@ export async function GET(request: NextRequest) {
       ]
     }
     if (positionFilter !== 'ALL') {
+      const posCondition: any = { position: positionFilter }
+      // Add group filter if specified and position supports groups
+      if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {
+        posCondition.position_group = groupFilter
+      }
       if (statsWhere.OR) {
-        statsWhere.AND = [{ OR: statsWhere.OR }, { position: positionFilter }]
+        statsWhere.AND = [{ OR: statsWhere.OR }, posCondition]
         delete statsWhere.OR
       } else {
-        statsWhere.position = positionFilter
+        Object.assign(statsWhere, posCondition)
       }
     }
     if (teamFilter !== 'ALL') {
@@ -133,7 +144,8 @@ export async function GET(request: NextRequest) {
         overallRating: stats.overallRating || 0,
         team: transfer ? { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl } : null,
         soldPrice: transfer?.soldPrice || null,
-        status: (transfer ? 'SOLD' : 'AVAILABLE') as 'SOLD' | 'AVAILABLE'
+        status: (transfer ? 'SOLD' : 'AVAILABLE') as 'SOLD' | 'AVAILABLE',
+        position_group: stats.position_group || null
       }
     })
 
@@ -159,7 +171,12 @@ export async function GET(request: NextRequest) {
       ]
     }
     if (positionFilter !== 'ALL') {
-      const posCond = { basePlayer: { seasonalPlayerStats: { some: { seasonId, position: positionFilter } } } }
+      const statsFilter: any = { seasonId, position: positionFilter }
+      // Add group filter if specified and position supports groups
+      if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {
+        statsFilter.position_group = groupFilter
+      }
+      const posCond = { basePlayer: { seasonalPlayerStats: { some: statsFilter } } }
       if (transferWhere.OR) {
         transferWhere.AND = [{ OR: transferWhere.OR }, posCond]; delete transferWhere.OR
       } else { Object.assign(transferWhere, posCond) }
@@ -202,7 +219,8 @@ export async function GET(request: NextRequest) {
         overallRating: stats?.overallRating || 0,
         team: { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl },
         soldPrice: transfer.soldPrice,
-        status: 'SOLD' as const
+        status: 'SOLD' as const,
+        position_group: stats?.position_group || null
       }
     })
 
@@ -244,7 +262,8 @@ export async function GET(request: NextRequest) {
       overallRating: stats?.overallRating || 0,
       team: transfer ? { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl } : null,
       soldPrice: transfer?.soldPrice || null,
-      status: (transfer ? 'SOLD' : 'AVAILABLE') as 'SOLD' | 'AVAILABLE'
+      status: (transfer ? 'SOLD' : 'AVAILABLE') as 'SOLD' | 'AVAILABLE',
+      position_group: stats?.position_group || null
     }
   })
 

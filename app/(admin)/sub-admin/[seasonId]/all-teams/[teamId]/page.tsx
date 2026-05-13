@@ -83,6 +83,7 @@ async function getTeamData(teamId: string, seasonId: string) {
       name: transfer.basePlayer.name,
       photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
       position,
+      position_group: transfer.basePlayer.seasonalPlayerStats[0]?.position_group || null,
       overallRating: transfer.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
       realWorldClub: transfer.basePlayer.seasonalPlayerStats[0]?.realWorldClub || 'N/A',
       soldPrice: transfer.soldPrice

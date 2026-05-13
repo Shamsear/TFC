@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
 interface Player {
   id: string
@@ -15,6 +16,7 @@ interface Player {
   team: { id: string; name: string; logoUrl: string } | null
   soldPrice: number | null
   status: 'SOLD' | 'AVAILABLE'
+  position_group?: string | null
 }
 
 interface AllPlayersClientProps {
@@ -63,6 +65,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
   const [searchQuery, setSearchQuery] = useState(() => getParam('search', ''))
   const [positionFilter, setPositionFilter] = useState(() => getParam('position', 'ALL'))
   const [teamFilter, setTeamFilter] = useState(() => getParam('team', 'ALL'))
+  const [groupFilter, setGroupFilter] = useState(() => getParam('group', 'ALL'))
   const [currentPage, setCurrentPage] = useState(() => parseInt(getParam('page', '1'), 10))
 
   const [players, setPlayers] = useState<Player[]>([])
@@ -79,6 +82,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     search: string
     position: string
     team: string
+    group: string
     page: number
   }) => {
     if (abortRef.current) abortRef.current.abort()
@@ -91,6 +95,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     if (opts.search) params.set('search', opts.search)
     if (opts.position !== 'ALL') params.set('position', opts.position)
     if (opts.team !== 'ALL') params.set('team', opts.team)
+    if (opts.group !== 'ALL') params.set('group', opts.group)
 
     try {
       const res = await fetch(`/api/players/search?${params}`, { signal: abortRef.current.signal })
@@ -108,13 +113,14 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
 
   // ── Silently sync state → URL (no navigation, no reload) ────────────────────
   const syncURL = useCallback((opts: {
-    search: string; position: string; team: string; page: number
+    search: string; position: string; team: string; group: string; page: number
   }) => {
     const params = new URLSearchParams()
     if (opts.page > 1) params.set('page', String(opts.page))
     if (opts.search) params.set('search', opts.search)
     if (opts.position !== 'ALL') params.set('position', opts.position)
     if (opts.team !== 'ALL') params.set('team', opts.team)
+    if (opts.group !== 'ALL') params.set('group', opts.group)
     const qs = params.toString()
     window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname)
   }, [pathname])
@@ -126,8 +132,8 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     debounceRef.current = setTimeout(() => {
       const newPage = 1
       setCurrentPage(newPage)
-      syncURL({ search: searchQuery, position: positionFilter, team: teamFilter, page: newPage })
-      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, page: newPage })
+      syncURL({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, page: newPage })
+      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, page: newPage })
     }, 400)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,23 +141,24 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
 
   // ── Instant filter changes ───────────────────────────────────────────────────
   const applyFilters = useCallback((overrides: Partial<{
-    position: string; team: string; page: number
+    position: string; team: string; group: string; page: number
   }>) => {
     const next = {
       search: searchQuery,
       position: positionFilter,
       team: teamFilter,
+      group: groupFilter,
       page: 1,
       ...overrides
     }
     setCurrentPage(next.page)
     syncURL(next)
     fetchPlayers(next)
-  }, [searchQuery, positionFilter, teamFilter, syncURL, fetchPlayers])
+  }, [searchQuery, positionFilter, teamFilter, groupFilter, syncURL, fetchPlayers])
 
   // ── Initial load ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, page: currentPage })
+    fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, page: currentPage })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -166,6 +173,11 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     applyFilters({ team: value })
   }
 
+  const handleGroupChange = (value: string) => {
+    setGroupFilter(value)
+    applyFilters({ group: value })
+  }
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     applyFilters({ page })
@@ -176,7 +188,8 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     setSearchQuery('')
     setPositionFilter('ALL')
     setTeamFilter('ALL')
-    const next = { search: '', position: 'ALL', team: 'ALL', page: 1 }
+    setGroupFilter('ALL')
+    const next = { search: '', position: 'ALL', team: 'ALL', group: 'ALL', page: 1 }
     syncURL(next)
     fetchPlayers(next)
   }
@@ -186,7 +199,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     <div className="space-y-4 sm:space-y-6">
       {/* Filters */}
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
             <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Search Players</label>
@@ -232,6 +245,22 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
               ))}
             </select>
           </div>
+
+          {/* Group Filter - Only show for grouped positions */}
+          {['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter) && (
+            <div>
+              <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Group</label>
+              <select
+                value={groupFilter}
+                onChange={(e) => handleGroupChange(e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
+              >
+                <option value="ALL">All Groups</option>
+                <option value="A">Group A</option>
+                <option value="B">Group B</option>
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -247,7 +276,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
             <span className="text-[#E8A800] ml-2">• Searching for "{searchQuery}"</span>
           )}
         </span>
-        {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL') && (
+        {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || groupFilter !== 'ALL') && (
           <button
             onClick={handleClearFilters}
             className="text-[#E8A800] hover:text-[#FFC93A] transition-colors text-xs"
@@ -313,6 +342,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
                           <span className="px-2 py-0.5 sm:py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold">
                             {player.position}
                           </span>
+                          <PositionGroupBadge position={player.position} group={player.position_group} size="sm" />
                           <span className="px-2 py-0.5 sm:py-1 rounded-lg bg-[#FFB347]/20 border border-[#FFB347]/30 text-[#FFB347] text-xs font-bold">
                             {player.overallRating} OVR
                           </span>

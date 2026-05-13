@@ -66,6 +66,7 @@ async function getPlayerData(playerId: string, seasonId: string) {
     },
     stats: {
       position: stats.position,
+      position_group: stats.position_group,
       realWorldClub: stats.realWorldClub,
       overallRating: stats.overallRating,
       overallAtMaxLevel: stats.overall_at_max_level,

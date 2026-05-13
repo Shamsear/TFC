@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user?.team_id) {
+    if (!session?.user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Get the season team
     const seasonTeam = await prisma.season_teams.findFirst({
       where: {
-        teamId: session.user.team_id,
+        teamId: session.user.teamId,
         seasonId: seasonId,
       },
     })

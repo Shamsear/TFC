@@ -536,6 +536,7 @@ model rounds {
   id                  String    @id
   seasonId            String    @map("season_id")
   position            String?
+  position_group      String?   @map("position_group")
   roundNumber         Int       @map("round_number")
   roundType           String    @map("round_type") // 'normal' | 'bulk'
   maxBidsPerTeam      Int?      @map("max_bids_per_team")

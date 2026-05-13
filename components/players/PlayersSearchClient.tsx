@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -17,6 +17,7 @@ interface PlayerData {
   teamName: string | null
   teamLogoUrl: string | null
   soldPrice: number | null
+  isStarred?: boolean
 }
 
 interface Team {
@@ -36,18 +37,88 @@ interface PlayersSearchClientProps {
     freeAgents: number
   }
   basePath?: string // Optional base path for player links (defaults to /players)
+  seasonId?: string // Season ID for starring players
+  enableStarring?: boolean // Enable star functionality
 }
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'SS', 'LWF', 'RWF', 'CF']
 const ITEMS_PER_PAGE = 20
 
-export default function PlayersSearchClient({ players, teams, stats, basePath = '/players' }: PlayersSearchClientProps) {
+export default function PlayersSearchClient({ 
+  players, 
+  teams, 
+  stats, 
+  basePath = '/players',
+  seasonId,
+  enableStarring = false 
+}: PlayersSearchClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPosition, setSelectedPosition] = useState<string>('ALL')
   const [selectedTeam, setSelectedTeam] = useState<string>('ALL')
   const [selectedPlayingStyle, setSelectedPlayingStyle] = useState<string>('ALL')
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [starredPlayerIds, setStarredPlayerIds] = useState<Set<string>>(new Set())
+  const [starringInProgress, setStarringInProgress] = useState<Set<string>>(new Set())
+
+  // Load starred players on mount
+  useEffect(() => {
+    if (enableStarring && seasonId) {
+      fetch(`/api/team/starred-players?seasonId=${seasonId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.starredPlayerIds) {
+            setStarredPlayerIds(new Set(data.starredPlayerIds))
+          }
+        })
+        .catch(err => console.error('Error loading starred players:', err))
+    }
+  }, [enableStarring, seasonId])
+
+  // Toggle star for a player
+  const toggleStar = async (playerId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!seasonId || starringInProgress.has(playerId)) return
+    
+    setStarringInProgress(prev => new Set(prev).add(playerId))
+    const isCurrentlyStarred = starredPlayerIds.has(playerId)
+    
+    try {
+      if (isCurrentlyStarred) {
+        // Unstar
+        const res = await fetch(`/api/team/starred-players?playerId=${playerId}&seasonId=${seasonId}`, {
+          method: 'DELETE',
+        })
+        if (res.ok) {
+          setStarredPlayerIds(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(playerId)
+            return newSet
+          })
+        }
+      } else {
+        // Star
+        const res = await fetch('/api/team/starred-players', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId, seasonId }),
+        })
+        if (res.ok) {
+          setStarredPlayerIds(prev => new Set(prev).add(playerId))
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling star:', err)
+    } finally {
+      setStarringInProgress(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(playerId)
+        return newSet
+      })
+    }
+  }
 
   // Get unique playing styles based on selected position
   const availablePlayingStyles = useMemo(() => {
@@ -73,7 +144,7 @@ export default function PlayersSearchClient({ players, teams, stats, basePath = 
 
   // Real-time filtering
   const filteredPlayers = useMemo(() => {
-    return players.filter(player => {
+    let filtered = players.filter(player => {
       // Search filter
       const matchesSearch = searchQuery === '' || 
         player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,7 +164,20 @@ export default function PlayersSearchClient({ players, teams, stats, basePath = 
 
       return matchesSearch && matchesPosition && matchesTeam && matchesPlayingStyle
     })
-  }, [players, searchQuery, selectedPosition, selectedTeam, selectedPlayingStyle])
+
+    // Sort: starred players first, then by name
+    if (enableStarring) {
+      filtered.sort((a, b) => {
+        const aStarred = starredPlayerIds.has(a.id)
+        const bStarred = starredPlayerIds.has(b.id)
+        if (aStarred && !bStarred) return -1
+        if (!aStarred && bStarred) return 1
+        return a.name.localeCompare(b.name)
+      })
+    }
+
+    return filtered
+  }, [players, searchQuery, selectedPosition, selectedTeam, selectedPlayingStyle, enableStarring, starredPlayerIds])
 
   // Reset to page 1 when filters change
   useMemo(() => {
@@ -413,8 +497,28 @@ export default function PlayersSearchClient({ players, teams, stats, basePath = 
               <Link
                 key={player.id}
                 href={`${basePath}/${player.id}`}
-                className="group rounded-xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/10 p-4 transition-all"
+                className="group rounded-xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/10 p-4 transition-all relative"
               >
+                {/* Star Button */}
+                {enableStarring && (
+                  <button
+                    onClick={(e) => toggleStar(player.id, e)}
+                    disabled={starringInProgress.has(player.id)}
+                    className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-black/50 hover:bg-black/70 transition-all disabled:opacity-50"
+                    title={starredPlayerIds.has(player.id) ? 'Unstar player' : 'Star player'}
+                  >
+                    {starredPlayerIds.has(player.id) ? (
+                      <svg className="w-5 h-5 text-[#E8A800] fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-gray-400 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+
                 {/* Player Card - Horizontal Layout */}
                 <div className="flex gap-4">
                   {/* Player Photo - Left Side */}

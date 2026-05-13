@@ -73,6 +73,63 @@ export default function NormalRoundBiddingClient({
   const [isSubmitted, setIsSubmitted] = useState(existingBids?.submitted || false)
   const [unlocking, setUnlocking] = useState(false)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
+  const [starredPlayerIds, setStarredPlayerIds] = useState<Set<string>>(new Set())
+  const [starringInProgress, setStarringInProgress] = useState<Set<string>>(new Set())
+
+  // Load starred players
+  useEffect(() => {
+    fetch(`/api/team/starred-players?seasonId=${round.season.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.starredPlayerIds) {
+          setStarredPlayerIds(new Set(data.starredPlayerIds))
+        }
+      })
+      .catch(err => console.error('Error loading starred players:', err))
+  }, [round.season.id])
+
+  // Toggle star for a player
+  const toggleStar = async (playerId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (starringInProgress.has(playerId)) return
+    
+    setStarringInProgress(prev => new Set(prev).add(playerId))
+    const isCurrentlyStarred = starredPlayerIds.has(playerId)
+    
+    try {
+      if (isCurrentlyStarred) {
+        const res = await fetch(`/api/team/starred-players?playerId=${playerId}&seasonId=${round.season.id}`, {
+          method: 'DELETE',
+        })
+        if (res.ok) {
+          setStarredPlayerIds(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(playerId)
+            return newSet
+          })
+        }
+      } else {
+        const res = await fetch('/api/team/starred-players', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId, seasonId: round.season.id }),
+        })
+        if (res.ok) {
+          setStarredPlayerIds(prev => new Set(prev).add(playerId))
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling star:', err)
+    } finally {
+      setStarringInProgress(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(playerId)
+        return newSet
+      })
+    }
+  }
 
   // Fetch reserve info
   useEffect(() => {
@@ -327,10 +384,19 @@ export default function NormalRoundBiddingClient({
     }
   }
 
-  const filteredPlayers = players.filter(p =>
-    p.basePlayer.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    (playingStyleFilter === 'all' || p.playing_style === playingStyleFilter)
-  )
+  const filteredPlayers = players
+    .filter(p =>
+      p.basePlayer.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (playingStyleFilter === 'all' || p.playing_style === playingStyleFilter)
+    )
+    .sort((a, b) => {
+      // Sort: starred players first, then by overall rating
+      const aStarred = starredPlayerIds.has(a.basePlayer.id)
+      const bStarred = starredPlayerIds.has(b.basePlayer.id)
+      if (aStarred && !bStarred) return -1
+      if (!aStarred && bStarred) return 1
+      return b.overallRating - a.overallRating
+    })
 
   // Get unique playing styles for filter
   const playingStyles = Array.from(new Set(players.map(p => p.playing_style).filter(Boolean))) as string[]
@@ -497,8 +563,26 @@ export default function NormalRoundBiddingClient({
           {filteredPlayers.map(player => (
             <div
               key={player.basePlayerId}
-              className="rounded-xl bg-white/5 border border-white/10 p-4"
+              className="rounded-xl bg-white/5 border border-white/10 p-4 relative"
             >
+              {/* Star Button */}
+              <button
+                onClick={(e) => toggleStar(player.basePlayer.id, e)}
+                disabled={starringInProgress.has(player.basePlayer.id)}
+                className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-black/50 hover:bg-black/70 transition-all disabled:opacity-50"
+                title={starredPlayerIds.has(player.basePlayer.id) ? 'Unstar player' : 'Star player'}
+              >
+                {starredPlayerIds.has(player.basePlayer.id) ? (
+                  <svg className="w-4 h-4 text-[#E8A800] fill-current" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-gray-400 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                )}
+              </button>
+
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
                   <Image

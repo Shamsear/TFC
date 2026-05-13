@@ -155,6 +155,8 @@ export default async function TeamPlayersPage() {
             teams={data.teams}
             stats={data.stats}
             basePath="/team/players"
+            seasonId={activeSeason.id}
+            enableStarring={true}
           />
         </div>
       </main>

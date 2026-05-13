@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const result = await sql`
       SELECT *
       FROM auction_settings
-      WHERE season_id = ${seasonId}
+      WHERE "seasonId" = ${seasonId}
     `;
 
     if (result.rows.length === 0) {
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       min_squad_size,
       max_squad_size,
       max_rounds,
-      contract_duration,
-      min_balance_per_round
+      min_balance_per_round,
+      default_max_bids_per_team = 10
     } = body;
 
     // Validation
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Upsert auction settings
     const result = await sql`
       INSERT INTO auction_settings (
-        season_id,
+        "seasonId",
         auction_window,
         phase_1_end_round,
         phase_1_min_balance,
@@ -114,8 +114,8 @@ export async function POST(request: NextRequest) {
         min_squad_size,
         max_squad_size,
         max_rounds,
-        contract_duration,
         min_balance_per_round,
+        default_max_bids_per_team,
         updated_at
       ) VALUES (
         ${season_id},
@@ -128,11 +128,11 @@ export async function POST(request: NextRequest) {
         ${min_squad_size},
         ${max_squad_size},
         ${max_rounds},
-        ${contract_duration},
         ${min_balance_per_round},
+        ${default_max_bids_per_team},
         NOW()
       )
-      ON CONFLICT (season_id) DO UPDATE SET
+      ON CONFLICT ("seasonId") DO UPDATE SET
         auction_window = ${auction_window},
         phase_1_end_round = ${phase_1_end_round},
         phase_1_min_balance = ${phase_1_min_balance},
@@ -142,8 +142,8 @@ export async function POST(request: NextRequest) {
         min_squad_size = ${min_squad_size},
         max_squad_size = ${max_squad_size},
         max_rounds = ${max_rounds},
-        contract_duration = ${contract_duration},
         min_balance_per_round = ${min_balance_per_round},
+        default_max_bids_per_team = ${default_max_bids_per_team},
         updated_at = NOW()
       RETURNING *
     `;

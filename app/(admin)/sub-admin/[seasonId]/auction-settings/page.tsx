@@ -16,8 +16,8 @@ interface AuctionSettings {
   min_squad_size: number
   max_squad_size: number
   max_rounds: number
-  contract_duration: number
   min_balance_per_round: number
+  default_max_bids_per_team: number
 }
 
 export default function AuctionSettingsPage() {
@@ -31,6 +31,7 @@ export default function AuctionSettingsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const [formData, setFormData] = useState({
+    auction_window: 'season_start',
     phase_1_end_round: 18,
     phase_1_min_balance: 30,
     phase_2_end_round: 20,
@@ -39,8 +40,8 @@ export default function AuctionSettingsPage() {
     min_squad_size: 25,
     max_squad_size: 30,
     max_rounds: 25,
-    contract_duration: 2,
-    min_balance_per_round: 30
+    min_balance_per_round: 30,
+    default_max_bids_per_team: 10
   })
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function AuctionSettingsPage() {
         if (data.settings) {
           setSettings(data.settings)
           setFormData({
+            auction_window: data.settings.auction_window || 'season_start',
             phase_1_end_round: data.settings.phase_1_end_round,
             phase_1_min_balance: data.settings.phase_1_min_balance,
             phase_2_end_round: data.settings.phase_2_end_round,
@@ -63,8 +65,8 @@ export default function AuctionSettingsPage() {
             min_squad_size: data.settings.min_squad_size,
             max_squad_size: data.settings.max_squad_size,
             max_rounds: data.settings.max_rounds,
-            contract_duration: data.settings.contract_duration,
-            min_balance_per_round: data.settings.min_balance_per_round
+            min_balance_per_round: data.settings.min_balance_per_round,
+            default_max_bids_per_team: data.settings.default_max_bids_per_team || 10
           })
         }
       }
@@ -168,6 +170,30 @@ export default function AuctionSettingsPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Auction Window Setting */}
+          <div className="rounded-xl bg-white/5 border border-white/10 p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Auction Window</h2>
+            <p className="text-sm text-white/60 mb-4">
+              When the auction takes place relative to the season
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Auction Timing <span className="text-red-400">*</span>
+              </label>
+              <select
+                value={formData.auction_window}
+                onChange={(e) => setFormData(prev => ({ ...prev, auction_window: e.target.value }))}
+                className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20"
+                required
+              >
+                <option value="season_start">Season Start</option>
+                <option value="mid_season">Mid Season</option>
+                <option value="season_end">Season End</option>
+              </select>
+              <p className="text-xs text-white/40 mt-1">When the auction window opens</p>
+            </div>
+          </div>
+
           {/* Phase 1 Settings */}
           <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-6">
             <h2 className="text-xl font-bold text-red-300 mb-4">Phase 1 - Strict Reserve</h2>
@@ -335,19 +361,6 @@ export default function AuctionSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  Contract Duration (Years) <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={formData.contract_duration}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contract_duration: parseInt(e.target.value) }))}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20"
-                  min="1"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
                   Min Balance per Round <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
@@ -361,6 +374,22 @@ export default function AuctionSettingsPage() {
                     required
                   />
                 </div>
+                <p className="text-xs text-white/40 mt-1">Minimum balance required per round</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Default Max Bids per Team <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.default_max_bids_per_team}
+                  onChange={(e) => setFormData(prev => ({ ...prev, default_max_bids_per_team: parseInt(e.target.value) }))}
+                  className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20"
+                  min="1"
+                  max="50"
+                  required
+                />
+                <p className="text-xs text-white/40 mt-1">Default maximum bids per team in regular rounds</p>
               </div>
             </div>
           </div>

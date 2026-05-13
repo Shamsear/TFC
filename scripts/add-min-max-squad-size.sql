@@ -31,7 +31,6 @@ CREATE TABLE auction_settings (
   max_rounds INTEGER DEFAULT 25,
   
   -- Other settings
-  contract_duration INTEGER DEFAULT 2,
   min_balance_per_round INTEGER DEFAULT 30,
   
   created_at TIMESTAMP DEFAULT NOW(),
@@ -106,7 +105,6 @@ INSERT INTO auction_settings (
   min_squad_size,
   max_squad_size,
   max_rounds,
-  contract_duration,
   min_balance_per_round
 )
 SELECT DISTINCT
@@ -120,7 +118,6 @@ SELECT DISTINCT
   25,
   30,
   25,
-  2,
   30
 FROM seasons
 WHERE "id" NOT IN (SELECT "seasonId" FROM auction_settings)

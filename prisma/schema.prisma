@@ -22,6 +22,7 @@ model base_players {
   tiebreakers          tiebreakers[]
   bulkTiebreakers      bulk_tiebreakers[]
   previewAllocations   preview_allocations[]
+  starredPlayers       starred_players[]
 }
 
 model financial_ledger {

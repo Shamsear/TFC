@@ -205,12 +205,12 @@ export default async function SuperAdminDashboard() {
                     href={`/super-admin/teams/${team.id}`}
                     className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all"
                   >
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
                       {team.logoUrl ? (
                         <img
                           src={team.logoUrl}
                           alt={team.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                         />
                       ) : (
                         <span className="text-base sm:text-lg font-black text-white">

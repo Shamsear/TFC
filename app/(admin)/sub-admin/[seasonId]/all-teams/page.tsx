@@ -157,12 +157,12 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
               >
                 <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                   {/* Team Logo */}
-                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl overflow-hidden bg-gray-800 flex-shrink-0 ring-2 ring-white/10">
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-2 ring-white/10 p-2">
                     <Image
                       src={teamDetail.team.logoUrl}
                       alt={teamDetail.team.name}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                     />
                   </div>
 

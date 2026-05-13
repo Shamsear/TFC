@@ -129,6 +129,16 @@ export async function POST(
             }
           })
         }
+
+        // Update defaultMaxBidsPerTeam to match the number of teams
+        const totalTeams = teamIds.length
+        await tx.seasons.update({
+          where: { id: seasonId },
+          data: { 
+            defaultMaxBidsPerTeam: totalTeams,
+            updatedAt: new Date()
+          }
+        })
       },
       {
         maxWait: 10000, // 10 seconds max wait

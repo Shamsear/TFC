@@ -607,7 +607,7 @@ export default async function TeamDashboardPage() {
         {/* Quick Actions */}
         <div>
           <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
             <Link
               href="/team/auction"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
@@ -620,6 +620,17 @@ export default async function TeamDashboardPage() {
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Auction</div>
             </Link>
             <Link
+              href="/team/auction-planner"
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              </div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Planner</div>
+            </Link>
+            <Link
               href="/team/squad"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
             >
@@ -628,7 +639,7 @@ export default async function TeamDashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">View Squad</div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Squad</div>
             </Link>
             <Link
               href="/team/matches"

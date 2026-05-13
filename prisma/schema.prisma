@@ -69,6 +69,7 @@ model season_teams {
   standings       standings[]        @relation("StandingsTeam")
   tournamentTeams tournament_teams[] @relation("TournamentTeams")
   starredPlayers  starred_players[]
+  auctionPlans    auction_plans[]
 
   @@unique([seasonId, teamId])
 }
@@ -243,6 +244,7 @@ model seasons {
   tournaments             tournaments[]
   rounds                  rounds[]
   starredPlayers          starred_players[]
+  auctionPlans            auction_plans[]
 }
 
 model starred_players {
@@ -262,6 +264,23 @@ model starred_players {
   @@index([seasonTeamId, seasonId])
 }
 
+model auction_plans {
+  id                   Int          @id @default(autoincrement())
+  season_team_id       String
+  season_id            String
+  team_id              String
+  encrypted_plan_data  String       @db.Text
+  last_updated         DateTime     @default(now()) @updatedAt
+  created_at           DateTime     @default(now())
+  seasonTeam           season_teams @relation(fields: [season_team_id], references: [id], onDelete: Cascade)
+  season               seasons      @relation(fields: [season_id], references: [id], onDelete: Cascade)
+  team                 teams        @relation(fields: [team_id], references: [id], onDelete: Cascade)
+
+  @@unique([season_team_id, season_id])
+  @@index([season_team_id])
+  @@index([team_id, season_id])
+}
+
 model teams {
   id                            String                           @id
   name                          String                           @unique
@@ -275,6 +294,7 @@ model teams {
   bulkTiebreakerParticipants    bulk_tiebreaker_participants[]   @relation("BulkTiebreakerParticipants")
   bulkTiebreakerBidHistory      bulk_tiebreaker_bid_history[]    @relation("BulkTiebreakerBidHistory")
   previewAllocations            preview_allocations[]
+  auctionPlans                  auction_plans[]
 }
 
 model transfer_history {

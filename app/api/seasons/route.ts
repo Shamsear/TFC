@@ -144,6 +144,7 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         startingPurse,
         isActive: isActive ?? false,
+        defaultMaxBidsPerTeam: 0, // Start with 0, will update when teams are assigned
         updatedAt: new Date()
       }
     })

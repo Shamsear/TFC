@@ -230,11 +230,11 @@ export default function TeamSelectionForm({
                   />
                   
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden ring-2 ring-white/10 flex-shrink-0">
+                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden ring-2 ring-white/10 flex-shrink-0 bg-gradient-to-br from-gray-700 to-gray-900 p-1">
                       <img
                         src={team.logoUrl}
                         alt={team.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="flex-1 min-w-0">

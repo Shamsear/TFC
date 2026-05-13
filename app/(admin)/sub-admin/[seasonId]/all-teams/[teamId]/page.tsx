@@ -165,12 +165,12 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8 mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Team Logo */}
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden bg-gray-800 flex-shrink-0 ring-4 ring-white/10">
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-4 ring-white/10 p-3">
               <Image
                 src={team.logoUrl}
                 alt={team.name}
                 fill
-                className="object-cover"
+                className="object-contain"
                 priority
               />
             </div>

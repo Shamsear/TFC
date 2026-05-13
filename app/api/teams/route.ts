@@ -175,6 +175,19 @@ export async function POST(request: NextRequest) {
             description: 'Initial season purse'
           }
         })
+
+        // Update defaultMaxBidsPerTeam to match the number of teams in the season
+        const teamCount = await tx.season_teams.count({
+          where: { seasonId: season.id }
+        })
+        
+        await tx.seasons.update({
+          where: { id: season.id },
+          data: { 
+            defaultMaxBidsPerTeam: teamCount,
+            updatedAt: new Date()
+          }
+        })
       }
 
       // Create user (team manager)

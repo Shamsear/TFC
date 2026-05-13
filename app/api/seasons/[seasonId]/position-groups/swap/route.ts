@@ -7,8 +7,9 @@ export const runtime = 'nodejs';
 // POST - Swap two players between groups
 export async function POST(
   request: NextRequest,
-  { params }: { params: { seasonId: string } }
+  { params }: { params: Promise<{ seasonId: string }> }
 ) {
+  const { seasonId } = await params;
   try {
     const session = await auth();
     if (!session?.user || session.user.role !== 'SUB_ADMIN') {

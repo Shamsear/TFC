@@ -7,8 +7,9 @@ export const runtime = 'nodejs';
 // POST - Move a player to a different group
 export async function POST(
   request: NextRequest,
-  { params }: { params: { seasonId: string } }
+  { params }: { params: Promise<{ seasonId: string }> }
 ) {
+  const { seasonId } = await params;
   try {
     const session = await auth();
     if (!session?.user || session.user.role !== 'SUB_ADMIN') {

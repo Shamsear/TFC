@@ -10,7 +10,7 @@ const GROUPED_POSITIONS = ['CB', 'DMF', 'CMF', 'AMF', 'CF'];
 // GET - Fetch all players grouped by position
 export async function GET(
   request: NextRequest,
-  { params }: { params: { seasonId: string } }
+  { params }: { params: Promise<{ seasonId: string }> }
 ) {
   try {
     const session = await auth();
@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { seasonId } = params;
+    const { seasonId } = await params;
 
     // Fetch all players for this season with grouped positions
     const players = await prisma.seasonal_player_stats.findMany({
@@ -92,7 +92,7 @@ export async function GET(
 // POST - Auto-distribute players into groups
 export async function POST(
   request: NextRequest,
-  { params }: { params: { seasonId: string } }
+  { params }: { params: Promise<{ seasonId: string }> }
 ) {
   try {
     const session = await auth();
@@ -100,7 +100,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { seasonId } = params;
+    const { seasonId } = await params;
     const { position } = await request.json();
 
     if (!GROUPED_POSITIONS.includes(position)) {

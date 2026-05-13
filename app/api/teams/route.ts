@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
-import { generateTeamId, generateUserId, generateSeasonTeamId } from "@/lib/id-generator"
+import { generateTeamId, generateUserId, generateSeasonTeamId, generateFinancialId } from "@/lib/id-generator"
 import { generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator"
 import { hash } from "bcryptjs"
 
@@ -149,6 +149,8 @@ export async function POST(request: NextRequest) {
       // Create season_teams record if season is provided
       if (season) {
         const seasonTeamId = await generateSeasonTeamId()
+        const ledgerId = await generateFinancialId()
+        
         await tx.season_teams.create({
           data: {
             id: seasonTeamId,
@@ -157,6 +159,20 @@ export async function POST(request: NextRequest) {
             currentBudget: season.startingPurse,
             trophiesWon: 0,
             updatedAt: new Date()
+          }
+        })
+
+        // Create initial financial ledger entry
+        await tx.financial_ledger.create({
+          data: {
+            id: ledgerId,
+            seasonTeamId: seasonTeamId,
+            seasonId: season.id,
+            transactionType: 'INITIAL_PURSE',
+            amount: season.startingPurse,
+            previousBalance: 0,
+            newBalance: season.startingPurse,
+            description: 'Initial season purse'
           }
         })
       }

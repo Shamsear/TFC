@@ -442,14 +442,6 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                       ))}
                     </div>
                   </div>
-                              : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                          }`}
-                        >
-                          {position}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Quick Select Buttons */}

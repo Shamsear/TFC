@@ -506,17 +506,17 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                     <div className="text-xs sm:text-sm text-gray-400 mb-3">{auction.description}</div>
                   )}
                   <div className="flex flex-wrap gap-1 sm:gap-2">
-                    {auction.positions.map((position) => (
+                    {auction.positionSlots.map((slot, idx) => (
                       <div
-                        key={position}
+                        key={`${slot.position}-${slot.group}-${idx}`}
                         className="px-2 py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold"
                       >
-                        {position}
+                        {slot.position}{slot.group && slot.group !== 'ALL' ? `-${slot.group}` : ''}
                       </div>
                     ))}
                   </div>
                   <div className="text-xs text-gray-500 mt-2">
-                    {auction.positions.length} position slot{auction.positions.length !== 1 ? 's' : ''}
+                    {auction.positionSlots.length} position slot{auction.positionSlots.length !== 1 ? 's' : ''}
                   </div>
                 </div>
               )}

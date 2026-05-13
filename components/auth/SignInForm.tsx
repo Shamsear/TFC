@@ -90,7 +90,9 @@ export function SignInForm() {
 
       if (result?.error) {
         setError("Invalid email/username or password");
+        setIsLoading(false);
       } else if (result?.ok) {
+        // Keep loading state active during redirect
         // Fetch session to get user role
         const response = await fetch('/api/auth/session');
         const session = await response.json();
@@ -106,10 +108,10 @@ export function SignInForm() {
           router.push(callbackUrl);
         }
         router.refresh();
+        // Keep loading state active until redirect completes
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -179,12 +181,12 @@ export function SignInForm() {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed text-[#0a0a0a] text-sm sm:text-base font-bold rounded-lg sm:rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:ring-offset-2 focus:ring-offset-transparent hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50"
+        className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-[#0a0a0a] text-sm sm:text-base font-bold rounded-lg sm:rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:ring-offset-2 focus:ring-offset-transparent hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50"
       >
         {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <div className="w-4 h-4 sm:w-5 sm:h-5 border-3 border-[#0a0a0a]/30 border-t-[#0a0a0a] rounded-full animate-spin"></div>
-            Signing in...
+          <span className="flex items-center justify-center gap-2 sm:gap-3">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 border-[3px] border-[#0a0a0a]/20 border-t-[#0a0a0a] rounded-full animate-spin"></div>
+            <span>Signing in...</span>
           </span>
         ) : (
           "Sign In"

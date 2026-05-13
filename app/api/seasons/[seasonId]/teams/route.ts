@@ -125,11 +125,11 @@ export async function POST(
               amount: season.startingPurse,
               previousBalance: 0,
               newBalance: season.startingPurse,
-            description: 'Initial season purse'
-          }
-        })
-      }
-    },
+              description: 'Initial season purse'
+            }
+          })
+        }
+      },
     {
       maxWait: 10000, // 10 seconds max wait
       timeout: 30000, // 30 seconds timeout

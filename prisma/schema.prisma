@@ -76,6 +76,7 @@ model seasonal_player_stats {
   basePlayerId  String
   seasonId      String
   position      String
+  position_group String?     @map("position_group")
   realWorldClub String
   overallRating Int
   star_rating   Int?         @map("star_rating")
@@ -330,6 +331,7 @@ model auction_slots {
   id                String           @id
   auctionCalendarId String
   position          String
+  position_group    String?          @map("position_group")
   slotOrder         Int              @default(0)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime

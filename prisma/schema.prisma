@@ -67,6 +67,7 @@ model season_teams {
   awayMatches     matches[]          @relation("AwayTeam")
   standings       standings[]        @relation("StandingsTeam")
   tournamentTeams tournament_teams[] @relation("TournamentTeams")
+  starredPlayers  starred_players[]
 
   @@unique([seasonId, teamId])
 }

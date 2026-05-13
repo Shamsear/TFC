@@ -130,11 +130,11 @@ export async function POST(
           })
         }
       },
-    {
-      maxWait: 10000, // 10 seconds max wait
-      timeout: 30000, // 30 seconds timeout
-    }
-  )
+      {
+        maxWait: 10000, // 10 seconds max wait
+        timeout: 30000, // 30 seconds timeout
+      }
+    )
 
     // Create audit log
     await createAuditLog({

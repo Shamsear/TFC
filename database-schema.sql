@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS "financial_ledger" (
     "previousBalance" INTEGER NOT NULL,
     "newBalance" INTEGER NOT NULL,
     "description" TEXT,
-    "playername" TEXT,
+    "player_name" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "financial_ledger_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "seasons"("id") ON DELETE CASCADE,
     CONSTRAINT "financial_ledger_seasonTeamId_fkey" FOREIGN KEY ("seasonTeamId") REFERENCES "season_teams"("id") ON DELETE CASCADE

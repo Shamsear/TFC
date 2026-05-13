@@ -33,7 +33,7 @@ model financial_ledger {
   previousBalance Int
   newBalance      Int
   description     String?
-  playerName      String?         @map("playername")
+  playerName      String?         @map("player_name")
   createdAt       DateTime        @default(now())
   season          seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   seasonTeam      season_teams    @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)

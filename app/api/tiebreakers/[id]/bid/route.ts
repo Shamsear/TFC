@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { calculateReserve } from '@/lib/auction/reserve-calculator';
+import { calculateReserve, validateBidAgainstReserve } from '@/lib/auction/reserve-calculator-v2';
 import { checkTiebreakerComplete, resolveTiebreaker, resumeFinalizationAfterTiebreaker } from '@/lib/auction/tiebreaker';
 
 /**
@@ -123,12 +123,15 @@ export async function POST(
       }
     });
 
-    // Check budget with reserves
-    const minPlayerPrice = 10; // Minimum bid amount
-    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize, 16, minPlayerPrice);
-    if (newBidAmount > reserve.availableBudget) {
+    // Check budget with reserves using new reserve calculator
+    const reserveInfo = await calculateReserve(teamId, tiebreaker.roundId, tiebreaker.round.seasonId);
+    
+    // Validate bid against reserve
+    const validation = validateBidAgainstReserve(newBidAmount, reserveInfo);
+    
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: `Insufficient budget. Available: £${reserve.availableBudget.toLocaleString()}` },
+        { error: validation.error || 'Bid exceeds reserve requirements' },
         { status: 400 }
       );
     }

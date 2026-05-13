@@ -354,7 +354,7 @@ export async function placeBulkTiebreakerBid(
   tiebreakerId: number,
   teamId: string,
   bidAmount: number
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; warning?: string }> {
   try {
     // Validate bid
     const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
@@ -386,14 +386,17 @@ export async function placeBulkTiebreakerBid(
       };
     }
 
-    // Check team budget
+    // Check team budget and get round info
     const round = await prisma.rounds.findFirst({
       where: {
         bulkRoundSelections: {
           some: { roundId: tiebreaker.roundId }
         }
       },
-      select: { seasonId: true }
+      select: { 
+        seasonId: true,
+        roundNumber: true
+      }
     });
 
     if (!round) {
@@ -412,6 +415,76 @@ export async function placeBulkTiebreakerBid(
 
     if (!seasonTeam || bidAmount > seasonTeam.currentBudget) {
       return { success: false, error: 'Insufficient budget' };
+    }
+
+    // ENHANCED: Check reserve requirements using Neon database
+    const { sql } = await import('@vercel/postgres');
+    
+    // Get team balance and squad size from Neon
+    const teamResult = await sql`
+      SELECT football_budget, football_players_count
+      FROM teams
+      WHERE id = ${teamId} AND season_id = ${round.seasonId}
+    `;
+    
+    if (teamResult.rows.length === 0) {
+      return { success: false, error: 'Team not found in Neon database' };
+    }
+    
+    const teamBalance = parseInt(teamResult.rows[0].football_budget) || 0;
+    const currentSquadSize = parseInt(teamResult.rows[0].football_players_count) || 0;
+    
+    // Get auction settings
+    const settingsResult = await sql`
+      SELECT 
+        phase_1_end_round,
+        phase_1_min_balance,
+        phase_2_end_round,
+        phase_2_min_balance,
+        phase_3_min_balance,
+        min_squad_size,
+        max_squad_size
+      FROM auction_settings
+      WHERE season_id = ${round.seasonId}
+    `;
+    
+    // Calculate reserve if settings exist
+    if (settingsResult.rows.length > 0) {
+      const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
+      
+      const settings = settingsResult.rows[0];
+      const config = {
+        phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
+        phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
+        phase_2_end_round: parseInt(settings.phase_2_end_round) || 20,
+        phase_2_min_balance: parseInt(settings.phase_2_min_balance) || 30,
+        phase_3_min_balance: parseInt(settings.phase_3_min_balance) || 10,
+        min_squad_size: parseInt(settings.min_squad_size) || 25,
+        max_squad_size: parseInt(settings.max_squad_size) || 30
+      };
+      
+      const reserveInfo = calculateReserveCore(
+        round.roundNumber,
+        teamBalance,
+        currentSquadSize,
+        config
+      );
+      
+      // Validate bid against reserve
+      const validation = validateBidAgainstReserve(bidAmount, reserveInfo);
+      
+      if (!validation.valid) {
+        return { 
+          success: false, 
+          error: validation.error 
+        };
+      }
+      
+      // If there's a warning, we'll return it with success
+      if (validation.warning) {
+        // Continue with bid placement but include warning
+        console.log(`⚠️ Tiebreaker bid warning for team ${teamId}: ${validation.warning}`);
+      }
     }
 
     // Place bid
@@ -447,7 +520,38 @@ export async function placeBulkTiebreakerBid(
       });
     });
 
-    return { success: true };
+    // Return success with optional warning
+    const result: { success: boolean; warning?: string } = { success: true };
+    
+    // Check if there was a warning from reserve validation
+    if (settingsResult.rows.length > 0) {
+      const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
+      
+      const settings = settingsResult.rows[0];
+      const config = {
+        phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
+        phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
+        phase_2_end_round: parseInt(settings.phase_2_end_round) || 20,
+        phase_2_min_balance: parseInt(settings.phase_2_min_balance) || 30,
+        phase_3_min_balance: parseInt(settings.phase_3_min_balance) || 10,
+        min_squad_size: parseInt(settings.min_squad_size) || 25,
+        max_squad_size: parseInt(settings.max_squad_size) || 30
+      };
+      
+      const reserveInfo = calculateReserveCore(
+        round.roundNumber,
+        teamBalance,
+        currentSquadSize,
+        config
+      );
+      
+      const validation = validateBidAgainstReserve(bidAmount, reserveInfo);
+      if (validation.warning) {
+        result.warning = validation.warning;
+      }
+    }
+    
+    return result;
   } catch (error) {
     console.error('Bid placement error:', error);
     return {

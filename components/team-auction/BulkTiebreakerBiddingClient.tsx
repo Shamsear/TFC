@@ -88,6 +88,7 @@ export default function BulkTiebreakerBiddingClient({
   const [bidLockSeconds, setBidLockSeconds] = useState(0)
   const lastHighestBidRef = useRef(liveData.currentHighestBid)
   const [newBidAnimation, setNewBidAnimation] = useState(false)
+  const [reserveInfo, setReserveInfo] = useState<any>(null)
   
   // Preserve initial round data since API doesn't return it in live updates
   const roundData = tiebreaker.round
@@ -101,6 +102,22 @@ export default function BulkTiebreakerBiddingClient({
   const bidHistoryTeamMap = new Map(
     tiebreaker.bidHistory.map(b => [b.teamId, b.team])
   )
+
+  // Fetch reserve info on mount
+  useEffect(() => {
+    async function fetchReserveInfo() {
+      try {
+        const response = await fetch(`/api/team/reserve-info?season_id=${roundData.season.id}&round_id=${roundData.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setReserveInfo(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch reserve info:', error)
+      }
+    }
+    fetchReserveInfo()
+  }, [roundData.season.id, roundData.id])
 
   // Live update polling - fetch fresh data every 2 seconds for real-time updates
   useEffect(() => {
@@ -435,6 +452,50 @@ export default function BulkTiebreakerBiddingClient({
               </div>
             </div>
           </div>
+
+          {/* Reserve Information */}
+          {reserveInfo && (
+            <div className={`mt-4 rounded-lg border p-4 ${
+              reserveInfo.phase === 'phase_1' 
+                ? 'bg-red-500/10 border-red-500/30'
+                : reserveInfo.phase === 'phase_2'
+                ? 'bg-amber-500/10 border-amber-500/30'
+                : 'bg-blue-500/10 border-blue-500/30'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  reserveInfo.phase === 'phase_1' 
+                    ? 'bg-red-500/20 text-red-300'
+                    : reserveInfo.phase === 'phase_2'
+                    ? 'bg-amber-500/20 text-amber-300'
+                    : 'bg-blue-500/20 text-blue-300'
+                }`}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className={`text-sm font-bold mb-1 ${
+                    reserveInfo.phase === 'phase_1' 
+                      ? 'text-red-300'
+                      : reserveInfo.phase === 'phase_2'
+                      ? 'text-amber-300'
+                      : 'text-blue-300'
+                  }`}>
+                    Budget Reserve - {reserveInfo.phase === 'phase_1' ? 'Phase 1 (Strict)' : reserveInfo.phase === 'phase_2' ? 'Phase 2 (Soft)' : 'Phase 3 (Flexible)'}
+                  </h3>
+                  <div className="space-y-1 text-xs text-white/80">
+                    <p><strong>Required Reserve:</strong> £{reserveInfo.floorReserve.toLocaleString()}</p>
+                    <p><strong>Maximum Bid:</strong> £{reserveInfo.maxBid.toLocaleString()}</p>
+                    {reserveInfo.phase === 'phase_2' && reserveInfo.maxRecommendedBid < reserveInfo.maxBid && (
+                      <p className="text-amber-300"><strong>Recommended Max:</strong> £{reserveInfo.maxRecommendedBid.toLocaleString()}</p>
+                    )}
+                    <p className="text-white/60 text-xs mt-1">{reserveInfo.calculation}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

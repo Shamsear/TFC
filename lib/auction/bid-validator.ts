@@ -155,6 +155,111 @@ export function validateBudget(
 }
 
 /**
+ * Validate bids against reserve requirements
+ */
+export async function validateBidsAgainstReserves(
+  bids: BidData[],
+  context: ValidationContext
+): Promise<ValidationResult> {
+  const errors: string[] = [];
+  
+  try {
+    // Import reserve calculator
+    const { sql } = await import('@vercel/postgres');
+    const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
+    
+    // Get team balance and squad size from Neon
+    const teamResult = await sql`
+      SELECT football_budget, football_players_count
+      FROM teams
+      WHERE id = ${context.teamId} AND season_id = ${context.seasonId}
+    `;
+    
+    if (teamResult.rows.length === 0) {
+      // If team not in Neon, skip reserve check (use Prisma budget)
+      return { valid: true, errors: [] };
+    }
+    
+    const teamBalance = parseInt(teamResult.rows[0].football_budget) || 0;
+    const currentSquadSize = parseInt(teamResult.rows[0].football_players_count) || 0;
+    
+    // Get round number
+    const { prisma } = await import('@/lib/prisma');
+    const round = await prisma.rounds.findUnique({
+      where: { id: context.roundId },
+      select: { roundNumber: true }
+    });
+    
+    if (!round) {
+      return { valid: true, errors: [] };
+    }
+    
+    // Get auction settings
+    const settingsResult = await sql`
+      SELECT 
+        phase_1_end_round,
+        phase_1_min_balance,
+        phase_2_end_round,
+        phase_2_min_balance,
+        phase_3_min_balance,
+        min_squad_size,
+        max_squad_size
+      FROM auction_settings
+      WHERE season_id = ${context.seasonId}
+    `;
+    
+    if (settingsResult.rows.length === 0) {
+      // No auction settings, skip reserve check
+      return { valid: true, errors: [] };
+    }
+    
+    const settings = settingsResult.rows[0];
+    const config = {
+      phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
+      phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
+      phase_2_end_round: parseInt(settings.phase_2_end_round) || 20,
+      phase_2_min_balance: parseInt(settings.phase_2_min_balance) || 30,
+      phase_3_min_balance: parseInt(settings.phase_3_min_balance) || 10,
+      min_squad_size: parseInt(settings.min_squad_size) || 25,
+      max_squad_size: parseInt(settings.max_squad_size) || 30
+    };
+    
+    // Calculate reserve
+    const reserveInfo = calculateReserveCore(
+      round.roundNumber,
+      teamBalance,
+      currentSquadSize,
+      config
+    );
+    
+    // Check each bid against reserve
+    // For normal rounds, we check if the TOTAL of all bids exceeds available budget
+    const totalBidAmount = bids.reduce((sum, bid) => sum + bid.amount, 0);
+    
+    // Validate total against reserve
+    const validation = validateBidAgainstReserve(totalBidAmount, reserveInfo);
+    
+    if (!validation.valid) {
+      errors.push(validation.error || 'Bid exceeds reserve requirements');
+    }
+    
+    if (validation.warning) {
+      // For warnings, we still allow but log it
+      console.warn(`Reserve warning for team ${context.teamId}:`, validation.warning);
+    }
+    
+  } catch (error) {
+    console.error('Error validating reserves:', error);
+    // Don't fail validation if reserve check fails - allow bid to proceed
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
  * Validate players exist in the season
  */
 export async function validatePlayersExist(
@@ -292,6 +397,10 @@ export async function validateBids(
   // 7. Player availability validation (async)
   const availabilityResult = await validatePlayersAvailable(bids, context.seasonId);
   allErrors.push(...availabilityResult.errors);
+  
+  // 8. Reserve validation (async) - NEW
+  const reserveResult = await validateBidsAgainstReserves(bids, context);
+  allErrors.push(...reserveResult.errors);
   
   return {
     valid: allErrors.length === 0,

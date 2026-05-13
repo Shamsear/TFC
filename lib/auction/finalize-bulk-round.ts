@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { calculateReserve } from './reserve-calculator';
+import { calculateReserve } from './reserve-calculator-v2';
 import { generateIds, ID_PREFIXES } from '@/lib/id-generator';
 
 /**
@@ -159,13 +159,12 @@ async function allocateSingleBidders(
       where: { teamId, seasonId }
     });
 
-    // Check budget with reserves
-    // For bulk rounds, use basePrice as the minimum player price for reserve calculation
-    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize, 16, basePrice);
-    if (basePrice > reserve.availableBudget) {
+    // Check budget with reserves using v2
+    const reserveInfo = await calculateReserve(teamId, '', seasonId);
+    if (basePrice > reserveInfo.maxBid) {
       errors.push(
         `Team ${teamId} cannot afford ${playerNames.get(playerId)} ` +
-        `(needs ${basePrice}, has ${reserve.availableBudget} available)`
+        `(needs ${basePrice}, has ${reserveInfo.maxBid} available)`
       );
       continue;
     }

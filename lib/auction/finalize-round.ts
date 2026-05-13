@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
 import { decryptBids } from './encryption';
-import { calculateReserve, canAffordMultipleBids } from './reserve-calculator';
+import { calculateReserve, validateBidAgainstReserve } from './reserve-calculator-v2';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -286,10 +286,22 @@ async function handleNonSubmittedTeams(
 
     console.log(`      Squad size: ${squadSize}`);
 
-    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize, 16, minPlayerPrice);
-    console.log(`      Available budget: £${reserve.availableBudget.toLocaleString()}`);
+    // Get round details for reserve calculation
+    const round = await prisma.rounds.findUnique({
+      where: { id: roundId },
+      select: { roundNumber: true }
+    });
+
+    if (!round) {
+      console.log(`      ⚠️  Round not found, skipping`);
+      continue;
+    }
+
+    // Calculate reserve using v2
+    const reserveInfo = await calculateReserve(teamId, roundId, seasonId);
+    console.log(`      Available budget: £${reserveInfo.maxBid.toLocaleString()}`);
     
-    if (avgPrice > reserve.availableBudget) {
+    if (avgPrice > reserveInfo.maxBid) {
       console.log(`      ❌ Cannot afford average price £${avgPrice.toLocaleString()}`);
       continue;
     }
@@ -737,7 +749,6 @@ async function validateAllocations(
   seasonId: string
 ): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = [];
-  const minPlayerPrice = 10; // Minimum bid amount
 
   // Group allocations by team
   const teamAllocations = new Map<string, Allocation[]>();
@@ -778,20 +789,19 @@ async function validateAllocations(
     console.log(`      Allocations: ${teamAllocs.length}`);
 
     // Check if team can afford all allocations
-    const bidAmounts = teamAllocs.map(a => a.amount);
-    const totalCost = bidAmounts.reduce((s, a) => s + a, 0);
+    const totalCost = teamAllocs.reduce((sum, a) => sum + a.amount, 0);
     
     console.log(`      Total cost: £${totalCost.toLocaleString()}`);
     
-    const canAfford = canAffordMultipleBids(
-      bidAmounts,
-      seasonTeam.currentBudget,
-      squadSize,
-      16,
-      minPlayerPrice
-    );
-
-    if (!canAfford) {
+    // Calculate what budget will be after these purchases
+    const newBudget = seasonTeam.currentBudget - totalCost;
+    const newSquadSize = squadSize + teamAllocs.length;
+    
+    console.log(`      New budget: £${newBudget.toLocaleString()}`);
+    console.log(`      New squad size: ${newSquadSize}`);
+    
+    // Check if new budget is negative
+    if (newBudget < 0) {
       const error = `Team ${teamId} cannot afford allocations (total: £${totalCost.toLocaleString()}, budget: £${seasonTeam.currentBudget.toLocaleString()})`;
       console.log(`      ❌ ${error}`);
       errors.push(error);

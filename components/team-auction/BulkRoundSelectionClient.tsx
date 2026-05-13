@@ -87,6 +87,23 @@ export default function BulkRoundSelectionClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('all')
   const [timeRemaining, setTimeRemaining] = useState('')
+  const [squadInfo, setSquadInfo] = useState<any>(null)
+
+  // Fetch squad size info on mount
+  useEffect(() => {
+    async function fetchSquadInfo() {
+      try {
+        const response = await fetch(`/api/team/squad-info?season_id=${season.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setSquadInfo(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch squad info:', error)
+      }
+    }
+    fetchSquadInfo()
+  }, [season.id])
 
   // Calculate time remaining
   useEffect(() => {
@@ -296,6 +313,60 @@ export default function BulkRoundSelectionClient({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Squad Status Warning/Info */}
+        {squadInfo && (
+          <div className={`mb-6 rounded-xl border p-6 ${
+            squadInfo.currentSquadSize < squadInfo.minSquadSize
+              ? 'bg-amber-500/10 border-amber-500/30'
+              : 'bg-blue-500/10 border-blue-500/30'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                squadInfo.currentSquadSize < squadInfo.minSquadSize
+                  ? 'bg-amber-500/20 text-amber-300'
+                  : 'bg-blue-500/20 text-blue-300'
+              }`}>
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-lg font-bold mb-2 ${
+                  squadInfo.currentSquadSize < squadInfo.minSquadSize
+                    ? 'text-amber-300'
+                    : 'text-blue-300'
+                }`}>
+                  Squad Size Status
+                </h3>
+                <div className="space-y-2 text-sm text-white/80">
+                  <p>
+                    <strong>Current Squad:</strong> {squadInfo.currentSquadSize} / {squadInfo.minSquadSize} (min) - {squadInfo.maxSquadSize} (max)
+                  </p>
+                  {squadInfo.currentSquadSize < squadInfo.minSquadSize ? (
+                    <>
+                      <p className="text-amber-300 font-medium">
+                        ⚠️ You must select exactly <strong>{squadInfo.slotsToMin} player{squadInfo.slotsToMin !== 1 ? 's' : ''}</strong> to reach the minimum squad size.
+                      </p>
+                      <p className="text-white/60 text-xs">
+                        Teams must reach the minimum squad size ({squadInfo.minSquadSize} players) before they can optionally acquire up to {squadInfo.maxSquadSize} players.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-blue-300 font-medium">
+                        ✅ Minimum squad size reached! You can select 0-{squadInfo.slotsToMax} more player{squadInfo.slotsToMax !== 1 ? 's' : ''} (optional).
+                      </p>
+                      <p className="text-white/60 text-xs">
+                        You've reached the minimum squad size. Additional players are optional up to the maximum of {squadInfo.maxSquadSize} players.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Selected Players */}
         {selections.length > 0 && (
           <div className="mb-6 rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-6">

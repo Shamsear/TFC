@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { checkAndFinalizeExpiredRound } from '@/lib/auction/lazy-finalize-round';
-import { calculateReserve } from '@/lib/auction/reserve-calculator';
+import { calculateReserve } from '@/lib/auction/reserve-calculator-v2';
 
 /**
  * GET /api/auction/rounds/[id] - Get round info (with lazy finalization)
@@ -84,8 +84,8 @@ export async function GET(
       }
     });
 
-    // Calculate budget reserves
-    const reserve = calculateReserve(seasonTeam.currentBudget, squadSize);
+    // Calculate budget reserves using v2
+    const reserveInfo = await calculateReserve(teamId, roundId, round.seasonId);
 
     // Calculate time remaining
     let timeRemaining = null;
@@ -124,9 +124,10 @@ export async function GET(
       round,
       budget: {
         total: seasonTeam.currentBudget,
-        reserved: reserve.reserveAmount,
-        available: reserve.availableBudget,
-        slotsNeeded: reserve.slotsNeeded
+        reserved: reserveInfo.reserve,
+        available: reserveInfo.maxBid,
+        phase: reserveInfo.phase,
+        calculation: reserveInfo.calculation
       },
       squadSize,
       timeRemaining,

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, startingPurse, seasonNumber, isActive } = body
+    const { name, startingPurse, seasonNumber, isActive, minSquadSize, maxSquadSize } = body
 
     // Validate required fields
     if (!name || typeof name !== "string" || name.trim() === "") {
@@ -99,6 +99,24 @@ export async function POST(request: NextRequest) {
     if (!seasonNumber || typeof seasonNumber !== "number" || seasonNumber < 1) {
       return NextResponse.json(
         { error: "Season number is required and must be a positive number" },
+        { status: 400 }
+      )
+    }
+
+    // Validate squad size fields (optional, with defaults)
+    const minSquad = minSquadSize && typeof minSquadSize === "number" ? minSquadSize : 25;
+    const maxSquad = maxSquadSize && typeof maxSquadSize === "number" ? maxSquadSize : 30;
+
+    if (minSquad < 1) {
+      return NextResponse.json(
+        { error: "Minimum squad size must be at least 1" },
+        { status: 400 }
+      )
+    }
+
+    if (maxSquad < minSquad) {
+      return NextResponse.json(
+        { error: "Maximum squad size must be greater than or equal to minimum squad size" },
         { status: 400 }
       )
     }
@@ -132,6 +150,51 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Created season with ID:', season.id)
 
+    // Create auction settings for the season in Neon database
+    try {
+      const { sql } = await import('@vercel/postgres');
+      
+      await sql`
+        INSERT INTO auction_settings (
+          season_id,
+          auction_window,
+          phase_1_end_round,
+          phase_1_min_balance,
+          phase_2_end_round,
+          phase_2_min_balance,
+          phase_3_min_balance,
+          min_squad_size,
+          max_squad_size,
+          max_rounds,
+          contract_duration,
+          min_balance_per_round
+        ) VALUES (
+          ${seasonId},
+          'season_start',
+          18,
+          30,
+          20,
+          30,
+          10,
+          ${minSquad},
+          ${maxSquad},
+          25,
+          2,
+          30
+        )
+        ON CONFLICT (season_id) DO UPDATE SET
+          min_squad_size = ${minSquad},
+          max_squad_size = ${maxSquad},
+          updated_at = NOW()
+      `;
+      
+      console.log(`✅ Created auction settings for season ${seasonId} (min: ${minSquad}, max: ${maxSquad})`);
+    } catch (settingsError) {
+      console.error('⚠️ Failed to create auction settings:', settingsError);
+      // Don't fail the entire request if auction settings creation fails
+      // The season is still created successfully
+    }
+
     // Create audit log
     await createAuditLog({
       userId: session.user.id,
@@ -144,7 +207,9 @@ export async function POST(request: NextRequest) {
       seasonId: season.id,
       details: {
         startingPurse,
-        isActive: isActive ?? false
+        isActive: isActive ?? false,
+        minSquadSize: minSquad,
+        maxSquadSize: maxSquad
       },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'

@@ -28,7 +28,9 @@ export default function CreateSeasonPage() {
   const [formData, setFormData] = useState({
     name: "",
     seasonNumber: "",
-    startingPurse: ""
+    startingPurse: "",
+    minSquadSize: "25",
+    maxSquadSize: "30"
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -54,6 +56,23 @@ export default function CreateSeasonPage() {
       return
     }
 
+    const minSquadSize = parseInt(formData.minSquadSize, 10)
+    if (isNaN(minSquadSize) || minSquadSize <= 0) {
+      setError("Minimum squad size must be a positive number")
+      return
+    }
+
+    const maxSquadSize = parseInt(formData.maxSquadSize, 10)
+    if (isNaN(maxSquadSize) || maxSquadSize <= 0) {
+      setError("Maximum squad size must be a positive number")
+      return
+    }
+
+    if (maxSquadSize < minSquadSize) {
+      setError("Maximum squad size must be greater than or equal to minimum squad size")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -65,7 +84,9 @@ export default function CreateSeasonPage() {
         body: JSON.stringify({
           name: formData.name,
           seasonNumber,
-          startingPurse
+          startingPurse,
+          minSquadSize,
+          maxSquadSize
         })
       })
 
@@ -178,6 +199,55 @@ export default function CreateSeasonPage() {
               </p>
             </div>
 
+            {/* Squad Size Configuration */}
+            <div className="rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">Squad Size Configuration</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Minimum Squad Size */}
+                <div>
+                  <label htmlFor="minSquadSize" className="block text-sm font-bold mb-2 text-white">
+                    Minimum Squad Size <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="minSquadSize"
+                    value={formData.minSquadSize}
+                    onChange={(e) => setFormData(prev => ({ ...prev, minSquadSize: e.target.value }))}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all text-white placeholder-gray-500 text-sm"
+                    placeholder="25"
+                    min="1"
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Mandatory minimum players
+                  </p>
+                </div>
+
+                {/* Maximum Squad Size */}
+                <div>
+                  <label htmlFor="maxSquadSize" className="block text-sm font-bold mb-2 text-white">
+                    Maximum Squad Size <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="maxSquadSize"
+                    value={formData.maxSquadSize}
+                    onChange={(e) => setFormData(prev => ({ ...prev, maxSquadSize: e.target.value }))}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all text-white placeholder-gray-500 text-sm"
+                    placeholder="30"
+                    min="1"
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Optional maximum players
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-400 mt-3">
+                Teams must reach the minimum squad size. After that, they can optionally acquire up to the maximum squad size.
+              </p>
+            </div>
+
             {/* Preview Card */}
             {formData.seasonNumber && formData.name && formData.startingPurse && (
               <div className="rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 p-4 sm:p-6">
@@ -202,6 +272,12 @@ export default function CreateSeasonPage() {
                       <div className="text-lg sm:text-xl font-black">
                         ${parseInt(formData.startingPurse || "0", 10).toLocaleString()}
                       </div>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-white/10">
+                    <div className="text-xs sm:text-sm text-gray-400 mb-1">Squad Size</div>
+                    <div className="text-base sm:text-lg font-bold text-white">
+                      Min: {formData.minSquadSize} players • Max: {formData.maxSquadSize} players
                     </div>
                   </div>
                 </div>

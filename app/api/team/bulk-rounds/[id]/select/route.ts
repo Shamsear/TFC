@@ -107,6 +107,32 @@ export async function POST(
       }
     });
 
+    // ENHANCED: Validate squad size constraints
+    const { validateSquadSizeForRound } = await import('@/lib/squad-size-validator');
+    
+    const squadValidation = await validateSquadSizeForRound(
+      teamId,
+      round.seasonId,
+      playerIds.length
+    );
+    
+    if (!squadValidation.valid) {
+      return NextResponse.json(
+        { 
+          error: squadValidation.error,
+          squadInfo: {
+            current: squadValidation.currentSquadSize,
+            min: squadValidation.minSquadSize,
+            max: squadValidation.maxSquadSize,
+            slotsToMin: squadValidation.slotsToMin,
+            slotsToMax: squadValidation.slotsToMax,
+            requiredSelections: squadValidation.requiredSelections
+          }
+        },
+        { status: 400 }
+      );
+    }
+
     // Validate selections
     const validation = await validateBulkSelections(playerIds, {
       roundId,

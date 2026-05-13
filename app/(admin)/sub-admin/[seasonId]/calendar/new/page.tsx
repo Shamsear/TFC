@@ -485,7 +485,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
               </div>
 
               {/* Preview */}
-              {auction.auctionDate && auction.positions.length > 0 && (
+              {auction.auctionDate && auction.positionSlots.length > 0 && (
                 <div className="rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 p-3 sm:p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <CalendarIcon />

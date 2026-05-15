@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
     // Get encrypted plan
     const auctionPlan = await prisma.auction_plans.findUnique({
       where: {
-        teamId_seasonId: {
-          teamId: session.user.teamId,
-          seasonId,
+        season_team_id_season_id: {
+          season_team_id: seasonTeam.id,
+          season_id: seasonId,
         },
       },
     })
@@ -44,11 +44,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Decrypt the plan
-    const decryptedPlan = decrypt(auctionPlan.encryptedPlan)
+    const decryptedPlan = decrypt(auctionPlan.encrypted_plan_data)
 
     return NextResponse.json({
       plan: JSON.parse(decryptedPlan),
-      lastUpdated: auctionPlan.updatedAt,
+      lastUpdated: auctionPlan.last_updated,
     })
   } catch (error) {
     console.error('Error fetching auction plan:', error)
@@ -88,24 +88,25 @@ export async function POST(request: NextRequest) {
     // Upsert the plan
     const auctionPlan = await prisma.auction_plans.upsert({
       where: {
-        teamId_seasonId: {
-          teamId: session.user.teamId,
-          seasonId,
+        season_team_id_season_id: {
+          season_team_id: seasonTeam.id,
+          season_id: seasonId,
         },
       },
       update: {
-        encryptedPlan,
+        encrypted_plan_data: encryptedPlan,
       },
       create: {
-        teamId: session.user.teamId,
-        seasonId,
-        encryptedPlan,
+        season_team_id: seasonTeam.id,
+        season_id: seasonId,
+        team_id: session.user.teamId,
+        encrypted_plan_data: encryptedPlan,
       },
     })
 
     return NextResponse.json({
       success: true,
-      lastUpdated: auctionPlan.updatedAt,
+      lastUpdated: auctionPlan.last_updated,
     })
   } catch (error) {
     console.error('Error saving auction plan:', error)
@@ -142,9 +143,9 @@ export async function DELETE(request: NextRequest) {
     // Delete the plan
     await prisma.auction_plans.delete({
       where: {
-        teamId_seasonId: {
-          teamId: session.user.teamId,
-          seasonId,
+        season_team_id_season_id: {
+          season_team_id: seasonTeam.id,
+          season_id: seasonId,
         },
       },
     })

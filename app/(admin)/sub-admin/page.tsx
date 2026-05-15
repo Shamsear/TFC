@@ -273,6 +273,19 @@ export default async function SubAdminDashboard() {
                   </Link>
 
                   <Link
+                    href={`/sub-admin/${activeSeason.id}/position-groups`}
+                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
+                        <PlayersIcon />
+                      </div>
+                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Position Groups</div>
+                    </div>
+                    <div className="text-xs sm:text-sm text-white/80">Manage position groups</div>
+                  </Link>
+
+                  <Link
                     href="/sub-admin/import"
                     className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFC93A]/50"
                   >
@@ -388,6 +401,13 @@ export default async function SubAdminDashboard() {
                         className="flex items-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
                       >
                         Settings
+                        <ArrowRightIcon />
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${season.id}/position-groups`}
+                        className="flex items-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
+                      >
+                        Position Groups
                         <ArrowRightIcon />
                       </Link>
                     </div>

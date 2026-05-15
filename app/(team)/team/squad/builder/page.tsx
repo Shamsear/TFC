@@ -75,14 +75,12 @@ export default async function SquadBuilderPage() {
   })
 
   // Get saved squad formation if exists
-  // TODO: Implement team squad table
-  const savedSquad = null
-  // const savedSquad = await prisma.teamSquad.findFirst({
-  //   where: {
-  //     teamId: session.user.teamId,
-  //     seasonId: activeSeason.id,
-  //   },
-  // })
+  const savedSquad = await prisma.team_squads.findFirst({
+    where: {
+      team_id: session.user.teamId,
+      season_id: activeSeason.id,
+    },
+  })
 
   return (
     <SquadBuilderClient
@@ -91,7 +89,7 @@ export default async function SquadBuilderPage() {
       teamId={session.user.teamId}
       teamName={team?.name || "Your Team"}
       players={players}
-      savedSquad={null}
+      savedSquad={savedSquad?.formation as any}
     />
   )
 }

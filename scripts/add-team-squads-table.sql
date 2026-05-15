@@ -1,8 +1,8 @@
 -- Create team_squads table to store squad formations
 CREATE TABLE IF NOT EXISTS team_squads (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
   formation JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

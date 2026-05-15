@@ -245,6 +245,7 @@ model seasons {
   rounds                  rounds[]
   starredPlayers          starred_players[]
   auctionPlans            auction_plans[]
+  teamSquads              team_squads[]
 }
 
 model starred_players {
@@ -295,6 +296,21 @@ model teams {
   bulkTiebreakerBidHistory      bulk_tiebreaker_bid_history[]    @relation("BulkTiebreakerBidHistory")
   previewAllocations            preview_allocations[]
   auctionPlans                  auction_plans[]
+  teamSquads                    team_squads[]
+}
+
+model team_squads {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::TEXT"))
+  team_id    String
+  season_id  String
+  formation  Json     @default("{}")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  team       teams    @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  season     seasons  @relation(fields: [season_id], references: [id], onDelete: Cascade)
+
+  @@unique([team_id, season_id])
+  @@index([team_id, season_id])
 }
 
 model transfer_history {

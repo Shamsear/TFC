@@ -397,15 +397,22 @@ export default function PositionGroupsPage() {
         </div>
 
         {/* Unassigned Players */}
-        {currentData.unassigned.length > 0 && (
+        {filteredUnassigned.length > 0 && (
           <div
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(null)}
             className="mt-6 rounded-xl bg-gray-500/5 border-2 border-gray-500/20 p-4"
           >
-            <h2 className="text-xl font-black text-gray-400 mb-4">Unassigned ({currentData.unassigned.length})</h2>
+            <h2 className="text-xl font-black text-gray-400 mb-4">
+              Unassigned ({filteredUnassigned.length})
+              {searchQuery && filteredUnassigned.length !== currentData.unassigned.length && (
+                <span className="text-sm font-normal text-[#D4CCBB] ml-2">
+                  (filtered from {currentData.unassigned.length})
+                </span>
+              )}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {currentData.unassigned.map(player => (
+              {paginatedUnassigned.map(player => (
                 <PlayerCard
                   key={player.id}
                   player={player}
@@ -414,6 +421,27 @@ export default function PositionGroupsPage() {
                 />
               ))}
             </div>
+            {totalPagesUnassigned > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t border-gray-500/20 pt-4">
+                <button
+                  onClick={() => setCurrentPageUnassigned(prev => Math.max(1, prev - 1))}
+                  disabled={currentPageUnassigned === 1}
+                  className="px-3 py-1 rounded bg-gray-500/20 text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500/30 transition-all text-sm font-bold"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-[#D4CCBB]">
+                  Page {currentPageUnassigned} of {totalPagesUnassigned}
+                </span>
+                <button
+                  onClick={() => setCurrentPageUnassigned(prev => Math.min(totalPagesUnassigned, prev + 1))}
+                  disabled={currentPageUnassigned === totalPagesUnassigned}
+                  className="px-3 py-1 rounded bg-gray-500/20 text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500/30 transition-all text-sm font-bold"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

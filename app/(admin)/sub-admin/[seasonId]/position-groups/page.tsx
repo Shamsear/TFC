@@ -52,6 +52,11 @@ export default function PositionGroupsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPageA, setCurrentPageA] = useState(1)
+  const [currentPageB, setCurrentPageB] = useState(1)
+  const [currentPageUnassigned, setCurrentPageUnassigned] = useState(1)
+  const PLAYERS_PER_PAGE = 10
 
   useEffect(() => {
     fetchPositionGroups()
@@ -130,6 +135,41 @@ export default function PositionGroupsPage() {
   const currentData = grouped[selectedPosition] || { groupA: [], groupB: [], unassigned: [] }
   const currentStats = stats[selectedPosition] || { groupA: { count: 0, avgRating: 0 }, groupB: { count: 0, avgRating: 0 }, unassigned: 0 }
 
+  // Filter players by search query
+  const filterPlayers = (players: Player[]) => {
+    if (!searchQuery.trim()) return players
+    const query = searchQuery.toLowerCase()
+    return players.filter(p => 
+      p.basePlayer.name.toLowerCase().includes(query) ||
+      p.realWorldClub.toLowerCase().includes(query)
+    )
+  }
+
+  const filteredGroupA = filterPlayers(currentData.groupA)
+  const filteredGroupB = filterPlayers(currentData.groupB)
+  const filteredUnassigned = filterPlayers(currentData.unassigned)
+
+  // Pagination
+  const paginateArray = (array: Player[], page: number) => {
+    const startIndex = (page - 1) * PLAYERS_PER_PAGE
+    return array.slice(startIndex, startIndex + PLAYERS_PER_PAGE)
+  }
+
+  const paginatedGroupA = paginateArray(filteredGroupA, currentPageA)
+  const paginatedGroupB = paginateArray(filteredGroupB, currentPageB)
+  const paginatedUnassigned = paginateArray(filteredUnassigned, currentPageUnassigned)
+
+  const totalPagesA = Math.ceil(filteredGroupA.length / PLAYERS_PER_PAGE)
+  const totalPagesB = Math.ceil(filteredGroupB.length / PLAYERS_PER_PAGE)
+  const totalPagesUnassigned = Math.ceil(filteredUnassigned.length / PLAYERS_PER_PAGE)
+
+  // Reset pages when search changes
+  useEffect(() => {
+    setCurrentPageA(1)
+    setCurrentPageB(1)
+    setCurrentPageUnassigned(1)
+  }, [searchQuery, selectedPosition])
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
@@ -188,6 +228,42 @@ export default function PositionGroupsPage() {
           ))}
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search players by name or club..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pl-11 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]/50 focus:bg-white/[0.07] transition-all"
+            />
+            <svg 
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A7367]" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A7367] hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <div className="mt-2 text-sm text-[#D4CCBB]">
+              Found: {filteredGroupA.length} in Group A, {filteredGroupB.length} in Group B, {filteredUnassigned.length} unassigned
+            </div>
+          )}
+        </div>
+
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
@@ -221,9 +297,16 @@ export default function PositionGroupsPage() {
             onDrop={() => handleDrop('A')}
             className="rounded-xl bg-blue-500/5 border-2 border-blue-500/20 p-4"
           >
-            <h2 className="text-xl font-black text-blue-400 mb-4">Group A ({currentData.groupA.length})</h2>
+            <h2 className="text-xl font-black text-blue-400 mb-4">
+              Group A ({filteredGroupA.length})
+              {searchQuery && filteredGroupA.length !== currentData.groupA.length && (
+                <span className="text-sm font-normal text-[#D4CCBB] ml-2">
+                  (filtered from {currentData.groupA.length})
+                </span>
+              )}
+            </h2>
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {currentData.groupA.map(player => (
+              {paginatedGroupA.map(player => (
                 <PlayerCard
                   key={player.id}
                   player={player}
@@ -231,12 +314,33 @@ export default function PositionGroupsPage() {
                   onMove={handleMovePlayer}
                 />
               ))}
-              {currentData.groupA.length === 0 && (
+              {filteredGroupA.length === 0 && (
                 <div className="text-center py-8 text-[#7A7367]">
-                  No players in Group A
+                  {searchQuery ? 'No players found' : 'No players in Group A'}
                 </div>
               )}
             </div>
+            {totalPagesA > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t border-blue-500/20 pt-4">
+                <button
+                  onClick={() => setCurrentPageA(prev => Math.max(1, prev - 1))}
+                  disabled={currentPageA === 1}
+                  className="px-3 py-1 rounded bg-blue-500/20 text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500/30 transition-all text-sm font-bold"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-[#D4CCBB]">
+                  Page {currentPageA} of {totalPagesA}
+                </span>
+                <button
+                  onClick={() => setCurrentPageA(prev => Math.min(totalPagesA, prev + 1))}
+                  disabled={currentPageA === totalPagesA}
+                  className="px-3 py-1 rounded bg-blue-500/20 text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500/30 transition-all text-sm font-bold"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Group B */}
@@ -245,9 +349,16 @@ export default function PositionGroupsPage() {
             onDrop={() => handleDrop('B')}
             className="rounded-xl bg-purple-500/5 border-2 border-purple-500/20 p-4"
           >
-            <h2 className="text-xl font-black text-purple-400 mb-4">Group B ({currentData.groupB.length})</h2>
+            <h2 className="text-xl font-black text-purple-400 mb-4">
+              Group B ({filteredGroupB.length})
+              {searchQuery && filteredGroupB.length !== currentData.groupB.length && (
+                <span className="text-sm font-normal text-[#D4CCBB] ml-2">
+                  (filtered from {currentData.groupB.length})
+                </span>
+              )}
+            </h2>
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {currentData.groupB.map(player => (
+              {paginatedGroupB.map(player => (
                 <PlayerCard
                   key={player.id}
                   player={player}
@@ -255,12 +366,33 @@ export default function PositionGroupsPage() {
                   onMove={handleMovePlayer}
                 />
               ))}
-              {currentData.groupB.length === 0 && (
+              {filteredGroupB.length === 0 && (
                 <div className="text-center py-8 text-[#7A7367]">
-                  No players in Group B
+                  {searchQuery ? 'No players found' : 'No players in Group B'}
                 </div>
               )}
             </div>
+            {totalPagesB > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t border-purple-500/20 pt-4">
+                <button
+                  onClick={() => setCurrentPageB(prev => Math.max(1, prev - 1))}
+                  disabled={currentPageB === 1}
+                  className="px-3 py-1 rounded bg-purple-500/20 text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500/30 transition-all text-sm font-bold"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-[#D4CCBB]">
+                  Page {currentPageB} of {totalPagesB}
+                </span>
+                <button
+                  onClick={() => setCurrentPageB(prev => Math.min(totalPagesB, prev + 1))}
+                  disabled={currentPageB === totalPagesB}
+                  className="px-3 py-1 rounded bg-purple-500/20 text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500/30 transition-all text-sm font-bold"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

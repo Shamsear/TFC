@@ -70,7 +70,7 @@ export default async function SquadBuilderPage() {
       position: stats?.position || "Unknown",
       overallRating: stats?.overallRating || 0,
       realWorldClub: stats?.realWorldClub || "Unknown",
-      playingStyle: stats?.playingStyle || null,
+      playingStyle: stats?.playing_style || null,
     }
   })
 

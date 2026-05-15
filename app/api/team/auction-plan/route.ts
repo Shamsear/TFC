@@ -6,7 +6,7 @@ import { encrypt, decrypt } from '@/lib/encryption'
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
+    if (!session?.user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -17,23 +17,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Season ID required' }, { status: 400 })
     }
 
-    // Get team for this user and season
-    const team = await prisma.team.findFirst({
+    // Get the season team
+    const seasonTeam = await prisma.season_teams.findFirst({
       where: {
-        seasonId,
-        ownerId: session.user.id,
+        teamId: session.user.teamId,
+        seasonId: seasonId,
       },
     })
 
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!seasonTeam) {
+      return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
     // Get encrypted plan
-    const auctionPlan = await prisma.auctionPlan.findUnique({
+    const auctionPlan = await prisma.auction_plans.findUnique({
       where: {
         teamId_seasonId: {
-          teamId: team.id,
+          teamId: session.user.teamId,
           seasonId,
         },
       },
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
+    if (!session?.user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -70,26 +70,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Season ID and plan required' }, { status: 400 })
     }
 
-    // Get team for this user and season
-    const team = await prisma.team.findFirst({
+    // Get the season team
+    const seasonTeam = await prisma.season_teams.findFirst({
       where: {
-        seasonId,
-        ownerId: session.user.id,
+        teamId: session.user.teamId,
+        seasonId: seasonId,
       },
     })
 
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!seasonTeam) {
+      return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
     // Encrypt the plan
     const encryptedPlan = encrypt(JSON.stringify(plan))
 
     // Upsert the plan
-    const auctionPlan = await prisma.auctionPlan.upsert({
+    const auctionPlan = await prisma.auction_plans.upsert({
       where: {
         teamId_seasonId: {
-          teamId: team.id,
+          teamId: session.user.teamId,
           seasonId,
         },
       },
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         encryptedPlan,
       },
       create: {
-        teamId: team.id,
+        teamId: session.user.teamId,
         seasonId,
         encryptedPlan,
       },
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
+    if (!session?.user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -127,23 +127,23 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Season ID required' }, { status: 400 })
     }
 
-    // Get team for this user and season
-    const team = await prisma.team.findFirst({
+    // Get the season team
+    const seasonTeam = await prisma.season_teams.findFirst({
       where: {
-        seasonId,
-        ownerId: session.user.id,
+        teamId: session.user.teamId,
+        seasonId: seasonId,
       },
     })
 
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!seasonTeam) {
+      return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
     // Delete the plan
-    await prisma.auctionPlan.delete({
+    await prisma.auction_plans.delete({
       where: {
         teamId_seasonId: {
-          teamId: team.id,
+          teamId: session.user.teamId,
           seasonId,
         },
       },

@@ -342,7 +342,7 @@ export default function BulkRoundSelectionClient({
                 Round {round.roundNumber} - Bulk Selection
               </h1>
               <p className="text-sm text-[#D4CCBB]">
-                {season.name} {round.position && `— ${round.position}`}
+                {season.name} {round.position && `— ${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}`}
               </p>
             </div>
             {timeRemaining && (

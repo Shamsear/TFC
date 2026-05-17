@@ -5,7 +5,7 @@
  * Ensures teams maintain sufficient reserves throughout the auction process.
  */
 
-import { sql } from '@vercel/postgres';
+import { prisma } from '@/lib/prisma';
 
 export interface ReserveConfig {
   phase_1_end_round: number;
@@ -190,35 +190,55 @@ export async function calculateReserve(
   seasonId: string
 ): Promise<ReserveInfo> {
   
-  // Get team balance and squad size
-  const teamResult = await sql`
-    SELECT football_budget, football_players_count
-    FROM teams
-    WHERE id = ${teamId} AND season_id = ${seasonId}
-  `;
+  // Get team balance from season_teams
+  const seasonTeam = await prisma.season_teams.findUnique({
+    where: {
+      seasonId_teamId: {
+        seasonId,
+        teamId
+      }
+    },
+    select: {
+      currentBudget: true
+    }
+  });
   
-  if (teamResult.rows.length === 0) {
-    throw new Error(`Team not found: ${teamId}`);
+  if (!seasonTeam) {
+    throw new Error(`Team not found in season: ${teamId}`);
   }
   
-  const teamBalance = parseInt(teamResult.rows[0].football_budget) || 0;
-  const teamSquadSize = parseInt(teamResult.rows[0].football_players_count) || 0;
+  const teamBalance = seasonTeam.currentBudget;
+  
+  // Get squad size by counting transfer history
+  const teamSquadSize = await prisma.transfer_history.count({
+    where: {
+      teamId,
+      seasonId
+    }
+  });
   
   // Get round number
-  const roundResult = await sql`
-    SELECT round_number
-    FROM rounds
-    WHERE id = ${roundId}
-  `;
+  const round = await prisma.rounds.findUnique({
+    where: { id: roundId },
+    select: { roundNumber: true }
+  });
   
-  if (roundResult.rows.length === 0) {
+  if (!round) {
     throw new Error(`Round not found: ${roundId}`);
   }
   
-  const currentRoundNumber = parseInt(roundResult.rows[0].round_number) || 1;
+  const currentRoundNumber = round.roundNumber;
   
-  // Get auction settings
-  const settingsResult = await sql`
+  // Get auction settings using Prisma raw query
+  const settingsResult = await prisma.$queryRaw<Array<{
+    phase_1_end_round: number;
+    phase_1_min_balance: number;
+    phase_2_end_round: number;
+    phase_2_min_balance: number;
+    phase_3_min_balance: number;
+    min_squad_size: number;
+    max_squad_size: number;
+  }>>`
     SELECT 
       phase_1_end_round,
       phase_1_min_balance,
@@ -231,7 +251,7 @@ export async function calculateReserve(
     WHERE season_id = ${seasonId}
   `;
   
-  if (settingsResult.rows.length === 0) {
+  if (settingsResult.length === 0) {
     // Use defaults if no settings found
     const config: ReserveConfig = {
       phase_1_end_round: 18,
@@ -246,15 +266,15 @@ export async function calculateReserve(
     return calculateReserveCore(currentRoundNumber, teamBalance, teamSquadSize, config);
   }
   
-  const settings = settingsResult.rows[0];
+  const settings = settingsResult[0];
   const config: ReserveConfig = {
-    phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
-    phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
-    phase_2_end_round: parseInt(settings.phase_2_end_round) || 20,
-    phase_2_min_balance: parseInt(settings.phase_2_min_balance) || 30,
-    phase_3_min_balance: parseInt(settings.phase_3_min_balance) || 10,
-    min_squad_size: parseInt(settings.min_squad_size) || 25,
-    max_squad_size: parseInt(settings.max_squad_size) || 30
+    phase_1_end_round: settings.phase_1_end_round || 18,
+    phase_1_min_balance: settings.phase_1_min_balance || 30,
+    phase_2_end_round: settings.phase_2_end_round || 20,
+    phase_2_min_balance: settings.phase_2_min_balance || 30,
+    phase_3_min_balance: settings.phase_3_min_balance || 10,
+    min_squad_size: settings.min_squad_size || 25,
+    max_squad_size: settings.max_squad_size || 30
   };
   
   return calculateReserveCore(currentRoundNumber, teamBalance, teamSquadSize, config);

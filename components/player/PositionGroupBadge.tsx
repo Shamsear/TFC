@@ -27,7 +27,7 @@ export default function PositionGroupBadge({ position, group, size = 'sm' }: Pos
 
   return (
     <span className={`inline-flex items-center rounded border font-bold ${color} ${sizes[size]}`}>
-      {group}
+      {position}-{group}
     </span>
   )
 }

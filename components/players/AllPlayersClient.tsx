@@ -279,21 +279,37 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
             </select>
           </div>
 
-          {/* Group Filter - Only show for grouped positions */}
-          {['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter) && (
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Group</label>
-              <select
-                value={groupFilter}
-                onChange={(e) => handleGroupChange(e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
-              >
-                <option value="ALL">All Groups</option>
-                <option value="A">Group A</option>
-                <option value="B">Group B</option>
-              </select>
-            </div>
-          )}
+          {/* Group Filter - Show when any position in the filter supports groups */}
+          {(() => {
+            // Check if current position filter includes any grouped positions
+            const GROUPED_POSITIONS = ['CB', 'DMF', 'CMF', 'AMF', 'CF']
+            
+            // If it's a position group name, check if any positions in that group are grouped
+            if (Object.keys(POSITION_GROUPS).includes(positionFilter)) {
+              const groupPositions = POSITION_GROUPS[positionFilter as keyof typeof POSITION_GROUPS]
+              const hasGroupedPosition = groupPositions.some(pos => GROUPED_POSITIONS.includes(pos))
+              if (!hasGroupedPosition) return null
+            } 
+            // If it's an individual position, check if it's grouped
+            else if (!GROUPED_POSITIONS.includes(positionFilter)) {
+              return null
+            }
+
+            return (
+              <div>
+                <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Group</label>
+                <select
+                  value={groupFilter}
+                  onChange={(e) => handleGroupChange(e.target.value)}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
+                >
+                  <option value="ALL">All Groups</option>
+                  <option value="A">{positionFilter}-A</option>
+                  <option value="B">{positionFilter}-B</option>
+                </select>
+              </div>
+            )
+          })()}
         </div>
       </div>
 

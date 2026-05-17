@@ -1292,43 +1292,208 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         </div>
       )}
 
-      {/* Team Bids Status */}
+      {/* Team Bids Status - Enhanced for Completed Rounds */}
       <div className="rounded-xl bg-white/5 border border-white/10 p-6">
         <h2 className="text-xl font-black text-white mb-4">Team Bid Status</h2>
         <div className="space-y-2">
-          {teams.map(team => {
-            const teamBid = round.teamRoundBids.find((bid: any) => bid.teamId === team.id)
-            return (
-              <div key={team.id} className="flex items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10">
-                <div className="flex items-center gap-3">
-                  {team.logoUrl && (
-                    <img src={team.logoUrl} alt={team.name} className="w-8 h-8 rounded" />
-                  )}
-                  <span className="font-bold text-white">{team.name}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  {teamBid ? (
-                    <>
-                      <span className="text-sm text-gray-400">{teamBid.bidCount} bids</span>
-                      {teamBid.submitted ? (
-                        <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30">
-                          Submitted
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold border border-yellow-500/30">
-                          In Progress
-                        </span>
+          {round.status === 'completed' && teamBidsWithDetails ? (
+            // Enhanced view for completed rounds with detailed bids
+            teamBidsWithDetails.map(teamBid => {
+              const isExpanded = expandedTeams.has(teamBid.teamId)
+              const wonBids = teamBid.bids.filter(b => b.won)
+              const lostBids = teamBid.bids.filter(b => !b.won)
+              
+              return (
+                <div key={teamBid.teamId} className="rounded-lg bg-black/30 border border-white/10 overflow-hidden">
+                  {/* Team Header - Clickable to expand/collapse */}
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedTeams)
+                      if (isExpanded) {
+                        newExpanded.delete(teamBid.teamId)
+                      } else {
+                        newExpanded.add(teamBid.teamId)
+                      }
+                      setExpandedTeams(newExpanded)
+                    }}
+                    className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      {teamBid.teamLogo && (
+                        <img src={teamBid.teamLogo} alt={teamBid.teamName} className="w-8 h-8 rounded" />
                       )}
-                    </>
-                  ) : (
-                    <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-bold border border-gray-500/30">
-                      Not Started
-                    </span>
+                      <span className="font-bold text-white">{teamBid.teamName}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        {wonBids.length > 0 && (
+                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30">
+                            ✓ {wonBids.length} Won
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-400">{teamBid.bidCount} bids</span>
+                      </div>
+                      <svg 
+                        className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {/* Expanded Bids List */}
+                  {isExpanded && teamBid.bids.length > 0 && (
+                    <div className="border-t border-white/10 p-4 space-y-2 bg-black/20">
+                      {/* Won Bids First */}
+                      {wonBids.length > 0 && (
+                        <div className="mb-4">
+                          <div className="text-xs font-bold text-emerald-400 mb-2 uppercase tracking-wide">
+                            ✓ Successful Bids
+                          </div>
+                          {wonBids.map((bid, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border-2 border-emerald-500/30 mb-2">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <img 
+                                  src={bid.photoUrl} 
+                                  alt={bid.playerName} 
+                                  className="w-12 h-12 rounded-lg object-cover bg-white/5 flex-shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/placeholder-player.png'
+                                  }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-bold text-white truncate">{bid.playerName}</span>
+                                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 flex-shrink-0">
+                                      {bid.position}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                      {bid.overallRating}
+                                    </span>
+                                  </div>
+                                  {bid.acquisitionType && (
+                                    <div className="text-xs text-emerald-300">
+                                      {formatAcquisitionType(bid.acquisitionType)}
+                                      {bid.acquisitionNotes && ` • ${bid.acquisitionNotes}`}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0 ml-3">
+                                <div className="text-xl font-black text-emerald-400">
+                                  £{bid.amount.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-emerald-300 font-bold">WON</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Lost Bids */}
+                      {lostBids.length > 0 && (
+                        <div>
+                          {wonBids.length > 0 && (
+                            <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
+                              Unsuccessful Bids
+                            </div>
+                          )}
+                          {lostBids.map((bid, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 mb-2">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <img 
+                                  src={bid.photoUrl} 
+                                  alt={bid.playerName} 
+                                  className="w-12 h-12 rounded-lg object-cover bg-white/5 flex-shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/placeholder-player.png'
+                                  }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-bold text-white truncate">{bid.playerName}</span>
+                                    <span className="px-2 py-0.5 rounded bg-gray-500/20 text-gray-300 text-xs font-bold border border-gray-500/30 flex-shrink-0">
+                                      {bid.position}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                      {bid.overallRating}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0 ml-3">
+                                <div className="text-lg font-bold text-gray-400">
+                                  £{bid.amount.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-gray-500">LOST</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* No Bids Message */}
+                      {teamBid.bids.length === 0 && (
+                        <div className="text-center py-4 text-gray-400 text-sm">
+                          No bids placed
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Show message if team didn't submit */}
+                  {!teamBid.submitted && (
+                    <div className="border-t border-white/10 p-3 bg-yellow-500/5">
+                      <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Team did not submit bids for this round</span>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          ) : (
+            // Simple view for non-completed rounds
+            teams.map(team => {
+              const teamBid = round.teamRoundBids.find((bid: any) => bid.teamId === team.id)
+              return (
+                <div key={team.id} className="flex items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10">
+                  <div className="flex items-center gap-3">
+                    {team.logoUrl && (
+                      <img src={team.logoUrl} alt={team.name} className="w-8 h-8 rounded" />
+                    )}
+                    <span className="font-bold text-white">{team.name}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {teamBid ? (
+                      <>
+                        <span className="text-sm text-gray-400">{teamBid.bidCount} bids</span>
+                        {teamBid.submitted ? (
+                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30">
+                            Submitted
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold border border-yellow-500/30">
+                            In Progress
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-bold border border-gray-500/30">
+                        Not Started
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
       </div>
 

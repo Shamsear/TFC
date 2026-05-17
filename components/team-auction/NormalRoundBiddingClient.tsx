@@ -73,6 +73,7 @@ export default function NormalRoundBiddingClient({
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [errorModalMessage, setErrorModalMessage] = useState('')
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [isSubmitted, setIsSubmitted] = useState(existingBids?.submitted || false)
   const [unlocking, setUnlocking] = useState(false)
@@ -408,7 +409,7 @@ export default function NormalRoundBiddingClient({
       ? `${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}`
       : 'All Positions'
 
-    const message = `*SS Super League ${round.season.name}*
+    const message = `*${round.season.name}*
 
 *Round ${round.roundNumber} Bids*
 
@@ -416,14 +417,11 @@ export default function NormalRoundBiddingClient({
 *Team:* ${teamName || 'Your Team'}
 
 *Bids:*
-${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join('\n')}
-
-_Total: £${bidEntries.reduce((sum, bid) => sum + bid.amount, 0).toLocaleString()}_`
+${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join('\n')}`
 
     // Copy to clipboard
     navigator.clipboard.writeText(message).then(() => {
-      setMessage({ type: 'success', text: 'Bids copied to clipboard! You can now paste in WhatsApp.' })
-      setTimeout(() => setMessage(null), 3000)
+      setShowSuccessModal(true)
     }).catch(() => {
       alert('Failed to copy to clipboard')
     })
@@ -913,6 +911,33 @@ _Total: £${bidEntries.reduce((sum, bid) => sum + bid.amount, 0).toLocaleString(
             <button
               onClick={() => setShowErrorModal(false)}
               className="w-full px-6 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 font-bold transition-all"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1a1a] border-2 border-[#25D366]/50 rounded-2xl p-6 max-w-md w-full animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-[#25D366]/20 border border-[#25D366]/30 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-[#25D366]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-black text-white mb-2">Copied to Clipboard!</h3>
+                <p className="text-[#D4CCBB] text-sm leading-relaxed">
+                  Your bids have been copied to clipboard. You can now paste them in WhatsApp.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full px-6 py-3 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/30 text-[#25D366] font-bold transition-all"
             >
               Got it
             </button>

@@ -100,6 +100,18 @@ export default async function TeamAuctionPage() {
     where: {
       seasonId: activeSeason.id,
     },
+    select: {
+      id: true,
+      roundNumber: true,
+      position: true,
+      position_group: true,
+      roundType: true,
+      status: true,
+      startTime: true,
+      endTime: true,
+      maxBidsPerTeam: true,
+      basePrice: true
+    },
     orderBy: [
       { status: 'asc' }, // Active first, then completed
       { roundNumber: 'desc' } // Most recent first

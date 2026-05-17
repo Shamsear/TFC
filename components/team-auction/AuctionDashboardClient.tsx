@@ -21,6 +21,7 @@ interface Round {
   id: string
   roundNumber: number
   position: string | null
+  position_group?: string | null
   roundType: string
   status: string
   startTime: Date | null
@@ -356,7 +357,9 @@ export default function AuctionDashboardClient({
                           Round {round.roundNumber}
                         </h3>
                         {round.position && (
-                          <p className="text-sm text-[#D4CCBB]">{round.position}</p>
+                          <p className="text-sm text-[#D4CCBB]">
+                            {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                          </p>
                         )}
                       </div>
                       <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${getStatusColor(round.status)}`}>
@@ -481,7 +484,9 @@ export default function AuctionDashboardClient({
                         Round {round.roundNumber}
                       </h3>
                       {round.position && (
-                        <p className="text-sm text-[#D4CCBB]">{round.position}</p>
+                        <p className="text-sm text-[#D4CCBB]">
+                          {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                        </p>
                       )}
                     </div>
                     <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${getStatusColor(round.status)}`}>
@@ -518,7 +523,9 @@ export default function AuctionDashboardClient({
                         Round {round.roundNumber}
                       </h3>
                       {round.position && (
-                        <p className="text-sm text-[#D4CCBB]">{round.position}</p>
+                        <p className="text-sm text-[#D4CCBB]">
+                          {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                        </p>
                       )}
                     </div>
                     <span className="px-3 py-1 rounded-lg text-xs font-medium border bg-gray-500/20 text-gray-300 border-gray-500/30">

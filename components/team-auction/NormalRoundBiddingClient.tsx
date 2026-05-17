@@ -7,6 +7,7 @@ import Image from 'next/image'
 interface Player {
   basePlayerId: string
   position: string
+  position_group?: string | null
   overallRating: number
   playing_style: string | null
   basePlayer: {
@@ -20,6 +21,7 @@ interface Round {
   id: string
   roundNumber: number
   position: string | null
+  position_group?: string | null
   status: string
   endTime: Date | null
   maxBidsPerTeam: number | null
@@ -416,7 +418,7 @@ export default function NormalRoundBiddingClient({
                 Round {round.roundNumber} Bidding
               </h1>
               <p className="text-sm text-[#D4CCBB]">
-                {round.season.name} {round.position && `— ${round.position}`}
+                {round.season.name} {round.position && `— ${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}`}
               </p>
             </div>
             {timeRemaining && (

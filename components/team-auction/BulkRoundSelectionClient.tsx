@@ -36,6 +36,7 @@ interface Round {
   id: string
   roundNumber: number
   position: string | null
+  position_group?: string | null
   roundType: string
   status: string
   startTime: Date | null

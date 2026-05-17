@@ -93,6 +93,13 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [previewResults, setPreviewResults] = useState<any>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [isPolling, setIsPolling] = useState(true)
+  const [showEditSettings, setShowEditSettings] = useState(false)
+  const [editingSettings, setEditingSettings] = useState(false)
+  const [editForm, setEditForm] = useState({
+    maxBidsPerTeam: round.maxBidsPerTeam || 0,
+    basePrice: round.basePrice || 0,
+    finalizationMode: round.finalizationMode
+  })
 
   // Live polling - refresh data every 3 seconds for active/pending rounds
   useEffect(() => {
@@ -558,6 +565,166 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           </div>
         </div>
       </div>
+
+      {/* Edit Round Settings */}
+      {(round.status === 'draft' || round.status === 'active') && (
+        <div className="mb-8">
+          <button
+            onClick={() => setShowEditSettings(!showEditSettings)}
+            className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 flex items-center justify-center">
+                <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <h3 className="font-bold text-white">Edit Round Settings</h3>
+                <p className="text-xs text-[#D4CCBB]">
+                  Modify bids limit, base price, and finalization mode
+                </p>
+              </div>
+            </div>
+            <svg 
+              className={`w-5 h-5 text-[#D4CCBB] transition-transform ${showEditSettings ? 'rotate-180' : ''}`} 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showEditSettings && (
+            <div className="mt-4 rounded-lg bg-white/5 border border-white/10 p-6">
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                
+                if (!confirm('Are you sure you want to update these settings?')) {
+                  return
+                }
+
+                setEditingSettings(true)
+                setError('')
+
+                try {
+                  const response = await fetch(`/api/admin/rounds/${round.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(editForm)
+                  })
+
+                  if (!response.ok) {
+                    const data = await response.json()
+                    throw new Error(data.error || 'Failed to update settings')
+                  }
+
+                  setShowEditSettings(false)
+                  router.refresh()
+                } catch (err: any) {
+                  setError(err.message)
+                } finally {
+                  setEditingSettings(false)
+                }
+              }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                      Max Bids Per Team
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.maxBidsPerTeam}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        maxBidsPerTeam: parseInt(e.target.value) || 0
+                      }))}
+                      className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E8A800]"
+                      placeholder="0 = unlimited"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      0 = unlimited bids
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                      Base Price (£)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.basePrice}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        basePrice: parseInt(e.target.value) || 0
+                      }))}
+                      className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E8A800]"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                      Finalization Mode
+                    </label>
+                    <select
+                      value={editForm.finalizationMode}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        finalizationMode: e.target.value
+                      }))}
+                      className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E8A800]"
+                    >
+                      <option value="auto">Auto (Immediate)</option>
+                      <option value="manual">Manual (Preview First)</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {editForm.finalizationMode === 'auto' 
+                        ? 'Results finalize automatically when timer ends'
+                        : 'Preview results before making them public'}
+                    </p>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditSettings(false)
+                      setEditForm({
+                        maxBidsPerTeam: round.maxBidsPerTeam || 0,
+                        basePrice: round.basePrice || 0,
+                        finalizationMode: round.finalizationMode
+                      })
+                    }}
+                    disabled={editingSettings}
+                    className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editingSettings}
+                    className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                  >
+                    {editingSettings ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Finalization Mode Info */}
       {round.finalizationMode === 'manual' && ['draft', 'active'].includes(round.status) && (

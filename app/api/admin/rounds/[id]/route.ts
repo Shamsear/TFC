@@ -107,24 +107,33 @@ export async function PATCH(
       return NextResponse.json({ error: 'Round not found' }, { status: 404 });
     }
 
-    // Only allow updates if round is in draft status
-    if (existingRound.status !== 'draft') {
+    // Only allow updates if round is in draft or active status
+    if (!['draft', 'active'].includes(existingRound.status)) {
       return NextResponse.json(
-        { error: 'Can only update rounds in draft status' },
+        { error: 'Can only update rounds in draft or active status' },
         { status: 400 }
       );
+    }
+
+    // Build update data
+    const updateData: any = {
+      position: body.position,
+      maxBidsPerTeam: body.maxBidsPerTeam,
+      basePrice: body.basePrice,
+      durationSeconds: body.durationSeconds,
+      finalizationMode: body.finalizationMode
+    };
+
+    // If round is active and duration changed, update end time
+    if (existingRound.status === 'active' && existingRound.startTime && body.durationSeconds !== undefined) {
+      const newEndTime = new Date(existingRound.startTime.getTime() + body.durationSeconds * 1000);
+      updateData.endTime = newEndTime;
     }
 
     // Update round
     const updatedRound = await prisma.rounds.update({
       where: { id: roundId },
-      data: {
-        position: body.position,
-        maxBidsPerTeam: body.maxBidsPerTeam,
-        basePrice: body.basePrice,
-        durationSeconds: body.durationSeconds,
-        finalizationMode: body.finalizationMode
-      }
+      data: updateData
     });
 
     return NextResponse.json({

@@ -214,37 +214,7 @@ export default async function TeamDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-4">
-            {team.logoUrl && (
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-transparent ring-2 ring-[#E8A800]/20">
-                <Image
-                  src={team.logoUrl}
-                  alt={team.name}
-                  fill
-                  className="object-contain p-2"
-                />
-              </div>
-            )}
-            <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-                <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                  {team.name}
-                </span>
-              </h1>
-              <p className="text-[#D4CCBB] text-sm sm:text-base">Manager: {team.managerName}</p>
-            </div>
-          </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg">
-            <span className="text-[#E8A800] font-medium text-xs sm:text-sm">Current Season:</span>
-            <span className="text-white font-bold text-xs sm:text-sm">{activeSeason.name}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-12">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           {/* Budget */}

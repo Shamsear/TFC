@@ -156,7 +156,19 @@ export async function GET(
 
     const tournaments = await prisma.tournaments.findMany({
       where: { seasonId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        tournamentType: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        description: true,
+        leagueLegs: true,
+        playoffFormat: true,
+        groupLegs: true,
+        groupQualifiers: true,
+        knockoutConfig: true,
         _count: {
           select: {
             matches: true,
@@ -166,7 +178,8 @@ export async function GET(
       },
       orderBy: {
         startDate: 'desc'
-      }
+      },
+      take: 50 // Limit to 50 tournaments
     })
 
     return NextResponse.json(tournaments)

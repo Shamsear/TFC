@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Enable gzip compression for all responses
+  compress: true,
+  
   images: {
     remotePatterns: [
       {
@@ -43,6 +46,16 @@ const nextConfig: NextConfig = {
           {
             key: 'Content-Type',
             value: 'application/wasm',
+          },
+        ],
+      },
+      // Add caching headers for API routes
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=60, stale-while-revalidate=300',
           },
         ],
       },

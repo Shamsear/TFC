@@ -23,13 +23,27 @@ export default async function TeamProfilePage() {
     redirect("/team/not-in-season")
   }
 
-  // Fetch team info
+  // Fetch team info with minimal nested data
   const team = await prisma.teams.findUnique({
     where: { id: session.user.teamId },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      managerName: true,
+      logoUrl: true,
+      createdAt: true,
       seasonTeams: {
-        include: {
-          season: true,
+        select: {
+          id: true,
+          currentBudget: true,
+          trophiesWon: true,
+          season: {
+            select: {
+              id: true,
+              name: true,
+              isActive: true
+            }
+          }
         },
         orderBy: {
           createdAt: "desc",
@@ -69,7 +83,7 @@ export default async function TeamProfilePage() {
     0
   )
 
-  // Get match statistics for current season
+  // Get match statistics for current season (limit to last 50 matches)
   const matchStats = currentSeasonTeam
     ? await prisma.matches.findMany({
         where: {
@@ -85,6 +99,7 @@ export default async function TeamProfilePage() {
           homeScore: true,
           awayScore: true,
         },
+        take: 50 // Limit to last 50 matches
       })
     : []
 

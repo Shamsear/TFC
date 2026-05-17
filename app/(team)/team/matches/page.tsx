@@ -64,7 +64,7 @@ export default async function MatchesPage() {
     where: { id: session.user.teamId },
   })
 
-  // Get all matches (upcoming and past)
+  // Get all matches (upcoming and past) - limit to 100
   const allMatches = await prisma.matches.findMany({
     where: {
       tournament: {
@@ -75,22 +75,48 @@ export default async function MatchesPage() {
         { awayTeamId: currentSeasonTeam.id },
       ],
     },
-    include: {
+    select: {
+      id: true,
+      matchDate: true,
+      status: true,
+      homeScore: true,
+      awayScore: true,
+      venue: true,
+      homeTeamId: true,
+      awayTeamId: true,
       homeTeam: {
-        include: {
-          team: true,
-        },
+        select: {
+          id: true,
+          team: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       },
       awayTeam: {
-        include: {
-          team: true,
-        },
+        select: {
+          id: true,
+          team: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       },
-      tournament: true,
+      tournament: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
     },
     orderBy: {
       matchDate: "desc",
     },
+    take: 100 // Limit to last 100 matches
   })
 
   // Separate upcoming and past matches

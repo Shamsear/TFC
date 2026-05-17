@@ -5,50 +5,77 @@ import { prisma } from '@/lib/prisma'
 
 async function getHomeData() {
   try {
-    // Get active season
-    const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true },
-      include: {
-        seasonTeams: {
-          include: {
-            team: true
+    // Run queries in parallel for better performance
+    const [activeSeason, totalPlayers, totalMatches, totalSeasons, recentTransfers] = await Promise.all([
+      // Get active season with minimal data
+      prisma.seasons.findFirst({
+        where: { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: { seasonTeams: true }
           }
         }
-      }
-    })
-
-    // Get total stats
-    const [totalPlayers, totalMatches, totalSeasons] = await Promise.all([
+      }),
+      
+      // Get total stats
       prisma.base_players.count(),
       prisma.matches.count(),
-      prisma.seasons.count()
+      prisma.seasons.count(),
+      
+      // Get recent transfers (reduced from 10 to 5)
+      prisma.transfer_history.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          soldPrice: true,
+          basePlayer: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          team: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          season: {
+            select: {
+              name: true
+            }
+          }
+        }
+      })
     ])
 
-    // Get recent transfers (last 10)
-    const recentTransfers = await prisma.transfer_history.findMany({
-      take: 10,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        basePlayer: true,
-        team: true,
-        season: true
-      }
-    })
-
-    // Get top teams by budget
-    const topTeams = await prisma.season_teams.findMany({
-      where: activeSeason ? { seasonId: activeSeason.id } : undefined,
-      take: 4,
-      orderBy: { currentBudget: 'desc' },
-      include: {
-        team: true
-      }
-    })
+    // Get top teams only if active season exists
+    const topTeams = activeSeason
+      ? await prisma.season_teams.findMany({
+          where: { seasonId: activeSeason.id },
+          take: 4,
+          orderBy: { currentBudget: 'desc' },
+          select: {
+            id: true,
+            currentBudget: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                logoUrl: true
+              }
+            }
+          }
+        })
+      : []
 
     return {
       activeSeason,
       stats: {
-        teams: activeSeason?.seasonTeams.length || 0,
+        teams: activeSeason?._count.seasonTeams || 0,
         players: totalPlayers,
         matches: totalMatches,
         seasons: totalSeasons

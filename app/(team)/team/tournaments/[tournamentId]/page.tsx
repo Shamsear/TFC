@@ -57,16 +57,34 @@ export default async function TournamentDetailsPage({
     },
   })
 
-  // Get standings
+  // Get standings with minimal data
   const standings = await prisma.standings.findMany({
     where: {
       tournamentId,
     },
-    include: {
+    select: {
+      id: true,
+      position: true,
+      points: true,
+      played: true,
+      won: true,
+      drawn: true,
+      lost: true,
+      goalsFor: true,
+      goalsAgainst: true,
+      goalDiff: true,
+      groupName: true,
+      teamId: true,
       seasonTeam: {
-        include: {
-          team: true,
-        },
+        select: {
+          id: true,
+          team: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       },
     },
     orderBy: [{ groupName: "asc" }, { position: "asc" }, { points: "desc" }],
@@ -82,28 +100,52 @@ export default async function TournamentDetailsPage({
     return acc
   }, {} as Record<string, typeof standings>)
 
-  // Get matches
+  // Get matches with limit
   const matches = await prisma.matches.findMany({
     where: {
       tournamentId,
     },
-    include: {
+    select: {
+      id: true,
+      matchDate: true,
+      status: true,
+      homeScore: true,
+      awayScore: true,
+      homeTeamId: true,
+      awayTeamId: true,
       homeTeam: {
-        include: {
-          team: true,
-        },
+        select: {
+          teamId: true,
+          team: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       },
       awayTeam: {
-        include: {
-          team: true,
-        },
+        select: {
+          teamId: true,
+          team: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       },
-      group: true,
+      group: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
     },
     orderBy: {
       matchDate: "desc",
     },
-    take: 10,
+    take: 20, // Limit to 20 matches
   })
 
   return (

@@ -13,8 +13,19 @@ import { generateSeasonId } from "@/lib/id-generator"
  */
 export async function GET(request: NextRequest) {
   try {
+    // Add limit and select only needed fields
     const seasons = await prisma.seasons.findMany({
-      orderBy: { createdAt: "desc" }
+      select: {
+        id: true,
+        name: true,
+        seasonNumber: true,
+        isActive: true,
+        startingPurse: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50 // Limit to last 50 seasons
     })
 
     return NextResponse.json(seasons)

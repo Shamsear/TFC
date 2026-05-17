@@ -15,8 +15,10 @@ import { hash } from "bcryptjs"
  */
 export async function GET(request: NextRequest) {
   try {
+    // Add limit to prevent loading all teams
     const teams = await prisma.teams.findMany({
-      orderBy: { name: "asc" }
+      orderBy: { name: "asc" },
+      take: 100 // Limit to 100 teams
     })
 
     return NextResponse.json(teams)

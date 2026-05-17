@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
     if (status) where.status = status;
     if (roundType) where.roundType = roundType;
 
-    // Fetch rounds
+    // Fetch rounds with limit
     const rounds = await prisma.rounds.findMany({
       where,
       include: {
@@ -151,7 +151,8 @@ export async function GET(request: NextRequest) {
       orderBy: [
         { seasonId: 'desc' },
         { roundNumber: 'asc' }
-      ]
+      ],
+      take: 100 // Limit to 100 rounds
     });
 
     return NextResponse.json({

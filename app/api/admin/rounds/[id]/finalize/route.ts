@@ -293,6 +293,13 @@ export async function POST(
     }
   } catch (error) {
     console.error('Finalize round error:', error);
+    
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
 
     // Try to revert status
     try {
@@ -300,12 +307,19 @@ export async function POST(
         where: { id: roundId },
         data: { status: 'active' }
       });
+      console.log('Successfully reverted round status to active');
     } catch (revertError) {
       console.error('Failed to revert status:', revertError);
     }
 
+    // Return detailed error message
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: 'Failed to finalize round' },
+      { 
+        error: 'Failed to finalize round',
+        details: errorMessage,
+        roundId
+      },
       { status: 500 }
     );
   }

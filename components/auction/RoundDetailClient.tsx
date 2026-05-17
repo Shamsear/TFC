@@ -150,11 +150,15 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({})
-            }).then(response => {
+            }).then(async response => {
               if (response.ok) {
                 console.log('Auto-finalization successful')
+                const data = await response.json()
+                console.log('Finalization result:', data)
               } else {
-                console.error('Auto-finalization failed')
+                console.error('Auto-finalization failed with status:', response.status)
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+                console.error('Error details:', errorData)
               }
               router.refresh()
             }).catch(error => {

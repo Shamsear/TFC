@@ -65,12 +65,18 @@ export default async function TournamentsPage() {
     where: { id: session.user.teamId },
   })
 
-  // Get all tournaments in current season
+  // Get all tournaments in current season (limit to 20)
   const tournaments = await prisma.tournaments.findMany({
     where: {
       seasonId: activeSeason.id,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      tournamentType: true,
+      status: true,
+      startDate: true,
+      endDate: true,
       _count: {
         select: {
           tournamentTeams: true,
@@ -81,6 +87,7 @@ export default async function TournamentsPage() {
     orderBy: {
       startDate: "desc",
     },
+    take: 20 // Limit to 20 tournaments
   })
 
   // Get standings for user's team
@@ -89,8 +96,22 @@ export default async function TournamentsPage() {
         where: {
           teamId: currentSeasonTeam.id,
         },
-        include: {
-          tournament: true,
+        select: {
+          id: true,
+          position: true,
+          points: true,
+          won: true,
+          drawn: true,
+          lost: true,
+          goalDiff: true,
+          groupName: true,
+          tournamentId: true,
+          tournament: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
         },
       })
     : []

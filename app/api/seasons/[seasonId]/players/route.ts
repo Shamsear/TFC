@@ -12,41 +12,52 @@ export async function GET(
     const position = searchParams.get('position')
     const available = searchParams.get('available') === 'true'
 
-    // Get players who haven't been sold yet
+    // Get players who haven't been sold yet (if available filter is true)
     const transferredPlayerIds = available
       ? await prisma.transfer_history.findMany({
           where: { seasonId },
           select: { basePlayerId: true }
-        })
+        }).then(results => results.map(t => t.basePlayerId))
       : []
 
-    const transferredIds = new Set(transferredPlayerIds.map(t => t.basePlayerId))
-
-    // Fetch seasonal player stats
+    // Fetch seasonal player stats with limit
     const seasonalStats = await prisma.seasonal_player_stats.findMany({
       where: {
         seasonId,
-        ...(position && { position })
+        ...(position && { position }),
+        ...(available && transferredPlayerIds.length > 0 && {
+          basePlayerId: { notIn: transferredPlayerIds }
+        })
       },
-      include: {
-        basePlayer: true
+      select: {
+        basePlayerId: true,
+        position: true,
+        position_group: true,
+        overallRating: true,
+        realWorldClub: true,
+        basePlayer: {
+          select: {
+            id: true,
+            name: true,
+            player_id: true
+          }
+        }
       },
       orderBy: {
         overallRating: 'desc'
-      }
+      },
+      take: 500 // Limit to top 500 players
     })
 
-    // Filter out sold players if available=true
-    const players = seasonalStats
-      .filter(stat => !available || !transferredIds.has(stat.basePlayerId))
-      .map(stat => ({
-        id: stat.basePlayer.id,
-        name: stat.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${stat.basePlayer.player_id || stat.basePlayer.id}.webp`),
-        position: stat.position,
-        realWorldClub: stat.realWorldClub,
-        overallRating: stat.overallRating
-      }))
+    const players = seasonalStats.map(stat => ({
+      id: stat.basePlayer.id,
+      name: stat.basePlayer.name,
+      photoUrl: getPlayerPhotoUrl(`${stat.basePlayer.player_id || stat.basePlayer.id}.webp`),
+      position: stat.position,
+      position_group: stat.position_group,
+      realWorldClub: stat.realWorldClub,
+      overallRating: stat.overallRating
+    }))
 
     return NextResponse.json(players)
   } catch (error) {

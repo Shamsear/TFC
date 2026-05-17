@@ -93,58 +93,60 @@ export default async function SquadPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-12">
-        {/* Compact Header */}
-        <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-black mb-1">
+      {/* Header */}
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
             <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
               {team?.name} Squad
             </span>
           </h1>
-          <p className="text-[#D4CCBB] text-xs sm:text-sm">{activeSeason.name}</p>
+          <p className="text-[#D4CCBB] text-sm sm:text-base">{activeSeason.name}</p>
         </div>
+      </div>
 
-        {/* Compact Stats */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
-          <div className="rounded-lg bg-white/5 border border-white/10 p-3">
-            <div className="text-xs text-[#7A7367] mb-1">Players</div>
-            <div className="text-xl sm:text-2xl font-black text-white">{transfers.length}</div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Players</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{transfers.length}</div>
           </div>
-          <div className="rounded-lg bg-white/5 border border-white/10 p-3">
-            <div className="text-xs text-[#7A7367] mb-1">Value</div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-400">${(totalValue / 1000).toFixed(0)}k</div>
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Squad Value</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">${totalValue.toLocaleString()}</div>
           </div>
-          <div className="rounded-lg bg-white/5 border border-white/10 p-3">
-            <div className="text-xs text-[#7A7367] mb-1">Avg</div>
-            <div className="text-xl sm:text-2xl font-black text-[#FFB347]">
-              ${transfers.length > 0 ? Math.round(totalValue / transfers.length) : 0}
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Avg. Player Value</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">
+              ${transfers.length > 0 ? Math.round(totalValue / transfers.length).toLocaleString() : 0}
             </div>
           </div>
         </div>
 
-        {/* Compact Squad by Position */}
+        {/* Squad by Position */}
         {transfers.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-6 sm:space-y-8">
             {sortedPositions.map((position) => (
               <div key={position}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-1 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded text-[#E8A800] text-xs font-bold">
+                <h2 className="text-lg sm:text-xl font-black text-white mb-4 flex items-center gap-2">
+                  <span className="px-3 py-1 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg text-[#E8A800] text-sm sm:text-base">
                     {position}
                   </span>
-                  <span className="text-[#7A7367] text-xs">
-                    {playersByPosition[position].length}
+                  <span className="text-[#7A7367] text-xs sm:text-sm">
+                    ({playersByPosition[position].length} {playersByPosition[position].length === 1 ? "player" : "players"})
                   </span>
-                </div>
+                </h2>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                   {playersByPosition[position].map((player) => (
                     <Link
                       key={player.id}
                       href={`/team/squad/${player.basePlayer.id}`}
-                      className="rounded-lg bg-white/5 border border-white/10 p-2 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all group"
+                      className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all group"
                     >
                       {/* Player Photo */}
-                      <div className="relative w-full aspect-square mb-2 rounded overflow-hidden bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10">
+                      <div className="relative w-full aspect-square mb-3 rounded-lg overflow-hidden bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10">
                         <img
                           src={getPlayerPhotoUrl(player.basePlayer.player_id || player.basePlayer.id)}
                           alt={player.basePlayer.name}
@@ -152,25 +154,34 @@ export default async function SquadPage() {
                         />
                         {/* Rating Badge */}
                         {player.stats?.overallRating && (
-                          <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#0a0a0a]/90 backdrop-blur-sm rounded text-[#E8A800] font-bold text-xs">
-                            {player.stats.overallRating}
+                          <div className="absolute top-2 right-2 px-2 py-1 bg-[#0a0a0a]/80 backdrop-blur-sm rounded-lg">
+                            <span className="text-[#E8A800] font-bold text-sm">
+                              {player.stats.overallRating}
+                            </span>
                           </div>
                         )}
                       </div>
 
                       {/* Player Info */}
-                      <div className="space-y-1">
-                        <h3 className="text-white font-bold group-hover:text-[#E8A800] transition-colors line-clamp-1 text-xs">
+                      <div className="space-y-2">
+                        <h3 className="text-white font-bold group-hover:text-[#E8A800] transition-colors line-clamp-1 text-sm sm:text-base">
                           {player.basePlayer.name}
                         </h3>
 
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-[#7A7367] text-[10px]">${(player.soldPrice / 1000).toFixed(0)}k</span>
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-[#7A7367] truncate">{player.stats?.realWorldClub || "Unknown"}</span>
                           {player.stats?.star_rating && (
-                            <span className="text-[#E8A800] text-[10px]">
+                            <span className="text-[#E8A800] flex-shrink-0">
                               {"⭐".repeat(player.stats.star_rating)}
                             </span>
                           )}
+                        </div>
+
+                        <div className="pt-2 border-t border-white/10">
+                          <div className="flex items-center justify-between text-xs sm:text-sm">
+                            <span className="text-[#7A7367]">Purchase Price</span>
+                            <span className="text-white font-bold">${player.soldPrice.toLocaleString()}</span>
+                          </div>
                         </div>
                       </div>
                     </Link>
@@ -181,13 +192,13 @@ export default async function SquadPage() {
           </div>
         ) : (
           <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-xl bg-[#7A7367]/10 border border-[#7A7367]/20 flex items-center justify-center text-[#7A7367] mx-auto mb-4">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#7A7367]/10 border border-[#7A7367]/20 flex items-center justify-center text-[#7A7367] mx-auto mb-4 sm:mb-6">
+              <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <h2 className="text-xl font-black text-white mb-2">No Players Yet</h2>
-            <p className="text-[#7A7367] text-sm">Your squad is empty. Players will appear here after the auction.</p>
+            <h2 className="text-xl sm:text-2xl font-black text-white mb-2">No Players Yet</h2>
+            <p className="text-[#7A7367] text-sm sm:text-base">Your squad is empty. Players will appear here after the auction.</p>
           </div>
         )}
       </div>

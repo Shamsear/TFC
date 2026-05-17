@@ -248,7 +248,7 @@ export async function calculateReserve(
       min_squad_size,
       max_squad_size
     FROM auction_settings
-    WHERE season_id = ${seasonId}
+    WHERE "seasonId" = ${seasonId}
   `;
   
   if (settingsResult.length === 0) {

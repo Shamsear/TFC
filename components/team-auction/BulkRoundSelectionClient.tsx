@@ -91,6 +91,8 @@ export default function BulkRoundSelectionClient({
   const [squadInfo, setSquadInfo] = useState<any>(null)
   const [starredPlayerIds, setStarredPlayerIds] = useState<Set<string>>(new Set())
   const [starringInProgress, setStarringInProgress] = useState<Set<string>>(new Set())
+  const [currentPage, setCurrentPage] = useState(1)
+  const playersPerPage = 12
 
   // Load starred players
   useEffect(() => {
@@ -329,7 +331,58 @@ export default function BulkRoundSelectionClient({
       return b.overall - a.overall
     })
 
+  // Pagination
+  const totalPages = Math.ceil(filteredPlayers.length / playersPerPage)
+  const startIndex = (currentPage - 1) * playersPerPage
+  const endIndex = startIndex + playersPerPage
+  const paginatedPlayers = filteredPlayers.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, positionFilter])
+
   const positions = Array.from(new Set(players.map(p => p.position))).sort()
+
+  // Pagination Component
+  const PaginationControls = () => (
+    <div className="flex items-center justify-between gap-4 p-4 rounded-lg bg-white/5 border border-white/10">
+      <div className="text-sm text-[#D4CCBB]">
+        Showing {startIndex + 1}-{Math.min(endIndex, filteredPlayers.length)} of {filteredPlayers.length} players
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ← Previous
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                currentPage === page
+                  ? 'bg-[#E8A800] text-black'
+                  : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          disabled={currentPage === totalPages}
+          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next →
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -504,9 +557,12 @@ export default function BulkRoundSelectionClient({
           </select>
         </div>
 
+        {/* Pagination - Top */}
+        {filteredPlayers.length > playersPerPage && <PaginationControls />}
+
         {/* Players Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {filteredPlayers.map(player => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
+          {paginatedPlayers.map(player => {
             const isSelected = selections.includes(player.id)
             const slotsNeeded = minSquadSize - squadSize
             const limitReached = !isSelected && selections.length >= slotsNeeded
@@ -589,6 +645,9 @@ export default function BulkRoundSelectionClient({
             )
           })}
         </div>
+
+        {/* Pagination - Bottom */}
+        {filteredPlayers.length > playersPerPage && <PaginationControls />}
 
         {/* Actions */}
         {round.status === 'active' && (

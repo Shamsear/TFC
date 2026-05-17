@@ -56,6 +56,23 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
   const pathname = usePathname()
   const router = useRouter()
 
+  // Position groups mapping
+  const POSITION_GROUPS = {
+    'Goalkeepers': ['GK'],
+    'Defenders': ['CB', 'LB', 'RB'],
+    'Midfielders': ['DMF', 'CMF', 'LMF', 'RMF', 'AMF'],
+    'Forwards': ['SS', 'LWF', 'RWF', 'CF']
+  }
+
+  // Create enhanced position list with groups
+  const enhancedPositions = [
+    'ALL',
+    '─── Position Groups ───',
+    ...Object.keys(POSITION_GROUPS),
+    '─── Individual Positions ───',
+    ...positions.filter(p => p !== 'ALL').sort()
+  ]
+
   // Read initial values from URL so direct links / back-nav work
   const getParam = (key: string, fallback: string) => {
     if (typeof window === 'undefined') return fallback
@@ -93,7 +110,19 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
 
     const params = new URLSearchParams({ seasonId, page: String(opts.page), sort: 'rating' })
     if (opts.search) params.set('search', opts.search)
-    if (opts.position !== 'ALL') params.set('position', opts.position)
+    
+    // Handle position groups
+    if (opts.position !== 'ALL' && !opts.position.includes('───')) {
+      const groupPositions = POSITION_GROUPS[opts.position as keyof typeof POSITION_GROUPS]
+      if (groupPositions) {
+        // It's a group - send multiple positions
+        params.set('positions', groupPositions.join(','))
+      } else {
+        // It's a single position
+        params.set('position', opts.position)
+      }
+    }
+    
     if (opts.team !== 'ALL') params.set('team', opts.team)
     if (opts.group !== 'ALL') params.set('group', opts.group)
 
@@ -109,7 +138,7 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
     } finally {
       setLoading(false)
     }
-  }, [seasonId])
+  }, [seasonId, POSITION_GROUPS])
 
   // ── Silently sync state → URL (no navigation, no reload) ────────────────────
   const syncURL = useCallback((opts: {
@@ -226,9 +255,13 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
               onChange={(e) => handlePositionChange(e.target.value)}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
             >
-              {positions.map(pos => (
-                <option key={pos} value={pos}>{pos}</option>
-              ))}
+              {enhancedPositions.map(pos => {
+                // Separator items
+                if (pos.includes('───')) {
+                  return <option key={pos} disabled className="text-[#7A7367] font-bold">{pos}</option>
+                }
+                return <option key={pos} value={pos}>{pos}</option>
+              })}
             </select>
           </div>
 

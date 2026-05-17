@@ -2,103 +2,11 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { checkTeamSeasonParticipation } from "@/lib/team-auth"
-import PlayersSearchClient from '@/components/players/PlayersSearchClient'
-import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import AllPlayersClient from '@/components/players/AllPlayersClient'
 
 export const metadata = {
   title: "Players | Team Dashboard",
   description: "Browse and search all players in the league",
-}
-
-async function getPlayersData(seasonId: string) {
-  try {
-    // Get all players with seasonal stats
-    const allPlayers = await prisma.seasonal_player_stats.findMany({
-      where: { seasonId },
-      include: {
-        basePlayer: {
-          include: {
-            transferHistory: {
-              where: { seasonId },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
-              include: {
-                team: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { overallRating: 'desc' }
-    })
-
-    // Get all teams in the season
-    const seasonTeams = await prisma.season_teams.findMany({
-      where: { seasonId },
-      include: {
-        team: true
-      }
-    })
-
-    // Transform players data
-    const playersData = allPlayers.map(stats => {
-      const transfer = stats.basePlayer.transferHistory[0]
-      return {
-        id: stats.basePlayer.id,
-        name: stats.basePlayer.name,
-        photoUrl: getPlayerPhotoUrl(`${stats.basePlayer.player_id || stats.basePlayer.id}.webp`),
-        position: stats.position,
-        nationality: stats.nationality || 'Unknown',
-        realWorldClub: stats.realWorldClub,
-        overallRating: stats.overallRating,
-        playingStyle: stats.playing_style,
-        teamId: transfer?.teamId || null,
-        teamName: transfer?.team.name || null,
-        teamLogoUrl: transfer?.team.logoUrl || null,
-        soldPrice: transfer?.soldPrice || null
-      }
-    })
-
-    // Transform teams data
-    const teamsData = seasonTeams.map(st => ({
-      id: st.team.id,
-      name: st.team.name,
-      logoUrl: st.team.logoUrl
-    }))
-
-    // Calculate stats
-    const soldPlayers = playersData.filter(p => p.teamId !== null).length
-    const freeAgents = playersData.filter(p => p.teamId === null).length
-    const totalValue = playersData.reduce((sum, p) => sum + (p.soldPrice || 0), 0)
-    const avgRating = playersData.length > 0 
-      ? Math.round(playersData.reduce((sum, p) => sum + p.overallRating, 0) / playersData.length)
-      : 0
-
-    return {
-      players: playersData,
-      teams: teamsData,
-      stats: {
-        totalPlayers: playersData.length,
-        soldPlayers,
-        freeAgents,
-        totalValue,
-        avgRating
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching players data:', error)
-    return { 
-      players: [], 
-      teams: [],
-      stats: { 
-        totalPlayers: 0, 
-        soldPlayers: 0,
-        freeAgents: 0,
-        totalValue: 0, 
-        avgRating: 0 
-      } 
-    }
-  }
 }
 
 export default async function TeamPlayersPage() {
@@ -133,7 +41,28 @@ export default async function TeamPlayersPage() {
     )
   }
 
-  const data = await getPlayersData(activeSeason.id)
+  // Fetch static metadata - positions and teams
+  const [soldCount, totalCount, allPositions, allTeams] = await Promise.all([
+    prisma.transfer_history.count({ where: { seasonId: activeSeason.id } }),
+    prisma.seasonal_player_stats.count({ where: { seasonId: activeSeason.id } }),
+    prisma.seasonal_player_stats.findMany({
+      where: { seasonId: activeSeason.id },
+      select: { position: true },
+      distinct: ['position']
+    }),
+    prisma.teams.findMany({
+      where: { transferHistory: { some: { seasonId: activeSeason.id } } },
+      select: { name: true },
+      orderBy: { name: 'asc' }
+    })
+  ])
+
+  const positions = ['ALL', ...allPositions
+    .map((p: { position: string | null }) => p.position)
+    .filter(Boolean)
+    .sort()] as string[]
+
+  const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -149,14 +78,27 @@ export default async function TeamPlayersPage() {
             </p>
           </div>
 
-          {/* Search Interface */}
-          <PlayersSearchClient 
-            players={data.players}
-            teams={data.teams}
-            stats={data.stats}
-            basePath="/team/players"
+          {/* Stats Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Players</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{totalCount}</div>
+            </div>
+            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Sold Players</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">{soldCount}</div>
+            </div>
+            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Available Players</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">{totalCount - soldCount}</div>
+            </div>
+          </div>
+
+          {/* Players List - API-based filtering */}
+          <AllPlayersClient
             seasonId={activeSeason.id}
-            enableStarring={true}
+            positions={positions}
+            teams={teams}
           />
         </div>
       </main>

@@ -15,11 +15,15 @@ export async function GET(request: NextRequest) {
   const seasonId = searchParams.get('seasonId')
   const searchQuery = searchParams.get('search') || ''
   const positionFilter = searchParams.get('position') || 'ALL'
+  const positionsParam = searchParams.get('positions') // comma-separated list for position groups
   const teamFilter = searchParams.get('team') || 'ALL'
   const groupFilter = searchParams.get('group') || 'ALL'
   const sortBy = searchParams.get('sort') || 'rating'
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const skip = (page - 1) * ITEMS_PER_PAGE
+
+  // Parse positions parameter if provided (for position groups)
+  const positionsList = positionsParam ? positionsParam.split(',').map(p => p.trim()).filter(Boolean) : null
 
   if (!seasonId) {
     return NextResponse.json({ error: 'seasonId is required' }, { status: 400 })
@@ -41,7 +45,17 @@ export async function GET(request: NextRequest) {
       { transferHistory: { some: { seasonId, team: { name: { contains: q, mode: 'insensitive' as const } } }}}
     ]
   }
-  if (positionFilter !== 'ALL') {
+  if (positionsList && positionsList.length > 0) {
+    // Handle multiple positions (position groups)
+    const statsFilter: any = { seasonId, position: { in: positionsList } }
+    const posCond = { seasonalPlayerStats: { some: statsFilter } }
+    if (basePLayerWhere.OR) {
+      basePLayerWhere.AND = [{ OR: basePLayerWhere.OR }, posCond]
+      delete basePLayerWhere.OR
+    } else {
+      Object.assign(basePLayerWhere, posCond)
+    }
+  } else if (positionFilter !== 'ALL') {
     const statsFilter: any = { seasonId, position: positionFilter }
     // Add group filter if specified and position supports groups
     if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {
@@ -85,7 +99,16 @@ export async function GET(request: NextRequest) {
         { basePlayer: { transferHistory: { some: { seasonId, team: { name: { contains: q, mode: 'insensitive' as const } } } } } }
       ]
     }
-    if (positionFilter !== 'ALL') {
+    if (positionsList && positionsList.length > 0) {
+      // Handle multiple positions (position groups)
+      const posCondition: any = { position: { in: positionsList } }
+      if (statsWhere.OR) {
+        statsWhere.AND = [{ OR: statsWhere.OR }, posCondition]
+        delete statsWhere.OR
+      } else {
+        Object.assign(statsWhere, posCondition)
+      }
+    } else if (positionFilter !== 'ALL') {
       const posCondition: any = { position: positionFilter }
       // Add group filter if specified and position supports groups
       if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {
@@ -170,7 +193,14 @@ export async function GET(request: NextRequest) {
         { team: { name: { contains: q, mode: 'insensitive' as const } } }
       ]
     }
-    if (positionFilter !== 'ALL') {
+    if (positionsList && positionsList.length > 0) {
+      // Handle multiple positions (position groups)
+      const statsFilter: any = { seasonId, position: { in: positionsList } }
+      const posCond = { basePlayer: { seasonalPlayerStats: { some: statsFilter } } }
+      if (transferWhere.OR) {
+        transferWhere.AND = [{ OR: transferWhere.OR }, posCond]; delete transferWhere.OR
+      } else { Object.assign(transferWhere, posCond) }
+    } else if (positionFilter !== 'ALL') {
       const statsFilter: any = { seasonId, position: positionFilter }
       // Add group filter if specified and position supports groups
       if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {

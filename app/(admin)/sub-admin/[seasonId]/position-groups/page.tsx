@@ -63,45 +63,108 @@ export default function PositionGroupsPage() {
   }, [seasonId])
 
   const fetchPositionGroups = async () => {
+    console.log('[Fetch] Starting to fetch position groups for season:', seasonId)
+    
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/seasons/${seasonId}/position-groups`)
-      if (!response.ok) throw new Error('Failed to fetch position groups')
+      const url = `/api/seasons/${seasonId}/position-groups`
+      console.log('[Fetch] Fetching from:', url)
+      
+      const response = await fetch(url)
+      console.log('[Fetch] Response status:', response.status)
+      console.log('[Fetch] Response ok:', response.ok)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[Fetch] Error response:', errorText)
+        throw new Error('Failed to fetch position groups')
+      }
       
       const data = await response.json()
+      console.log('[Fetch] Data received:', {
+        groupedKeys: Object.keys(data.grouped || {}),
+        statsKeys: Object.keys(data.stats || {}),
+        sampleGrouped: data.grouped?.CB ? {
+          groupA: data.grouped.CB.groupA?.length || 0,
+          groupB: data.grouped.CB.groupB?.length || 0,
+          unassigned: data.grouped.CB.unassigned?.length || 0
+        } : 'No CB data'
+      })
+      
       setGrouped(data.grouped)
       setStats(data.stats)
+      console.log('[Fetch] State updated successfully')
     } catch (err) {
+      console.error('[Fetch] Error caught:', err)
       setError(err instanceof Error ? err.message : 'Failed to load data')
     } finally {
       setIsLoading(false)
+      console.log('[Fetch] Loading complete')
     }
   }
 
   const handleAutoDistribute = async () => {
-    if (!confirm(`Auto-distribute all ${selectedPosition} players into balanced groups?`)) {
+    console.log('[Auto-Distribute] Starting auto-distribution for position:', selectedPosition)
+    console.log('[Auto-Distribute] Current unassigned count:', currentStats.unassigned)
+    
+    if (!confirm(`Auto-distribute all ${selectedPosition} players into balanced groups?\n\nThis may take a minute for large datasets.`)) {
+      console.log('[Auto-Distribute] User cancelled')
       return
     }
 
     try {
       setIsSaving(true)
+      setError('') // Clear any previous errors
+      console.log('[Auto-Distribute] Sending POST request to:', `/api/seasons/${seasonId}/position-groups`)
+      console.log('[Auto-Distribute] Request body:', { position: selectedPosition })
+      
+      // Set a longer timeout for large datasets (5 minutes)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
+      
       const response = await fetch(`/api/seasons/${seasonId}/position-groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ position: selectedPosition })
+        body: JSON.stringify({ position: selectedPosition }),
+        signal: controller.signal
       })
 
-      if (!response.ok) throw new Error('Failed to auto-distribute')
+      clearTimeout(timeoutId)
       
+      console.log('[Auto-Distribute] Response status:', response.status)
+      console.log('[Auto-Distribute] Response ok:', response.ok)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[Auto-Distribute] Error response:', errorText)
+        throw new Error('Failed to auto-distribute')
+      }
+      
+      const result = await response.json()
+      console.log('[Auto-Distribute] Success response:', result)
+      
+      console.log('[Auto-Distribute] Fetching updated position groups...')
       await fetchPositionGroups()
+      console.log('[Auto-Distribute] Position groups refreshed successfully')
+      
+      // Show success message
+      alert(`Successfully distributed ${result.distributed} players!\nGroup A: ${result.groupA}\nGroup B: ${result.groupB}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to auto-distribute')
+      console.error('[Auto-Distribute] Error caught:', err)
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out. The operation may still be processing in the background.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to auto-distribute')
+      }
     } finally {
       setIsSaving(false)
+      console.log('[Auto-Distribute] Process completed')
     }
   }
 
   const handleMovePlayer = async (playerId: string, newGroup: 'A' | 'B' | null) => {
+    console.log('[Move Player] Moving player:', playerId, 'to group:', newGroup)
+    
     try {
       const response = await fetch(`/api/seasons/${seasonId}/position-groups/move`, {
         method: 'POST',
@@ -109,10 +172,21 @@ export default function PositionGroupsPage() {
         body: JSON.stringify({ playerId, newGroup })
       })
 
-      if (!response.ok) throw new Error('Failed to move player')
+      console.log('[Move Player] Response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[Move Player] Error response:', errorText)
+        throw new Error('Failed to move player')
+      }
+      
+      const result = await response.json()
+      console.log('[Move Player] Success response:', result)
       
       await fetchPositionGroups()
+      console.log('[Move Player] Position groups refreshed')
     } catch (err) {
+      console.error('[Move Player] Error caught:', err)
       setError(err instanceof Error ? err.message : 'Failed to move player')
     }
   }
@@ -282,9 +356,19 @@ export default function PositionGroupsPage() {
             <button
               onClick={handleAutoDistribute}
               disabled={isSaving || currentStats.unassigned === 0}
-              className="mt-2 text-xs bg-[#E8A800] hover:bg-[#FFC93A] disabled:bg-gray-600 text-[#0a0a0a] px-3 py-1 rounded font-bold transition-all"
+              className="mt-2 text-xs bg-[#E8A800] hover:bg-[#FFC93A] disabled:bg-gray-600 disabled:cursor-not-allowed text-[#0a0a0a] px-3 py-1 rounded font-bold transition-all flex items-center gap-2"
             >
-              Auto-Distribute
+              {isSaving ? (
+                <>
+                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                'Auto-Distribute'
+              )}
             </button>
           </div>
         </div>

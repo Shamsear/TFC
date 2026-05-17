@@ -94,22 +94,42 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ seasonId: string }> }
 ) {
+  console.log('[API POST] Auto-distribute request received');
+  
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'SUB_ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    console.log('[API POST] Session:', {
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      role: session?.user?.role
+    });
+    
+    if (!session?.user) {
+      console.log('[API POST] No user in session - Unauthorized');
+      return NextResponse.json({ error: 'Unauthorized - No user' }, { status: 401 });
+    }
+    
+    if (session.user.role !== 'SUB_ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+      console.log('[API POST] User role not authorized:', session.user.role);
+      return NextResponse.json({ error: 'Unauthorized - Invalid role' }, { status: 401 });
     }
 
     const { seasonId } = await params;
-    const { position } = await request.json();
+    const body = await request.json();
+    const { position } = body;
+    
+    console.log('[API POST] Request params:', { seasonId, position });
 
     if (!GROUPED_POSITIONS.includes(position)) {
+      console.log('[API POST] Invalid position:', position);
       return NextResponse.json(
         { error: 'Invalid position for grouping' },
         { status: 400 }
       );
     }
 
+    console.log('[API POST] Fetching players for position:', position);
+    
     // Fetch all players for this position
     const players = await prisma.seasonal_player_stats.findMany({
       where: {
@@ -121,27 +141,83 @@ export async function POST(
       }
     });
 
-    // Distribute alternately: best to A, 2nd best to B, 3rd to A, etc.
-    const updates = players.map((player, index) => {
-      const group = index % 2 === 0 ? 'A' : 'B';
-      return prisma.seasonal_player_stats.update({
-        where: { id: player.id },
-        data: { position_group: group }
+    console.log('[API POST] Found players:', players.length);
+
+    if (players.length === 0) {
+      console.log('[API POST] No players found to distribute');
+      return NextResponse.json({
+        success: true,
+        message: 'No players to distribute',
+        distributed: 0
       });
+    }
+
+    // For large datasets, use updateMany in batches instead of individual updates
+    console.log('[API POST] Distributing players in batches...');
+    
+    // Split players into groups A and B
+    const groupAIds: string[] = [];
+    const groupBIds: string[] = [];
+    
+    players.forEach((player, index) => {
+      if (index % 2 === 0) {
+        groupAIds.push(player.id);
+      } else {
+        groupBIds.push(player.id);
+      }
     });
 
-    await prisma.$transaction(updates);
+    console.log('[API POST] Group A:', groupAIds.length, 'players');
+    console.log('[API POST] Group B:', groupBIds.length, 'players');
+
+    // Update in two batch operations instead of individual transactions
+    const batchSize = 1000;
+    let totalUpdated = 0;
+
+    // Update Group A in batches
+    for (let i = 0; i < groupAIds.length; i += batchSize) {
+      const batch = groupAIds.slice(i, i + batchSize);
+      await prisma.seasonal_player_stats.updateMany({
+        where: {
+          id: { in: batch }
+        },
+        data: {
+          position_group: 'A'
+        }
+      });
+      totalUpdated += batch.length;
+      console.log('[API POST] Updated Group A batch:', totalUpdated, '/', groupAIds.length);
+    }
+
+    // Update Group B in batches
+    for (let i = 0; i < groupBIds.length; i += batchSize) {
+      const batch = groupBIds.slice(i, i + batchSize);
+      await prisma.seasonal_player_stats.updateMany({
+        where: {
+          id: { in: batch }
+        },
+        data: {
+          position_group: 'B'
+        }
+      });
+      totalUpdated += batch.length;
+      console.log('[API POST] Updated Group B batch:', totalUpdated, '/', players.length);
+    }
+
+    console.log('[API POST] All updates completed successfully');
 
     return NextResponse.json({
       success: true,
       message: `Distributed ${players.length} ${position} players into groups`,
-      distributed: players.length
+      distributed: players.length,
+      groupA: groupAIds.length,
+      groupB: groupBIds.length
     });
 
   } catch (error) {
-    console.error('Error auto-distributing groups:', error);
+    console.error('[API POST] Error auto-distributing groups:', error);
     return NextResponse.json(
-      { error: 'Failed to auto-distribute groups' },
+      { error: 'Failed to auto-distribute groups', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

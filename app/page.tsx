@@ -98,7 +98,7 @@ export default async function HomePage() {
   const data = await getHomeData()
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       <PublicHeader />
 
       <main>

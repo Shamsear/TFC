@@ -44,7 +44,7 @@ interface TeamDashboardTabsProps {
 }
 
 export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDashboardTabsProps) {
-  const [activeTab, setActiveTab] = useState<'bids' | 'squad'>('bids')
+  const [activeTab, setActiveTab] = useState<'bids' | 'squad' | 'builder'>('bids')
 
   return (
     <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
@@ -52,7 +52,7 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDash
       <div className="flex border-b border-white/10">
         <button
           onClick={() => setActiveTab('bids')}
-          className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-bold transition-all ${
+          className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-base font-bold transition-all ${
             activeTab === 'bids'
               ? 'bg-[#E8A800]/10 text-[#E8A800] border-b-2 border-[#E8A800]'
               : 'text-[#D4CCBB] hover:bg-white/5'
@@ -67,7 +67,7 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDash
         </button>
         <button
           onClick={() => setActiveTab('squad')}
-          className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-bold transition-all ${
+          className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-base font-bold transition-all ${
             activeTab === 'squad'
               ? 'bg-[#E8A800]/10 text-[#E8A800] border-b-2 border-[#E8A800]'
               : 'text-[#D4CCBB] hover:bg-white/5'
@@ -79,6 +79,16 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDash
               {squadPlayers.length}
             </span>
           )}
+        </button>
+        <button
+          onClick={() => setActiveTab('builder')}
+          className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-base font-bold transition-all ${
+            activeTab === 'builder'
+              ? 'bg-[#E8A800]/10 text-[#E8A800] border-b-2 border-[#E8A800]'
+              : 'text-[#D4CCBB] hover:bg-white/5'
+          }`}
+        >
+          Squad Builder
         </button>
       </div>
 
@@ -202,6 +212,27 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDash
                 <p className="text-[#7A7367] text-sm">No players in squad</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Squad Builder Tab */}
+        {activeTab === 'builder' && (
+          <div className="text-center py-8 sm:py-12">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/30 flex items-center justify-center text-[#E8A800] mx-auto mb-3 sm:mb-4">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+            </div>
+            <h3 className="text-white font-bold text-base sm:text-lg mb-2">Build Your Formation</h3>
+            <p className="text-[#7A7367] text-sm mb-4 sm:mb-6">
+              Arrange your squad in different formations and save lineups
+            </p>
+            <Link
+              href="/team/squad/builder"
+              className="inline-block px-6 py-3 rounded-lg bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-bold text-sm transition-all"
+            >
+              Open Squad Builder
+            </Link>
           </div>
         )}
       </div>

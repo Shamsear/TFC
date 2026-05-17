@@ -107,7 +107,13 @@ export default async function TeamDashboardPage() {
         gte: new Date(), // Only rounds that haven't ended yet
       },
     },
-    include: {
+    select: {
+      id: true,
+      roundNumber: true,
+      position: true,
+      position_group: true,
+      roundType: true,
+      endTime: true,
       teamRoundBids: {
         where: {
           teamId: team.id,
@@ -452,7 +458,9 @@ export default async function TeamDashboardPage() {
                             </span>
                           </div>
                           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[#D4CCBB]">
-                            <span className="font-medium">{round.position || 'All Positions'}</span>
+                            <span className="font-medium">
+                              {round.position ? `${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}` : 'All Positions'}
+                            </span>
                             <span className="text-[#7A7367]">•</span>
                             <span>{round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}</span>
                           </div>

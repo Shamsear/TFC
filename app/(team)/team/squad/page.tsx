@@ -138,49 +138,54 @@ export default async function SquadPage() {
                   </span>
                 </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                   {playersByPosition[position].map((player) => (
                     <Link
                       key={player.id}
                       href={`/team/squad/${player.basePlayer.id}`}
-                      className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all group"
+                      className="rounded-xl bg-white/5 border border-white/10 p-4 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all group relative"
                     >
-                      {/* Player Photo */}
-                      <div className="relative w-full aspect-square mb-3 rounded-lg overflow-hidden bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10">
-                        <img
-                          src={getPlayerPhotoUrl(player.basePlayer.player_id || player.basePlayer.id)}
-                          alt={player.basePlayer.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {/* Rating Badge */}
-                        {player.stats?.overallRating && (
-                          <div className="absolute top-2 right-2 px-2 py-1 bg-[#0a0a0a]/80 backdrop-blur-sm rounded-lg">
-                            <span className="text-[#E8A800] font-bold text-sm">
-                              {player.stats.overallRating}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Player Info */}
-                      <div className="space-y-2">
-                        <h3 className="text-white font-bold group-hover:text-[#E8A800] transition-colors line-clamp-1 text-sm sm:text-base">
-                          {player.basePlayer.name}
-                        </h3>
-
-                        <div className="flex items-center justify-between text-xs sm:text-sm">
-                          <span className="text-[#7A7367] truncate">{player.stats?.realWorldClub || "Unknown"}</span>
-                          {player.stats?.star_rating && (
-                            <span className="text-[#E8A800] flex-shrink-0">
-                              {"⭐".repeat(player.stats.star_rating)}
-                            </span>
-                          )}
+                      {/* Player Card - Horizontal Layout */}
+                      <div className="flex gap-4">
+                        {/* Player Photo - Left Side */}
+                        <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 flex-shrink-0">
+                          <img
+                            src={getPlayerPhotoUrl(player.basePlayer.player_id || player.basePlayer.id)}
+                            alt={player.basePlayer.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
 
-                        <div className="pt-2 border-t border-white/10">
-                          <div className="flex items-center justify-between text-xs sm:text-sm">
-                            <span className="text-[#7A7367]">Purchase Price</span>
-                            <span className="text-white font-bold">${player.soldPrice.toLocaleString()}</span>
+                        {/* Player Info - Right Side */}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/30 bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold">
+                                {player.stats?.position || position}
+                              </span>
+                              {player.stats?.position_group && player.stats.position_group !== 'ALL' && (
+                                <span className="px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/20 text-purple-300 text-xs font-bold">
+                                  Group {player.stats.position_group}
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 rounded-full border border-[#FFB347]/30 bg-[#FFB347]/20 text-[#FFB347] text-xs font-bold">
+                                {player.stats?.overallRating || 'N/A'}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-black text-white mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-1">
+                              {player.basePlayer.name}
+                            </h3>
+                            <div className="text-xs text-gray-400 truncate">{player.stats?.realWorldClub || "Unknown Club"}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Purchase Price */}
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                          <div className="text-xs text-gray-400">Purchase Price</div>
+                          <div className="text-sm font-bold text-emerald-400">
+                            ${player.soldPrice.toLocaleString()}
                           </div>
                         </div>
                       </div>

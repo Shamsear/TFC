@@ -275,45 +275,7 @@ export default async function TeamDashboardPage() {
   // Get active round info for tabs (just summary, not individual bids since they're encrypted)
   const activeRoundWithBids = activeRounds.length > 0 ? activeRounds[0] : null
 
-  // Get recent auction results for this team (from transfer_history)
-  const recentResults = await prisma.transfer_history.findMany({
-    where: {
-      teamId: team.id,
-      seasonId: activeSeason.id,
-    },
-    select: {
-      id: true,
-      soldPrice: true,
-      acquisitionType: true,
-      basePlayer: {
-        select: {
-          id: true,
-          player_id: true,
-          name: true,
-          photoUrl: true,
-          seasonalPlayerStats: {
-            where: {
-              seasonId: activeSeason.id,
-            },
-            select: {
-              position: true,
-              position_group: true,
-              overallRating: true,
-            },
-          },
-        },
-      },
-      round: {
-        select: {
-          roundNumber: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 10,
-  })
+
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
@@ -780,11 +742,10 @@ export default async function TeamDashboardPage() {
           </div>
         </div>
 
-        {/* Tabbed Section - Bids, Results, Squad */}
+        {/* Tabbed Section - Bids and Squad */}
         <div className="mt-6 sm:mt-8">
           <TeamDashboardTabs
             activeBids={[]}
-            recentResults={recentResults}
             squadPlayers={squadPlayers}
           />
         </div>

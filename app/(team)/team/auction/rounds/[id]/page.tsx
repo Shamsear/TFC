@@ -116,35 +116,35 @@ export default async function RoundBiddingPage({
     redirect("/team/auction")
   }
 
-  // Get squad size
-  const squadSize = await prisma.transfer_history.count({
-    where: {
-      teamId: teamId,
-      seasonId: round.seasonId
-    }
-  })
+  // Run queries in parallel for better performance
+  const [squadSize, ownedPlayerIds] = await Promise.all([
+    // Get squad size
+    prisma.transfer_history.count({
+      where: {
+        teamId: teamId,
+        seasonId: round.seasonId
+      }
+    }),
+    
+    // Get already owned player IDs (only for this season to reduce data)
+    prisma.transfer_history.findMany({
+      where: {
+        seasonId: round.seasonId
+      },
+      select: {
+        basePlayerId: true
+      }
+    }).then(results => results.map(p => p.basePlayerId))
+  ])
 
-  // Get already owned player IDs (more efficient than nested query)
-  const ownedPlayers = await prisma.transfer_history.findMany({
-    where: {
-      seasonId: round.seasonId
-    },
-    select: {
-      basePlayerId: true
-    }
-  })
-  const ownedPlayerIds = new Set(ownedPlayers.map(p => p.basePlayerId))
-
-  // Get available players for this round
+  // Get available players for this round with limit
   const players = await prisma.seasonal_player_stats.findMany({
     where: {
       seasonId: round.seasonId,
       ...(round.position ? { position: round.position } : {}),
-      // Filter by position_group if specified (and not 'ALL')
       ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
-      // Exclude already owned players
       basePlayerId: {
-        notIn: Array.from(ownedPlayerIds)
+        notIn: ownedPlayerIds
       }
     },
     select: {
@@ -164,7 +164,8 @@ export default async function RoundBiddingPage({
     },
     orderBy: {
       overallRating: 'desc'
-    }
+    },
+    take: 500 // Limit to top 500 players for performance
   })
 
   // Get existing bids

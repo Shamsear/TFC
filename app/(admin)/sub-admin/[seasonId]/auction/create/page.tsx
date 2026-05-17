@@ -13,60 +13,97 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
     redirect('/auth/signin')
   }
 
-  const { seasonId } = await params
-
-  // Fetch season
-  const season = await prisma.seasons.findUnique({
-    where: { id: seasonId },
-    select: {
-      id: true,
-      name: true,
-      seasonNumber: true,
-      isActive: true,
-      startingPurse: true,
-      defaultMaxBidsPerTeam: true,
-      defaultBasePrice: true
-    }
-  })
+  // Run queries in parallel for better performance
+  const [season, auctionCalendar, seasonalStats, seasonTeams, latestRound] = await Promise.all([
+    // Fetch season
+    prisma.seasons.findUnique({
+      where: { id: seasonId },
+      select: {
+        id: true,
+        name: true,
+        seasonNumber: true,
+        isActive: true,
+        startingPurse: true,
+        defaultMaxBidsPerTeam: true,
+        defaultBasePrice: true
+      }
+    }),
+    
+    // Fetch auction calendar with slots
+    prisma.auction_calendar.findMany({
+      where: { seasonId },
+      include: {
+        auctionSlots: {
+          select: {
+            id: true,
+            position: true,
+            position_group: true,
+            slotOrder: true
+          },
+          orderBy: { slotOrder: 'asc' }
+        }
+      },
+      orderBy: { auctionDate: 'asc' }
+    }),
+    
+    // Fetch seasonal player stats (limit to top 1000 by rating for performance)
+    prisma.seasonal_player_stats.findMany({
+      where: { seasonId },
+      select: {
+        basePlayerId: true,
+        position: true,
+        position_group: true,
+        overallRating: true,
+        nationality: true,
+        basePlayer: {
+          select: {
+            id: true,
+            name: true,
+            photoUrl: true
+          }
+        }
+      },
+      orderBy: {
+        overallRating: 'desc'
+      },
+      take: 1000
+    }),
+    
+    // Fetch teams in this season
+    prisma.season_teams.findMany({
+      where: { seasonId },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true
+          }
+        }
+      }
+    }),
+    
+    // Fetch the latest round number for this season
+    prisma.rounds.findFirst({
+      where: { seasonId },
+      orderBy: { roundNumber: 'desc' },
+      select: { roundNumber: true }
+    })
+  ])
 
   if (!season) {
     notFound()
   }
 
-  // Fetch auction calendar with slots
-  const auctionCalendar = await prisma.auction_calendar.findMany({
+  // Get sold player IDs in a separate query
+  const soldPlayerIds = await prisma.transfer_history.findMany({
     where: { seasonId },
-    include: {
-      auctionSlots: {
-        select: {
-          id: true,
-          position: true,
-          position_group: true,
-          slotOrder: true
-        },
-        orderBy: { slotOrder: 'asc' }
-      }
-    },
-    orderBy: { auctionDate: 'asc' }
-  })
+    select: { basePlayerId: true }
+  }).then(results => new Set(results.map(r => r.basePlayerId)))
 
-  // Fetch all seasonal player stats for this season
-  const seasonalStats = await prisma.seasonal_player_stats.findMany({
-    where: { seasonId },
-    include: {
-      basePlayer: {
-        include: {
-          transferHistory: {
-            where: { seasonId }
-          }
-        }
-      }
-    }
-  })
-
-  // Filter out players who have been sold (have transfer history in this season)
-  const availablePlayers = seasonalStats
-    .filter(stat => stat.basePlayer.transferHistory.length === 0)
+  // Filter out sold players
+  const transformedPlayers = seasonalStats
+    .filter(stat => !soldPlayerIds.has(stat.basePlayerId))
     .map(stat => ({
       id: stat.basePlayer.id,
       name: stat.basePlayer.name,
@@ -76,27 +113,6 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
       nationality: stat.nationality || 'Unknown',
       imageUrl: stat.basePlayer.photoUrl
     }))
-
-  // Fetch teams in this season
-  const seasonTeams = await prisma.season_teams.findMany({
-    where: { seasonId },
-    include: {
-      team: {
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true
-        }
-      }
-    }
-  })
-
-  // Fetch the latest round number for this season
-  const latestRound = await prisma.rounds.findFirst({
-    where: { seasonId },
-    orderBy: { roundNumber: 'desc' },
-    select: { roundNumber: true }
-  })
 
   // Calculate next round number (latest + 1, or 1 if no rounds exist)
   const nextRoundNumber = latestRound ? latestRound.roundNumber + 1 : 1
@@ -122,7 +138,7 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <CreateRoundClient
           seasonId={seasonId}
-          availablePlayers={availablePlayers}
+          availablePlayers={transformedPlayers}
           teams={seasonTeams.map(st => st.team)}
           auctionCalendar={auctionCalendar}
           nextRoundNumber={nextRoundNumber}

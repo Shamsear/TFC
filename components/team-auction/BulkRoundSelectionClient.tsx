@@ -93,6 +93,7 @@ export default function BulkRoundSelectionClient({
   const [starringInProgress, setStarringInProgress] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const playersPerPage = 12
+  const [showSelectedPlayers, setShowSelectedPlayers] = useState(false)
 
   // Load starred players
   useEffect(() => {
@@ -475,6 +476,87 @@ export default function BulkRoundSelectionClient({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Selected Players Section */}
+        {selections.length > 0 && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowSelectedPlayers(!showSelectedPlayers)}
+              className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-white">Your Selections ({selections.length})</h3>
+                  <p className="text-xs text-[#D4CCBB]">
+                    {selections.length} / {Math.max(0, minSquadSize - squadSize)} needed
+                  </p>
+                </div>
+              </div>
+              <svg 
+                className={`w-5 h-5 text-[#D4CCBB] transition-transform ${showSelectedPlayers ? 'rotate-180' : ''}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showSelectedPlayers && (
+              <div className="mt-4 space-y-3">
+                {selections.map((playerId) => {
+                  const player = players.find(p => p.id === playerId)
+                  if (!player) return null
+
+                  return (
+                    <div
+                      key={playerId}
+                      className="rounded-lg bg-white/5 border border-white/10 p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                          <Image
+                            src={player.photoUrl}
+                            alt={player.name}
+                            width={48}
+                            height={48}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-white">{player.name}</h4>
+                          <p className="text-xs text-[#D4CCBB]">
+                            {player.position} • OVR {player.overall}
+                          </p>
+                        </div>
+                        <div className="text-right mr-2">
+                          <div className="text-sm font-bold text-white">£{round.basePrice?.toLocaleString() || 0}</div>
+                          <div className="text-xs text-[#7A7367]">Base Price</div>
+                        </div>
+                        {!submitted && (
+                          <button
+                            onClick={() => handleToggleSelection(playerId)}
+                            className="px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"
+                            title="Remove selection"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Squad Status Warning/Info */}
         {squadInfo && (
           <div className={`mb-6 rounded-xl border p-6 ${
@@ -525,55 +607,6 @@ export default function BulkRoundSelectionClient({
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Selected Players */}
-        {selections.length > 0 && (
-          <div className="mb-6 rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-6">
-            <h2 className="text-lg font-bold text-white mb-4">
-              Your Selections ({selections.length} {selections.length === 1 ? 'player' : 'players'})
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {selections.map((playerId) => {
-                const player = players.find(p => p.id === playerId)
-                if (!player) return null
-
-                return (
-                  <div
-                    key={playerId}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10"
-                  >
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
-                      <Image
-                        src={player.photoUrl}
-                        alt={player.name}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-white truncate">{player.name}</div>
-                      <div className="text-xs text-[#D4CCBB]">
-                        {player.position} • OVR {player.overall}
-                      </div>
-                    </div>
-                    {!submitted && (
-                      <button
-                        onClick={() => handleToggleSelection(playerId)}
-                        className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all flex-shrink-0"
-                        title="Remove player"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
             </div>
           </div>
         )}

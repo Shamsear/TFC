@@ -82,6 +82,7 @@ export default function NormalRoundBiddingClient({
   const [starringInProgress, setStarringInProgress] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const playersPerPage = 12
+  const [showBiddedPlayers, setShowBiddedPlayers] = useState(false)
 
   // Load starred players
   useEffect(() => {
@@ -645,6 +646,100 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
               : 'bg-red-500/10 border-red-500/30 text-red-300'
           }`}>
             {message.text}
+          </div>
+        )}
+
+        {/* Bidded Players Section */}
+        {bidCount > 0 && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowBiddedPlayers(!showBiddedPlayers)}
+              className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-white">Your Bids ({bidCount})</h3>
+                  <p className="text-xs text-[#D4CCBB]">
+                    Total: £{totalBidAmount.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <svg 
+                className={`w-5 h-5 text-[#D4CCBB] transition-transform ${showBiddedPlayers ? 'rotate-180' : ''}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showBiddedPlayers && (
+              <div className="mt-4 space-y-3">
+                {Object.entries(bids)
+                  .filter(([_, amount]) => amount > 0)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([playerId, amount]) => {
+                    const player = players.find(p => p.basePlayerId === playerId)
+                    if (!player) return null
+
+                    return (
+                      <div
+                        key={playerId}
+                        className="rounded-lg bg-white/5 border border-white/10 p-4"
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                            <Image
+                              src={player.basePlayer.photoUrl}
+                              alt={player.basePlayer.name}
+                              width={48}
+                              height={48}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-white">{player.basePlayer.name}</h4>
+                            <p className="text-xs text-[#D4CCBB]">
+                              {player.position} • OVR {player.overallRating}
+                              {player.playing_style && ` • ${player.playing_style}`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <label className="block text-xs text-[#7A7367] mb-1">Bid Amount</label>
+                            <input
+                              type="number"
+                              value={amount}
+                              onChange={(e) => handleBidChange(playerId, e.target.value)}
+                              disabled={round.status !== 'active' || isSubmitted}
+                              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                          </div>
+                          {!isSubmitted && round.status === 'active' && (
+                            <button
+                              onClick={() => handleRemoveBid(playerId)}
+                              className="mt-5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"
+                              title="Remove bid"
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
           </div>
         )}
 

@@ -75,6 +75,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
   let auctionResults = null
   let previewAllocations = null
   let bulkConflicts: any[] | null = null
+  let teamBidsWithDetails: any[] | null = null
   
   if (round.status === 'completed') {
     const rawResults = await prisma.transfer_history.findMany({
@@ -134,6 +135,87 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         }
       }
     })
+
+    // Fetch and decrypt team bids for completed rounds
+    const { decryptBids } = await import('@/lib/auction/encryption')
+    
+    const teamBidsRaw = await prisma.team_round_bids.findMany({
+      where: { roundId },
+      include: {
+        round: {
+          select: {
+            basePrice: true
+          }
+        }
+      }
+    })
+
+    teamBidsWithDetails = await Promise.all(
+      teamBidsRaw.map(async (tb) => {
+        const team = seasonTeams.find(st => st.team.id === tb.teamId)
+        
+        let bids: any[] = []
+        try {
+          const decrypted = decryptBids(tb.encryptedBids)
+          const parsed = JSON.parse(decrypted)
+          bids = parsed.bids || []
+        } catch (error) {
+          console.error(`Failed to decrypt bids for team ${tb.teamId}:`, error)
+        }
+
+        // Get player details for each bid
+        const bidsWithPlayers = await Promise.all(
+          bids.map(async (bid: any) => {
+            const player = await prisma.base_players.findUnique({
+              where: { id: bid.playerId },
+              select: {
+                id: true,
+                name: true,
+                photoUrl: true
+              }
+            })
+
+            const seasonalStats = await prisma.seasonal_player_stats.findFirst({
+              where: {
+                seasonId,
+                basePlayerId: bid.playerId
+              },
+              select: {
+                position: true,
+                position_group: true,
+                overallRating: true
+              }
+            })
+
+            // Check if this bid won
+            const wonTransfer = rawResults.find(
+              r => r.basePlayerId === bid.playerId && r.teamId === tb.teamId
+            )
+
+            return {
+              playerId: bid.playerId,
+              playerName: player?.name || 'Unknown',
+              photoUrl: getPlayerPhotoUrl(player?.photoUrl),
+              amount: bid.amount,
+              position: seasonalStats?.position || 'Unknown',
+              overallRating: seasonalStats?.overallRating || 0,
+              won: !!wonTransfer,
+              acquisitionType: wonTransfer?.acquisitionType || null,
+              acquisitionNotes: wonTransfer?.acquisitionNotes || null
+            }
+          })
+        )
+
+        return {
+          teamId: tb.teamId,
+          teamName: team?.team.name || 'Unknown',
+          teamLogo: team?.team.logoUrl || null,
+          submitted: tb.submitted,
+          bidCount: tb.bidCount,
+          bids: bidsWithPlayers
+        }
+      })
+    )
   } else if (round.status === 'preview_finalized') {
     // Get preview allocations from database table
     const rawPreviewAllocations = await prisma.preview_allocations.findMany({
@@ -250,6 +332,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           auctionResults={auctionResults}
           previewAllocations={previewAllocations ?? undefined}
           bulkConflicts={bulkConflicts}
+          teamBidsWithDetails={teamBidsWithDetails ?? undefined}
         />
       </div>
     </div>

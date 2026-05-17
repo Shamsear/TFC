@@ -73,15 +73,35 @@ interface BulkConflict {
   createdAt: Date
 }
 
+interface TeamBidDetails {
+  teamId: string
+  teamName: string
+  teamLogo: string | null
+  submitted: boolean
+  bidCount: number
+  bids: Array<{
+    playerId: string
+    playerName: string
+    photoUrl: string
+    amount: number
+    position: string
+    overallRating: number
+    won: boolean
+    acquisitionType: string | null
+    acquisitionNotes: string | null
+  }>
+}
+
 interface RoundDetailClientProps {
   round: Round
   teams: Team[]
   auctionResults: AuctionResult[] | null
   previewAllocations?: any[] // Preview allocations from finalization state
   bulkConflicts?: BulkConflict[] | null
+  teamBidsWithDetails?: TeamBidDetails[]
 }
 
-export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts }: RoundDetailClientProps) {
+export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts, teamBidsWithDetails }: RoundDetailClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -102,6 +122,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     finalizationMode: round.finalizationMode
   })
   const [autoFinalizationTriggered, setAutoFinalizationTriggered] = useState(false)
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set())
 
   // Set mounted state on client side only to prevent hydration mismatch
   useEffect(() => {

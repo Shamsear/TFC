@@ -560,6 +560,38 @@ export default function BulkRoundSelectionClient({
         {/* Pagination - Top */}
         {filteredPlayers.length > playersPerPage && <PaginationControls />}
 
+        {/* Actions - Top */}
+        {round.status === 'active' && (
+          <div className="flex gap-4 my-6">
+            {!submitted ? (
+              <>
+                <button
+                  onClick={handleSaveDraft}
+                  disabled={saving || selections.length === 0}
+                  className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
+                >
+                  {saving ? 'Saving...' : 'Save Draft'}
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || selections.length === 0}
+                  className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                >
+                  {submitting ? 'Submitting...' : 'Submit Selections'}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleUnlockSelections}
+                disabled={unlocking}
+                className="flex-1 px-6 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all disabled:opacity-50 font-medium"
+              >
+                {unlocking ? 'Unlocking...' : 'Edit Selections'}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Players Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
           {paginatedPlayers.map(player => {

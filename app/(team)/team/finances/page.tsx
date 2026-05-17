@@ -84,7 +84,7 @@ export default async function FinancesPage() {
     .reduce((sum, t) => sum + t.amount, 0)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -141,6 +141,9 @@ export default async function FinancesPage() {
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-[#7A7367] uppercase">
                         Type
                       </th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-[#7A7367] uppercase hidden sm:table-cell">
+                        Player
+                      </th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-[#7A7367] uppercase hidden md:table-cell">
                         Description
                       </th>
@@ -173,26 +176,24 @@ export default async function FinancesPage() {
                             {transaction.transactionType.replace(/_/g, " ")}
                           </span>
                         </td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-white font-medium hidden sm:table-cell">
+                          {transaction.playerName || "-"}
+                        </td>
                         <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-white hidden md:table-cell">
                           <div className="line-clamp-1">{transaction.description || "-"}</div>
                         </td>
                         <td
                           className={`px-4 sm:px-6 py-3 sm:py-4 text-right text-xs sm:text-sm font-black ${
-                            transaction.transactionType === "PLAYER_SALE"
+                            transaction.amount >= 0
                               ? "text-emerald-400"
-                              : transaction.transactionType === "INITIAL_PURSE"
-                              ? "text-blue-400"
                               : "text-red-400"
                           }`}
                         >
-                          {transaction.transactionType === "PLAYER_SALE" ||
-                          transaction.transactionType === "INITIAL_PURSE"
-                            ? "+"
-                            : "-"}
-                          ${transaction.amount.toLocaleString()}
+                          {transaction.amount >= 0 ? "+" : ""}£
+                          {Math.abs(transaction.amount).toLocaleString()}
                         </td>
                         <td className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs sm:text-sm font-black text-white hidden lg:table-cell">
-                          ${transaction.newBalance.toLocaleString()}
+                          £{transaction.newBalance.toLocaleString()}
                         </td>
                       </tr>
                     ))}

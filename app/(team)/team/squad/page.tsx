@@ -101,7 +101,7 @@ export default async function SquadPage() {
   const totalValue = transfers.reduce((sum, t) => sum + t.soldPrice, 0)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -170,13 +170,10 @@ export default async function SquadPage() {
                           <div>
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/30 bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold">
-                                {player.stats?.position || position}
+                                {player.stats?.position_group && player.stats.position_group !== 'ALL' 
+                                  ? `${player.stats.position}-${player.stats.position_group}`
+                                  : player.stats?.position || position}
                               </span>
-                              {player.stats?.position_group && player.stats.position_group !== 'ALL' && (
-                                <span className="px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/20 text-purple-300 text-xs font-bold">
-                                  Group {player.stats.position_group}
-                                </span>
-                              )}
                               <span className="px-2 py-0.5 rounded-full border border-[#FFB347]/30 bg-[#FFB347]/20 text-[#FFB347] text-xs font-bold">
                                 {player.stats?.overallRating || 'N/A'}
                               </span>

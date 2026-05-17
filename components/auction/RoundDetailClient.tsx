@@ -1184,64 +1184,73 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Auction Results - Show for completed rounds */}
       {round.status === 'completed' && auctionResults && auctionResults.length > 0 && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-8">
+        <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-8">
           <h2 className="text-xl font-black text-white mb-4">Auction Results</h2>
           <div className="space-y-3">
             {auctionResults.map((result) => {
               const playerStats = result.basePlayer.seasonalPlayerStats[0]
               return (
-                <div key={result.id} className="flex items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10">
-                  <div className="flex items-center gap-4 flex-1">
-                    {result.basePlayer.photoUrl && (
-                      <img 
-                        src={result.basePlayer.photoUrl} 
-                        alt={result.basePlayer.name} 
-                        className="w-12 h-12 rounded-lg object-cover bg-white/5"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder-player.png'
-                        }}
-                      />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-black text-white text-lg">{result.basePlayer.name}</span>
-                        {playerStats && (
-                          <>
-                            <span className="px-2 py-0.5 rounded bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold border border-[#E8A800]/30">
-                              {playerStats.position}
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold">
-                              OVR {playerStats.overallRating}
-                            </span>
-                          </>
+                <div key={result.id} className="rounded-lg bg-black/30 border border-white/10 p-3 sm:p-4">
+                  {/* Mobile: Vertical Stack, Desktop: Horizontal */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                    {/* Player Info */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {result.basePlayer.photoUrl && (
+                        <img 
+                          src={result.basePlayer.photoUrl} 
+                          alt={result.basePlayer.name} 
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover bg-white/5 flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.src = '/placeholder-player.png'
+                          }}
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                          <span className="font-black text-white text-sm sm:text-base truncate">{result.basePlayer.name}</span>
+                          {playerStats && (
+                            <>
+                              <span className="px-2 py-0.5 rounded bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold border border-[#E8A800]/30 flex-shrink-0">
+                                {playerStats.position}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                OVR {playerStats.overallRating}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {playerStats?.nationality && (
+                          <div className="text-xs text-gray-400 truncate">{playerStats.nationality}</div>
                         )}
                       </div>
-                      {playerStats?.nationality && (
-                        <div className="text-xs text-gray-400">{playerStats.nationality}</div>
-                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-xs text-gray-400 mb-1">Sold To</div>
-                      <div className="flex items-center gap-2">
+
+                    {/* Team and Price - Side by side on mobile, separate on desktop */}
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 flex-shrink-0">
+                      {/* Team Info */}
+                      <div className="flex items-center gap-2 min-w-0">
                         {result.team.logoUrl && (
                           <img 
                             src={result.team.logoUrl} 
                             alt={result.team.name} 
-                            className="w-6 h-6 rounded"
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded flex-shrink-0"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
                             }}
                           />
                         )}
-                        <span className="font-bold text-white">{result.team.name}</span>
+                        <div className="min-w-0">
+                          <div className="text-xs text-gray-400 hidden sm:block">Sold To</div>
+                          <span className="font-bold text-white text-xs sm:text-sm truncate block">{result.team.name}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-400 mb-1">Price</div>
-                      <div className="text-xl font-black text-emerald-400">
-                        ${result.soldPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+
+                      {/* Price */}
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-xs text-gray-400 hidden sm:block mb-1">Price</div>
+                        <div className="text-lg sm:text-xl font-black text-emerald-400">
+                          £{result.soldPrice.toLocaleString()}
+                        </div>
                       </div>
                     </div>
                   </div>

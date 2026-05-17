@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import TeamDashboardTabs from "@/components/team/TeamDashboardTabs"
 
 export const metadata = {
   title: "Team Dashboard | Turf Cats",
@@ -212,8 +213,110 @@ export default async function TeamDashboardPage() {
 
   const totalPendingTiebreakers = pendingBulkTiebreakers.length + pendingNormalTiebreakers.length
 
+  // Get recent auction results (last 5 players won from transfer_history)
+  const recentAuctionResults = await prisma.transfer_history.findMany({
+    where: {
+      seasonId: activeSeason.id,
+      teamId: team.id,
+    },
+    include: {
+      basePlayer: {
+        include: {
+          seasonalPlayerStats: {
+            where: {
+              seasonId: activeSeason.id,
+            },
+            select: {
+              position: true,
+              position_group: true,
+              overallRating: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 5,
+  })
+
+  // Get squad players for tabs
+  const squadPlayers = await prisma.transfer_history.findMany({
+    where: {
+      seasonId: activeSeason.id,
+      teamId: team.id,
+    },
+    include: {
+      basePlayer: {
+        select: {
+          id: true,
+          player_id: true,
+          name: true,
+          photoUrl: true,
+          seasonalPlayerStats: {
+            where: {
+              seasonId: activeSeason.id,
+            },
+            select: {
+              position: true,
+              position_group: true,
+              overallRating: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+
+  // Get active round info for tabs (just summary, not individual bids since they're encrypted)
+  const activeRoundWithBids = activeRounds.length > 0 ? activeRounds[0] : null
+
+  // Get recent auction results for this team (from transfer_history)
+  const recentResults = await prisma.transfer_history.findMany({
+    where: {
+      teamId: team.id,
+      seasonId: activeSeason.id,
+    },
+    select: {
+      id: true,
+      soldPrice: true,
+      acquisitionType: true,
+      basePlayer: {
+        select: {
+          id: true,
+          player_id: true,
+          name: true,
+          photoUrl: true,
+          seasonalPlayerStats: {
+            where: {
+              seasonId: activeSeason.id,
+            },
+            select: {
+              position: true,
+              position_group: true,
+              overallRating: true,
+            },
+          },
+        },
+      },
+      round: {
+        select: {
+          roundNumber: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 10,
+  })
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -586,15 +689,18 @@ export default async function TeamDashboardPage() {
                       </span>
                       <span
                         className={`font-black text-xs sm:text-sm ${
-                          transaction.transactionType === "PLAYER_SALE"
+                          transaction.amount >= 0
                             ? "text-emerald-400"
                             : "text-red-400"
                         }`}
                       >
-                        {transaction.transactionType === "PLAYER_SALE" ? "+" : "-"}$
-                        {transaction.amount.toLocaleString()}
+                        {transaction.amount >= 0 ? "+" : ""}£
+                        {Math.abs(transaction.amount).toLocaleString()}
                       </span>
                     </div>
+                    {transaction.playerName && (
+                      <div className="text-xs text-white font-medium mb-1">{transaction.playerName}</div>
+                    )}
                     <div className="text-xs text-[#7A7367] line-clamp-1">{transaction.description}</div>
                   </div>
                 ))}
@@ -672,6 +778,15 @@ export default async function TeamDashboardPage() {
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Tournaments</div>
             </Link>
           </div>
+        </div>
+
+        {/* Tabbed Section - Bids, Results, Squad */}
+        <div className="mt-6 sm:mt-8">
+          <TeamDashboardTabs
+            activeBids={[]}
+            recentResults={recentResults}
+            squadPlayers={squadPlayers}
+          />
         </div>
       </div>
     </div>

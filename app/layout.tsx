@@ -3,7 +3,6 @@ import "./globals.css";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/ToastProvider";
-import Header from "@/components/layout/Header";
 
 export const metadata: Metadata = {
   title: "Turf Cats",
@@ -32,7 +31,6 @@ export default function RootLayout({
         <ErrorBoundary>
           <SessionProvider>
             <ToastProvider>
-              <Header />
               {children}
             </ToastProvider>
           </SessionProvider>

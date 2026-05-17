@@ -1,10 +1,21 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminFooter() {
   const session = await auth();
   const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
+
+  // Fetch active season for sub-admin navigation
+  let activeSeasonId: string | null = null;
+  if (!isSuperAdmin) {
+    const activeSeason = await prisma.seasons.findFirst({
+      where: { isActive: true },
+      select: { id: true }
+    });
+    activeSeasonId = activeSeason?.id || null;
+  }
 
   return (
     <footer className="border-t border-white/10 bg-[#0a0a0a]/50">
@@ -65,12 +76,16 @@ export default async function AdminFooter() {
                   <Link href="/teams" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
                     Teams
                   </Link>
-                  <Link href="/players" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                    Players
-                  </Link>
-                  <Link href="/calendar" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                    Calendar
-                  </Link>
+                  {activeSeasonId && (
+                    <Link href={`/sub-admin/${activeSeasonId}/all-players`} className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
+                      Players
+                    </Link>
+                  )}
+                  {activeSeasonId && (
+                    <Link href={`/sub-admin/${activeSeasonId}/calendar`} className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
+                      Calendar
+                    </Link>
+                  )}
                   <Link href="/tournaments" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
                     Tournaments
                   </Link>

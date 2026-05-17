@@ -100,12 +100,14 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                     Players
                   </Link>
                 )}
-                <Link
-                  href="/calendar"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                >
-                  Calendar
-                </Link>
+                {activeSeasonId && (
+                  <Link
+                    href={`/sub-admin/${activeSeasonId}/calendar`}
+                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  >
+                    Calendar
+                  </Link>
+                )}
                 <Link
                   href="/tournaments"
                   className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
@@ -204,13 +206,15 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                       Players
                     </Link>
                   )}
-                  <Link
-                    href="/calendar"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Calendar
-                  </Link>
+                  {activeSeasonId && (
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/calendar`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Calendar
+                    </Link>
+                  )}
                   <Link
                     href="/tournaments"
                     className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"

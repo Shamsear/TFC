@@ -162,11 +162,9 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Created season with ID:', season.id)
 
-    // Create auction settings for the season in Neon database
+    // Create auction settings for the season using Prisma
     try {
-      const { sql } = await import('@vercel/postgres');
-      
-      await sql`
+      await prisma.$executeRaw`
         INSERT INTO auction_settings (
           season_id,
           auction_window,

@@ -9,6 +9,7 @@ interface Auction {
   description: string | null
   auctionSlots: Array<{
     position: string
+    position_group?: string | null
   }>
 }
 
@@ -326,13 +327,16 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                           <div className="w-1.5 h-1.5 rounded-full bg-[#E8A800]"></div>
                           <span className="text-[10px] font-bold text-[#E8A800] uppercase">Auction</span>
                         </div>
-                        <div className="text-[#F5F0E8] font-bold text-sm mb-1.5">
+                        <div className="text-[#F5F0E8] font-bold text-sm mb-1">
                           {auction.description || 'Auction Round'}
+                        </div>
+                        <div className="text-xs text-[#D4CCBB] mb-1.5">
+                          {formatDate(new Date(auction.auctionDate), 'h:mm a')}
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {auction.auctionSlots.map((slot, idx) => (
                             <span key={idx} className="px-1.5 py-0.5 rounded bg-[#E8A800]/20 text-[#E8A800] text-[10px] font-bold">
-                              {slot.position}
+                              {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
                             </span>
                           ))}
                         </div>
@@ -438,7 +442,10 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                             >
                               <div className="font-bold truncate text-xs leading-tight">{auction.description || 'Auction'}</div>
                               <div className="text-[10px] opacity-70 truncate">
-                                {auction.auctionSlots.map(s => s.position).join(', ')}
+                                {formatDate(new Date(auction.auctionDate), 'h:mm a')}
+                              </div>
+                              <div className="text-[10px] opacity-70 truncate">
+                                {auction.auctionSlots.map(s => `${s.position}${s.position_group && s.position_group !== 'ALL' ? `-${s.position_group}` : ''}`).join(', ')}
                               </div>
                             </Link>
                           ))}
@@ -501,7 +508,7 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                           <div className="flex flex-wrap gap-2">
                             {event.data.auctionSlots.map((slot: any, idx: number) => (
                               <span key={idx} className="px-2 py-1 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] text-xs font-bold">
-                                {slot.position}
+                                {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
                               </span>
                             ))}
                           </div>

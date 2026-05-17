@@ -19,6 +19,14 @@ interface CalendarCardProps {
   seasonId: string
 }
 
+const formatTime = (date: Date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).format(new Date(date))
+}
+
 const CalendarIcon = () => (
   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -76,6 +84,9 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
               <div className="text-lg sm:text-2xl font-black text-white truncate">
                 {calendar.formattedDate}
               </div>
+              <div className="text-sm text-[#E8A800] font-bold mt-0.5">
+                {formatTime(calendar.auctionDate)}
+              </div>
               {calendar.description && (
                 <div className="text-xs sm:text-sm text-[#7A7367] mt-1 line-clamp-2">{calendar.description}</div>
               )}
@@ -90,12 +101,9 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
               calendar.auctionSlots.map((slot) => (
                 <div
                   key={slot.id}
-                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs sm:text-sm font-bold"
+                  className="px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs sm:text-sm font-bold"
                 >
-                  <span>{slot.position}</span>
-                  {slot.position_group && slot.position_group !== 'ALL' && (
-                    <PositionGroupBadge position={slot.position} group={slot.position_group} size="sm" />
-                  )}
+                  {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
                 </div>
               ))
             )}

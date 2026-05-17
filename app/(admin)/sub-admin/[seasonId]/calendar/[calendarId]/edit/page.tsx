@@ -51,6 +51,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
   const [seasonId, setSeasonId] = useState<string>('')
   const [calendarId, setCalendarId] = useState<string>('')
   const [auctionDate, setAuctionDate] = useState('')
+  const [auctionTime, setAuctionTime] = useState('')
   const [description, setDescription] = useState('')
   const [positionSlots, setPositionSlots] = useState<PositionSlot[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,11 +67,13 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
       fetch(`/api/seasons/${sid}/calendar/${cid}`)
         .then(res => res.json())
         .then(data => {
-          setAuctionDate(new Date(data.auctionDate).toISOString().split('T')[0])
+          const dateObj = new Date(data.auctionDate)
+          setAuctionDate(dateObj.toISOString().split('T')[0])
+          setAuctionTime(dateObj.toTimeString().slice(0, 5)) // HH:MM format
           setDescription(data.description || '')
           setPositionSlots(data.auctionSlots.map((slot: any) => ({
             position: slot.position,
-            group: slot.group || 'ALL'
+            group: slot.position_group || 'ALL'
           })))
           setLoading(false)
         })
@@ -133,11 +136,14 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
     setSubmitting(true)
 
     try {
+      // Combine date and time
+      const combinedDateTime = `${auctionDate}T${auctionTime || '00:00'}:00`
+      
       const response = await fetch(`/api/seasons/${seasonId}/calendar/${calendarId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          auctionDate,
+          auctionDate: combinedDateTime,
           description,
           positionSlots
         })
@@ -208,18 +214,33 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
           )}
 
           <div className="rounded-2xl bg-white/5 border border-white/10 p-6 space-y-6">
-            {/* Auction Date */}
-            <div>
-              <label className="block text-sm font-bold text-gray-300 mb-2">
-                Auction Date <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="date"
-                value={auctionDate}
-                onChange={(e) => setAuctionDate(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
-              />
+            {/* Auction Date and Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">
+                  Auction Date <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={auctionDate}
+                  onChange={(e) => setAuctionDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">
+                  Auction Time <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={auctionTime}
+                  onChange={(e) => setAuctionTime(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
+                />
+              </div>
             </div>
 
             {/* Description */}

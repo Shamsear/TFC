@@ -89,6 +89,8 @@ export default async function BulkRoundPage({
     where: {
       seasonId: round.seasonId,
       ...(round.position ? { position: round.position } : {}),
+      // Filter by position_group if specified (and not 'ALL')
+      ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
       // Exclude already owned players
       basePlayer: {
         transferHistory: {
@@ -101,6 +103,7 @@ export default async function BulkRoundPage({
     select: {
       basePlayerId: true,
       position: true,
+      position_group: true,
       overallRating: true,
       nationality: true,
       playing_style: true,

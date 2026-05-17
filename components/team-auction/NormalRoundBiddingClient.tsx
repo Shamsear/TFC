@@ -77,6 +77,8 @@ export default function NormalRoundBiddingClient({
   const [reserveInfo, setReserveInfo] = useState<any>(null)
   const [starredPlayerIds, setStarredPlayerIds] = useState<Set<string>>(new Set())
   const [starringInProgress, setStarringInProgress] = useState<Set<string>>(new Set())
+  const [currentPage, setCurrentPage] = useState(1)
+  const playersPerPage = 12
 
   // Load starred players
   useEffect(() => {
@@ -400,12 +402,63 @@ export default function NormalRoundBiddingClient({
       return b.overallRating - a.overallRating
     })
 
+  // Pagination
+  const totalPages = Math.ceil(filteredPlayers.length / playersPerPage)
+  const startIndex = (currentPage - 1) * playersPerPage
+  const endIndex = startIndex + playersPerPage
+  const paginatedPlayers = filteredPlayers.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, playingStyleFilter])
+
   // Get unique playing styles for filter
   const playingStyles = Array.from(new Set(players.map(p => p.playing_style).filter(Boolean))) as string[]
 
   const totalBidAmount = Object.values(bids).reduce((sum, amount) => sum + amount, 0)
   const bidCount = Object.keys(bids).filter(k => bids[k] > 0).length
   const maxBidsReached = round.maxBidsPerTeam ? bidCount >= round.maxBidsPerTeam : false
+
+  // Pagination Component
+  const PaginationControls = () => (
+    <div className="flex items-center justify-between gap-4 p-4 rounded-lg bg-white/5 border border-white/10">
+      <div className="text-sm text-[#D4CCBB]">
+        Showing {startIndex + 1}-{Math.min(endIndex, filteredPlayers.length)} of {filteredPlayers.length} players
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ← Previous
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                currentPage === page
+                  ? 'bg-[#E8A800] text-black'
+                  : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          disabled={currentPage === totalPages}
+          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next →
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -560,9 +613,12 @@ export default function NormalRoundBiddingClient({
           </div>
         )}
 
+        {/* Pagination - Top */}
+        {filteredPlayers.length > playersPerPage && <PaginationControls />}
+
         {/* Players Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {filteredPlayers.map(player => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
+          {paginatedPlayers.map(player => (
             <div
               key={player.basePlayerId}
               className="rounded-xl bg-white/5 border border-white/10 p-4 relative"
@@ -625,6 +681,9 @@ export default function NormalRoundBiddingClient({
             </div>
           ))}
         </div>
+
+        {/* Pagination - Bottom */}
+        {filteredPlayers.length > playersPerPage && <PaginationControls />}
 
         {/* Actions */}
         {!isSubmitted && round.status === 'active' && (

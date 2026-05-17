@@ -1345,13 +1345,13 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   </button>
 
                   {/* Expanded Bids List */}
-                  {isExpanded && teamBid.bids.length > 0 && (
+                  {isExpanded && (
                     <div className="border-t border-white/10 p-4 space-y-2 bg-black/20">
-                      {/* Won Bids First */}
+                      {/* Won/Auto-Allocated Players First */}
                       {wonBids.length > 0 && (
                         <div className="mb-4">
                           <div className="text-xs font-bold text-emerald-400 mb-2 uppercase tracking-wide">
-                            ✓ Successful Bids
+                            ✓ Player Acquired
                           </div>
                           {wonBids.map((bid, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border-2 border-emerald-500/30 mb-2">
@@ -1386,36 +1386,46 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                                 <div className="text-xl font-black text-emerald-400">
                                   £{bid.amount.toLocaleString()}
                                 </div>
-                                <div className="text-xs text-emerald-300 font-bold">WON</div>
+                                <div className="text-xs text-emerald-300 font-bold">
+                                  {bid.acquisitionType === 'auto_assigned' ? 'AUTO' : 'WON'}
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
 
-                      {/* Lost Bids */}
-                      {lostBids.length > 0 && (
+                      {/* All Bids Placed */}
+                      {teamBid.bids.length > 0 && (
                         <div>
-                          {wonBids.length > 0 && (
-                            <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
-                              Unsuccessful Bids
-                            </div>
-                          )}
-                          {lostBids.map((bid, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 mb-2">
+                          <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
+                            All Bids Placed ({teamBid.bids.length})
+                          </div>
+                          {teamBid.bids.map((bid, idx) => (
+                            <div key={idx} className={`flex items-center justify-between p-3 rounded-lg border mb-2 ${
+                              bid.won 
+                                ? 'bg-emerald-500/5 border-emerald-500/20' 
+                                : 'bg-white/5 border-white/10'
+                            }`}>
                               <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <img 
                                   src={bid.photoUrl} 
                                   alt={bid.playerName} 
-                                  className="w-12 h-12 rounded-lg object-cover bg-white/5 flex-shrink-0"
+                                  className="w-10 h-10 rounded-lg object-cover bg-white/5 flex-shrink-0"
                                   onError={(e) => {
                                     e.currentTarget.src = '/placeholder-player.png'
                                   }}
                                 />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-bold text-white truncate">{bid.playerName}</span>
-                                    <span className="px-2 py-0.5 rounded bg-gray-500/20 text-gray-300 text-xs font-bold border border-gray-500/30 flex-shrink-0">
+                                    <span className={`font-bold truncate ${bid.won ? 'text-emerald-300' : 'text-white'}`}>
+                                      {bid.playerName}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold border flex-shrink-0 ${
+                                      bid.won 
+                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                        : 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                                    }`}>
                                       {bid.position}
                                     </span>
                                     <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
@@ -1425,10 +1435,12 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0 ml-3">
-                                <div className="text-lg font-bold text-gray-400">
+                                <div className={`text-lg font-bold ${bid.won ? 'text-emerald-400' : 'text-gray-400'}`}>
                                   £{bid.amount.toLocaleString()}
                                 </div>
-                                <div className="text-xs text-gray-500">LOST</div>
+                                {bid.won && (
+                                  <div className="text-xs text-emerald-300">✓ Won</div>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -1436,7 +1448,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       )}
 
                       {/* No Bids Message */}
-                      {teamBid.bids.length === 0 && (
+                      {teamBid.bids.length === 0 && wonBids.length === 0 && (
                         <div className="text-center py-4 text-gray-400 text-sm">
                           No bids placed
                         </div>

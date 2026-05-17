@@ -151,68 +151,132 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
     })
 
     teamBidsWithDetails = await Promise.all(
-      teamBidsRaw.map(async (tb) => {
-        const team = seasonTeams.find(st => st.team.id === tb.teamId)
+      seasonTeams.map(async (st) => {
+        const team = st.team
+        const teamBid = teamBidsRaw.find(tb => tb.teamId === team.id)
         
         let bids: any[] = []
-        try {
-          const decrypted = decryptBids(tb.encryptedBids)
-          const parsed = JSON.parse(decrypted)
-          bids = parsed.bids || []
-        } catch (error) {
-          console.error(`Failed to decrypt bids for team ${tb.teamId}:`, error)
+        if (teamBid) {
+          try {
+            const decrypted = decryptBids(teamBid.encryptedBids)
+            const parsed = JSON.parse(decrypted)
+            bids = parsed.bids || []
+          } catch (error) {
+            console.error(`Failed to decrypt bids for team ${team.id}:`, error)
+          }
         }
 
         // Get player details for each bid
         const bidsWithPlayers = await Promise.all(
           bids.map(async (bid: any) => {
-            const player = await prisma.base_players.findUnique({
-              where: { id: bid.playerId },
-              select: {
-                id: true,
-                name: true,
-                photoUrl: true
+            // Bids use base_player_id field
+            const playerId = bid.base_player_id || bid.playerId
+            
+            // Skip if playerId is missing
+            if (!playerId) {
+              console.log('Bid missing player ID:', bid)
+              return {
+                playerId: '',
+                playerName: 'Unknown',
+                photoUrl: getPlayerPhotoUrl(null),
+                amount: bid?.amount || 0,
+                position: 'Unknown',
+                overallRating: 0,
+                won: false,
+                acquisitionType: null,
+                acquisitionNotes: null
               }
-            })
+            }
 
-            const seasonalStats = await prisma.seasonal_player_stats.findFirst({
-              where: {
-                seasonId,
-                basePlayerId: bid.playerId
-              },
-              select: {
-                position: true,
-                position_group: true,
-                overallRating: true
+            try {
+              const player = await prisma.base_players.findUnique({
+                where: { id: playerId },
+                select: {
+                  id: true,
+                  name: true,
+                  photoUrl: true
+                }
+              })
+
+              const seasonalStats = await prisma.seasonal_player_stats.findFirst({
+                where: {
+                  seasonId,
+                  basePlayerId: playerId
+                },
+                select: {
+                  position: true,
+                  position_group: true,
+                  overallRating: true
+                }
+              })
+
+              // Check if this bid won
+              const wonTransfer = rawResults.find(
+                r => r.basePlayerId === playerId && r.teamId === team.id
+              )
+
+              return {
+                playerId: playerId,
+                playerName: player?.name || 'Unknown',
+                photoUrl: getPlayerPhotoUrl(player?.photoUrl),
+                amount: bid.amount || 0,
+                position: seasonalStats?.position || 'Unknown',
+                overallRating: seasonalStats?.overallRating || 0,
+                won: !!wonTransfer,
+                acquisitionType: wonTransfer?.acquisitionType || null,
+                acquisitionNotes: wonTransfer?.acquisitionNotes || null
               }
-            })
-
-            // Check if this bid won
-            const wonTransfer = rawResults.find(
-              r => r.basePlayerId === bid.playerId && r.teamId === tb.teamId
-            )
-
-            return {
-              playerId: bid.playerId,
-              playerName: player?.name || 'Unknown',
-              photoUrl: getPlayerPhotoUrl(player?.photoUrl),
-              amount: bid.amount,
-              position: seasonalStats?.position || 'Unknown',
-              overallRating: seasonalStats?.overallRating || 0,
-              won: !!wonTransfer,
-              acquisitionType: wonTransfer?.acquisitionType || null,
-              acquisitionNotes: wonTransfer?.acquisitionNotes || null
+            } catch (error) {
+              console.error(`Failed to fetch player details for ${playerId}:`, error)
+              return {
+                playerId: playerId,
+                playerName: 'Unknown',
+                photoUrl: getPlayerPhotoUrl(null),
+                amount: bid.amount || 0,
+                position: 'Unknown',
+                overallRating: 0,
+                won: false,
+                acquisitionType: null,
+                acquisitionNotes: null
+              }
             }
           })
         )
 
+        // Check if team got any auto-allocated players (players they didn't bid on)
+        const autoAllocatedPlayers = rawResults.filter(
+          r => r.teamId === team.id && 
+               r.acquisitionType === 'auto_assigned' &&
+               !bids.some((b: any) => (b.base_player_id || b.playerId) === r.basePlayerId)
+        )
+
+        // Add auto-allocated players to the bids list
+        const autoAllocatedBids = await Promise.all(
+          autoAllocatedPlayers.map(async (result) => {
+            const stats = statsMap.get(result.basePlayerId)
+            return {
+              playerId: result.basePlayerId,
+              playerName: result.basePlayer.name,
+              photoUrl: getPlayerPhotoUrl(result.basePlayer.photoUrl),
+              amount: result.soldPrice,
+              position: stats?.position || 'Unknown',
+              overallRating: stats?.overallRating || 0,
+              won: true,
+              acquisitionType: result.acquisitionType,
+              acquisitionNotes: result.acquisitionNotes
+            }
+          })
+        )
+
+        const allBids = [...bidsWithPlayers, ...autoAllocatedBids]
+
         return {
-          teamId: tb.teamId,
-          teamName: team?.team.name || 'Unknown',
-          teamLogo: team?.team.logoUrl || null,
-          submitted: tb.submitted,
-          bidCount: tb.bidCount,
-          bids: bidsWithPlayers
+          teamId: team.id,
+          teamName: team.name,
+          teamLogo: team.logoUrl,
+          submitted: teamBid?.submitted || false,
+          bidCount: teamBid?.bidCount || 0,
+          bids: allBids
         }
       })
     )

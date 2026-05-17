@@ -477,6 +477,19 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     })
   }
 
+  const formatAcquisitionType = (type: string) => {
+    switch (type) {
+      case 'bid_won':
+        return 'Bid Won'
+      case 'auto_assigned':
+        return 'Auto Assigned'
+      case 'tiebreaker_won':
+        return 'Tiebreaker Won'
+      default:
+        return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -1136,27 +1149,35 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             </div>
           </div>
           <div className="space-y-3">
-            {previewAllocations.map((alloc: any, idx: number) => (
-              <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-black/30 border border-blue-500/20">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-black text-white text-lg">{alloc.playerName}</span>
-                    <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30">
-                      {alloc.acquisitionType}
-                    </span>
+            {previewAllocations.map((alloc: any, idx: number) => {
+              const team = teams.find(t => t.id === alloc.teamId)
+              return (
+                <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-black/30 border border-blue-500/20">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-black text-white text-lg">{alloc.playerName}</span>
+                      <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30">
+                        {formatAcquisitionType(alloc.acquisitionType)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {team?.logoUrl && (
+                        <img src={team.logoUrl} alt={team.name} className="w-5 h-5 rounded" />
+                      )}
+                      <span className="text-sm text-gray-400">{team?.name || alloc.teamId}</span>
+                    </div>
+                    {alloc.acquisitionNotes && (
+                      <div className="text-xs text-gray-500 mt-1">{alloc.acquisitionNotes}</div>
+                    )}
                   </div>
-                  <div className="text-sm text-gray-400">Team {alloc.teamId}</div>
-                  {alloc.acquisitionNotes && (
-                    <div className="text-xs text-gray-500 mt-1">{alloc.acquisitionNotes}</div>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-black text-emerald-400">
-                    £{alloc.amount.toLocaleString()}
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-emerald-400">
+                      £{alloc.amount.toLocaleString()}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -1373,20 +1394,28 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               <div className="mb-6">
                 <h4 className="text-lg font-bold text-white mb-4">Allocations ({previewResults.allocations.length})</h4>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {previewResults.allocations.map((alloc: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
-                      <div>
-                        <div className="font-bold text-white">{alloc.playerName}</div>
-                        <div className="text-sm text-gray-400">Team {alloc.teamId}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-emerald-400">
-                          £{alloc.amount.toLocaleString()}
+                  {previewResults.allocations.map((alloc: any, idx: number) => {
+                    const team = teams.find(t => t.id === alloc.teamId)
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+                        <div>
+                          <div className="font-bold text-white">{alloc.playerName}</div>
+                          <div className="flex items-center gap-2 text-sm text-gray-400">
+                            {team?.logoUrl && (
+                              <img src={team.logoUrl} alt={team.name} className="w-4 h-4 rounded" />
+                            )}
+                            <span>{team?.name || alloc.teamId}</span>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-400">{alloc.acquisitionType}</div>
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-emerald-400">
+                            £{alloc.amount.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-400">{formatAcquisitionType(alloc.acquisitionType)}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}

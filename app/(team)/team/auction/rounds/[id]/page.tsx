@@ -86,7 +86,12 @@ export default async function RoundBiddingPage({
     },
     select: {
       id: true,
-      currentBudget: true
+      currentBudget: true,
+      team: {
+        select: {
+          name: true
+        }
+      }
     }
   })
 
@@ -199,6 +204,7 @@ export default async function RoundBiddingPage({
       squadSize={squadSize}
       existingBids={existingBids}
       teamId={teamId}
+      teamName={seasonTeam.team.name}
     />
   )
 }

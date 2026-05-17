@@ -51,7 +51,7 @@ export async function PATCH(
 
     const { seasonId, calendarId } = await params
     const body = await request.json()
-    const { auctionDate, description, positions } = body
+    const { auctionDate, description, positionSlots } = body
 
     // Get old calendar data for audit
     const oldCalendar = await prisma.auction_calendar.findUnique({
@@ -81,14 +81,16 @@ export async function PATCH(
       })
 
       // Create new slots
-      if (positions && positions.length > 0) {
-        for (let index = 0; index < positions.length; index++) {
+      if (positionSlots && positionSlots.length > 0) {
+        for (let index = 0; index < positionSlots.length; index++) {
+          const slot = positionSlots[index]
           const slotId = await generateAuctionSlotId()
           await tx.auction_slots.create({
             data: {
               id: slotId,
               auctionCalendarId: calendarId,
-              position: positions[index],
+              position: slot.position,
+              position_group: slot.group || 'ALL',
               slotOrder: index,
               updatedAt: new Date()
             }
@@ -113,7 +115,10 @@ export async function PATCH(
         changes: {
           auctionDate: { from: oldCalendar?.auctionDate, to: auctionDate },
           description: { from: oldCalendar?.description, to: description },
-          positions: { from: oldCalendar?.auctionSlots.map(s => s.position), to: positions }
+          positionSlots: { 
+            from: oldCalendar?.auctionSlots.map(s => ({ position: s.position, group: s.position_group })), 
+            to: positionSlots 
+          }
         }
       },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',

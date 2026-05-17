@@ -333,19 +333,20 @@ model transfer_history {
 }
 
 model users {
-  id              String   @id
-  email           String   @unique
-  name            String?
-  role            UserRole @default(SUB_ADMIN)
-  passwordHash    String
-  teamId          String?  @map("team_id")
-  createdBy       String?  @map("created_by")
-  isActive        Boolean  @default(true) @map("is_active")
-  assignedSeasons Json     @default("[]") @map("assigned_seasons")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  team            teams?   @relation("TeamManager", fields: [teamId], references: [id], onDelete: SetNull)
-  auditLogs       audit_logs[]
+  id                    String              @id
+  email                 String              @unique
+  name                  String?
+  role                  UserRole            @default(SUB_ADMIN)
+  passwordHash          String
+  teamId                String?             @map("team_id")
+  createdBy             String?             @map("created_by")
+  isActive              Boolean             @default(true) @map("is_active")
+  assignedSeasons       Json                @default("[]") @map("assigned_seasons")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  team                  teams?              @relation("TeamManager", fields: [teamId], references: [id], onDelete: SetNull)
+  auditLogs             audit_logs[]
+  updatedCalendars      auction_calendar[]  @relation("CalendarUpdatedBy")
 }
 
 model audit_logs {
@@ -375,10 +376,12 @@ model auction_calendar {
   seasonId     String
   auctionDate  DateTime
   description  String?
+  updated_by   String?         @map("updated_by")
   createdAt    DateTime        @default(now())
   updatedAt    DateTime
   season       seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   auctionSlots auction_slots[]
+  updatedBy    users?          @relation("CalendarUpdatedBy", fields: [updated_by], references: [id], onDelete: SetNull)
 
   @@unique([seasonId, auctionDate])
 }

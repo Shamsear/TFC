@@ -151,9 +151,6 @@ export default async function SquadPage() {
                           src={getPlayerPhotoUrl(player.basePlayer.player_id || player.basePlayer.id)}
                           alt={player.basePlayer.name}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = "/default-player.png"
-                          }}
                         />
                         {/* Rating Badge */}
                         {player.stats?.overallRating && (

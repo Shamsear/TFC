@@ -117,17 +117,14 @@ export async function PATCH(
 
     // Build update data
     const updateData: any = {
-      position: body.position,
       maxBidsPerTeam: body.maxBidsPerTeam,
       basePrice: body.basePrice,
-      durationSeconds: body.durationSeconds,
       finalizationMode: body.finalizationMode
     };
 
-    // If round is active and duration changed, update end time
-    if (existingRound.status === 'active' && existingRound.startTime && body.durationSeconds !== undefined) {
-      const newEndTime = new Date(existingRound.startTime.getTime() + body.durationSeconds * 1000);
-      updateData.endTime = newEndTime;
+    // Only update position if provided (for draft rounds)
+    if (body.position !== undefined) {
+      updateData.position = body.position;
     }
 
     // Update round

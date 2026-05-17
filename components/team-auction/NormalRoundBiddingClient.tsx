@@ -458,6 +458,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
 
   const totalBidAmount = Object.values(bids).reduce((sum, amount) => sum + amount, 0)
   const bidCount = Object.keys(bids).filter(k => bids[k] > 0).length
+  const totalBidsInList = Object.keys(bids).filter(k => bids[k] !== undefined).length
   const maxBidsReached = round.maxBidsPerTeam ? bidCount >= round.maxBidsPerTeam : false
 
   // Pagination Component
@@ -650,7 +651,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
         )}
 
         {/* Bidded Players Section */}
-        {bidCount > 0 && (
+        {totalBidsInList > 0 && (
           <div className="mb-6">
             <button
               onClick={() => setShowBiddedPlayers(!showBiddedPlayers)}
@@ -663,9 +664,9 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                   </svg>
                 </div>
                 <div className="text-left">
-                  <h3 className="font-bold text-white">Your Bids ({bidCount})</h3>
+                  <h3 className="font-bold text-white">Your Bids ({totalBidsInList})</h3>
                   <p className="text-xs text-[#D4CCBB]">
-                    Total: £{totalBidAmount.toLocaleString()}
+                    {bidCount > 0 ? `Total: £${totalBidAmount.toLocaleString()}` : 'Enter bid amounts'}
                   </p>
                 </div>
               </div>

@@ -682,8 +682,8 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
             {showBiddedPlayers && (
               <div className="mt-4 space-y-3">
                 {Object.entries(bids)
-                  .filter(([_, amount]) => amount > 0)
-                  .sort(([, a], [, b]) => b - a)
+                  .filter(([playerId]) => bids[playerId] !== undefined)
+                  .sort(([, a], [, b]) => (b || 0) - (a || 0))
                   .map(([playerId, amount]) => {
                     const player = players.find(p => p.basePlayerId === playerId)
                     if (!player) return null
@@ -717,9 +717,19 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                             <label className="block text-xs text-[#7A7367] mb-1">Bid Amount</label>
                             <input
                               type="number"
-                              value={amount}
-                              onChange={(e) => handleBidChange(playerId, e.target.value)}
+                              value={amount || ''}
+                              onChange={(e) => {
+                                const newAmount = e.target.value
+                                // Allow empty string or valid numbers
+                                if (newAmount === '') {
+                                  setBids(prev => ({ ...prev, [playerId]: 0 }))
+                                } else {
+                                  const numAmount = parseInt(newAmount) || 0
+                                  setBids(prev => ({ ...prev, [playerId]: numAmount }))
+                                }
+                              }}
                               disabled={round.status !== 'active' || isSubmitted}
+                              placeholder="Enter amount"
                               className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                           </div>

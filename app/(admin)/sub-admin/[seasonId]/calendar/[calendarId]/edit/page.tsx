@@ -20,18 +20,12 @@ const ArrowLeftIcon = () => (
 
 const SaveIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-  </svg>
-);
-
-const SaveIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
 );
 
-const ChevronDownIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+const ChevronDownIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
 );
@@ -54,7 +48,7 @@ interface PositionSlot {
 
 export default function EditCalendarPage({ params }: EditCalendarPageProps) {
   const router = useRouter()
-  const [seasonId, setSeasonId] = useState<string>('')
+  const [seasonId, Id] = useState<string>('')
   const [calendarId, setCalendarId] = useState<string>('')
   const [auctionDate, setAuctionDate] = useState('')
   const [description, setDescription] = useState('')
@@ -94,7 +88,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
     
     if (existingIndex >= 0) {
       // Remove the slot
-      setPositionSlots(prev => prev.filter((_, i) => i !== existingIndex))
+etPositionSlots(prev => prev.filter((_, i) => i !== existingIndex))
     } else {
       // Add the slot
       setPositionSlots(prev => [...prev, { position, group: group || 'ALL' }])
@@ -120,7 +114,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
         const newSlots = [...prev]
         groupPositions.forEach(pos => {
           if (!newSlots.some(s => s.position === pos && s.group === 'ALL')) {
-            newSlots.push({ position: pos, group: 'ALL' })
+            ion: pos, group: 'ALL' })
           }
         })
         return newSlots
@@ -175,10 +169,10 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pb-20">
-      {/* Compact Header */}
+      {/* Compact Sticky Header */}
       <div className="sticky top-0 z-10 border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-4">
+sName="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <Link
                 href={`/sub-admin/${seasonId}/calendar`}
@@ -248,7 +242,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="e.g., Round 1"
-                  className="w-full px-3 py-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  classN-all"
                 />
               </div>
             </div>
@@ -302,7 +296,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                   className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors"
                 >
                   <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Quick Select Groups</span>
-                  <ChevronDownIcon className={`transform transition-transform ${expandedCategory === 'quick' ? 'rotate-180' : ''}`} />
+                  <Chev= 'quick' ? 'rotate-180' : ''}`} />
                 </button>
                 {expandedCategory === 'quick' && (
                   <div className="px-4 pb-4">
@@ -349,7 +343,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                     className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors"
                   >
                     <span className="text-xs font-bold text-yellow-400 uppercase">Goalkeeper</span>
-                    <ChevronDownIcon className={`transform transition-transform ${expandedCategory === 'gk' ? 'rotate-180' : ''}`} />
+                    <Chevtate-180' : ''}`} />
                   </button>
                   {expandedCategory === 'gk' && (
                     <div className="px-4 pb-3">
@@ -358,7 +352,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                         onClick={() => togglePositionSlot('GK', 'ALL')}
                         className={`px-3 py-1.5 rounded-lg border transition-all font-bold text-xs ${
                           hasPositionSlot('GK', 'ALL')
-                            ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
+                            ? 'bg-yellow-500/20xt-yellow-400'
                             : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
                         }`}
                       >
@@ -370,232 +364,215 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
 
                 {/* Defenders */}
                 <div>
-                  <div className="text-xs font-bold text-blue-400 mb-2">DEFENDERS</div>
-                  <div className="space-y-2">
-                    {['CB', 'LB', 'RB'].map((position) => (
-                      <div key={position} className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white w-8">{position}</span>
-                        {GROUPED_POSITIONS.includes(position) ? (
-                          <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCategory(expandedCategory === 'def' ? null : 'def')}
+            className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                  >
+                    <span className="text-xs font-bold text-blue-400 uppercase">Defenders</span>
+                    <ChevronDownIcon className={`w-4 h-4 transform transition-transform ${expandedCategory === 'def' ? 'rotate-180' : ''}`} />
+                  </button>
+                  {expandedCategory === 'def' && (
+                    <div className="px-4 pb-3 space-y-2">
+                      {['CB', 'LB', 'RB'].map((position) => (
+                        <div key={position} className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white w-10">{position}</span>
+                          {GROUPED_POSITIONS.includes(position) ? (
+                            <div className="flex gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => togglePositionS(position, 'A')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'A')
+                                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                A
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'B')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'B')
+                                    ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                             ay-400 hover:border-white/20'
+                                }`}
+                              >
+                                B
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'ALL')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'ALL')
+                                    ? 'bg-gray-500/20 border-gray-500 text-gray-300'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                All
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               type="button"
-                              onClick={() => togglePositionSlot(position, 'A')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'A')
+                              onClick={() => togglePositionSlot(position, 'ALL')}
+                              className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                hasPositionSlot(position, 'ALL')
                                   ? 'bg-blue-500/20 border-blue-500 text-blue-400'
                                   : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
                               }`}
                             >
-                              Group A
+                              {position}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(position, 'B')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'B')
-                                  ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              Group B
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(position, 'ALL')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'ALL')
-                                  ? 'bg-gray-500/20 border-gray-500 text-gray-300'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              All
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => togglePositionSlot(position, 'ALL')}
-                            className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                              hasPositionSlot(position, 'ALL')
-                                ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                                : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                            }`}
-                          >
-                            {position}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Midfielders */}
                 <div>
-                  <div className="text-xs font-bold text-green-400 mb-2">MIDFIELDERS</div>
-                  <div className="space-y-2">
-                    {['DMF', 'CMF', 'LMF', 'RMF', 'AMF'].map((position) => (
-                      <div key={position} className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white w-8">{position}</span>
-                        {GROUPED_POSITIONS.includes(position) ? (
-                          <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCategory(expandedCategory === 'mid' ? null : 'mid')}
+                    className="w-full px-4 py-2.5 flexs"
+                  >
+                    <span className="text-xs font-bold text-green-400 uppercase">Midfielders</span>
+                    <ChevronDownIcon className={`w-4 h-4 transform transition-transform ${expandedCategory === 'mid' ? 'rotate-180' : ''}`} />
+                  </button>
+                  {expandedCategory === 'mid' && (
+                    <div className="px-4 pb-3 space-y-2">
+                      {['DMF', 'CMF', 'LMF', 'RMF', 'AMF'].map((position) => (
+                        <div key={position} className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white w-10">{position}</span>
+                          {GROUPED_POSITIONS.includes(position) ? (
+                            <div className="flex gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'A')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'A')
+                                    ? 'bg-green-500/20 border-green-500 text-green-400'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                A
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'B')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'B')
+                                    ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                B
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'ALL')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'ALL')
+                                    ? 'bg-gray-500/20 border-gray-500 text-gray-300'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                All
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               type="button"
-                              onClick={() => togglePositionSlot(position, 'A')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'A')
+                              onClick={() => togglePositionSlot(position, 'ALL')}
+                        `px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                hasPositionSlot(position, 'ALL')
                                   ? 'bg-green-500/20 border-green-500 text-green-400'
                                   : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
                               }`}
                             >
-                              Group A
+                              {position}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(position, 'B')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'B')
-                                  ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              Group B
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(position, 'ALL')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'ALL')
-                                  ? 'bg-gray-500/20 border-gray-500 text-gray-300'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              All
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => togglePositionSlot(position, 'ALL')}
-                            className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                              hasPositionSlot(position, 'ALL')
-                                ? 'bg-green-500/20 border-green-500 text-green-400'
-                                : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                            }`}
-                          >
-                            {position}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Forwards */}
                 <div>
-                  <div className="text-xs font-bold text-red-400 mb-2">FORWARDS</div>
-                  <div className="space-y-2">
-                    {['SS', 'LWF', 'RWF', 'CF'].map((position) => (
-                      <div key={position} className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white w-8">{position}</span>
-                        {GROUPED_POSITIONS.includes(position) ? (
-                          <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCategory(expandedCategory === 'fwd' ? null : 'fwd')}
+                    className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                  >
+                    <span className="00 uppercase">Forwards</span>
+                    <ChevronDownIcon className={`w-4 h-4 transform transition-transform ${expandedCategory === 'fwd' ? 'rotate-180' : ''}`} />
+                  </button>
+                  {expandedCategory === 'fwd' && (
+                    <div className="px-4 pb-3 space-y-2">
+                      {['SS', 'LWF', 'RWF', 'CF'].map((position) => (
+                        <div key={position} className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white w-10">{position}</span>
+                          {GROUPED_POSITIONS.includes(position) ? (
+                            <div className="flex gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'A')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'A')
+                                    ? 'bg-red-500/20 border-red-500 text-red-400'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                A
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'B')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'B')
+                                    ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                B
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => togglePositionSlot(position, 'ALL')}
+                                className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                  hasPositionSlot(position, 'ALL')
+                                    ? 'bg-gray-500/20 border-gray-500 text-gray-300'
+                       
+                                }`}
+                              >
+                                All
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               type="button"
-                              onClick={() => togglePositionSlot(position, 'A')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'A')
+                              onClick={() => togglePositionSlot(position, 'ALL')}
+                              className={`px-2.5 py-1 rounded-md border transition-all font-bold text-xs ${
+                                hasPositionSlot(position, 'ALL')
                                   ? 'bg-red-500/20 border-red-500 text-red-400'
                                   : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
                               }`}
                             >
-                              Group A
+                              {position}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(position, 'B')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'B')
-                                  ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              Group B
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(position, 'ALL')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(position, 'ALL')
-                                  ? 'bg-gray-500/20 border-gray-500 text-gray-300'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              All
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => togglePositionSlot(position, 'ALL')}
-                            className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                              hasPositionSlot(position, 'ALL')
-                                ? 'bg-red-500/20 border-red-500 text-red-400'
-                                : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                            }`}
-                          >
-                            {position}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-
-            {/* Preview */}
-            {auctionDate && positionSlots.length > 0 && (
-              <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-4">
-                <div className="text-lg font-bold text-white mb-1">
-                  {new Date(auctionDate + 'T00:00:00').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </div>
-                {description && (
-                  <div className="text-sm text-gray-400 mb-2">{description}</div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {positionSlots.map((slot, idx) => (
-                    <div
-                      key={`${slot.position}-${slot.group}-${idx}`}
-                      className="px-2 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-bold"
-                    >
-                      {slot.position}{slot.group && slot.group !== 'ALL' ? `-${slot.group}` : ''}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-bold transition-all hover:scale-105 shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <SaveIcon />
-              {submitting ? 'Updating...' : 'Update Auction Date'}
-            </button>
-            <Link
-              href={`/sub-admin/${seasonId}/calendar`}
-              className="px-6 py-4 bg-white/5 border border-white/10 text-white rounded-xl font-bold hover:bg-white/10 transition-all"
-            >
-              Cancel
-            </Link>
           </div>
         </form>
       </div>

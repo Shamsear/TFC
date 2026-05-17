@@ -23,6 +23,8 @@ interface AllPlayersClientProps {
   seasonId: string
   positions: string[]
   teams: string[]
+  enableStarring?: boolean  // Enable star functionality for team users
+  basePath?: string         // Base path for player links
 }
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
@@ -52,9 +54,13 @@ const ChevronRightIcon = () => (
 )
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function AllPlayersClient({ seasonId, positions, teams }: AllPlayersClientProps) {
+export default function AllPlayersClient({ seasonId, positions, teams, enableStarring = false, basePath }: AllPlayersClientProps) {
   const pathname = usePathname()
   const router = useRouter()
+
+  // Starring state
+  const [starredPlayerIds, setStarredPlayerIds] = useState<Set<string>>(new Set())
+  const [starringInProgress, setStarringInProgress] = useState<Set<string>>(new Set())
 
   // Position groups mapping
   const POSITION_GROUPS = {
@@ -93,6 +99,63 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
 
   const abortRef = useRef<AbortController | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Load starred players ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (enableStarring) {
+      fetch(`/api/team/starred-players?seasonId=${seasonId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.starredPlayerIds) {
+            setStarredPlayerIds(new Set(data.starredPlayerIds))
+          }
+        })
+        .catch(err => console.error('Error loading starred players:', err))
+    }
+  }, [enableStarring, seasonId])
+
+  // ── Toggle star ──────────────────────────────────────────────────────────────
+  const toggleStar = async (playerId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (starringInProgress.has(playerId)) return
+    
+    setStarringInProgress(prev => new Set(prev).add(playerId))
+    const isCurrentlyStarred = starredPlayerIds.has(playerId)
+    
+    try {
+      if (isCurrentlyStarred) {
+        const res = await fetch(`/api/team/starred-players?playerId=${playerId}&seasonId=${seasonId}`, {
+          method: 'DELETE',
+        })
+        if (res.ok) {
+          setStarredPlayerIds(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(playerId)
+            return newSet
+          })
+        }
+      } else {
+        const res = await fetch('/api/team/starred-players', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId, seasonId }),
+        })
+        if (res.ok) {
+          setStarredPlayerIds(prev => new Set(prev).add(playerId))
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling star:', err)
+    } finally {
+      setStarringInProgress(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(playerId)
+        return newSet
+      })
+    }
+  }
 
   // ── Fetch from API ───────────────────────────────────────────────────────────
   const fetchPlayers = useCallback(async (opts: {
@@ -371,58 +434,96 @@ export default function AllPlayersClient({ seasonId, positions, teams }: AllPlay
                     <div className="h-14 bg-white/10 rounded-lg" />
                   </div>
                 ))
-              : players.map((player) => (
-                  <Link
-                    key={player.id}
-                    href={`/sub-admin/${seasonId}/all-players/${player.id}`}
-                    className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-4 sm:p-6 cursor-pointer group"
-                  >
-                    {/* Player Header */}
-                    <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
-                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl overflow-hidden bg-gray-800 flex-shrink-0 ring-2 ring-white/10">
-                        <Image src={player.photoUrl} alt={player.name} fill className="object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base sm:text-lg font-black text-white group-hover:text-[#E8A800] mb-1 truncate transition-colors">
-                          {player.name}
-                        </h3>
-                        <div className="text-xs sm:text-sm text-[#7A7367] mb-2 truncate">{player.realWorldClub}</div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="px-2 py-0.5 sm:py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold">
-                            {player.position}
-                          </span>
-                          <PositionGroupBadge position={player.position} group={player.position_group} size="sm" />
-                          <span className="px-2 py-0.5 sm:py-1 rounded-lg bg-[#FFB347]/20 border border-[#FFB347]/30 text-[#FFB347] text-xs font-bold">
-                            {player.overallRating} OVR
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+              : players.map((player) => {
+                  const playerPath = basePath ? `${basePath}/${player.id}` : `/sub-admin/${seasonId}/all-players/${player.id}`
+                  return (
+                    <Link
+                      key={player.id}
+                      href={playerPath}
+                      className="group rounded-xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/10 p-4 transition-all relative"
+                    >
+                      {/* Star Button */}
+                      {enableStarring && (
+                        <button
+                          onClick={(e) => toggleStar(player.id, e)}
+                          disabled={starringInProgress.has(player.id)}
+                          className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-black/50 hover:bg-black/70 transition-all disabled:opacity-50"
+                          title={starredPlayerIds.has(player.id) ? 'Unstar player' : 'Star player'}
+                        >
+                          {starredPlayerIds.has(player.id) ? (
+                            <svg className="w-5 h-5 text-[#E8A800] fill-current" viewBox="0 0 24 24">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-gray-400 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
 
-                    {/* Team Assignment */}
-                    {player.team ? (
-                      <div className="rounded-lg sm:rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 sm:p-4">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 ring-2 ring-emerald-500/20">
-                            <Image src={player.team.logoUrl} alt={player.team.name} fill className="object-contain p-1" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-emerald-400 mb-0.5 font-bold">SOLD TO</div>
-                            <div className="text-xs sm:text-sm font-bold text-white truncate">{player.team.name}</div>
-                            {player.soldPrice && (
-                              <div className="text-xs text-[#7A7367]">${player.soldPrice.toLocaleString()}</div>
-                            )}
+                      {/* Player Card - Horizontal Layout */}
+                      <div className="flex gap-4">
+                        {/* Player Photo - Left Side */}
+                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
+                          <Image
+                            src={player.photoUrl}
+                            alt={player.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+
+                        {/* Player Info - Right Side */}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/30 bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold">
+                                {player.position}
+                              </span>
+                              <PositionGroupBadge position={player.position} group={player.position_group} size="sm" />
+                              <span className="px-2 py-0.5 rounded-full border border-[#FFB347]/30 bg-[#FFB347]/20 text-[#FFB347] text-xs font-bold">
+                                {player.overallRating}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-black text-white mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-1">
+                              {player.name}
+                            </h3>
+                            <div className="text-xs text-gray-400 truncate">{player.realWorldClub}</div>
                           </div>
                         </div>
                       </div>
-                    ) : (
-                      <div className="rounded-lg sm:rounded-xl bg-[#FFB347]/10 border border-[#FFB347]/30 p-3 sm:p-4 text-center">
-                        <div className="text-xs sm:text-sm font-bold text-[#FFB347]">AVAILABLE</div>
-                        <div className="text-xs text-[#7A7367] mt-1">Not assigned to any team</div>
+
+                      {/* Team or Free Agent */}
+                      <div className="mt-3">
+                        {player.team ? (
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                            <div className="relative w-5 h-5 rounded overflow-hidden bg-gray-800 flex-shrink-0">
+                              <Image
+                                src={player.team.logoUrl}
+                                alt={player.team.name}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-bold text-white truncate">{player.team.name}</div>
+                              {player.soldPrice && player.soldPrice > 0 && (
+                                <div className="text-xs font-bold text-emerald-400">
+                                  ${player.soldPrice.toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+                            <div className="text-xs text-blue-400 font-bold">Free Agent</div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </Link>
-                ))}
+                    </Link>
+                  )
+                })}
           </div>
         )}
       </div>

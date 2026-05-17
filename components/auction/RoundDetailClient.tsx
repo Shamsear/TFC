@@ -100,6 +100,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     basePrice: round.basePrice || 0,
     finalizationMode: round.finalizationMode
   })
+  const [autoFinalizationTriggered, setAutoFinalizationTriggered] = useState(false)
 
   // Live polling - refresh data every 3 seconds for active/pending rounds
   useEffect(() => {
@@ -135,9 +136,20 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         const remaining = Math.max(0, end - now)
         setTimeRemaining(remaining)
         
-        // Auto-refresh when timer expires
-        if (remaining === 0) {
-          router.refresh()
+        // Auto-trigger finalization when timer expires (only once)
+        if (remaining === 0 && !autoFinalizationTriggered) {
+          setAutoFinalizationTriggered(true)
+          
+          // Trigger finalization based on mode
+          if (round.finalizationMode === 'auto') {
+            // Auto mode: trigger finalization
+            console.log('Timer expired - triggering auto finalization')
+            handleFinalizeRound()
+          } else {
+            // Manual mode: just refresh to update status to expired_pending_finalization
+            console.log('Timer expired - refreshing for manual finalization')
+            router.refresh()
+          }
         }
       }
 
@@ -149,7 +161,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       return () => clearInterval(interval)
     }
-  }, [round.status, round.endTime, router])
+  }, [round.status, round.endTime, round.finalizationMode, autoFinalizationTriggered, router])
 
   // Format time remaining
   const formatTimeRemaining = (ms: number) => {

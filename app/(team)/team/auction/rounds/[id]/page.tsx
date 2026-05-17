@@ -107,6 +107,8 @@ export default async function RoundBiddingPage({
     where: {
       seasonId: round.seasonId,
       ...(round.position ? { position: round.position } : {}),
+      // Filter by position_group if specified (and not 'ALL')
+      ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
       // Exclude already owned players
       basePlayer: {
         transferHistory: {
@@ -119,6 +121,7 @@ export default async function RoundBiddingPage({
     select: {
       basePlayerId: true,
       position: true,
+      position_group: true,
       overallRating: true,
       playing_style: true,
       basePlayer: {

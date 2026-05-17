@@ -38,6 +38,12 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
     where: { seasonId },
     include: {
       auctionSlots: {
+        select: {
+          id: true,
+          position: true,
+          position_group: true,
+          slotOrder: true
+        },
         orderBy: { slotOrder: 'asc' }
       }
     },
@@ -65,6 +71,7 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
       id: stat.basePlayer.id,
       name: stat.basePlayer.name,
       position: stat.position,
+      position_group: stat.position_group,
       overall: stat.overallRating,
       nationality: stat.nationality || 'Unknown',
       imageUrl: stat.basePlayer.photoUrl

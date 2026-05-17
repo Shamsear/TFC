@@ -8,6 +8,7 @@ interface Player {
   id: string
   name: string
   position: string
+  position_group?: string | null
   overall: number
   nationality: string
   imageUrl: string | null
@@ -22,6 +23,7 @@ interface Team {
 interface AuctionSlot {
   id: string
   position: string
+  position_group?: string | null
   slotOrder: number
 }
 
@@ -68,6 +70,7 @@ export default function CreateRoundClient({
   const selectedCalendar = auctionCalendar.find(c => c.id === selectedCalendarId)
   const selectedSlot = selectedCalendar?.auctionSlots.find(s => s.id === selectedSlotId)
   const selectedPosition = selectedSlot?.position
+  const selectedPositionGroup = selectedSlot?.position_group
 
   // Calculate total duration in hours
   const totalDurationHours = parseFloat(durationHours || '0') + parseFloat(durationMinutes || '0') / 60
@@ -77,9 +80,17 @@ export default function CreateRoundClient({
     ? new Date(new Date(selectedCalendar.auctionDate).getTime() + totalDurationHours * 60 * 60 * 1000)
     : null
 
-  // Get all eligible players for the selected position
+  // Get all eligible players for the selected position and position group
   const eligiblePlayers = availablePlayers
-    .filter(player => selectedPosition && player.position === selectedPosition)
+    .filter(player => {
+      if (!selectedPosition || player.position !== selectedPosition) return false
+      
+      // If position_group is 'ALL' or null, include all players of this position
+      if (!selectedPositionGroup || selectedPositionGroup === 'ALL') return true
+      
+      // Filter by matching position_group
+      return player.position_group === selectedPositionGroup
+    })
     .sort((a, b) => b.overall - a.overall || a.name.localeCompare(b.name))
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,6 +122,7 @@ export default function CreateRoundClient({
           roundNumber: nextRoundNumber,
           durationSeconds,
           position: selectedPosition,
+          position_group: selectedPositionGroup,
           roundType: roundType,
           maxBidsPerTeam: seasonDefaults.maxBidsPerTeam,
           basePrice: seasonDefaults.basePrice,
@@ -297,7 +309,7 @@ export default function CreateRoundClient({
                         key={slot.id}
                         className="px-2 py-1 rounded bg-white/10 text-xs text-gray-300"
                       >
-                        {slot.position}
+                        {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
                       </span>
                     ))}
                   </div>
@@ -324,7 +336,9 @@ export default function CreateRoundClient({
                       : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
                   }`}
                 >
-                  <div className="font-bold">{slot.position}</div>
+                  <div className="font-bold">
+                    {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                  </div>
                 </button>
               ))}
             </div>
@@ -337,13 +351,13 @@ export default function CreateRoundClient({
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
           <div className="text-center">
             <div className="text-sm font-bold text-gray-400 mb-2">
-              Eligible Players for {selectedPosition}
+              Eligible Players for {selectedPosition}{selectedPositionGroup && selectedPositionGroup !== 'ALL' ? `-${selectedPositionGroup}` : ''}
             </div>
             <div className="text-4xl font-black text-[#E8A800] mb-2">
               {eligiblePlayers.length}
             </div>
             <div className="text-xs text-gray-400">
-              All unsold {selectedPosition} players will be included in this round
+              All unsold {selectedPosition}{selectedPositionGroup && selectedPositionGroup !== 'ALL' ? ` Group ${selectedPositionGroup}` : ''} players will be included in this round
             </div>
           </div>
         </div>

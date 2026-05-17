@@ -34,7 +34,17 @@ export default async function AuctionV2Page({ params }: AuctionV2PageProps) {
   // Fetch rounds for this season
   const rounds = await prisma.rounds.findMany({
     where: { seasonId },
-    include: {
+    select: {
+      id: true,
+      roundNumber: true,
+      position: true,
+      position_group: true,
+      roundType: true,
+      status: true,
+      startTime: true,
+      endTime: true,
+      maxBidsPerTeam: true,
+      basePrice: true,
       _count: {
         select: {
           teamRoundBids: true,

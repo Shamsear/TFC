@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     const {
       seasonId,
       position,
+      position_group,
       roundNumber,
       roundType = 'normal',
       maxBidsPerTeam,
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
         id: roundId,
         seasonId,
         position,
+        position_group,
         roundNumber,
         roundType,
         maxBidsPerTeam,

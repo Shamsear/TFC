@@ -8,6 +8,7 @@ interface Round {
   id: string
   roundNumber: number
   position: string | null
+  position_group?: string | null
   roundType: string
   status: string
   startTime: Date | null
@@ -211,7 +212,7 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
                 </div>
                 {round.position && (
                   <p className="text-sm text-[#D4CCBB]">
-                    Position: {round.position}
+                    Position: {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
                   </p>
                 )}
               </div>

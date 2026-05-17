@@ -144,7 +144,23 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           if (round.finalizationMode === 'auto') {
             // Auto mode: trigger finalization
             console.log('Timer expired - triggering auto finalization')
-            handleFinalizeRound()
+            
+            // Call finalization API directly
+            fetch(`/api/admin/rounds/${round.id}/finalize`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({})
+            }).then(response => {
+              if (response.ok) {
+                console.log('Auto-finalization successful')
+              } else {
+                console.error('Auto-finalization failed')
+              }
+              router.refresh()
+            }).catch(error => {
+              console.error('Auto-finalization error:', error)
+              router.refresh()
+            })
           } else {
             // Manual mode: just refresh to update status to expired_pending_finalization
             console.log('Timer expired - refreshing for manual finalization')
@@ -161,7 +177,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       return () => clearInterval(interval)
     }
-  }, [round.status, round.endTime, round.finalizationMode, autoFinalizationTriggered, router])
+  }, [round.status, round.endTime, round.finalizationMode, round.id, autoFinalizationTriggered, router])
 
   // Format time remaining
   const formatTimeRemaining = (ms: number) => {

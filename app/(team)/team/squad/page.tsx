@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import { checkTeamSeasonParticipation } from "@/lib/team-auth"
 
 export const metadata = {
@@ -50,10 +50,19 @@ export default async function SquadPage() {
     },
     include: {
       basePlayer: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          player_id: true,
           seasonalPlayerStats: {
             where: {
               seasonId: activeSeason.id,
+            },
+            select: {
+              position: true,
+              position_group: true,
+              overallRating: true,
+              realWorldClub: true,
             },
           },
         },
@@ -150,7 +159,7 @@ export default async function SquadPage() {
                         {/* Player Photo - Left Side */}
                         <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 flex-shrink-0">
                           <img
-                            src={getPlayerPhotoUrl(player.basePlayer.player_id || player.basePlayer.id)}
+                            src={getPlayerPhotoUrl(`${player.basePlayer.player_id}.webp`)}
                             alt={player.basePlayer.name}
                             className="w-full h-full object-cover"
                           />

@@ -760,7 +760,11 @@ export default function NormalRoundBiddingClient({
         </div>
 
         {/* Pagination - Bottom */}
-        {filteredPlayers.length > playersPerPage && <PaginationControls />}
+        {filteredPlayers.length > playersPerPage && (
+          <div className="mb-6">
+            <PaginationControls />
+          </div>
+        )}
 
         {/* Actions */}
         {!isSubmitted && round.status === 'active' && (

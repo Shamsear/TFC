@@ -92,6 +92,7 @@ export default async function PlayersPage() {
             seasonId={activeSeason.id}
             positions={positions}
             teams={teams}
+            basePath="/players"
           />
         </div>
       </main>

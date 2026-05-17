@@ -293,6 +293,15 @@ export default function NormalRoundBiddingClient({
       return
     }
 
+    // Check if max bids requirement is met
+    if (round.maxBidsPerTeam && bidCount < round.maxBidsPerTeam) {
+      setErrorModalMessage(
+        `You must place exactly ${round.maxBidsPerTeam} bids to submit.\n\nCurrent bids: ${bidCount}\nRequired: ${round.maxBidsPerTeam}`
+      )
+      setShowErrorModal(true)
+      return
+    }
+
     if (!confirm('Are you sure you want to submit? You cannot change your bids after submission.')) {
       return
     }
@@ -460,6 +469,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
   const bidCount = Object.keys(bids).filter(k => bids[k] > 0).length
   const totalBidsInList = Object.keys(bids).filter(k => bids[k] !== undefined).length
   const maxBidsReached = round.maxBidsPerTeam ? bidCount >= round.maxBidsPerTeam : false
+  const hasMaxBidsRequired = round.maxBidsPerTeam ? bidCount === round.maxBidsPerTeam : true
 
   // Pagination Component
   const PaginationControls = () => {
@@ -949,7 +959,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || bidCount === 0}
+                disabled={submitting || bidCount === 0 || !hasMaxBidsRequired}
                 className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Submit Bids'}
@@ -965,6 +975,11 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                 </svg>
                 Copy to WhatsApp
               </button>
+            )}
+            {!hasMaxBidsRequired && round.maxBidsPerTeam && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm text-center">
+                ⚠️ You must place exactly {round.maxBidsPerTeam} bids to submit (Current: {bidCount})
+              </div>
             )}
           </div>
         )}

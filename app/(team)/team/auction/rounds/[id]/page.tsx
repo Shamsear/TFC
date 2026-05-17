@@ -20,8 +20,25 @@ export default async function RoundBiddingPage({
 
   const teamId = session.user.teamId
 
-  // Check and finalize if expired (lazy finalization)
-  await checkAndFinalizeExpiredRound(id)
+  // Quick check: only run lazy finalization if round might be expired
+  // This avoids the expensive finalization check on every page load
+  const quickRoundCheck = await prisma.rounds.findUnique({
+    where: { id },
+    select: { 
+      status: true, 
+      endTime: true,
+      finalizationMode: true 
+    }
+  })
+
+  // Only run finalization check if round is active and past end time
+  if (quickRoundCheck?.status === 'active' && quickRoundCheck.endTime) {
+    const now = new Date()
+    if (now > quickRoundCheck.endTime) {
+      // Round is expired, run finalization check
+      await checkAndFinalizeExpiredRound(id)
+    }
+  }
 
   // Fetch round details
   const round = await prisma.rounds.findUnique({
@@ -107,6 +124,17 @@ export default async function RoundBiddingPage({
     }
   })
 
+  // Get already owned player IDs (more efficient than nested query)
+  const ownedPlayers = await prisma.transfer_history.findMany({
+    where: {
+      seasonId: round.seasonId
+    },
+    select: {
+      basePlayerId: true
+    }
+  })
+  const ownedPlayerIds = new Set(ownedPlayers.map(p => p.basePlayerId))
+
   // Get available players for this round
   const players = await prisma.seasonal_player_stats.findMany({
     where: {
@@ -115,12 +143,8 @@ export default async function RoundBiddingPage({
       // Filter by position_group if specified (and not 'ALL')
       ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
       // Exclude already owned players
-      basePlayer: {
-        transferHistory: {
-          none: {
-            seasonId: round.seasonId
-          }
-        }
+      basePlayerId: {
+        notIn: Array.from(ownedPlayerIds)
       }
     },
     select: {

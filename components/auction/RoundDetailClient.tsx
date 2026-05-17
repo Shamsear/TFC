@@ -86,6 +86,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
   const [showExtendModal, setShowExtendModal] = useState(false)
   const [extendHours, setExtendHours] = useState(0)
   const [extendMinutes, setExtendMinutes] = useState(30)
@@ -101,6 +102,11 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     finalizationMode: round.finalizationMode
   })
   const [autoFinalizationTriggered, setAutoFinalizationTriggered] = useState(false)
+
+  // Set mounted state on client side only to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Live polling - refresh data every 3 seconds for active/pending rounds
   useEffect(() => {
@@ -560,7 +566,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 <div>
                   <div className="text-xs text-[#D4CCBB] mb-1">Time Remaining</div>
                   <div className={`text-2xl sm:text-3xl font-black ${timeRemaining < 3600000 ? 'text-red-400' : 'text-[#FFB347]'}`}>
-                    {formatTimeRemaining(timeRemaining)}
+                    {isMounted ? formatTimeRemaining(timeRemaining) : '--:--:--'}
                   </div>
                 </div>
               </div>

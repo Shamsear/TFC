@@ -13,6 +13,8 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
     redirect('/auth/signin')
   }
 
+  const { seasonId } = await params
+
   // Run queries in parallel for better performance
   const [season, auctionCalendar, seasonalStats, seasonTeams, latestRound] = await Promise.all([
     // Fetch season

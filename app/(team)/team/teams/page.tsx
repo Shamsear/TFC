@@ -3,20 +3,45 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
+import { checkTeamSeasonParticipation } from '@/lib/team-auth'
 
-interface AllTeamsPageProps {
-  params: Promise<{
-    seasonId: string
-  }>
+export const metadata = {
+  title: "Teams | Team Dashboard",
+  description: "View all teams in the league",
 }
 
-export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
+export default async function TeamTeamsPage() {
   const session = await auth()
-  if (!session?.user) {
+  if (!session?.user?.teamId) {
     redirect('/auth/signin')
   }
 
-  const { seasonId } = await params
+  // Check if team is in active season
+  const { isParticipating, activeSeason } = await checkTeamSeasonParticipation()
+
+  if (!isParticipating) {
+    redirect("/team/not-in-season")
+  }
+
+  if (!activeSeason) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
+        <main className="pt-24 pb-16 px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center py-12 sm:py-16 rounded-xl bg-white/[0.02] border border-white/10">
+              <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#7A7367] mx-auto mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h2 className="text-xl sm:text-2xl font-black text-white mb-2">No Active Season</h2>
+              <p className="text-gray-400 text-sm sm:text-base">There is no active season at the moment.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  const seasonId = activeSeason.id
 
   const season = await prisma.seasons.findUnique({
     where: { id: seasonId },
@@ -60,7 +85,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
             teamId: st.team.id
           }
         }),
-        
+
         // Sum total spent
         prisma.transfer_history.aggregate({
           where: {
@@ -71,7 +96,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
             soldPrice: true
           }
         }),
-        
+
         // Get position breakdown
         prisma.$queryRaw<Array<{ position: string; count: bigint }>>`
           SELECT sps.position, COUNT(*)::bigint as count
@@ -107,7 +132,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -166,22 +191,13 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
             <p className="text-[#D4CCBB] text-sm sm:text-base mb-6">
               Assign teams to this season to get started with the league
             </p>
-            <Link
-              href={`/sub-admin/${seasonId}/teams`}
-              className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Assign Teams
-            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6">
             {teamsWithDetails.map((teamDetail) => (
               <Link
                 key={teamDetail.id}
-                href={`/sub-admin/${seasonId}/all-teams/${teamDetail.team.id}`}
+                href={`/team/teams/${teamDetail.team.id}`}
                 className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-4 sm:p-6 cursor-pointer group"
               >
                 <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
@@ -255,13 +271,13 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                           {Object.entries(teamDetail.playersByPosition)
                             .sort(([a], [b]) => a.localeCompare(b))
                             .map(([position, count]) => (
-                            <div
-                              key={position}
-                              className="px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold"
-                            >
-                              {position}: {count}
-                            </div>
-                          ))}
+                              <div
+                                key={position}
+                                className="px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold"
+                              >
+                                {position}: {count}
+                              </div>
+                            ))}
                         </div>
                       </div>
                     )}

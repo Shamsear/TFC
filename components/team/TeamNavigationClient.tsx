@@ -45,6 +45,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
     { name: "Dashboard", href: "/team" },
     { name: "Squad", href: "/team/squad" },
     { name: "Players", href: "/team/players" },
+    { name: "Teams", href: "/team/teams" },
     { name: "Matches", href: "/team/matches" },
     { name: "Tournaments", href: "/team/tournaments" },
     { name: "Calendar", href: "/team/calendar" },

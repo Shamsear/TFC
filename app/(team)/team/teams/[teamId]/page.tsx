@@ -5,10 +5,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import TeamDetailTabs from '@/components/team/TeamDetailTabs'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import { checkTeamSeasonParticipation } from '@/lib/team-auth'
 
 interface TeamDetailPageProps {
   params: Promise<{
-    seasonId: string
     teamId: string
   }>
 }
@@ -160,11 +160,19 @@ async function getTeamData(teamId: string, seasonId: string) {
 
 export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   const session = await auth()
-  if (!session?.user) {
+  if (!session?.user?.teamId) {
     redirect('/auth/signin')
   }
 
-  const { seasonId, teamId } = await params
+  // Check if team is in active season
+  const { isParticipating, activeSeason } = await checkTeamSeasonParticipation()
+
+  if (!isParticipating || !activeSeason) {
+    redirect("/team/not-in-season")
+  }
+
+  const { teamId } = await params
+  const seasonId = activeSeason.id
   const teamData = await getTeamData(teamId, seasonId)
 
   if (!teamData) {
@@ -182,10 +190,10 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-24">
         {/* Back Button */}
         <Link
-          href={`/sub-admin/${seasonId}/all-teams`}
+          href={`/team/teams`}
           className="inline-flex items-center gap-2 text-[#E8A800] hover:text-[#FFC93A] mb-6 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

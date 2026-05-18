@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import PositionGroupBadge from '@/components/player/PositionGroupBadge'
+import ReadonlySquadFormation from '@/components/team/ReadonlySquadFormation'
 
 interface Team {
   id: string
@@ -14,6 +15,7 @@ interface Team {
 
 interface Player {
   id: string
+  playerId?: string
   name: string
   photoUrl: string
   position: string
@@ -31,6 +33,8 @@ interface CurrentSeason {
   remainingBudget: number
   positionCounts: Record<string, number>
   squad: Record<string, Player[]>
+  formation?: any
+  tournaments?: any[]
 }
 
 interface HistoricalSeason {
@@ -50,7 +54,7 @@ interface TeamDetailTabsProps {
 }
 
 type Tab = 'season' | 'overall'
-type SeasonSubTab = 'stats' | 'squad'
+type SeasonSubTab = 'stats' | 'squad' | 'formation' | 'tournaments'
 
 export default function TeamDetailTabs({
   team,
@@ -134,7 +138,27 @@ export default function TeamDetailTabs({
                 : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
             }`}
           >
-            Squad ({currentSeason.playerCount})
+            Squad List ({currentSeason.playerCount})
+          </button>
+          <button
+            onClick={() => setSeasonSubTab('formation')}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition-all ${
+              seasonSubTab === 'formation'
+                ? 'bg-[#E8A800]/20 border-2 border-[#E8A800] text-[#E8A800]'
+                : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+            }`}
+          >
+            Starting 11
+          </button>
+          <button
+            onClick={() => setSeasonSubTab('tournaments')}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition-all ${
+              seasonSubTab === 'tournaments'
+                ? 'bg-[#E8A800]/20 border-2 border-[#E8A800] text-[#E8A800]'
+                : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+            }`}
+          >
+            Tournaments
           </button>
         </div>
       )}
@@ -248,6 +272,87 @@ export default function TeamDetailTabs({
                           </div>
                         </Link>
                       ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'season' && seasonSubTab === 'formation' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-black text-white mb-4">Formation</h3>
+            <ReadonlySquadFormation 
+              formation={currentSeason.formation} 
+              allPlayers={Object.values(currentSeason.squad).flat()}
+            />
+          </div>
+        )}
+
+        {activeTab === 'season' && seasonSubTab === 'tournaments' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-black text-white mb-4">Tournament Performances</h3>
+            
+            {!currentSeason.tournaments || currentSeason.tournaments.length === 0 ? (
+              <div className="text-center py-12 text-[#7A7367] bg-black/30 rounded-xl border border-white/5">
+                No tournament data available for this season.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentSeason.tournaments.map((t: any) => (
+                  <div key={t.id} className="rounded-xl bg-black/30 border border-white/5 p-5">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="font-bold text-lg text-white mb-1">{t.tournament.name}</h4>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="px-2 py-0.5 rounded bg-white/10 text-gray-300">
+                            {t.tournament.tournamentType.replace(/_/g, ' ')}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded font-bold ${
+                            t.tournament.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
+                            t.tournament.status === 'ONGOING' ? 'bg-[#E8A800]/20 text-[#E8A800]' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {t.tournament.status}
+                          </span>
+                        </div>
+                      </div>
+                      {t.groupName && (
+                        <div className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-400 text-sm font-bold">
+                          Group {t.groupName}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-2 text-center mb-4">
+                      <div className="bg-white/5 rounded-lg p-2">
+                        <div className="text-xs text-[#7A7367] mb-1">P</div>
+                        <div className="font-bold">{t.played}</div>
+                      </div>
+                      <div className="bg-emerald-500/10 rounded-lg p-2">
+                        <div className="text-xs text-emerald-500/70 mb-1">W</div>
+                        <div className="font-bold text-emerald-400">{t.won}</div>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-2">
+                        <div className="text-xs text-[#7A7367] mb-1">D</div>
+                        <div className="font-bold">{t.drawn}</div>
+                      </div>
+                      <div className="bg-red-500/10 rounded-lg p-2">
+                        <div className="text-xs text-red-500/70 mb-1">L</div>
+                        <div className="font-bold text-red-400">{t.lost}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-sm border-t border-white/5 pt-4">
+                      <div className="flex gap-4 text-[#7A7367]">
+                        <span>GF: <span className="text-white font-medium">{t.goalsFor}</span></span>
+                        <span>GA: <span className="text-white font-medium">{t.goalsAgainst}</span></span>
+                        <span>GD: <span className="text-white font-medium">{t.goalDiff > 0 ? `+${t.goalDiff}` : t.goalDiff}</span></span>
+                      </div>
+                      <div className="font-black text-[#E8A800] text-xl">
+                        {t.points} <span className="text-sm font-medium text-[#7A7367]">pts</span>
+                      </div>
                     </div>
                   </div>
                 ))}

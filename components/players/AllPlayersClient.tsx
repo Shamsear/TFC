@@ -99,6 +99,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
 
   const abortRef = useRef<AbortController | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isFirstRender = useRef(true)
 
   // ── Load starred players ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -166,7 +167,8 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     page: number
   }) => {
     if (abortRef.current) abortRef.current.abort()
-    abortRef.current = new AbortController()
+    const controller = new AbortController()
+    abortRef.current = controller
 
     setLoading(true)
     setError(null)
@@ -190,16 +192,20 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     if (opts.group !== 'ALL') params.set('group', opts.group)
 
     try {
-      const res = await fetch(`/api/players/search?${params}`, { signal: abortRef.current.signal })
+      const res = await fetch(`/api/players/search?${params}`, { signal: controller.signal })
       if (!res.ok) throw new Error('Failed to fetch players')
       const data = await res.json()
-      setPlayers(data.players)
-      setTotalPlayers(data.totalPlayers)
-      setTotalPages(data.totalPages)
+      if (!controller.signal.aborted) {
+        setPlayers(data.players)
+        setTotalPlayers(data.totalPlayers)
+        setTotalPages(data.totalPages)
+        setLoading(false)
+      }
     } catch (err: any) {
-      if (err.name !== 'AbortError') setError('Failed to load players. Please try again.')
-    } finally {
-      setLoading(false)
+      if (err.name !== 'AbortError') {
+        setError('Failed to load players. Please try again.')
+        setLoading(false)
+      }
     }
   }, [seasonId, POSITION_GROUPS])
 
@@ -220,6 +226,10 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   // ── Debounced search ─────────────────────────────────────────────────────────
   // Fires fetch 400ms after user stops typing — NO page reload
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       const newPage = 1

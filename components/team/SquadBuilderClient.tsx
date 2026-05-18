@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { getPhotoUrlFromDb } from "@/lib/image-cdn"
+import PlayerCardImage from "@/components/player/PlayerCardImage"
 
 interface Player {
   id: string
@@ -145,22 +146,38 @@ export default function SquadBuilderClient({
   players,
   savedSquad,
 }: SquadBuilderClientProps) {
-  const [selectedFormation, setSelectedFormation] = useState<keyof typeof FORMATIONS>("4-3-3")
+  const [selectedFormation, setSelectedFormation] = useState<keyof typeof FORMATIONS>(
+    savedSquad?.type || "4-3-3"
+  )
   const [fieldPositions, setFieldPositions] = useState<FieldPosition[]>([])
+  const [substitutes, setSubstitutes] = useState<string[]>(
+    savedSquad?.substitutes || []
+  )
   const [isSaving, setIsSaving] = useState(false)
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [selectedPositionIndex, setSelectedPositionIndex] = useState<number | null>(null)
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [highlightedPositions, setHighlightedPositions] = useState<number[]>([])
+  // Player-first selection: click player in sidebar → glow compatible positions
+  const [pendingPlayer, setPendingPlayer] = useState<Player | null>(null)
+  // Modal: toggle to show all players vs position-compatible only
+  const [showAllPlayers, setShowAllPlayers] = useState(false)
 
   useEffect(() => {
-    // Initialize field positions based on formation
-    const positions = FORMATIONS[selectedFormation].map((pos) => ({
-      ...pos,
-      playerId: null,
-    }))
-    setFieldPositions(positions)
+    // If it's the initial load and we have a saved squad for THIS formation, use it
+    if (savedSquad && savedSquad.type === selectedFormation && fieldPositions.length === 0) {
+      setFieldPositions(savedSquad.positions)
+      setSubstitutes(savedSquad.substitutes || [])
+    } else {
+      // Initialize field positions based on formation
+      const positions = FORMATIONS[selectedFormation].map((pos) => ({
+        ...pos,
+        playerId: null,
+      }))
+      setFieldPositions(positions)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFormation])
 
   const openPlayerModal = (positionIndex: number) => {
@@ -169,19 +186,44 @@ export default function SquadBuilderClient({
     setSearchQuery("")
     setSelectedPlayer(null)
     setHighlightedPositions([])
+    setShowAllPlayers(false)
+    // clear sidebar selection when modal opens
+    setPendingPlayer(null)
   }
 
-  const selectPlayerForHighlight = (player: Player) => {
-    setSelectedPlayer(player)
-    // Highlight compatible positions based on player's position
+  // Sidebar-first flow: select player → compatible positions glow
+  const selectFromSidebar = (player: Player) => {
+    if (pendingPlayer?.id === player.id) {
+      // deselect
+      setPendingPlayer(null)
+      setHighlightedPositions([])
+      return
+    }
+
+    // Check if the starting 11 is full
+    const isSquadFull = fieldPositions.every((p) => p.playerId !== null)
+    if (isSquadFull) {
+      // Directly add to substitutes bench
+      if (!substitutes.includes(player.id)) {
+        setSubstitutes((prev) => [...prev, player.id])
+      }
+      return
+    }
+
+    setPendingPlayer(player)
+    
+    // Highlight compatible positions
     const compatible = fieldPositions
       .map((pos, idx) => {
         if (pos.playerId) return -1 // Already occupied
         return isPositionCompatible(player.position, pos.position) ? idx : -1
       })
-      .filter(idx => idx !== -1)
+      .filter((idx) => idx !== -1)
+      
     setHighlightedPositions(compatible)
   }
+
+
 
   const isPositionCompatible = (playerPos: string, fieldPos: string): boolean => {
     // Define position compatibility
@@ -236,6 +278,10 @@ export default function SquadBuilderClient({
     )
   }
 
+  const removeSubstitute = (playerId: string) => {
+    setSubstitutes((prev) => prev.filter((id) => id !== playerId))
+  }
+
   const saveSquad = async () => {
     setIsSaving(true)
     try {
@@ -247,12 +293,16 @@ export default function SquadBuilderClient({
           formation: {
             type: selectedFormation,
             positions: fieldPositions,
+            substitutes,
           },
         }),
       })
 
       if (response.ok) {
         alert("Squad saved successfully!")
+      } else {
+        const data = await response.json()
+        alert(`Failed to save squad: ${data.error || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Error saving squad:", error)
@@ -268,16 +318,38 @@ export default function SquadBuilderClient({
   }
 
   const availablePlayers = players.filter(
-    (player) => !fieldPositions.some((pos) => pos.playerId === player.id)
+    (p) => !fieldPositions.some((pos) => pos.playerId === p.id) && !substitutes.includes(p.id)
   )
 
-  const filteredPlayers = availablePlayers.filter(player =>
-    player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    player.position.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // In modal: when a position is selected and showAllPlayers is false, show compatible players first (sorted), incompatible hidden
+  const modalPositionLabel = selectedPositionIndex !== null ? fieldPositions[selectedPositionIndex]?.position : null
+
+  const filteredPlayers = availablePlayers
+    .filter(player => {
+      const matchesSearch =
+        player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        player.position.toLowerCase().includes(searchQuery.toLowerCase())
+      if (!matchesSearch) return false
+      if (showPlayerModal && modalPositionLabel && !showAllPlayers) {
+        return isPositionCompatible(player.position, modalPositionLabel)
+      }
+      return true
+    })
+    .sort((a, b) => {
+      if (modalPositionLabel) {
+        const aC = isPositionCompatible(a.position, modalPositionLabel) ? 0 : 1
+        const bC = isPositionCompatible(b.position, modalPositionLabel) ? 0 : 1
+        if (aC !== bC) return aC - bC
+      }
+      return b.overallRating - a.overallRating
+    })
+
+  const compatibleCountForModal = modalPositionLabel
+    ? availablePlayers.filter(p => isPositionCompatible(p.position, modalPositionLabel)).length
+    : 0
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white py-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white py-8 pt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -329,59 +401,104 @@ export default function SquadBuilderClient({
                   const isHighlighted = highlightedPositions.includes(idx)
                   
                   return (
-                    <button
+                    <div
                       key={idx}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => {
-                        if (selectedPlayer && isHighlighted) {
+                        if (pendingPlayer && isHighlighted) {
+                          // Sidebar-first flow: assign pending player to this glowing position
+                          assignPlayer(idx, pendingPlayer.id)
+                          setPendingPlayer(null)
+                          setHighlightedPositions([])
+                        } else if (selectedPlayer && isHighlighted) {
                           assignPlayerToPosition(idx)
-                        } else if (!player) {
+                        } else if (!player && !pendingPlayer) {
                           openPlayerModal(idx)
+                        } else if (pendingPlayer && !isHighlighted && !player) {
+                          // clicked non-compatible empty slot while pending — cancel pending
+                          setPendingPlayer(null)
+                          setHighlightedPositions([])
                         }
                       }}
-                      className={`absolute -translate-x-1/2 -translate-y-1/2 transition-all ${
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          // trigger click
+                          e.currentTarget.click();
+                        }
+                      }}
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 transition-all cursor-pointer ${
                         isHighlighted ? 'scale-110 z-10' : ''
                       }`}
                       style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                     >
                       {player ? (
-                        <div className="relative group">
-                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-[#E8A800] bg-black/80 overflow-hidden">
-                            <Image
-                              src={getPlayerPhotoUrl(player.playerId)}
-                              alt={player.name}
-                              width={64}
-                              height={64}
-                              className="object-cover"
-                            />
-                          </div>
-                          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] sm:text-xs font-bold bg-black/80 px-1 sm:px-2 py-0.5 sm:py-1 rounded">
-                            {player.name.split(" ").pop()}
-                          </div>
+                        <div className="relative group w-14 h-20 sm:w-20 sm:h-28 -mt-4 transition-transform hover:scale-105">
+                          <PlayerCardImage
+                            playerCardId={player.playerId}
+                            playerName={player.name}
+                          />
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               removePlayer(idx)
                             }}
-                            className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm"
+                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
                           >
                             ×
                           </button>
                         </div>
                       ) : (
-                        <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-dashed ${
-                          isHighlighted 
-                            ? 'border-[#E8A800] bg-[#E8A800]/20 animate-pulse' 
-                            : 'border-white/30 bg-black/50'
-                        } flex items-center justify-center cursor-pointer hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all`}>
-                          <span className={`text-[10px] sm:text-xs ${isHighlighted ? 'text-[#E8A800] font-bold' : 'text-white/50'}`}>
+                        <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-dashed flex items-center justify-center transition-all ${
+                          isHighlighted && pendingPlayer
+                            ? 'border-emerald-400 bg-emerald-400/25 animate-pulse cursor-pointer scale-105'
+                            : isHighlighted
+                            ? 'border-[#E8A800] bg-[#E8A800]/20 animate-pulse cursor-pointer'
+                            : 'border-white/30 bg-black/50 cursor-pointer hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10'
+                        }`}>
+                          <span className={`text-[10px] sm:text-xs font-bold ${
+                            isHighlighted && pendingPlayer
+                              ? 'text-emerald-400'
+                              : isHighlighted
+                              ? 'text-[#E8A800]'
+                              : 'text-white/50'
+                          }`}>
                             {pos.position}
                           </span>
                         </div>
                       )}
-                    </button>
+                    </div>
                   )
                 })}
               </div>
+
+              {/* Substitutes Bench */}
+              {substitutes.length > 0 && (
+                <div className="mt-8 bg-black/30 rounded-xl p-4 border border-white/10">
+                  <h3 className="text-[#D4CCBB] text-sm font-bold mb-4 uppercase tracking-wider">Substitutes Bench ({substitutes.length})</h3>
+                  <div className="flex flex-wrap gap-4">
+                    {substitutes.map((subId, idx) => {
+                      const player = getPlayerById(subId)
+                      if (!player) return null
+                      return (
+                        <div key={idx} className="relative group w-14 h-20 sm:w-20 sm:h-28 transition-transform hover:scale-105">
+                          <PlayerCardImage
+                            playerCardId={player.playerId}
+                            playerName={player.name}
+                          />
+                          <button
+                            onClick={() => removeSubstitute(subId)}
+                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Save Button */}
               <button
@@ -394,62 +511,85 @@ export default function SquadBuilderClient({
             </div>
           </div>
 
-          {/* Available Players */}
+          {/* Available Players Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-              <h2 className="text-xl font-bold mb-4">Available Players</h2>
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-bold">Squad ({availablePlayers.length} left)</h2>
+                {pendingPlayer && (
+                  <button
+                    onClick={() => { setPendingPlayer(null); setHighlightedPositions([]) }}
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded border border-red-500/30 bg-red-500/10"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+
+              {/* Instruction banner */}
+              {pendingPlayer ? (
+                <div className="mb-3 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-2.5">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Now click a <strong>glowing position</strong> on the field</span>
+                </div>
+              ) : (
+                <div className="mb-3 flex items-center gap-2 text-xs text-[#E8A800]/80 bg-[#E8A800]/5 border border-[#E8A800]/20 rounded-lg p-2.5">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Click a player to highlight compatible positions</span>
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
                 {availablePlayers.length === 0 ? (
-                  <p className="text-[#7A7367] text-sm text-center py-8">
-                    All players assigned
-                  </p>
+                  <p className="text-[#7A7367] text-sm text-center py-8">All players assigned</p>
                 ) : (
-                  availablePlayers.map((player) => (
-                    <div
-                      key={player.id}
-                      className="bg-black/30 border border-white/10 rounded-lg p-3 hover:border-[#E8A800]/50 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
-                          <Image
-                            src={getPlayerPhotoUrl(player.playerId)}
-                            alt={player.name}
-                            width={48}
-                            height={48}
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-sm truncate">{player.name}</div>
-                          <div className="text-xs text-[#7A7367]">
-                            {player.position} • {player.overallRating}
+                  availablePlayers.map((player) => {
+                    const isPending = pendingPlayer?.id === player.id
+                    return (
+                      <button
+                        key={player.id}
+                        onClick={() => selectFromSidebar(player)}
+                        className={`w-full text-left rounded-lg p-3 border transition-all ${
+                          isPending
+                            ? 'border-emerald-400 bg-emerald-400/10 ring-1 ring-emerald-400/30'
+                            : 'border-white/10 bg-black/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                            <Image
+                              src={getPhotoUrlFromDb(player.playerId)}
+                              alt={player.name}
+                              width={44}
+                              height={44}
+                              className="object-cover"
+                            />
                           </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm truncate text-white">{player.name}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                {player.position}
+                              </span>
+                              <span className="text-[10px] text-[#7A7367]">OVR {player.overallRating}</span>
+                            </div>
+                          </div>
+                          {isPending && (
+                            <div className="w-5 h-5 rounded-full bg-emerald-400 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="mt-2">
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              assignPlayer(parseInt(e.target.value), player.id)
-                            }
-                          }}
-                          className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs"
-                          defaultValue=""
-                        >
-                          <option value="">Assign to position...</option>
-                          {fieldPositions.map((pos, idx) => (
-                            <option
-                              key={idx}
-                              value={idx}
-                              disabled={pos.playerId !== null}
-                            >
-                              {pos.position} {pos.playerId ? "(occupied)" : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  ))
+                      </button>
+                    )
+                  })
                 )}
               </div>
             </div>
@@ -464,9 +604,13 @@ export default function SquadBuilderClient({
               <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
                 <div>
                   <h3 className="text-lg sm:text-2xl font-black text-white">Select Player</h3>
-                  <p className="text-xs sm:text-sm text-[#D4CCBB] mt-1">
-                    {selectedPositionIndex !== null && `Position: ${fieldPositions[selectedPositionIndex].position}`}
-                  </p>
+                  {modalPositionLabel && (
+                    <p className="text-xs sm:text-sm text-[#D4CCBB] mt-1">
+                      Position: <span className="text-[#E8A800] font-bold">{modalPositionLabel}</span>
+                      {" "}·{" "}
+                      <span className="text-emerald-400">{compatibleCountForModal} compatible</span>
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => {
@@ -483,40 +627,41 @@ export default function SquadBuilderClient({
                 </button>
               </div>
 
-              {/* Search Bar */}
-              <div className="p-4 sm:p-6 border-b border-white/10">
+              {/* Search + Filter Toggle */}
+              <div className="p-4 sm:p-6 border-b border-white/10 space-y-3">
                 <input
                   type="text"
-                  placeholder="Search players by name or position..."
+                  placeholder="Search by name or position..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]"
                   autoFocus
                 />
+                {modalPositionLabel && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowAllPlayers(false)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                        !showAllPlayers
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                          : 'bg-white/5 text-[#7A7367] border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      ✓ Compatible ({compatibleCountForModal})
+                    </button>
+                    <button
+                      onClick={() => setShowAllPlayers(true)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                        showAllPlayers
+                          ? 'bg-[#E8A800]/20 text-[#E8A800] border-[#E8A800]/40'
+                          : 'bg-white/5 text-[#7A7367] border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      All Players ({availablePlayers.length})
+                    </button>
+                  </div>
+                )}
               </div>
-
-              {/* Instructions */}
-              {!selectedPlayer && (
-                <div className="px-4 sm:px-6 pt-4 pb-2">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-[#E8A800] bg-[#E8A800]/10 border border-[#E8A800]/30 rounded-lg p-3">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Click a player to see available positions highlighted on the field</span>
-                  </div>
-                </div>
-              )}
-
-              {selectedPlayer && (
-                <div className="px-4 sm:px-6 pt-4 pb-2">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-3">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Click a highlighted position on the field to assign {selectedPlayer.name}</span>
-                  </div>
-                </div>
-              )}
 
               {/* Player List */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -528,33 +673,46 @@ export default function SquadBuilderClient({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                       </div>
-                      <p className="text-[#7A7367] text-sm">No players found</p>
+                      <p className="text-[#7A7367] text-sm">No compatible players found</p>
+                      {!showAllPlayers && modalPositionLabel && (
+                        <button
+                          onClick={() => setShowAllPlayers(true)}
+                          className="mt-3 text-xs text-[#E8A800] hover:underline"
+                        >
+                          Show all players instead
+                        </button>
+                      )}
                     </div>
                   ) : (
                     filteredPlayers.map((player) => {
-                      const isSelected = selectedPlayer?.id === player.id
-                      const isCompatible = selectedPositionIndex !== null && 
-                        isPositionCompatible(player.position, fieldPositions[selectedPositionIndex].position)
-                      
+                      const isCompatible = modalPositionLabel
+                        ? isPositionCompatible(player.position, modalPositionLabel)
+                        : true
+
                       return (
                         <button
                           key={player.id}
-                          onClick={() => selectPlayerForHighlight(player)}
-                          className={`w-full bg-black/30 border rounded-lg p-3 sm:p-4 hover:border-[#E8A800]/50 transition-all text-left ${
-                            isSelected 
-                              ? 'border-[#E8A800] bg-[#E8A800]/10' 
-                              : isCompatible 
-                                ? 'border-emerald-500/30' 
-                                : 'border-white/10'
+                          onClick={() => {
+                            if (selectedPositionIndex !== null) {
+                              // Direct assign: modal opened from a known position slot
+                              assignPlayer(selectedPositionIndex, player.id)
+                              setShowPlayerModal(false)
+                              setSearchQuery("")
+                            }
+                          }}
+                          className={`w-full bg-black/30 border rounded-lg p-3 sm:p-4 hover:bg-[#E8A800]/10 hover:border-[#E8A800]/50 transition-all text-left ${
+                            isCompatible
+                              ? 'border-emerald-500/40'
+                              : 'border-white/10 opacity-60'
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
                               <Image
-                                src={getPlayerPhotoUrl(player.playerId)}
+                                src={getPhotoUrlFromDb(player.playerId)}
                                 alt={player.name}
-                                width={64}
-                                height={64}
+                                width={56}
+                                height={56}
                                 className="object-cover"
                               />
                             </div>
@@ -562,28 +720,19 @@ export default function SquadBuilderClient({
                               <div className="font-bold text-sm sm:text-base truncate text-white">{player.name}</div>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                  isCompatible 
+                                  isCompatible
                                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                    : 'bg-white/10 text-[#7A7367] border border-white/10'
                                 }`}>
                                   {player.position}
                                 </span>
                                 <span className="text-xs text-[#7A7367]">OVR {player.overallRating}</span>
                                 {isCompatible && (
-                                  <span className="text-xs text-emerald-400">✓ Compatible</span>
+                                  <span className="text-xs text-emerald-400 font-medium">✓ Fits</span>
                                 )}
                               </div>
-                              <div className="text-xs text-[#7A7367] mt-1 truncate">{player.realWorldClub}</div>
+                              <div className="text-xs text-[#7A7367] mt-0.5 truncate">{player.realWorldClub}</div>
                             </div>
-                            {isSelected && (
-                              <div className="flex-shrink-0">
-                                <div className="w-6 h-6 rounded-full bg-[#E8A800] flex items-center justify-center">
-                                  <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </button>
                       )

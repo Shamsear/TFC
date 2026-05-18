@@ -14,7 +14,7 @@ export default async function PlayersPage() {
 
   if (!activeSeason) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white pt-24">
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
         <PublicHeader />
         <main className="pt-24 pb-16 px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">

@@ -25,7 +25,7 @@ export default async function SquadBuilderPage() {
 
   if (!activeSeason || !seasonTeam) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8">
+      <div className="min-h-screen bg-[#0a0a0a] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-12">
             <h1 className="text-2xl font-bold text-white mb-4">No Active Season</h1>

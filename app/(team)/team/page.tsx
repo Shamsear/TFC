@@ -124,6 +124,14 @@ export default async function TeamDashboardPage() {
           bidCount: true,
         },
       },
+      bulkRoundSelections: {
+        where: {
+          teamId: team.id,
+        },
+        select: {
+          submitted: true,
+        },
+      },
     },
     orderBy: {
       endTime: 'asc',
@@ -540,24 +548,44 @@ export default async function TeamDashboardPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          {teamBid ? (
-                            teamBid.submitted ? (
-                              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                                ✓ Submitted ({teamBid.bidCount} bids)
-                              </span>
+                          {round.roundType === 'bulk' ? (
+                            round.bulkRoundSelections[0] ? (
+                              round.bulkRoundSelections[0].submitted ? (
+                                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                                  ✓ Submitted
+                                </span>
+                              ) : (
+                                <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30">
+                                  In Progress
+                                </span>
+                              )
                             ) : (
-                              <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30">
-                                In Progress ({teamBid.bidCount} bids)
+                              <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
+                                No Selections Placed
                               </span>
                             )
                           ) : (
-                            <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
-                              Not Started
-                            </span>
+                            teamBid ? (
+                              teamBid.submitted ? (
+                                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                                  ✓ Submitted ({teamBid.bidCount} bids)
+                                </span>
+                              ) : (
+                                <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30">
+                                  In Progress ({teamBid.bidCount} bids)
+                                </span>
+                              )
+                            ) : (
+                              <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
+                                No Bids Placed
+                              </span>
+                            )
                           )}
                         </div>
                         <div className="text-[#E8A800] group-hover:text-[#FFC93A] font-bold text-sm inline-flex items-center gap-1 transition-colors">
-                          {teamBid?.submitted ? 'View Bids' : 'Place Bids'}
+                          {round.roundType === 'bulk'
+                            ? (round.bulkRoundSelections[0]?.submitted ? 'View Selections' : 'Select Players')
+                            : (teamBid?.submitted ? 'View Bids' : 'Place Bids')}
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>

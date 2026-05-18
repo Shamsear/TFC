@@ -205,12 +205,12 @@ export default function AuctionDashboardClient({
   const getBidStatus = (roundId: string, roundType: string) => {
     if (roundType === 'bulk') {
       const selection = liveData.bulkSelections.find(s => s.roundId === roundId)
-      if (!selection) return { label: 'Not Started', color: 'text-gray-400' }
+      if (!selection) return { label: 'No Selections Placed', color: 'text-gray-400' }
       if (selection.submitted) return { label: 'Submitted', color: 'text-emerald-400' }
       return { label: 'Draft Saved', color: 'text-amber-400' }
     } else {
       const bid = liveData.teamBids.find(b => b.roundId === roundId)
-      if (!bid) return { label: 'Not Started', color: 'text-gray-400' }
+      if (!bid) return { label: 'No Bids Placed', color: 'text-gray-400' }
       if (bid.submitted) return { label: `Submitted (${bid.bidCount})`, color: 'text-emerald-400' }
       return { label: `Draft (${bid.bidCount})`, color: 'text-amber-400' }
     }

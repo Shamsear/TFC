@@ -14,7 +14,7 @@ export default async function PlayersPage() {
 
   if (!activeSeason) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <div className="min-h-screen bg-[#0a0a0a] text-white pt-24">
         <PublicHeader />
         <main className="pt-24 pb-16 px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
@@ -56,7 +56,7 @@ export default async function PlayersPage() {
   const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-24">
       <PublicHeader />
 
       <main className="pt-24 pb-16 px-6 lg:px-8">

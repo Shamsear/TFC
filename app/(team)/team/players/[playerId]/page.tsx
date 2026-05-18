@@ -248,8 +248,8 @@ export default async function TeamPlayerDetailPage({ params }: PlayerDetailPageP
   const { seasonId, basePlayer, stats, currentTeam, transferHistory, season } = playerData
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
-      <main className="pt-0">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <main className="pt-20">
         <PlayerDetailContent
           seasonId={seasonId}
           backLink="/team/players"

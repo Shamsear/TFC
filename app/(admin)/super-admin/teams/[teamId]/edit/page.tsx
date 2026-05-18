@@ -27,7 +27,7 @@ export default async function TeamEditPage({ params }: TeamEditPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white px-4 sm:px-6 lg:px-8 pb-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white px-4 sm:px-6 lg:px-8 pt-20 pb-8">
       <div className="max-w-3xl mx-auto">
         <TeamEditForm team={team} />
       </div>

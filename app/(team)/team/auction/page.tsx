@@ -43,7 +43,7 @@ export default async function TeamAuctionPage() {
 
   if (!activeSeason) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-4 pt-24">
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-4 pt-20">
         <div className="text-center">
           <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#E8A800] mx-auto mb-6">
             <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -73,7 +73,7 @@ export default async function TeamAuctionPage() {
 
   if (!seasonTeam) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-4 pt-24">
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-4 pt-20">
         <div className="text-center">
           <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#E8A800] mx-auto mb-6">
             <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">

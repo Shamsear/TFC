@@ -45,7 +45,7 @@ export default async function TeamManagersPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

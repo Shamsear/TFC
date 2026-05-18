@@ -37,8 +37,7 @@ export function validateBidStructure(bids: any[]): ValidationResult {
   }
   
   if (bids.length === 0) {
-    errors.push('At least one bid is required');
-    return { valid: false, errors };
+    return { valid: true, errors: [] };
   }
   
   bids.forEach((bid, index) => {
@@ -423,8 +422,7 @@ export async function validateBulkSelections(
   }
   
   if (playerIds.length === 0) {
-    errors.push('At least one player must be selected');
-    return { valid: false, errors };
+    return { valid: true, errors: [] };
   }
   
   // Check for duplicates

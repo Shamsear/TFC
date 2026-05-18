@@ -819,7 +819,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
             <div className="flex gap-4">
               <button
                 onClick={handleSaveDraft}
-                disabled={saving || bidCount === 0}
+                disabled={saving}
                 className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
               >
                 {saving ? 'Saving...' : 'Save Draft'}
@@ -952,7 +952,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
             <div className="flex gap-4">
               <button
                 onClick={handleSaveDraft}
-                disabled={saving || bidCount === 0}
+                disabled={saving}
                 className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
               >
                 {saving ? 'Saving...' : 'Save Draft'}

@@ -45,8 +45,7 @@ export async function GET(
       },
       orderBy: {
         overallRating: 'desc'
-      },
-      take: 500 // Limit to top 500 players
+      }
     })
 
     const players = seasonalStats.map(stat => ({

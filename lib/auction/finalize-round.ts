@@ -301,9 +301,25 @@ async function handleNonSubmittedTeams(
     // Calculate reserve using v2
     const reserveInfo = await calculateReserve(teamId, roundId, seasonId);
     console.log(`      Available budget: £${reserveInfo.maxBid.toLocaleString()}`);
-    
-    if (avgPrice > reserveInfo.maxBid) {
-      console.log(`      ❌ Cannot afford average price £${avgPrice.toLocaleString()}`);
+    console.log(`      Auction Phase: ${reserveInfo.phase}`);
+
+    // Phase 2: Non-submitted teams skip forced allocation
+    if (reserveInfo.phase === 'phase_2') {
+      console.log(`      ℹ️  Phase 2: Non-submitted teams skip forced allocation. Skipping.\n`);
+      continue;
+    }
+
+    // Phase 3: Skip forced allocation if team already reached min squad size
+    if (reserveInfo.phase === 'phase_3' && !reserveInfo.enforceStrict) {
+      console.log(`      ℹ️  Phase 3: Team already reached minimum squad size. Skipping.\n`);
+      continue;
+    }
+
+    // Determine allocation price based on phase
+    const allocationPrice = reserveInfo.phase === 'phase_3' ? minPlayerPrice : avgPrice;
+
+    if (allocationPrice > reserveInfo.maxBid) {
+      console.log(`      ❌ Cannot afford allocation price £${allocationPrice.toLocaleString()}`);
       continue;
     }
 
@@ -401,12 +417,14 @@ async function handleNonSubmittedTeams(
         teamId: teamId,
         basePlayerId: availablePlayer.id,
         playerName: availablePlayer.name,
-        amount: avgPrice,
+        amount: allocationPrice,
         acquisitionType: 'auto_assigned',
-        acquisitionNotes: `Auto-assigned (team did not submit bids). Price averaged from ${submittedAllocations.length} winning bid(s) at £${avgPrice.toLocaleString()}`
+        acquisitionNotes: reserveInfo.phase === 'phase_3'
+          ? `Auto-assigned Phase 3 (team did not submit bids). Allocated at minimum price of £${allocationPrice.toLocaleString()} to complete squad.`
+          : `Auto-assigned Phase 1 (team did not submit bids). Price averaged from ${submittedAllocations.length} winning bid(s) at £${allocationPrice.toLocaleString()}`
       });
       
-      console.log(`      ✅ Assigned ${availablePlayer.name} at £${avgPrice.toLocaleString()}\n`);
+      console.log(`      ✅ Assigned ${availablePlayer.name} at £${allocationPrice.toLocaleString()}\n`);
     } else {
       console.log(`      ⚠️  No available players found\n`);
     }
@@ -666,30 +684,25 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
 
     console.log(`\n   ✓ Submitted team allocations: ${existingAllocations.length}\n`);
 
-    // 7. Handle non-submitted teams (only if not resuming)
-    let forcedAllocations: Allocation[] = [];
-    if (!isResuming) {
-      console.log('🎰 Step 5: Handling non-submitted teams...');
-      forcedAllocations = await handleNonSubmittedTeams(
-        roundId,
-        teamBids,
-        round.seasonId,
-        round.roundNumber,
-        round.position || undefined,
-        existingAllocations
-      );
+    // 7. Handle non-submitted teams
+    console.log('🎰 Step 5: Handling non-submitted teams...');
+    const forcedAllocations = await handleNonSubmittedTeams(
+      roundId,
+      teamBids,
+      round.seasonId,
+      round.roundNumber,
+      round.position || undefined,
+      existingAllocations
+    );
 
-      console.log(`   ✓ Random allocations: ${forcedAllocations.length}\n`);
+    console.log(`   ✓ Random allocations: ${forcedAllocations.length}\n`);
 
-      if (forcedAllocations.length > 0) {
-        console.log('🎲 Random Allocations (Non-submitted teams):');
-        forcedAllocations.forEach((alloc, idx) => {
-          console.log(`   ${idx + 1}. ${alloc.playerName} → Team ${alloc.teamId} for £${alloc.amount.toLocaleString()}`);
-        });
-        console.log('');
-      }
-    } else {
-      console.log('🎰 Step 5: Skipping non-submitted teams (resuming from tiebreaker)\n');
+    if (forcedAllocations.length > 0) {
+      console.log('🎲 Random Allocations (Non-submitted teams):');
+      forcedAllocations.forEach((alloc, idx) => {
+        console.log(`   ${idx + 1}. ${alloc.playerName} → Team ${alloc.teamId} for £${alloc.amount.toLocaleString()}`);
+      });
+      console.log('');
     }
 
     // 8. Combine all allocations

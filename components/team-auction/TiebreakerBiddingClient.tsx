@@ -61,6 +61,8 @@ export default function TiebreakerBiddingClient({
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
 
+  const maxBidLimit = reserveInfo ? reserveInfo.maxBid : budget
+
   // Fetch reserve info on mount
   useEffect(() => {
     async function fetchReserveInfo() {
@@ -90,8 +92,8 @@ export default function TiebreakerBiddingClient({
         throw new Error(`Bid must be higher than £${tiebreaker.originalAmount.toLocaleString()}`)
       }
 
-      if (newBidAmount > budget) {
-        throw new Error('Insufficient budget')
+      if (newBidAmount > maxBidLimit) {
+        throw new Error(`Bid £${newBidAmount.toLocaleString()} exceeds your maximum allowed bid of £${maxBidLimit.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
       }
 
       const response = await fetch(`/api/tiebreakers/${tiebreaker.id}/bid`, {
@@ -324,7 +326,7 @@ export default function TiebreakerBiddingClient({
                 value={newBidAmount}
                 onChange={(e) => setNewBidAmount(parseInt(e.target.value) || 0)}
                 min={tiebreaker.originalAmount + 1}
-                max={budget}
+                max={maxBidLimit}
                 step={1000}
                 className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white text-xl font-bold focus:outline-none focus:border-[#E8A800]"
               />
@@ -332,15 +334,15 @@ export default function TiebreakerBiddingClient({
               {/* Quick Increment Buttons */}
               <div className="flex gap-2 mt-3">
                 <button
-                  onClick={() => setNewBidAmount(prev => Math.min(prev + 5, budget))}
-                  disabled={newBidAmount + 5 > budget}
+                  onClick={() => setNewBidAmount(prev => Math.min(prev + 5, maxBidLimit))}
+                  disabled={newBidAmount + 5 > maxBidLimit}
                   className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
                 >
                   +£5
                 </button>
                 <button
-                  onClick={() => setNewBidAmount(prev => Math.min(prev + 10, budget))}
-                  disabled={newBidAmount + 10 > budget}
+                  onClick={() => setNewBidAmount(prev => Math.min(prev + 10, maxBidLimit))}
+                  disabled={newBidAmount + 10 > maxBidLimit}
                   className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
                 >
                   +£10
@@ -348,13 +350,13 @@ export default function TiebreakerBiddingClient({
               </div>
               
               <p className="text-xs text-[#7A7367] mt-2">
-                Minimum: £{(tiebreaker.originalAmount + 1).toLocaleString()} • Maximum: £{budget.toLocaleString()}
+                Minimum: £{(tiebreaker.originalAmount + 1).toLocaleString()} • Maximum: £{maxBidLimit.toLocaleString()}
               </p>
             </div>
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || newBidAmount <= tiebreaker.originalAmount || newBidAmount > budget}
+              disabled={submitting || newBidAmount <= tiebreaker.originalAmount || newBidAmount > maxBidLimit}
               className="w-full px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
             >
               {submitting ? 'Submitting...' : `Submit Bid of £${newBidAmount.toLocaleString()}`}

@@ -135,6 +135,11 @@ export default function RoundBiddingClient({
   }, [round.status, round.endTime, router])
 
   const handleBidChange = (playerId: string, amount: number) => {
+    if (reserveInfo && amount > reserveInfo.maxBid) {
+      alert(`Bid £${amount.toLocaleString()} exceeds your maximum allowed bid of £${reserveInfo.maxBid.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
+      return
+    }
+
     const newBids = new Map(bids)
     if (amount > 0) {
       newBids.set(playerId, amount)
@@ -147,6 +152,17 @@ export default function RoundBiddingClient({
   const handleSaveDraft = async () => {
     setSaving(true)
     try {
+      if (reserveInfo) {
+        const exceedingBids = Array.from(bids.entries()).filter(([_, amount]) => amount > reserveInfo.maxBid)
+        if (exceedingBids.length > 0) {
+          const playerNames = exceedingBids.map(([playerId]) => {
+            const player = players.find(p => p.id === playerId)
+            return player?.name || 'Unknown'
+          }).join(', ')
+          throw new Error(`Bids for the following players exceed your maximum allowed bid of £${reserveInfo.maxBid.toLocaleString()}: ${playerNames}. Please reduce them.`)
+        }
+      }
+
       const bidData = Array.from(bids.entries()).map(([playerId, bidAmount]) => ({
         playerId,
         bidAmount
@@ -188,6 +204,17 @@ export default function RoundBiddingClient({
 
     setSubmitting(true)
     try {
+      if (reserveInfo) {
+        const exceedingBids = Array.from(bids.entries()).filter(([_, amount]) => amount > reserveInfo.maxBid)
+        if (exceedingBids.length > 0) {
+          const playerNames = exceedingBids.map(([playerId]) => {
+            const player = players.find(p => p.id === playerId)
+            return player?.name || 'Unknown'
+          }).join(', ')
+          throw new Error(`Bids for the following players exceed your maximum allowed bid of £${reserveInfo.maxBid.toLocaleString()}: ${playerNames}. Please reduce them.`)
+        }
+      }
+
       const bidData = Array.from(bids.entries()).map(([playerId, bidAmount]) => ({
         playerId,
         bidAmount

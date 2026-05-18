@@ -90,6 +90,8 @@ export default function BulkTiebreakerBiddingClient({
   const [newBidAnimation, setNewBidAnimation] = useState(false)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
   
+  const maxBidLimit = reserveInfo ? reserveInfo.maxBid : budget
+  
   // Preserve initial round data since API doesn't return it in live updates
   const roundData = tiebreaker.round
   
@@ -226,8 +228,8 @@ export default function BulkTiebreakerBiddingClient({
         throw new Error(`Bid must be at least £${minBid.toLocaleString()}`)
       }
 
-      if (amount > budget) {
-        throw new Error('Insufficient budget')
+      if (amount > maxBidLimit) {
+        throw new Error(`Bid £${amount.toLocaleString()} exceeds your maximum allowed bid of £${maxBidLimit.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
       }
 
       const response = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}/bid`, {
@@ -577,7 +579,7 @@ export default function BulkTiebreakerBiddingClient({
                     value={bidAmount}
                     onChange={(e) => setBidAmount(parseInt(e.target.value) || 0)}
                     min={(liveData.currentHighestBid || liveData.basePrice) + 1}
-                    max={budget}
+                    max={maxBidLimit}
                     step={1000}
                     className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white text-xl font-bold focus:outline-none focus:border-[#E8A800]"
                   />
@@ -590,7 +592,7 @@ export default function BulkTiebreakerBiddingClient({
                     {quickBidAmounts.map((amount) => (
                       <button
                         key={amount}
-                        onClick={() => setBidAmount(Math.min(bidAmount + amount, budget))}
+                        onClick={() => setBidAmount(Math.min(bidAmount + amount, maxBidLimit))}
                         className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-medium transition-all"
                       >
                         +£{amount}
@@ -602,7 +604,7 @@ export default function BulkTiebreakerBiddingClient({
                 <div className="flex gap-4">
                   <button
                     onClick={handlePlaceBid}
-                    disabled={submitting || bidAmount <= (liveData.currentHighestBid || liveData.basePrice) || bidAmount > budget}
+                    disabled={submitting || bidAmount <= (liveData.currentHighestBid || liveData.basePrice) || bidAmount > maxBidLimit}
                     className={`flex-1 px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50 ${
                       isBidLocked 
                         ? 'bg-amber-500 hover:bg-amber-600 text-black' 

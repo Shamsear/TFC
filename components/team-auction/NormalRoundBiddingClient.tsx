@@ -197,6 +197,13 @@ export default function NormalRoundBiddingClient({
   const handleBidChange = (playerId: string, amount: string) => {
     const numAmount = parseInt(amount) || 0
     
+    // Check if bid exceeds reserve max bid
+    if (reserveInfo && numAmount > reserveInfo.maxBid) {
+      setErrorModalMessage(`Bid £${numAmount.toLocaleString()} exceeds your maximum allowed bid of £${reserveInfo.maxBid.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
+      setShowErrorModal(true)
+      return
+    }
+    
     // Check if adding a new bid would exceed max bids
     const currentBidCount = Object.keys(bids).filter(k => bids[k] > 0).length
     const isNewBid = !bids[playerId] || bids[playerId] === 0
@@ -242,6 +249,20 @@ export default function NormalRoundBiddingClient({
     setMessage(null)
 
     try {
+      // Validate bids against reserve max bid
+      if (reserveInfo) {
+        const exceedingBids = Object.entries(bids)
+          .filter(([_, amount]) => amount > reserveInfo.maxBid)
+          .map(([playerId]) => {
+            const player = players.find(p => p.basePlayerId === playerId)
+            return player?.basePlayer.name || 'Unknown'
+          })
+
+        if (exceedingBids.length > 0) {
+          throw new Error(`The following bid(s) exceed your maximum allowed bid of £${reserveInfo.maxBid.toLocaleString()}: ${exceedingBids.join(', ')}`)
+        }
+      }
+
       const bidArray = Object.entries(bids)
         .filter(([_, amount]) => amount > 0)
         .map(([playerId, amount]) => {
@@ -310,6 +331,20 @@ export default function NormalRoundBiddingClient({
     setMessage(null)
 
     try {
+      // Validate bids against reserve max bid
+      if (reserveInfo) {
+        const exceedingBids = Object.entries(bids)
+          .filter(([_, amount]) => amount > reserveInfo.maxBid)
+          .map(([playerId]) => {
+            const player = players.find(p => p.basePlayerId === playerId)
+            return player?.basePlayer.name || 'Unknown'
+          })
+
+        if (exceedingBids.length > 0) {
+          throw new Error(`The following bid(s) exceed your maximum allowed bid of £${reserveInfo.maxBid.toLocaleString()}: ${exceedingBids.join(', ')}`)
+        }
+      }
+
       const bidArray = Object.entries(bids)
         .filter(([_, amount]) => amount > 0)
         .map(([playerId, amount]) => {

@@ -66,10 +66,16 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
       // Fetch existing calendar data
       fetch(`/api/seasons/${sid}/calendar/${cid}`)
         .then(res => res.json())
-        .then(data => {
           const dateObj = new Date(data.auctionDate)
-          setAuctionDate(dateObj.toISOString().split('T')[0])
-          setAuctionTime(dateObj.toTimeString().slice(0, 5)) // HH:MM format
+          // Extract local date and time in the user's browser timezone
+          const year = dateObj.getFullYear()
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+          const day = String(dateObj.getDate()).padStart(2, '0')
+          const hours = String(dateObj.getHours()).padStart(2, '0')
+          const minutes = String(dateObj.getMinutes()).padStart(2, '0')
+          
+          setAuctionDate(`${year}-${month}-${day}`)
+          setAuctionTime(`${hours}:${minutes}`)
           setDescription(data.description || '')
           setPositionSlots(data.auctionSlots.map((slot: any) => ({
             position: slot.position,
@@ -136,8 +142,9 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
     setSubmitting(true)
 
     try {
-      // Combine date and time
-      const combinedDateTime = `${auctionDate}T${auctionTime || '00:00'}:00`
+      // Combine date and time in the local timezone and convert to ISO string
+      const localDateObj = new Date(`${auctionDate}T${auctionTime || '00:00'}:00`)
+      const combinedDateTime = localDateObj.toISOString()
       
       const response = await fetch(`/api/seasons/${seasonId}/calendar/${calendarId}`, {
         method: 'PATCH',

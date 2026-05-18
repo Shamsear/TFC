@@ -27,6 +27,15 @@ const formatTime = (date: Date) => {
   }).format(new Date(date))
 }
 
+const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(new Date(date))
+}
+
 const CalendarIcon = () => (
   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -82,7 +91,7 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-lg sm:text-2xl font-black text-white truncate">
-                {calendar.formattedDate}
+                {formatDate(calendar.auctionDate)}
               </div>
               <div className="text-sm text-[#E8A800] font-bold mt-0.5">
                 {formatTime(calendar.auctionDate)}

@@ -106,12 +106,15 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     setIsSubmitting(true)
 
     try {
-      // Combine date and time for each auction
-      const formattedAuctionDates = auctionDates.map(auction => ({
-        auctionDate: `${auction.auctionDate}T${auction.auctionTime}:00`,
-        description: auction.description,
-        positionSlots: auction.positionSlots
-      }))
+      // Combine date and time for each auction in the local timezone and convert to ISO string
+      const formattedAuctionDates = auctionDates.map(auction => {
+        const localDate = new Date(`${auction.auctionDate}T${auction.auctionTime}:00`)
+        return {
+          auctionDate: localDate.toISOString(),
+          description: auction.description,
+          positionSlots: auction.positionSlots
+        }
+      })
 
       const response = await fetch(`/api/seasons/${seasonId}/calendar/bulk`, {
         method: 'POST',

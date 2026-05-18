@@ -164,6 +164,8 @@ export default function SquadBuilderClient({
   // Modal: toggle to show all players vs position-compatible only
   const [showAllPlayers, setShowAllPlayers] = useState(false)
 
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+
   useEffect(() => {
     // If it's the initial load and we have a saved squad for THIS formation, use it
     if (savedSquad && savedSquad.type === selectedFormation && fieldPositions.length === 0) {
@@ -299,7 +301,7 @@ export default function SquadBuilderClient({
       })
 
       if (response.ok) {
-        alert("Squad saved successfully!")
+        setShowSuccessModal(true)
       } else {
         const data = await response.json()
         alert(`Failed to save squad: ${data.error || "Unknown error"}`)
@@ -364,7 +366,7 @@ export default function SquadBuilderClient({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Field View */}
           <div className="lg:col-span-2">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-6">
               {/* Formation Selector */}
               <div className="mb-6">
                 <label className="block text-sm font-bold text-white mb-2">
@@ -434,7 +436,7 @@ export default function SquadBuilderClient({
                       style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                     >
                       {player ? (
-                        <div className="relative group w-14 h-20 sm:w-20 sm:h-28 -mt-4 transition-transform hover:scale-105">
+                        <div className="relative group w-12 h-[68px] sm:w-20 sm:h-28 -mt-2 sm:-mt-4 transition-transform hover:scale-105">
                           <PlayerCardImage
                             playerCardId={player.playerId}
                             playerName={player.name}
@@ -444,13 +446,13 @@ export default function SquadBuilderClient({
                               e.stopPropagation()
                               removePlayer(idx)
                             }}
-                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
+                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
                           >
                             ×
                           </button>
                         </div>
                       ) : (
-                        <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-dashed flex items-center justify-center transition-all ${
+                        <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-full border-2 border-dashed flex items-center justify-center transition-all ${
                           isHighlighted && pendingPlayer
                             ? 'border-emerald-400 bg-emerald-400/25 animate-pulse cursor-pointer scale-105'
                             : isHighlighted
@@ -482,14 +484,14 @@ export default function SquadBuilderClient({
                       const player = getPlayerById(subId)
                       if (!player) return null
                       return (
-                        <div key={idx} className="relative group w-14 h-20 sm:w-20 sm:h-28 transition-transform hover:scale-105">
+                        <div key={idx} className="relative group w-12 h-[68px] sm:w-20 sm:h-28 transition-transform hover:scale-105">
                           <PlayerCardImage
                             playerCardId={player.playerId}
                             playerName={player.name}
                           />
                           <button
                             onClick={() => removeSubstitute(subId)}
-                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
+                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
                           >
                             ×
                           </button>
@@ -513,7 +515,7 @@ export default function SquadBuilderClient({
 
           {/* Available Players Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-6">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-6">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xl font-bold">Squad ({availablePlayers.length} left)</h2>
                 {pendingPlayer && (
@@ -759,6 +761,32 @@ export default function SquadBuilderClient({
           </div>
         )}
       </div>
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1a1a] border-2 border-emerald-500/50 rounded-2xl p-6 max-w-md w-full animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-black text-white mb-2">Squad Saved!</h3>
+                <p className="text-[#D4CCBB] text-sm leading-relaxed">
+                  Your starting 11 and substitutes have been successfully saved to your team's profile.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full px-6 py-3 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 font-bold transition-all"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

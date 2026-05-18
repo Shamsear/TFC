@@ -6,22 +6,9 @@ export default auth((req) => {
   const isAuthenticated = !!req.auth
   const userRole = req.auth?.user?.role
 
-  // Allow API, static files, and auth routes
-  if (pathname.startsWith("/api") || 
-      pathname.startsWith("/_next") || 
-      pathname.startsWith("/auth")) {
+  // Allow API and static files
+  if (pathname.startsWith("/api") || pathname.startsWith("/_next")) {
     return NextResponse.next()
-  }
-
-  // Redirect authenticated users from home page to their dashboard
-  if (pathname === "/" && isAuthenticated) {
-    if (userRole === "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/super-admin", req.url))
-    } else if (userRole === "SUB_ADMIN") {
-      return NextResponse.redirect(new URL("/sub-admin", req.url))
-    } else if (userRole === "TEAM_MANAGER") {
-      return NextResponse.redirect(new URL("/team", req.url))
-    }
   }
 
   // Define role-based home routes
@@ -30,6 +17,16 @@ export default auth((req) => {
     SUB_ADMIN: "/sub-admin",
     TEAM_MANAGER: "/team"
   }
+
+  // Redirect authenticated users trying to access auth pages
+  if (pathname.startsWith("/auth")) {
+    if (isAuthenticated && userRole) {
+      const userHomeRoute = roleRoutes[userRole as keyof typeof roleRoutes]
+      return NextResponse.redirect(new URL(userHomeRoute, req.url))
+    }
+    return NextResponse.next()
+  }
+
 
   // Protect and restrict role-specific routes
   if (isAuthenticated && userRole) {
@@ -60,9 +57,8 @@ export default auth((req) => {
       return NextResponse.next()
     }
 
-    // Allow authenticated users to access public pages
-    // Only redirect if they're trying to access another role's protected route
-    return NextResponse.next()
+    // Redirect authenticated users trying to access public pages to their respective dashboard
+    return NextResponse.redirect(new URL(userHomeRoute, req.url))
   }
 
   // Protect team manager routes from unauthenticated access

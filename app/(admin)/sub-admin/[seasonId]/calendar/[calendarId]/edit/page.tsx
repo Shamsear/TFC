@@ -66,6 +66,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
       // Fetch existing calendar data
       fetch(`/api/seasons/${sid}/calendar/${cid}`)
         .then(res => res.json())
+        .then(data => {
           const dateObj = new Date(data.auctionDate)
           // Extract local date and time in the user's browser timezone
           const year = dateObj.getFullYear()

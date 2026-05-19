@@ -335,6 +335,12 @@ export default function NormalRoundBiddingClient({
     })
   }
 
+  const handleEditBid = (playerName: string) => {
+    setSearchQuery(playerName)
+    setShowBiddedPlayers(false) // Close the drawer
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const handleSaveDraft = async () => {
     setSaving(true)
     setMessage(null)
@@ -960,36 +966,35 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mt-2">
                           <div className="flex-1">
                             <label className="block text-xs text-[#7A7367] mb-1">Bid Amount</label>
-                            <input
-                              type="number"
-                              value={amount || ''}
-                              onChange={(e) => handleBidChange(playerId, e.target.value)}
-                              onBlur={(e) => handleBidBlur(playerId, e.target.value)}
-                              disabled={round.status !== 'active' || isSubmitted}
-                              placeholder="Enter amount"
-                              className={`w-full px-3 py-2 rounded-lg bg-white/5 border text-white placeholder-[#7A7367] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                                duplicateAmounts.has(amount)
-                                  ? 'border-red-500/50 focus:border-red-500'
-                                  : 'border-white/10 focus:border-[#E8A800]'
-                              }`}
-                            />
+                            <div className={`text-xl font-bold ${duplicateAmounts.has(amount) ? 'text-red-400' : 'text-[#E8A800]'}`}>
+                              £{amount.toLocaleString()}
+                            </div>
                             {duplicateAmounts.has(amount) && (
                               <div className="text-xs text-red-400 mt-1">⚠️ Duplicate bid amount</div>
                             )}
                           </div>
                           {!isSubmitted && round.status === 'active' && (
-                            <button
-                              onClick={() => handleRemoveBid(playerId)}
-                              className="mt-5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"
-                              title="Remove bid"
-                            >
-                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                            <div className="flex items-center gap-2 mt-5">
+                              <button
+                                onClick={() => handleEditBid(player.basePlayer.name)}
+                                className="px-4 py-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 transition-all font-medium"
+                                title="Edit bid"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleRemoveBid(playerId)}
+                                className="px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"
+                                title="Remove bid"
+                              >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>

@@ -1,5 +1,3 @@
-import PublicHeader from '@/components/layout/PublicHeader'
-import PublicFooter from '@/components/layout/PublicFooter'
 import AllPlayersClient from '@/components/players/AllPlayersClient'
 import { prisma } from '@/lib/prisma'
 
@@ -15,8 +13,7 @@ export default async function PlayersPage() {
   if (!activeSeason) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white">
-        <PublicHeader />
-        <main className="pt-24 pb-16 px-6 lg:px-8">
+                <main className="pt-24 pb-16 px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center py-12 sm:py-16 rounded-xl bg-white/[0.02] border border-white/10">
               <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#7A7367] mx-auto mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -27,8 +24,7 @@ export default async function PlayersPage() {
             </div>
           </div>
         </main>
-        <PublicFooter />
-      </div>
+              </div>
     )
   }
 
@@ -57,8 +53,7 @@ export default async function PlayersPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-24">
-      <PublicHeader />
-
+      
       <main className="pt-24 pb-16 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -97,7 +92,6 @@ export default async function PlayersPage() {
         </div>
       </main>
 
-      <PublicFooter />
-    </div>
+          </div>
   )
 }

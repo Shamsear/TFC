@@ -1,6 +1,4 @@
 import Link from 'next/link'
-import PublicHeader from '@/components/layout/PublicHeader'
-import PublicFooter from '@/components/layout/PublicFooter'
 import { prisma } from '@/lib/prisma'
 
 async function getHomeData() {
@@ -99,8 +97,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <PublicHeader />
-
+      
       <main>
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-26 pb-20">
@@ -298,7 +295,6 @@ export default async function HomePage() {
         )}
       </main>
 
-      <PublicFooter />
-    </div>
+          </div>
   )
 }

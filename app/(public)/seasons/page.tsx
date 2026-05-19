@@ -1,5 +1,3 @@
-import PublicHeader from '@/components/layout/PublicHeader'
-import PublicFooter from '@/components/layout/PublicFooter'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 
@@ -78,8 +76,7 @@ export default async function SeasonsPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <PublicHeader />
-
+      
       <main className="pt-24 pb-16 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -198,7 +195,6 @@ export default async function SeasonsPage() {
         </div>
       </main>
 
-      <PublicFooter />
-    </div>
+          </div>
   )
 }

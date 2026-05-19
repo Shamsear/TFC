@@ -940,6 +940,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                               alt={player.basePlayer.name}
                               width={48}
                               height={48}
+                              unoptimized={true}
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -1142,6 +1143,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                     alt={player.basePlayer.name}
                     width={48}
                     height={48}
+                    unoptimized={true}
                     className="w-full h-full object-cover"
                   />
                 </div>

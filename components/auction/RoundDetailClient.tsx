@@ -38,6 +38,8 @@ interface Team {
 interface AuctionResult {
   id: string
   soldPrice: number
+  acquisitionType?: string | null
+  acquisitionNotes?: string | null
   basePlayer: {
     id: string
     name: string

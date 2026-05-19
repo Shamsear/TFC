@@ -230,6 +230,16 @@ export default function NormalRoundBiddingClient({
   const handleBidBlur = (playerId: string, amount: string) => {
     const numAmount = parseInt(amount) || 0
     if (numAmount > 0) {
+      // Check minimum bid
+      const minAllowed = reserveInfo?.minimumToParticipate || 10
+      if (numAmount < minAllowed) {
+        const player = players.find(p => p.basePlayerId === playerId)
+        setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()} for this phase.`)
+        setShowErrorModal(true)
+        return
+      }
+
+      // Check duplicate
       const duplicateAmount = Object.entries(bids).find(
         ([pid, amt]) => pid !== playerId && amt === numAmount
       )
@@ -238,12 +248,6 @@ export default function NormalRoundBiddingClient({
         const duplicatePlayer = players.find(p => p.basePlayerId === duplicateAmount[0])
         setErrorModalMessage(`Amount £${numAmount.toLocaleString()} is already used for ${duplicatePlayer?.basePlayer.name || 'another player'}. Each bid must be unique.`)
         setShowErrorModal(true)
-        
-        // Reset this duplicate bid to 0
-        setBids(prev => ({
-          ...prev,
-          [playerId]: 0
-        }))
       }
     }
   }
@@ -324,8 +328,9 @@ export default function NormalRoundBiddingClient({
 
   const handleSubmit = async () => {
     // Validate minimum bid amount
+    const minBidAmount = reserveInfo?.minimumToParticipate || 10
     const invalidBids = Object.entries(bids)
-      .filter(([_, amount]) => amount > 0 && amount < 10)
+      .filter(([_, amount]) => amount > 0 && amount < minBidAmount)
       .map(([playerId]) => {
         const player = players.find(p => p.basePlayerId === playerId)
         return player?.basePlayer.name || 'Unknown'
@@ -333,7 +338,7 @@ export default function NormalRoundBiddingClient({
 
     if (invalidBids.length > 0) {
       setErrorModalMessage(
-        `The following ${invalidBids.length === 1 ? 'bid is' : 'bids are'} below the minimum amount of £10:\n\n${invalidBids.join(', ')}\n\nPlease increase ${invalidBids.length === 1 ? 'this bid' : 'these bids'} to at least £10.`
+        `The following ${invalidBids.length === 1 ? 'bid is' : 'bids are'} below the minimum amount of £${minBidAmount.toLocaleString()}:\n\n${invalidBids.join(', ')}\n\nPlease increase ${invalidBids.length === 1 ? 'this bid' : 'these bids'} to at least £${minBidAmount.toLocaleString()}.`
       )
       setShowErrorModal(true)
       return
@@ -346,6 +351,41 @@ export default function NormalRoundBiddingClient({
       )
       setShowErrorModal(true)
       return
+    }
+
+    // Phase 1 warning about skipping Phase 2 rounds
+    if (reserveInfo && reserveInfo.phase === 'phase_1' && reserveInfo.phase2MinBalance && reserveInfo.phase2Rounds) {
+      const exceedingBids = Object.entries(bids)
+        .filter(([_, amount]) => amount > reserveInfo.maxRecommendedBid)
+        .map(([playerId, amount]) => {
+          const player = players.find(p => p.basePlayerId === playerId)
+          return {
+            name: player?.basePlayer.name || 'Unknown',
+            amount
+          }
+        })
+
+      if (exceedingBids.length > 0) {
+        const maxExceedingBid = Math.max(...exceedingBids.map(b => b.amount))
+        const excess = maxExceedingBid - reserveInfo.maxRecommendedBid
+        const skippedRounds = Math.ceil(excess / reserveInfo.phase2MinBalance)
+        const participateRounds = Math.max(0, reserveInfo.phase2Rounds - skippedRounds)
+
+        let warningMessage = ""
+        if (participateRounds === 0) {
+          warningMessage = `⚠️ Warning: Bidding £${maxExceedingBid.toLocaleString()} will leave you with insufficient budget to participate in any Phase 2 rounds. You will have to skip all Phase 2 rounds.\n\n`
+        } else {
+          const allowedBidForOne = reserveInfo.maxRecommendedBid + (reserveInfo.phase2Rounds - 1) * reserveInfo.phase2MinBalance
+          warningMessage = `⚠️ Warning: Bidding £${maxExceedingBid.toLocaleString()} will leave you with sufficient budget to participate in only ${participateRounds} Phase 2 round(s). You will have to skip ${skippedRounds} Phase 2 round(s) (If you want to participate in at least one, you can only bid up to £${allowedBidForOne.toLocaleString()}).\n\n`
+        }
+
+        const confirmProceed = confirm(
+          `${warningMessage}Are you sure you want to proceed with this submission?`
+        )
+        if (!confirmProceed) {
+          return
+        }
+      }
     }
 
     if (!confirm('Are you sure you want to submit? You cannot change your bids after submission.')) {
@@ -720,6 +760,26 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                   <div className="space-y-1 text-xs text-white/80">
                     <p><strong>Required Reserve:</strong> £{reserveInfo.floorReserve.toLocaleString()}</p>
                     <p><strong>Maximum Bid:</strong> £{reserveInfo.maxBid.toLocaleString()}</p>
+                    {reserveInfo.phase === 'phase_1' && reserveInfo.phase2MinBalance && reserveInfo.phase2Rounds && (
+                      <div className="mt-2 pt-2 border-t border-white/10 space-y-1">
+                        <p className="text-white/60 font-semibold mb-1">Phase 2 Skippability Options:</p>
+                        <p className="text-emerald-400">
+                          • Participate in all Phase 2 rounds: Max Bid £{reserveInfo.maxRecommendedBid.toLocaleString()}
+                        </p>
+                        {Array.from({ length: reserveInfo.phase2Rounds - 1 }).map((_, i) => {
+                          const pRounds = reserveInfo.phase2Rounds! - 1 - i
+                          const allowedBid = reserveInfo.maxRecommendedBid + (i + 1) * reserveInfo.phase2MinBalance!
+                          return (
+                            <p key={pRounds} className="text-amber-400">
+                              • Participate in {pRounds} Phase 2 round{pRounds > 1 ? 's' : ''}: Max Bid £{allowedBid.toLocaleString()}
+                            </p>
+                          )
+                        })}
+                        <p className="text-red-400">
+                          • Skip all Phase 2 rounds: Max Bid £{reserveInfo.maxBid.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
                     {reserveInfo.phase === 'phase_2' && reserveInfo.maxRecommendedBid < reserveInfo.maxBid && (
                       <p className="text-amber-300"><strong>Recommended Max:</strong> £{reserveInfo.maxRecommendedBid.toLocaleString()}</p>
                     )}
@@ -777,10 +837,14 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
             {showBiddedPlayers && (
               <div className="mt-4 space-y-3">
                 {Object.entries(bids)
-                  .filter(([playerId]) => bids[playerId] !== undefined)
-                  .sort(([, a], [, b]) => (b || 0) - (a || 0))
+                  .filter(([_, amount]) => amount > 0)
                   .map(([playerId, amount]) => {
                     const player = players.find(p => p.basePlayerId === playerId)
+                    return { playerId, amount, player }
+                  })
+                  .filter(item => item.player !== undefined)
+                  .sort((a, b) => a.player!.basePlayer.name.localeCompare(b.player!.basePlayer.name))
+                  .map(({ playerId, amount, player }) => {
                     if (!player) return null
 
                     return (

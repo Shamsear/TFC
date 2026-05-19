@@ -32,6 +32,8 @@ export interface ReserveInfo {
     phase2Reserve?: number;
     phase3Reserve?: number;
   };
+  phase2MinBalance?: number;       // Min balance per round in phase 2
+  phase2Rounds?: number;           // Total rounds in phase 2
 }
 
 /**
@@ -85,19 +87,23 @@ export function calculateReserveCore(
     breakdown.phase3Reserve = phase3Reserve;
     
     const totalReserve = phase1Reserve + phase2Reserve + phase3Reserve;
-    const maxBid = Math.max(0, teamBalance - totalReserve);
+    const floorReserve = phase1Reserve + phase3Reserve;
+    const maxBid = Math.max(0, teamBalance - floorReserve);
+    const maxRecommendedBid = Math.max(0, teamBalance - totalReserve);
     
     return {
       reserve: totalReserve,
-      floorReserve: totalReserve,
+      floorReserve,
       maxBid,
-      maxRecommendedBid: maxBid,
+      maxRecommendedBid,
       phase: 'phase_1',
       enforceStrict: true,
-      allowSkip: false,
+      allowSkip: true,
       minimumToParticipate: config.phase_1_min_balance,
-      calculation: `Phase 1: ${phase1Remaining}×£${config.phase_1_min_balance} + Phase 2: ${phase2Full}×£${config.phase_2_min_balance} + Phase 3: ${phase3Slots}×£${config.phase_3_min_balance} = £${totalReserve} (to reach min squad ${config.min_squad_size})`,
-      breakdown
+      calculation: `Phase 1 Strict: ${phase1Remaining}×£${config.phase_1_min_balance} + Phase 3 Strict: ${phase3Slots}×£${config.phase_3_min_balance} = £${floorReserve} (to reach min squad ${config.min_squad_size}). Keep Phase 2 reserve (£${phase2Reserve}) to participate in all Phase 2 rounds.`,
+      breakdown,
+      phase2MinBalance: config.phase_2_min_balance,
+      phase2Rounds: phase2Full
     };
   }
   
@@ -313,6 +319,24 @@ export function validateBidAgainstReserve(
         valid: false,
         error: `Bid exceeds reserve. ${reserveInfo.calculation}. Maximum safe bid: £${reserveInfo.maxBid}`
       };
+    }
+    
+    if (bidAmount > reserveInfo.maxRecommendedBid && reserveInfo.phase2MinBalance && reserveInfo.phase2Rounds) {
+      const excess = bidAmount - reserveInfo.maxRecommendedBid;
+      const skippedRounds = Math.ceil(excess / reserveInfo.phase2MinBalance);
+      const participateRounds = Math.max(0, reserveInfo.phase2Rounds - skippedRounds);
+      
+      if (participateRounds === 0) {
+        return {
+          valid: true,
+          warning: `⚠️ Warning: Bidding £${bidAmount.toLocaleString()} will leave you with insufficient budget to participate in any Phase 2 rounds. You will have to skip all Phase 2 rounds.`
+        };
+      } else {
+        return {
+          valid: true,
+          warning: `⚠️ Warning: Bidding £${bidAmount.toLocaleString()} will leave you with sufficient budget to participate in only ${participateRounds} Phase 2 round(s). You will have to skip ${skippedRounds} Phase 2 round(s).`
+        };
+      }
     }
   }
   

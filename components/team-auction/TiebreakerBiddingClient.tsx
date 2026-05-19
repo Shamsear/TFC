@@ -87,13 +87,12 @@ export default function TiebreakerBiddingClient({
   }, [tiebreaker.id])
 
   useEffect(() => {
-    // Only poll after the team has submitted their bid
-    if (!myBid?.submitted && tiebreakerStatus === 'active') return
+    // Poll always while tiebreaker is active so tied teams section stays live
     if (tiebreakerStatus !== 'active') return
 
     const interval = setInterval(checkTiebreakerStatus, 3000)
     return () => clearInterval(interval)
-  }, [myBid?.submitted, tiebreakerStatus, checkTiebreakerStatus])
+  }, [tiebreakerStatus, checkTiebreakerStatus])
 
   // Start redirect countdown when tiebreaker is resolved
   useEffect(() => {

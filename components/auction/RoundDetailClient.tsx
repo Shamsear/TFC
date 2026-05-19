@@ -128,6 +128,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [autoFinalizationTriggered, setAutoFinalizationTriggered] = useState(false)
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set())
   const [copied, setCopied] = useState(false)
+  const [liveTiebreakers, setLiveTiebreakers] = useState<any[]>(round.tiebreakers || [])
 
   const submittedTeamsList = teams.filter(t => {
     const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
@@ -186,6 +187,19 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           const data = await response.json()
           if (data.success && data.round) {
             setLocalEndTime(data.round.endTime ? new Date(data.round.endTime).toISOString() : null)
+            
+            // Update tiebreakers live so the section reflects latest submission statuses
+            if (data.round.tiebreakers) {
+              setLiveTiebreakers(prev => {
+                // Merge: keep SSR-only fields (seasonalPlayerStats) but update submitted status
+                return data.round.tiebreakers.map((fresh: any) => {
+                  const existing = prev.find((t: any) => t.id === fresh.id)
+                  return existing
+                    ? { ...existing, ...fresh, teamTiebreakerBids: fresh.teamTiebreakerBids ?? existing.teamTiebreakerBids }
+                    : fresh
+                })
+              })
+            }
             
             // If the status transitioned to completed, force a full page reload to fetch new completed results
             if (data.round.status === 'completed' && round.status !== 'completed') {
@@ -1032,7 +1046,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       </div>
 
       {/* Active Tiebreakers - Show when tiebreaker_pending */}
-      {round.status === 'tiebreaker_pending' && round.tiebreakers && round.tiebreakers.length > 0 && (
+      {localStatus === 'tiebreaker_pending' && liveTiebreakers && liveTiebreakers.length > 0 && (
         <div className="rounded-xl bg-purple-500/10 border-2 border-purple-500/30 p-6 mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
@@ -1046,7 +1060,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             </div>
           </div>
           <div className="space-y-4">
-            {round.tiebreakers
+            {liveTiebreakers
               .filter((tb: any) => tb.status === 'active')
               .map((tiebreaker: any) => {
                 const player = tiebreaker.basePlayer
@@ -1058,16 +1072,22 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   <div key={tiebreaker.id} className="rounded-lg bg-black/30 border border-purple-500/20 p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3 flex-1">
-                        {player?.photoUrl && (
-                          <img 
-                            src={player.photoUrl} 
-                            alt={player.name} 
-                            className="w-12 h-12 rounded-lg object-cover bg-white/5"
-                            onError={(e) => {
-                              e.currentTarget.src = '/placeholder-player.png'
-                            }}
-                          />
-                        )}
+                        <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
+                          {player?.photoUrl ? (
+                            <img
+                              src={player.photoUrl}
+                              alt={player?.name || ''}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                e.currentTarget.nextElementSibling?.removeAttribute('hidden')
+                              }}
+                            />
+                          ) : null}
+                          <svg hidden className="w-full h-full p-2 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                          </svg>
+                        </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-black text-white text-lg">{player?.name || 'Unknown Player'}</span>

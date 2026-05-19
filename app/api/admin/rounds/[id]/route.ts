@@ -57,7 +57,9 @@ export async function GET(
               select: {
                 id: true,
                 teamId: true,
-                submitted: true
+                submitted: true,
+                oldBidAmount: true,
+                newBidAmount: true
               }
             }
           }

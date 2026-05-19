@@ -354,47 +354,80 @@ export default function SquadBuilderClient({
     <div className="min-h-screen bg-[#0a0a0a] text-white py-8 pt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              Squad Builder
-            </span>
-          </h1>
-          <p className="text-[#D4CCBB]">{seasonName} • {teamName}</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-black">
+              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">Squad Builder</span>
+            </h1>
+            <p className="text-[#7A7367] text-sm mt-0.5">{seasonName} • {teamName}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-xs text-[#7A7367] uppercase tracking-wider">Starting XI</div>
+              <div className="text-lg font-black text-white">{fieldPositions.filter(p => p.playerId).length} <span className="text-[#7A7367] font-normal text-sm">/ 11</span></div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Field View */}
           <div className="lg:col-span-2">
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-6">
-              {/* Formation Selector */}
-              <div className="mb-6">
-                <label className="block text-sm font-bold text-white mb-2">
-                  Formation
-                </label>
-                <select
-                  value={selectedFormation}
-                  onChange={(e) =>
-                    setSelectedFormation(e.target.value as keyof typeof FORMATIONS)
-                  }
-                  className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-white"
-                >
-                  {Object.keys(FORMATIONS).map((formation) => (
-                    <option key={formation} value={formation}>
-                      {formation}
-                    </option>
+              {/* Formation Selector — pill buttons */}
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-[#7A7367] uppercase tracking-widest">Formation</label>
+                  <span className="text-sm font-black text-[#E8A800]">{selectedFormation}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.keys(FORMATIONS).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setSelectedFormation(f as keyof typeof FORMATIONS)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${
+                        selectedFormation === f
+                          ? 'bg-[#E8A800] text-black border-[#E8A800]'
+                          : 'bg-white/5 text-[#7A7367] border-white/10 hover:border-[#E8A800]/50 hover:text-white'
+                      }`}
+                    >
+                      {f}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
 
               {/* Football Field */}
-              <div className="relative w-full aspect-[2/3] bg-gradient-to-b from-green-800 to-green-900 rounded-lg border-4 border-white/20 overflow-hidden">
+              <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden" style={{ boxShadow: '0 0 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.3)' }}>
+                {/* Grass base */}
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #1a5c2a 0%, #1e6b30 50%, #1a5c2a 100%)' }} />
+                {/* Grass stripes */}
+                <div className="absolute inset-0" style={{
+                  backgroundImage: 'repeating-linear-gradient(180deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 40px, transparent 40px, transparent 80px)',
+                }} />
+                {/* Radial lighting from center */}
+                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 70%)' }} />
+                {/* Pitch border */}
+                <div className="absolute inset-[6px] border border-white/25 rounded" />
                 {/* Field markings */}
                 <div className="absolute inset-0">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-16 border-2 border-white/30 border-t-0" />
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-16 border-2 border-white/30 border-b-0" />
-                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/30" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/30 rounded-full" />
+                  {/* Top penalty box */}
+                  <div className="absolute top-[6px] left-1/2 -translate-x-1/2 border border-white/25" style={{ width: '44%', height: '14%' }} />
+                  {/* Top 6-yard box */}
+                  <div className="absolute top-[6px] left-1/2 -translate-x-1/2 border border-white/20" style={{ width: '22%', height: '6%' }} />
+                  {/* Top penalty spot */}
+                  <div className="absolute w-1 h-1 rounded-full bg-white/30" style={{ top: '17%', left: '50%', transform: 'translateX(-50%)' }} />
+                  {/* Bottom penalty box */}
+                  <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 border border-white/25" style={{ width: '44%', height: '14%' }} />
+                  {/* Bottom 6-yard box */}
+                  <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 border border-white/20" style={{ width: '22%', height: '6%' }} />
+                  {/* Bottom penalty spot */}
+                  <div className="absolute w-1 h-1 rounded-full bg-white/30" style={{ bottom: '17%', left: '50%', transform: 'translateX(-50%)' }} />
+                  {/* Halfway line */}
+                  <div className="absolute top-1/2 left-[6px] right-[6px] h-px bg-white/25" />
+                  {/* Centre circle */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-white/25 rounded-full" style={{ width: '22%', aspectRatio: '1' }} />
+                  {/* Centre spot */}
+                  <div className="absolute w-1.5 h-1.5 rounded-full bg-white/30" style={{ top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
                 </div>
 
                 {/* Player Positions */}
@@ -452,22 +485,22 @@ export default function SquadBuilderClient({
                           </button>
                         </div>
                       ) : (
-                        <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-full border-2 border-dashed flex items-center justify-center transition-all ${
+                        <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
                           isHighlighted && pendingPlayer
-                            ? 'border-emerald-400 bg-emerald-400/25 animate-pulse cursor-pointer scale-105'
+                            ? 'border-emerald-400 bg-emerald-900/60 shadow-[0_0_14px_rgba(52,211,153,0.5)] scale-110 cursor-pointer'
                             : isHighlighted
-                            ? 'border-[#E8A800] bg-[#E8A800]/20 animate-pulse cursor-pointer'
-                            : 'border-white/30 bg-black/50 cursor-pointer hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10'
+                            ? 'border-[#E8A800] bg-[#E8A800]/20 shadow-[0_0_14px_rgba(232,168,0,0.5)] scale-110 cursor-pointer animate-pulse'
+                            : 'border-white/20 bg-black/40 cursor-pointer hover:border-[#E8A800]/60 hover:shadow-[0_0_10px_rgba(232,168,0,0.2)]'
                         }`}>
-                          <span className={`text-[10px] sm:text-xs font-bold ${
-                            isHighlighted && pendingPlayer
-                              ? 'text-emerald-400'
-                              : isHighlighted
-                              ? 'text-[#E8A800]'
-                              : 'text-white/50'
-                          }`}>
-                            {pos.position}
-                          </span>
+                          {/* Silhouette */}
+                          <svg className={`w-3 h-3 sm:w-4 sm:h-4 mb-0.5 ${
+                            isHighlighted && pendingPlayer ? 'text-emerald-400' : isHighlighted ? 'text-[#E8A800]' : 'text-white/20'
+                          }`} viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                          </svg>
+                          <span className={`text-[8px] sm:text-[10px] font-black leading-none ${
+                            isHighlighted && pendingPlayer ? 'text-emerald-400' : isHighlighted ? 'text-[#E8A800]' : 'text-white/40'
+                          }`}>{pos.position}</span>
                         </div>
                       )}
                     </div>
@@ -506,18 +539,22 @@ export default function SquadBuilderClient({
               <button
                 onClick={saveSquad}
                 disabled={isSaving}
-                className="mt-6 w-full px-6 py-3 bg-[#E8A800] text-black font-bold rounded-lg hover:bg-[#FFC93A] transition-all disabled:opacity-50"
+                className="mt-5 w-full px-6 py-3 bg-gradient-to-r from-[#E8A800] to-[#FFC93A] text-black font-black rounded-xl hover:from-[#FFC93A] hover:to-[#E8A800] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(232,168,0,0.3)] hover:shadow-[0_4px_30px_rgba(232,168,0,0.5)]"
               >
-                {isSaving ? "Saving..." : "Save Squad"}
+                {isSaving ? (
+                  <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Saving...</>
+                ) : (
+                  <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg> Save Squad</>
+                )}
               </button>
             </div>
           </div>
 
           {/* Available Players Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-6">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-6 lg:sticky lg:top-24">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-bold">Squad ({availablePlayers.length} left)</h2>
+                <h2 className="text-base font-black">Available <span className="text-[#E8A800]">{availablePlayers.length}</span></h2>
                 {pendingPlayer && (
                   <button
                     onClick={() => { setPendingPlayer(null); setHighlightedPositions([]) }}
@@ -526,6 +563,20 @@ export default function SquadBuilderClient({
                     Cancel
                   </button>
                 )}
+              </div>
+
+              {/* Search */}
+              <div className="relative mb-3">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7A7367]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search players..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-black/30 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]/50"
+                />
               </div>
 
               {/* Instruction banner */}
@@ -546,24 +597,26 @@ export default function SquadBuilderClient({
                 </div>
               )}
 
-              <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[560px] overflow-y-auto pr-1">
                 {availablePlayers.length === 0 ? (
                   <p className="text-[#7A7367] text-sm text-center py-8">All players assigned</p>
                 ) : (
-                  availablePlayers.map((player) => {
+                  availablePlayers
+                    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.position.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((player) => {
                     const isPending = pendingPlayer?.id === player.id
                     return (
                       <button
                         key={player.id}
                         onClick={() => selectFromSidebar(player)}
-                        className={`w-full text-left rounded-lg p-3 border transition-all ${
+                        className={`w-full text-left rounded-lg p-2.5 border transition-all ${
                           isPending
-                            ? 'border-emerald-400 bg-emerald-400/10 ring-1 ring-emerald-400/30'
-                            : 'border-white/10 bg-black/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/5'
+                            ? 'border-emerald-400 bg-emerald-400/10 ring-1 ring-emerald-400/20'
+                            : 'border-white/8 bg-black/20 hover:border-[#E8A800]/40 hover:bg-[#E8A800]/5'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 border border-white/10">
                             <Image
                               src={getPhotoUrlFromDb(player.playerId)}
                               alt={player.name}
@@ -573,12 +626,16 @@ export default function SquadBuilderClient({
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-bold text-sm truncate text-white">{player.name}</div>
+                            <div className="font-bold text-xs truncate text-white">{player.name}</div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-[#E8A800]/15 text-[#E8A800] border border-[#E8A800]/25">
                                 {player.position}
                               </span>
-                              <span className="text-[10px] text-[#7A7367]">OVR {player.overallRating}</span>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                player.overallRating >= 85 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                                : player.overallRating >= 75 ? 'bg-blue-500/15 text-blue-400 border-blue-500/25'
+                                : 'bg-white/5 text-[#7A7367] border-white/10'
+                              }`}>{player.overallRating}</span>
                             </div>
                           </div>
                           {isPending && (

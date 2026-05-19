@@ -297,10 +297,10 @@ export default function NormalRoundBiddingClient({
     const numAmount = parseInt(amount) || 0
     if (numAmount > 0) {
       // Check minimum bid
-      const minAllowed = reserveInfo?.minimumToParticipate || 10
+      const minAllowed = round.basePrice || 10
       if (numAmount < minAllowed) {
         const player = players.find(p => p.basePlayerId === playerId)
-        setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()} for this phase.`)
+        setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()}.`)
         setShowErrorModal(true)
         return
       }
@@ -401,7 +401,7 @@ export default function NormalRoundBiddingClient({
 
   const handleSubmit = async () => {
     // Validate minimum bid amount
-    const minBidAmount = reserveInfo?.minimumToParticipate || 10
+    const minBidAmount = round.basePrice || 10
     const invalidBids = Object.entries(bids)
       .filter(([_, amount]) => amount > 0 && amount < minBidAmount)
       .map(([playerId]) => {
@@ -411,7 +411,7 @@ export default function NormalRoundBiddingClient({
 
     if (invalidBids.length > 0) {
       setErrorModalMessage(
-        `The following ${invalidBids.length === 1 ? 'bid is' : 'bids are'} below the minimum amount of £${minBidAmount.toLocaleString()}:\n\n${invalidBids.join(', ')}\n\nPlease increase ${invalidBids.length === 1 ? 'this bid' : 'these bids'} to at least £${minBidAmount.toLocaleString()}.`
+        `The following ${invalidBids.length === 1 ? 'bid is' : 'bids are'} below the minimum allowed bid of £${minBidAmount.toLocaleString()}:\n\n${invalidBids.join(', ')}\n\nPlease increase ${invalidBids.length === 1 ? 'this bid' : 'these bids'} to at least £${minBidAmount.toLocaleString()}.`
       )
       setShowErrorModal(true)
       return

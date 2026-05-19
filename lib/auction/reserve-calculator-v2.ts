@@ -298,19 +298,6 @@ export function validateBidAgainstReserve(
   reserveInfo: ReserveInfo
 ): { valid: boolean; error?: string; warning?: string } {
   
-  // Check minimum bid based on phase requirements
-  const minBidAllowed = reserveInfo.minimumToParticipate || 10;
-  if (bidAmount < minBidAllowed) {
-    const phaseName = reserveInfo.phase === 'phase_1' 
-      ? 'Phase 1' 
-      : reserveInfo.phase === 'phase_2' 
-        ? 'Phase 2' 
-        : 'Phase 3';
-    return {
-      valid: false,
-      error: `Minimum bid in ${phaseName} is £${minBidAllowed}`
-    };
-  }
   
   // Phase 1: Strict enforcement
   if (reserveInfo.phase === 'phase_1' && reserveInfo.enforceStrict) {

@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { getPhotoUrlFromDb } from "@/lib/image-cdn"
 import { decryptBids } from "@/lib/auction/encryption"
 import RoundResultsClient from "@/components/team-auction/RoundResultsClient"
 
@@ -67,7 +67,8 @@ export default async function RoundResultsPage({
         select: {
           id: true,
           name: true,
-          player_id: true
+          player_id: true,
+          photoUrl: true
         }
       },
       team: {
@@ -152,7 +153,8 @@ export default async function RoundResultsPage({
         select: {
           id: true,
           name: true,
-          player_id: true
+          player_id: true,
+          photoUrl: true
         }
       },
       participants: {
@@ -171,7 +173,7 @@ export default async function RoundResultsPage({
     ...a,
     basePlayer: {
       ...a.basePlayer,
-      photoUrl: getPlayerPhotoUrl(`${a.basePlayer.player_id || a.basePlayer.id}.webp`)
+      photoUrl: getPhotoUrlFromDb(a.basePlayer.photoUrl)
     }
   }))
 
@@ -180,7 +182,7 @@ export default async function RoundResultsPage({
     ...t,
     basePlayer: {
       ...t.basePlayer,
-      photoUrl: getPlayerPhotoUrl(`${t.basePlayer.player_id || t.basePlayer.id}.webp`)
+      photoUrl: getPhotoUrlFromDb(t.basePlayer.photoUrl)
     }
   }))
 

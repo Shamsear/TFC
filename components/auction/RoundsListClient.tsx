@@ -24,9 +24,10 @@ interface Round {
 interface RoundsListClientProps {
   seasonId: string
   initialRounds: Round[]
+  onNavigate?: (message: string) => void
 }
 
-export default function RoundsListClient({ seasonId, initialRounds }: RoundsListClientProps) {
+export default function RoundsListClient({ seasonId, initialRounds, onNavigate }: RoundsListClientProps) {
   const router = useRouter()
   const [rounds, setRounds] = useState(initialRounds)
   const [filter, setFilter] = useState<'all' | 'draft' | 'active' | 'completed'>('all')
@@ -197,6 +198,7 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
           <Link
             key={round.id}
             href={`/sub-admin/${seasonId}/auction/rounds/${round.id}`}
+            onClick={() => onNavigate?.(`Loading Round ${round.roundNumber} details...`)}
             className="block rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all p-6"
           >
             {/* Header */}

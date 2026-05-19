@@ -5,7 +5,7 @@
  * Ensures teams meet minimum squad requirements and don't exceed maximum limits.
  */
 
-import { sql } from '@vercel/postgres';
+import { prisma } from '@/lib/prisma';
 
 export interface SquadSizeValidation {
   valid: boolean;
@@ -33,35 +33,38 @@ export async function validateSquadSizeForRound(
   proposedSelections: number
 ): Promise<SquadSizeValidation> {
   
-  // Get team's current squad size and team-specific limits
-  const teamResult = await sql`
-    SELECT 
-      football_players_count,
-      football_min_slots,
-      football_max_slots
-    FROM teams
-    WHERE id = ${teamId} AND season_id = ${seasonId}
-  `;
+  // Get team's current squad size and team-specific limits using Prisma
+  const seasonTeam = await prisma.season_teams.findUnique({
+    where: {
+      seasonId_teamId: { seasonId, teamId }
+    },
+    select: {
+      football_min_slots: true,
+      football_max_slots: true
+    }
+  });
   
-  if (teamResult.rows.length === 0) {
+  if (!seasonTeam) {
     throw new Error(`Team not found: ${teamId} in season ${seasonId}`);
   }
   
-  const teamData = teamResult.rows[0];
-  const currentSquadSize = parseInt(teamData.football_players_count) || 0;
+  // Get current squad size by counting transfer history records for this team & season
+  const currentSquadSize = await prisma.transfer_history.count({
+    where: { teamId, seasonId }
+  });
   
   // Get season's default min/max squad settings (fallback)
-  const settingsResult = await sql`
+  const settingsResult = await prisma.$queryRaw<any[]>`
     SELECT min_squad_size, max_squad_size
     FROM auction_settings
-    WHERE season_id = ${seasonId}
+    WHERE "seasonId" = ${seasonId}
   `;
   
   // Use team-specific limits if set, otherwise use season defaults
-  const minSquad = parseInt(teamData.football_min_slots) || 
-                   parseInt(settingsResult.rows[0]?.min_squad_size) || 25;
-  const maxSquad = parseInt(teamData.football_max_slots) || 
-                   parseInt(settingsResult.rows[0]?.max_squad_size) || 30;
+  const minSquad = seasonTeam.football_min_slots || 
+                   settingsResult?.[0]?.min_squad_size || 25;
+  const maxSquad = seasonTeam.football_max_slots || 
+                   settingsResult?.[0]?.max_squad_size || 30;
   
   const slotsToMin = Math.max(0, minSquad - currentSquadSize);
   const slotsToMax = Math.max(0, maxSquad - currentSquadSize);

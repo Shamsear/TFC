@@ -187,26 +187,29 @@ export async function validateBidsAgainstReserves(
   
   try {
     // Import reserve calculator
-    const { sql } = await import('@vercel/postgres');
     const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
+    const { prisma } = await import('@/lib/prisma');
     
-    // Get team balance and squad size from Neon
-    const teamResult = await sql`
-      SELECT football_budget, football_players_count
-      FROM teams
-      WHERE id = ${context.teamId} AND season_id = ${context.seasonId}
-    `;
+    // Get team balance from season_teams
+    const seasonTeam = await prisma.season_teams.findUnique({
+      where: {
+        seasonId_teamId: { seasonId: context.seasonId, teamId: context.teamId }
+      },
+      select: { currentBudget: true }
+    });
     
-    if (teamResult.rows.length === 0) {
-      // If team not in Neon, skip reserve check (use Prisma budget)
+    if (!seasonTeam) {
       return { valid: true, errors: [] };
     }
     
-    const teamBalance = parseInt(teamResult.rows[0].football_budget) || 0;
-    const currentSquadSize = parseInt(teamResult.rows[0].football_players_count) || 0;
+    const teamBalance = seasonTeam.currentBudget;
+    
+    // Get current squad size by counting transfer history records for this team & season
+    const currentSquadSize = await prisma.transfer_history.count({
+      where: { teamId: context.teamId, seasonId: context.seasonId }
+    });
     
     // Get round number
-    const { prisma } = await import('@/lib/prisma');
     const round = await prisma.rounds.findUnique({
       where: { id: context.roundId },
       select: { roundNumber: true }
@@ -217,7 +220,7 @@ export async function validateBidsAgainstReserves(
     }
     
     // Get auction settings
-    const settingsResult = await sql`
+    const settingsResult = await prisma.$queryRaw<any[]>`
       SELECT 
         phase_1_end_round,
         phase_1_min_balance,
@@ -227,15 +230,15 @@ export async function validateBidsAgainstReserves(
         min_squad_size,
         max_squad_size
       FROM auction_settings
-      WHERE season_id = ${context.seasonId}
+      WHERE "seasonId" = ${context.seasonId}
     `;
     
-    if (settingsResult.rows.length === 0) {
+    if (!settingsResult || settingsResult.length === 0) {
       // No auction settings, skip reserve check
       return { valid: true, errors: [] };
     }
     
-    const settings = settingsResult.rows[0];
+    const settings = settingsResult[0];
     const config = {
       phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
       phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,

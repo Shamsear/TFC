@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
 /**
@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get auction settings
-    const result = await sql`
+    // Get auction settings using Prisma
+    const result = await prisma.$queryRaw<any[]>`
       SELECT *
       FROM auction_settings
       WHERE "seasonId" = ${seasonId}
     `;
 
-    if (result.rows.length === 0) {
+    if (!result || result.length === 0) {
       return NextResponse.json({
         success: true,
         settings: null,
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      settings: result.rows[0]
+      settings: result[0]
     });
   } catch (error) {
     console.error('Get auction settings error:', error);
@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upsert auction settings
-    const result = await sql`
+    // Upsert auction settings using Prisma
+    await prisma.$executeRaw`
       INSERT INTO auction_settings (
         "seasonId",
         auction_window,
@@ -145,12 +145,18 @@ export async function POST(request: NextRequest) {
         min_balance_per_round = ${min_balance_per_round},
         default_max_bids_per_team = ${default_max_bids_per_team},
         updated_at = NOW()
-      RETURNING *
+    `;
+
+    // Fetch the updated settings to return it
+    const updatedSettings = await prisma.$queryRaw<any[]>`
+      SELECT *
+      FROM auction_settings
+      WHERE "seasonId" = ${season_id}
     `;
 
     return NextResponse.json({
       success: true,
-      settings: result.rows[0],
+      settings: updatedSettings?.[0] || null,
       message: 'Auction settings saved successfully'
     });
   } catch (error) {

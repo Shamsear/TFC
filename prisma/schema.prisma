@@ -59,6 +59,8 @@ model season_teams {
   currentBudget   Int
   finalBudget     Int?
   trophiesWon     Int                @default(0)
+  football_min_slots Int?              @default(25) @map("football_min_slots")
+  football_max_slots Int?              @default(30) @map("football_max_slots")
   createdAt       DateTime           @default(now())
   updatedAt       DateTime
   financialLedger financial_ledger[]

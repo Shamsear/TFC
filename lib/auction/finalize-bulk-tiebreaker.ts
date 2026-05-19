@@ -417,25 +417,29 @@ export async function placeBulkTiebreakerBid(
       return { success: false, error: 'Insufficient budget' };
     }
 
-    // ENHANCED: Check reserve requirements using Neon database
-    const { sql } = await import('@vercel/postgres');
+    // ENHANCED: Check reserve requirements using Prisma
     
-    // Get team balance and squad size from Neon
-    const teamResult = await sql`
-      SELECT football_budget, football_players_count
-      FROM teams
-      WHERE id = ${teamId} AND season_id = ${round.seasonId}
-    `;
+    // Get team balance from season_teams
+    const seasonTeamObj = await prisma.season_teams.findUnique({
+      where: {
+        seasonId_teamId: { seasonId: round.seasonId, teamId }
+      },
+      select: { currentBudget: true }
+    });
     
-    if (teamResult.rows.length === 0) {
-      return { success: false, error: 'Team not found in Neon database' };
+    if (!seasonTeamObj) {
+      return { success: false, error: 'Team not found in season_teams' };
     }
     
-    const teamBalance = parseInt(teamResult.rows[0].football_budget) || 0;
-    const currentSquadSize = parseInt(teamResult.rows[0].football_players_count) || 0;
+    const teamBalance = seasonTeamObj.currentBudget;
+    
+    // Get current squad size by counting transfer history records for this team & season
+    const currentSquadSize = await prisma.transfer_history.count({
+      where: { teamId, seasonId: round.seasonId }
+    });
     
     // Get auction settings
-    const settingsResult = await sql`
+    const settingsResult = await prisma.$queryRaw<any[]>`
       SELECT 
         phase_1_end_round,
         phase_1_min_balance,
@@ -445,14 +449,14 @@ export async function placeBulkTiebreakerBid(
         min_squad_size,
         max_squad_size
       FROM auction_settings
-      WHERE season_id = ${round.seasonId}
+      WHERE "seasonId" = ${round.seasonId}
     `;
     
     // Calculate reserve if settings exist
-    if (settingsResult.rows.length > 0) {
+    if (settingsResult && settingsResult.length > 0) {
       const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
       
-      const settings = settingsResult.rows[0];
+      const settings = settingsResult[0];
       const config = {
         phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
         phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
@@ -486,7 +490,7 @@ export async function placeBulkTiebreakerBid(
         console.log(`⚠️ Tiebreaker bid warning for team ${teamId}: ${validation.warning}`);
       }
     }
-
+ 
     // Place bid
     await prisma.$transaction(async (tx) => {
       // Update tiebreaker
@@ -497,7 +501,7 @@ export async function placeBulkTiebreakerBid(
           currentHighestTeamId: teamId
         }
       });
-
+ 
       // Update participant
       await tx.bulk_tiebreaker_participants.updateMany({
         where: {
@@ -509,7 +513,7 @@ export async function placeBulkTiebreakerBid(
           lastBidTime: new Date()
         }
       });
-
+ 
       // Insert bid history
       await tx.bulk_tiebreaker_bid_history.create({
         data: {
@@ -519,15 +523,15 @@ export async function placeBulkTiebreakerBid(
         }
       });
     });
-
+ 
     // Return success with optional warning
     const result: { success: boolean; warning?: string } = { success: true };
     
     // Check if there was a warning from reserve validation
-    if (settingsResult.rows.length > 0) {
+    if (settingsResult && settingsResult.length > 0) {
       const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
       
-      const settings = settingsResult.rows[0];
+      const settings = settingsResult[0];
       const config = {
         phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
         phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,

@@ -193,6 +193,368 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isFirstRender = useRef(true)
 
+  // Export to Excel states
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportFilter, setExportFilter] = useState<'all' | 'sold' | 'unsold'>('all')
+  const [exportLoading, setExportLoading] = useState(false)
+
+  const handleExportToExcel = async () => {
+    setExportLoading(true)
+    try {
+      const response = await fetch(`/api/admin/seasons/${seasonId}/players/export?is_sold=${exportFilter}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch player database')
+      }
+      const data = await response.json()
+      const rawPlayers = data.players || []
+
+      if (rawPlayers.length === 0) {
+        alert('No players found to export.')
+        setExportLoading(false)
+        return
+      }
+
+      // Dynamic import of exceljs
+      const ExcelJS = (await import('exceljs')).default
+      const workbook = new ExcelJS.Workbook()
+      
+      workbook.creator = 'Turf Cats'
+      workbook.lastModifiedBy = 'Admin'
+      workbook.created = new Date()
+      workbook.modified = new Date()
+
+      // Calculate totals
+      const totalCount = rawPlayers.length
+      const soldCount = rawPlayers.filter((p: any) => p.isSold).length
+      const availableCount = totalCount - soldCount
+      const eligibleCount = rawPlayers.filter((p: any) => !p.isSold).length // Unsold players
+
+      // Calculate position and group stats
+      const positionGroupStats: Record<string, { total: number, sold: number, available: number }> = {}
+      const positionStats: Record<string, { total: number, sold: number, available: number }> = {}
+
+      rawPlayers.forEach((p: any) => {
+        const group = p.position_group || 'Unassigned'
+        const pos = p.position || 'N/A'
+        const isSold = p.isSold
+
+        if (!positionGroupStats[group]) {
+          positionGroupStats[group] = { total: 0, sold: 0, available: 0 }
+        }
+        positionGroupStats[group].total++
+        if (isSold) positionGroupStats[group].sold++
+        else positionGroupStats[group].available++
+
+        if (!positionStats[pos]) {
+          positionStats[pos] = { total: 0, sold: 0, available: 0 }
+        }
+        positionStats[pos].total++
+        if (isSold) positionStats[pos].sold++
+        else positionStats[pos].available++
+      })
+
+      // 1. Create Summary Sheet
+      const summarySheet = workbook.addWorksheet('Summary')
+      
+      summarySheet.mergeCells('A1:D1')
+      summarySheet.getCell('A1').value = 'Turf Cats Players Database Summary'
+      summarySheet.getCell('A1').font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: 'FF0066FF' } }
+      summarySheet.getCell('A1').alignment = { horizontal: 'left', vertical: 'middle' }
+      summarySheet.getRow(1).height = 40
+
+      summarySheet.getCell('A3').value = 'Metric'
+      summarySheet.getCell('B3').value = 'Count'
+      summarySheet.getRow(3).font = { name: 'Segoe UI', size: 11, bold: true }
+      summarySheet.getRow(3).height = 25
+
+      const metrics = [
+        { name: 'Total Players', value: totalCount },
+        { name: 'Auction Eligible Players', value: eligibleCount },
+        { name: 'Sold Players', value: soldCount },
+        { name: 'Available / Unsold Players', value: availableCount }
+      ]
+
+      metrics.forEach((m, idx) => {
+        const rowNum = 4 + idx
+        summarySheet.getCell(`A${rowNum}`).value = m.name
+        summarySheet.getCell(`B${rowNum}`).value = m.value
+        summarySheet.getCell(`A${rowNum}`).font = { name: 'Segoe UI', size: 10, bold: true }
+        summarySheet.getCell(`B${rowNum}`).font = { name: 'Segoe UI', size: 10, color: { argb: 'FF0066FF' } }
+        summarySheet.getCell(`B${rowNum}`).alignment = { horizontal: 'center' }
+        summarySheet.getCell(`A${rowNum}`).border = { bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } } }
+        summarySheet.getCell(`B${rowNum}`).border = { bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } } }
+      })
+
+      summarySheet.getCell('A10').value = 'Position Group Breakdown'
+      summarySheet.getCell('A10').font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF333333' } }
+      summarySheet.getCell('A11').value = 'Position Group'
+      summarySheet.getCell('B11').value = 'Total Players'
+      summarySheet.getCell('C11').value = 'Sold Players'
+      summarySheet.getCell('D11').value = 'Available Players'
+      summarySheet.getRow(11).font = { name: 'Segoe UI', size: 10, bold: true }
+      summarySheet.getRow(11).height = 25
+
+      let currentRow = 12
+      Object.entries(positionGroupStats).forEach(([group, stats]) => {
+        summarySheet.getCell(`A${currentRow}`).value = group
+        summarySheet.getCell(`B${currentRow}`).value = stats.total
+        summarySheet.getCell(`C${currentRow}`).value = stats.sold
+        summarySheet.getCell(`D${currentRow}`).value = stats.available
+        summarySheet.getRow(currentRow).font = { name: 'Segoe UI', size: 9 }
+        summarySheet.getCell(`A${currentRow}`).alignment = { horizontal: 'left' }
+        summarySheet.getCell(`B${currentRow}`).alignment = { horizontal: 'center' }
+        summarySheet.getCell(`C${currentRow}`).alignment = { horizontal: 'center' }
+        summarySheet.getCell(`D${currentRow}`).alignment = { horizontal: 'center' }
+        currentRow++
+      })
+
+      currentRow += 2
+      summarySheet.getCell(`A${currentRow}`).value = 'Individual Position Breakdown'
+      summarySheet.getCell(`A${currentRow}`).font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF333333' } }
+      currentRow++
+      summarySheet.getCell(`A${currentRow}`).value = 'Position'
+      summarySheet.getCell(`B${currentRow}`).value = 'Total Players'
+      summarySheet.getCell(`C${currentRow}`).value = 'Sold Players'
+      summarySheet.getCell(`D${currentRow}`).value = 'Available Players'
+      summarySheet.getRow(currentRow).font = { name: 'Segoe UI', size: 10, bold: true }
+      summarySheet.getRow(currentRow).height = 25
+      currentRow++
+
+      Object.entries(positionStats).forEach(([pos, stats]) => {
+        summarySheet.getCell(`A${currentRow}`).value = pos
+        summarySheet.getCell(`B${currentRow}`).value = stats.total
+        summarySheet.getCell(`C${currentRow}`).value = stats.sold
+        summarySheet.getCell(`D${currentRow}`).value = stats.available
+        summarySheet.getRow(currentRow).font = { name: 'Segoe UI', size: 9 }
+        summarySheet.getCell(`A${currentRow}`).alignment = { horizontal: 'left' }
+        summarySheet.getCell(`B${currentRow}`).alignment = { horizontal: 'center' }
+        summarySheet.getCell(`C${currentRow}`).alignment = { horizontal: 'center' }
+        summarySheet.getCell(`D${currentRow}`).alignment = { horizontal: 'center' }
+        currentRow++
+      })
+
+      summarySheet.getColumn('A').width = 30
+      summarySheet.getColumn('B').width = 15
+      summarySheet.getColumn('C').width = 15
+      summarySheet.getColumn('D').width = 18
+
+      // Columns configuration
+      const columns = [
+        { header: 'Player ID', key: 'id', width: 25 },
+        { header: 'Name', key: 'name', width: 30 },
+        { header: 'Position', key: 'position', width: 12 },
+        { header: 'Position Group', key: 'position_group', width: 15 },
+        { header: 'Overall Rating', key: 'overallRating', width: 15 },
+        { header: 'Age', key: 'age', width: 10 },
+        { header: 'Nationality', key: 'nationality', width: 18 },
+        { header: 'Club', key: 'realWorldClub', width: 25 },
+        { header: 'Current Team Name', key: 'teamName', width: 25 },
+        { header: 'Auction Eligible', key: 'eligible', width: 18 },
+        { header: 'Is Sold', key: 'isSoldText', width: 12 },
+        { header: 'Acquisition Value', key: 'soldPrice', width: 18 },
+        { header: 'Playing Style', key: 'playing_style', width: 20 },
+        
+        { header: 'Ball Control', key: 'ball_control', width: 14 },
+        { header: 'Dribbling', key: 'dribbling', width: 12 },
+        { header: 'Tight Possession', key: 'tight_possession', width: 16 },
+        { header: 'Low Pass', key: 'low_pass', width: 12 },
+        { header: 'Lofted Pass', key: 'lofted_pass', width: 12 },
+        { header: 'Finishing', key: 'finishing', width: 12 },
+        { header: 'Heading', key: 'heading', width: 12 },
+        { header: 'Set Piece Taking', key: 'set_piece_taking', width: 16 },
+        { header: 'Curl', key: 'curl', width: 10 },
+        { header: 'Offensive Awareness', key: 'offensive_awareness', width: 18 },
+        
+        { header: 'Speed', key: 'speed', width: 10 },
+        { header: 'Acceleration', key: 'acceleration', width: 14 },
+        { header: 'Kicking Power', key: 'kicking_power', width: 14 },
+        { header: 'Jumping', key: 'jumping', width: 10 },
+        { header: 'Physical Contact', key: 'physical_contact', width: 16 },
+        { header: 'Balance', key: 'balance', width: 10 },
+        { header: 'Stamina', key: 'stamina', width: 10 },
+
+        { header: 'Tackling', key: 'tackling', width: 12 },
+        { header: 'Aggression', key: 'aggression', width: 12 },
+        { header: 'Defensive Engagement', key: 'defensive_engagement', width: 20 },
+        { header: 'Defensive Awareness', key: 'defensive_awareness', width: 18 },
+
+        { header: 'GK Awareness', key: 'gk_awareness', width: 14 },
+        { header: 'GK Catching', key: 'gk_catching', width: 14 },
+        { header: 'GK Parrying', key: 'gk_parrying', width: 14 },
+        { header: 'GK Reflexes', key: 'gk_reflexes', width: 14 },
+        { header: 'GK Reach', key: 'gk_reach', width: 14 }
+      ]
+
+      const styleWorksheet = (ws: any) => {
+        const headerRow = ws.getRow(1)
+        headerRow.height = 25
+        headerRow.eachCell((cell: any) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF0066FF' }
+          }
+          cell.font = {
+            name: 'Segoe UI',
+            size: 10,
+            bold: true,
+            color: { argb: 'FFFFFFFF' }
+          }
+          cell.alignment = {
+            horizontal: 'center',
+            vertical: 'middle'
+          }
+          cell.border = {
+            bottom: { style: 'medium', color: { argb: 'FF0044BB' } }
+          }
+        })
+
+        const rCount = ws.rowCount
+        for (let i = 2; i <= rCount; i++) {
+          const row = ws.getRow(i)
+          row.height = 20
+          const isEven = i % 2 === 0
+          const bgFill = isEven ? 'FFF8F9FA' : 'FFFFFFFF'
+
+          row.eachCell((cell: any, colNumber: number) => {
+            cell.font = {
+              name: 'Segoe UI',
+              size: 9,
+              color: { argb: 'FF333333' }
+            }
+            cell.border = {
+              bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+              right: { style: 'thin', color: { argb: 'FFF0F0F0' } }
+            }
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: bgFill }
+            }
+
+            const colKey = ws.columns[colNumber - 1]?.key
+            if (['id', 'name', 'nationality', 'realWorldClub', 'teamName', 'playing_style'].includes(colKey)) {
+              cell.alignment = { horizontal: 'left', vertical: 'middle' }
+            } else {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' }
+            }
+
+            if (colKey === 'eligible') {
+              const val = cell.value
+              if (val === 'Yes') {
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFD4EDDA' }
+                }
+                cell.font = {
+                  name: 'Segoe UI',
+                  size: 9,
+                  bold: true,
+                  color: { argb: 'FF155724' }
+                }
+              } else if (val === 'No') {
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFF8D7DA' }
+                }
+                cell.font = {
+                  name: 'Segoe UI',
+                  size: 9,
+                  bold: true,
+                  color: { argb: 'FF721C24' }
+                }
+              }
+            }
+          })
+        }
+      }
+
+      // 2. All Players Sheet
+      const allSheet = workbook.addWorksheet('All Players')
+      allSheet.columns = columns
+      rawPlayers.forEach((p: any) => {
+        allSheet.addRow({
+          ...p,
+          eligible: !p.isSold ? 'Yes' : 'No',
+          isSoldText: p.isSold ? 'Yes' : 'No',
+          soldPrice: p.soldPrice || 0
+        })
+      })
+      styleWorksheet(allSheet)
+
+      // 3. Position Group Sheets
+      const groupsMap = new Map<string, any[]>()
+      rawPlayers.forEach((p: any) => {
+        const groupName = p.position_group || 'Unassigned'
+        if (!groupsMap.has(groupName)) {
+          groupsMap.set(groupName, [])
+        }
+        groupsMap.get(groupName)!.push(p)
+      })
+
+      groupsMap.forEach((groupPlayers, groupName) => {
+        const safeSheetName = `${groupName.substring(0, 20)} Group (${groupPlayers.length})`
+        const groupSheet = workbook.addWorksheet(safeSheetName)
+        groupSheet.columns = columns
+        groupPlayers.forEach((p: any) => {
+          groupSheet.addRow({
+            ...p,
+            eligible: !p.isSold ? 'Yes' : 'No',
+            isSoldText: p.isSold ? 'Yes' : 'No',
+            soldPrice: p.soldPrice || 0
+          })
+        })
+        styleWorksheet(groupSheet)
+      })
+
+      // 4. Position Sheets
+      const positionsMap = new Map<string, any[]>()
+      rawPlayers.forEach((p: any) => {
+        const posName = p.position || 'N_A'
+        if (!positionsMap.has(posName)) {
+          positionsMap.set(posName, [])
+        }
+        positionsMap.get(posName)!.push(p)
+      })
+
+      positionsMap.forEach((posPlayers, posName) => {
+        const safeSheetName = `${posName.substring(0, 15)} (${posPlayers.length})`
+        const posSheet = workbook.addWorksheet(safeSheetName)
+        posSheet.columns = columns
+        posPlayers.forEach((p: any) => {
+          posSheet.addRow({
+            ...p,
+            eligible: !p.isSold ? 'Yes' : 'No',
+            isSoldText: p.isSold ? 'Yes' : 'No',
+            soldPrice: p.soldPrice || 0
+          })
+        })
+        styleWorksheet(posSheet)
+      })
+
+      // Trigger download
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `TurfCats-Players-Database-${new Date().toISOString().split('T')[0]}.xlsx`
+      a.click()
+      window.URL.revokeObjectURL(url)
+      
+      setShowExportModal(false)
+    } catch (err: any) {
+      console.error('Error generating Excel export:', err)
+      alert('Failed to export to Excel: ' + err.message)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   // ── Load starred players ─────────────────────────────────────────────────────
   useEffect(() => {
     if (enableStarring) {
@@ -470,14 +832,22 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             <span className="text-[#E8A800] ml-2">• Searching for "{searchQuery}"</span>
           )}
         </span>
-        {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || groupFilter !== 'ALL') && (
+        <div className="flex items-center gap-4">
+          {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || groupFilter !== 'ALL') && (
+            <button
+              onClick={handleClearFilters}
+              className="text-[#E8A800] hover:text-[#FFC93A] transition-colors text-xs"
+            >
+              Clear Filters
+            </button>
+          )}
           <button
-            onClick={handleClearFilters}
-            className="text-[#E8A800] hover:text-[#FFC93A] transition-colors text-xs"
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 font-bold transition-all text-xs"
           >
-            Clear Filters
+            📊 Export to Excel
           </button>
-        )}
+        </div>
       </div>
 
       {/* Error state */}
@@ -671,6 +1041,96 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
               <ChevronRightIcon />
             </button>
           )}
+        </div>
+      )}
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !exportLoading && setShowExportModal(false)} />
+          
+          <div className="relative w-full max-w-md rounded-2xl bg-[#121212]/95 border border-white/10 p-6 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-white mb-4">Export Players Database</h3>
+            
+            <p className="text-sm text-[#7A7367] mb-6">
+              Choose which player records you want to include in the formatted multi-sheet Excel spreadsheet.
+            </p>
+
+            <div className="space-y-3 mb-6">
+              <label className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="exportFilter"
+                  checked={exportFilter === 'all'}
+                  onChange={() => setExportFilter('all')}
+                  className="w-4 h-4 accent-[#E8A800]"
+                  disabled={exportLoading}
+                />
+                <div>
+                  <div className="text-sm font-bold text-white">All Players</div>
+                  <div className="text-xs text-[#7A7367]">Export the entire database pool</div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="exportFilter"
+                  checked={exportFilter === 'sold'}
+                  onChange={() => setExportFilter('sold')}
+                  className="w-4 h-4 accent-[#E8A800]"
+                  disabled={exportLoading}
+                />
+                <div>
+                  <div className="text-sm font-bold text-white">Sold Players Only</div>
+                  <div className="text-xs text-[#7A7367]">Only players assigned to a team</div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="exportFilter"
+                  checked={exportFilter === 'unsold'}
+                  onChange={() => setExportFilter('unsold')}
+                  className="w-4 h-4 accent-[#E8A800]"
+                  disabled={exportLoading}
+                />
+                <div>
+                  <div className="text-sm font-bold text-white">Unsold Players Only</div>
+                  <div className="text-xs text-[#7A7367]">Only players remaining in the draft pool</div>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowExportModal(false)}
+                disabled={exportLoading}
+                className="px-4 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-gray-400 hover:text-white transition-colors text-sm font-bold disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExportToExcel}
+                disabled={exportLoading}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black transition-colors text-sm font-black disabled:opacity-50 min-w-[120px]"
+              >
+                {exportLoading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin text-black" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Exporting...
+                  </>
+                ) : (
+                  'Export'
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

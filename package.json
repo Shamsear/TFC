@@ -39,6 +39,7 @@
     "better-sqlite3": "^12.9.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.38.0",
     "imagekit": "^6.0.0",
     "imagekitio-react": "^4.3.0",

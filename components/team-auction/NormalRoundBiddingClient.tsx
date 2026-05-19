@@ -491,17 +491,6 @@ export default function NormalRoundBiddingClient({
       return
     }
 
-    // Validate duplicate bid amounts
-    const nonZeroBids = Object.entries(bids).filter(([_, amount]) => amount > 0)
-    const amounts = nonZeroBids.map(([_, amount]) => amount)
-    const uniqueAmounts = new Set(amounts)
-    if (uniqueAmounts.size !== amounts.length) {
-      const duplicates = amounts.filter((item, index) => amounts.indexOf(item) !== index)
-      const duplicateList = Array.from(new Set(duplicates)).map(amount => `£${amount.toLocaleString()}`).join(', ')
-      setErrorModalMessage(`Each bid must have a unique amount. The following amount(s) are duplicated: ${duplicateList}`)
-      setShowErrorModal(true)
-      return
-    }
 
     setSubmitting(true)
     setMessage(null)

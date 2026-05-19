@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import PageLoader from "@/components/ui/PageLoader"
 
 interface EditCalendarPageProps {
   params: Promise<{
@@ -173,11 +174,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    )
+    return <PageLoader />
   }
 
   return (

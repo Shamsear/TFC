@@ -60,7 +60,7 @@ export default async function SuperAdminDashboard() {
   ])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+    <div className="text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 lg:pb-12">
         {/* Page Title */}
         <div className="mb-6 sm:mb-8 lg:mb-12">

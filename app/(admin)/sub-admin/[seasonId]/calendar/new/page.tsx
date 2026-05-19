@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import PageLoader from "@/components/ui/PageLoader"
 
 interface NewCalendarPageProps {
   params: Promise<{
@@ -139,7 +140,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   }
 
   if (!seasonId) {
-    return <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">Loading...</div>
+    return <PageLoader />
   }
 
   return (

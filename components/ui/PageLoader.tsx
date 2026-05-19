@@ -8,7 +8,7 @@ export default function PageLoader({ message }: { message?: string }) {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
   return (
-    <div className="relative min-h-[calc(100vh-5rem)] bg-[#0a0a0a] flex items-center justify-center overflow-hidden pt-20">
+    <div className="fixed inset-0 z-[9999] bg-[#0a0a0a] flex items-center justify-center overflow-hidden">
 
       {/* Background radial glow */}
       <div

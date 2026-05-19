@@ -65,7 +65,7 @@ export default async function EditTeamManagerPage({
     .filter((id): id is string => id !== null)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8">
+    <div className="pb-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

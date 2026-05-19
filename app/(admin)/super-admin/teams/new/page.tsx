@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ImageKitUpload } from "@/components/upload/ImageKitUpload"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import PageLoader from "@/components/ui/PageLoader"
 
 // Icon Components
 const ArrowLeftIcon = () => (
@@ -40,6 +41,7 @@ export default function CreateTeamPage() {
     logoUrl: "",
     seasonId: ""
   })
+  const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
@@ -66,10 +68,16 @@ export default function CreateTeamPage() {
         }
       } catch (err) {
         console.error("Failed to fetch seasons:", err)
+      } finally {
+        setIsLoading(false)
       }
     }
     fetchSeasons()
   }, [])
+
+  if (isLoading) {
+    return <PageLoader />
+  }
 
   const handleUploadSuccess = (url: string) => {
     setFormData(prev => ({ ...prev, logoUrl: url }))
@@ -127,7 +135,7 @@ export default function CreateTeamPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white px-4 sm:px-6 lg:px-8 pt-20 pb-8">
+    <div className="text-white px-4 sm:px-6 lg:px-8 pb-8">
       <div className="max-w-4xl mx-auto">
         {/* Page Title */}
         <div className="mb-6 sm:mb-8">

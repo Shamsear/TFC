@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
+import PageLoader from "@/components/ui/PageLoader"
 
 interface AuctionSettings {
   id: number
@@ -124,14 +125,7 @@ export default function AuctionSettingsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#E8A800] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#D4CCBB]">Loading settings...</p>
-        </div>
-      </div>
-    )
+    return <PageLoader />
   }
 
   return (

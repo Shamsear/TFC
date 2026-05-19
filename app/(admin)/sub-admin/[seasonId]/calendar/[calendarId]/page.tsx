@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import PageLoader from "@/components/ui/PageLoader"
 
 interface CalendarAuctionPageProps {
   params: Promise<{
@@ -177,11 +178,7 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
   )
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    )
+    return <PageLoader />
   }
 
   if (!calendar) {

@@ -53,6 +53,98 @@ const ChevronRightIcon = () => (
   </svg>
 )
 
+// ── Custom Select Component for Filters ──────────────────────────────────────
+function CustomSelect({ 
+  label, 
+  value, 
+  options, 
+  onChange, 
+  displayValue 
+}: {
+  label: string
+  value: string
+  options: string[]
+  onChange: (val: string) => void
+  displayValue?: (val: string) => string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">{label}</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base text-left"
+      >
+        <span className="truncate">
+          {displayValue ? displayValue(value) : value}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-20 mt-2 w-full max-h-60 overflow-y-auto rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          {options.map((option) => {
+            const isSeparator = option.includes('───')
+            const isSelected = option === value
+            
+            if (isSeparator) {
+              return (
+                <div
+                  key={option}
+                  className="px-4 py-2 text-xs font-black text-gray-500 bg-white/5 select-none"
+                >
+                  {option}
+                </div>
+              )
+            }
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option)
+                  setIsOpen(false)
+                }}
+                className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                  isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
+                }`}
+              >
+                <span className="truncate">{displayValue ? displayValue(option) : option}</span>
+                {isSelected && (
+                  <svg className="w-4 h-4 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function AllPlayersClient({ seasonId, positions, teams, enableStarring = false, basePath }: AllPlayersClientProps) {
   const pathname = usePathname()
@@ -321,36 +413,21 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
           </div>
 
           {/* Position Filter */}
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Position</label>
-            <select
-              value={positionFilter}
-              onChange={(e) => handlePositionChange(e.target.value)}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
-            >
-              {enhancedPositions.map(pos => {
-                // Separator items
-                if (pos.includes('───')) {
-                  return <option key={pos} disabled className="text-[#7A7367] font-bold">{pos}</option>
-                }
-                return <option key={pos} value={pos}>{pos}</option>
-              })}
-            </select>
-          </div>
+          <CustomSelect
+            label="Position"
+            value={positionFilter}
+            options={enhancedPositions}
+            onChange={handlePositionChange}
+          />
 
           {/* Team Filter */}
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Team</label>
-            <select
-              value={teamFilter}
-              onChange={(e) => handleTeamChange(e.target.value)}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
-            >
-              {teams.map(team => (
-                <option key={team} value={team}>{team === 'ALL' ? 'All Teams' : team}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            label="Team"
+            value={teamFilter}
+            options={teams}
+            onChange={handleTeamChange}
+            displayValue={(val) => val === 'ALL' ? 'All Teams' : val}
+          />
 
           {/* Group Filter - Show when any position in the filter supports groups */}
           {(() => {
@@ -369,18 +446,13 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             }
 
             return (
-              <div>
-                <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Group</label>
-                <select
-                  value={groupFilter}
-                  onChange={(e) => handleGroupChange(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
-                >
-                  <option value="ALL">All Groups</option>
-                  <option value="A">{positionFilter}-A</option>
-                  <option value="B">{positionFilter}-B</option>
-                </select>
-              </div>
+              <CustomSelect
+                label="Group"
+                value={groupFilter}
+                options={['ALL', 'A', 'B']}
+                onChange={handleGroupChange}
+                displayValue={(val) => val === 'ALL' ? 'All Groups' : `${positionFilter}-${val}`}
+              />
             )
           })()}
         </div>

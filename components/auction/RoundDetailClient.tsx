@@ -130,21 +130,24 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     return bid?.submitted === true
   })
 
-  const notSubmittedTeamsList = teams.filter(t => {
+  const inProgressTeamsList = teams.map(t => {
     const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
-    return !bid || bid.submitted === false
+    return { team: t, bid }
+  }).filter(item => item.bid && !item.bid.submitted)
+
+  const notStartedTeamsList = teams.filter(t => {
+    const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
+    return !bid
   })
 
   const handleCopyWhatsApp = () => {
-    const text = `*TFC Round ${round.roundNumber} - Submission Status*\n\n*Submitted (${submittedTeamsList.length}):*\n${
-      submittedTeamsList.length > 0 
-        ? submittedTeamsList.map(t => `- ${t.name}`).join('\n') 
-        : 'None'
-    }\n\n*Not Submitted (${notSubmittedTeamsList.length}):*\n${
-      notSubmittedTeamsList.length > 0 
-        ? notSubmittedTeamsList.map(t => `- ${t.name}`).join('\n') 
-        : 'None'
-    }`
+    const text = `*TFC Round ${round.roundNumber} - Submission Status*\n\n` +
+      `*Submitted (${submittedTeamsList.length}):*\n` +
+      `${submittedTeamsList.length > 0 ? submittedTeamsList.map(t => `- ${t.name}`).join('\n') : '- None'}\n\n` +
+      `*In Progress (${inProgressTeamsList.length}):*\n` +
+      `${inProgressTeamsList.length > 0 ? inProgressTeamsList.map(item => `- ${item.team.name} (${item.bid.bidCount} bids)`).join('\n') : '- None'}\n\n` +
+      `*Not Started (${notStartedTeamsList.length}):*\n` +
+      `${notStartedTeamsList.length > 0 ? notStartedTeamsList.map(t => `- ${t.name}`).join('\n') : '- None'}`
     
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
@@ -651,9 +654,10 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">
           <div className="text-sm text-gray-400 mb-2">Submissions Status</div>
           <div className="text-3xl font-black text-white mb-2">{submittedTeamsList.length}/{totalTeams}</div>
-          <div className="flex gap-4 text-xs">
+          <div className="flex flex-col gap-1.5 text-xs">
             <span className="text-emerald-400 font-bold">✓ {submittedTeamsList.length} Submitted</span>
-            <span className="text-yellow-400 font-bold">⏳ {notSubmittedTeamsList.length} Pending</span>
+            <span className="text-yellow-400 font-bold">⏳ {inProgressTeamsList.length} In Progress</span>
+            <span className="text-gray-400 font-bold">💤 {notStartedTeamsList.length} Not Started</span>
           </div>
         </div>
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">

@@ -314,6 +314,12 @@ export default function NormalRoundBiddingClient({
 
       if (!response.ok) {
         const error = await response.json()
+        if (error.errors && Array.isArray(error.errors)) {
+          const errorMsg = `${error.error || 'Validation failed'}:\n\n${error.errors.join('\n')}`
+          setErrorModalMessage(errorMsg)
+          setShowErrorModal(true)
+          throw new Error(errorMsg)
+        }
         throw new Error(error.error || 'Failed to save draft')
       }
 
@@ -448,6 +454,12 @@ export default function NormalRoundBiddingClient({
 
       if (!response.ok) {
         const error = await response.json()
+        if (error.errors && Array.isArray(error.errors)) {
+          const errorMsg = `${error.error || 'Validation failed'}:\n\n${error.errors.join('\n')}`
+          setErrorModalMessage(errorMsg)
+          setShowErrorModal(true)
+          throw new Error(errorMsg)
+        }
         throw new Error(error.error || 'Failed to submit bids')
       }
 
@@ -795,7 +807,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg border ${
+          <div className={`mb-6 p-4 rounded-lg border whitespace-pre-line ${
             message.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-red-500/10 border-red-500/30 text-red-300'

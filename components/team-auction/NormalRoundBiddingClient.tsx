@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
@@ -83,7 +83,9 @@ export default function NormalRoundBiddingClient({
   const [currentPage, setCurrentPage] = useState(1)
   const playersPerPage = 12
   const [showBiddedPlayers, setShowBiddedPlayers] = useState(false)
-  const [hasLoadedInitial, setHasLoadedInitial] = useState(false)
+  const hasLoadedInitial = useRef(false)
+  const [localEndTime, setLocalEndTime] = useState<string | null>(round.endTime ? new Date(round.endTime).toISOString() : null)
+  const [localStatus, setLocalStatus] = useState<string>(round.status)
 
   // Load starred players
   useEffect(() => {
@@ -176,12 +178,12 @@ export default function NormalRoundBiddingClient({
     }
     
     setBids(initialBids)
-    setHasLoadedInitial(true)
-  }, [existingBids, round.id, teamId])
+    hasLoadedInitial.current = true
+  }, [round.id, teamId])
 
   // Save to local storage on change
   useEffect(() => {
-    if (!hasLoadedInitial) return
+    if (!hasLoadedInitial.current) return
     
     localStorage.setItem(
       `tfc_draft_bids_${round.id}_${teamId}`,
@@ -190,11 +192,45 @@ export default function NormalRoundBiddingClient({
         timestamp: new Date().toISOString()
       })
     )
-  }, [bids, hasLoadedInitial, round.id, teamId])
+  }, [bids, round.id, teamId])
+
+  // Poll every 3 seconds for real-time status/timer updates (especially for extended time)
+  useEffect(() => {
+    // Keep polling if the status is active OR if the client-detected status differs from the server-rendered prop status
+    const shouldPoll = localStatus === 'active' || round.status !== localStatus
+
+    if (!shouldPoll) return
+
+    const fetchLiveRoundStatus = async () => {
+      try {
+        const response = await fetch(`/api/auction/rounds/${round.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.round) {
+            setLocalEndTime(data.round.endTime ? new Date(data.round.endTime).toISOString() : null)
+            
+            // If the status transitioned away from active, force a page reload to trigger redirection or result views
+            if (data.round.status !== 'active' && round.status === 'active') {
+              setLocalStatus(data.round.status)
+              window.location.reload()
+              return
+            }
+            
+            setLocalStatus(data.round.status)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch live round status:', error)
+      }
+    }
+
+    const interval = setInterval(fetchLiveRoundStatus, 3000)
+    return () => clearInterval(interval)
+  }, [round.id, round.status, localStatus])
 
   // Timer
   useEffect(() => {
-    if (round.status !== 'active' || !round.endTime) return
+    if (localStatus !== 'active' || !localEndTime) return
 
     let isExpired = false;
 
@@ -202,7 +238,7 @@ export default function NormalRoundBiddingClient({
       if (isExpired) return;
 
       const now = new Date()
-      const end = new Date(round.endTime!)
+      const end = new Date(localEndTime)
       const diff = end.getTime() - now.getTime()
 
       if (diff > 0) {
@@ -227,7 +263,7 @@ export default function NormalRoundBiddingClient({
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
     return () => clearInterval(interval)
-  }, [round.status, round.endTime])
+  }, [localStatus, localEndTime])
 
   const handleBidChange = (playerId: string, amount: string) => {
     const numAmount = parseInt(amount) || 0

@@ -114,6 +114,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [previewResults, setPreviewResults] = useState<any>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [isPolling, setIsPolling] = useState(true)
+  const [localEndTime, setLocalEndTime] = useState<string | null>(round.endTime ? new Date(round.endTime).toISOString() : null)
+  const [localStatus, setLocalStatus] = useState<string>(round.status)
   const [showEditSettings, setShowEditSettings] = useState(false)
   const [editingSettings, setEditingSettings] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -164,17 +166,38 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
   // Live polling - refresh data every 3 seconds for active/pending rounds
   useEffect(() => {
-    // Only poll for rounds that are active or have pending actions
+    // Only poll for rounds that are active or have pending actions, OR if there's a mismatch between client and server status
     const shouldPoll = isPolling && (
-      round.status === 'active' || 
-      round.status === 'pending_finalization' ||
-      round.status === 'tiebreaker_pending' ||
-      round.status === 'finalizing'
+      localStatus === 'active' || 
+      localStatus === 'pending_finalization' ||
+      localStatus === 'tiebreaker_pending' ||
+      localStatus === 'finalizing' ||
+      round.status !== localStatus
     )
 
     if (!shouldPoll) return
 
     const fetchLiveData = async () => {
+      try {
+        const response = await fetch(`/api/admin/rounds/${round.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.round) {
+            setLocalEndTime(data.round.endTime ? new Date(data.round.endTime).toISOString() : null)
+            
+            // If the status transitioned to completed, force a full page reload to fetch new completed results
+            if (data.round.status === 'completed' && round.status !== 'completed') {
+              setLocalStatus(data.round.status)
+              window.location.reload()
+              return
+            }
+            
+            setLocalStatus(data.round.status)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch live round data:', error)
+      }
       try {
         router.refresh()
       } catch (error) {
@@ -185,14 +208,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     // Poll every 3 seconds for real-time updates
     const interval = setInterval(fetchLiveData, 3000)
     return () => clearInterval(interval)
-  }, [isPolling, round.status, router])
+  }, [isPolling, localStatus, round.id, round.status, router])
 
   // Calculate time remaining for active rounds
   useEffect(() => {
-    if (round.status === 'active' && round.endTime) {
+    if (localStatus === 'active' && localEndTime) {
       const calculateTimeRemaining = () => {
         const now = Date.now()
-        const end = new Date(round.endTime!).getTime()
+        const end = new Date(localEndTime).getTime()
         const remaining = Math.max(0, end - now)
         setTimeRemaining(remaining)
         
@@ -241,7 +264,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       return () => clearInterval(interval)
     }
-  }, [round.status, round.endTime, round.finalizationMode, round.id, autoFinalizationTriggered, router])
+  }, [localStatus, localEndTime, round.finalizationMode, round.id, autoFinalizationTriggered, router])
 
   // Format time remaining
   const formatTimeRemaining = (ms: number) => {
@@ -495,6 +518,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       setShowExtendModal(false)
       setExtendHours(0)
       setExtendMinutes(30)
+      
+      // Update local state immediately
+      const getRes = await fetch(`/api/admin/rounds/${round.id}`)
+      if (getRes.ok) {
+        const data = await getRes.json()
+        if (data.success && data.round) {
+          setLocalEndTime(data.round.endTime ? new Date(data.round.endTime).toISOString() : null)
+          setLocalStatus(data.round.status)
+        }
+      }
       router.refresh()
     } catch (err: any) {
       setError(err.message)
@@ -634,7 +667,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 <div className="text-right">
                   <div className="text-xs text-[#D4CCBB] mb-1">Ends At</div>
                   <div className="text-sm font-bold text-white">
-                    {formatDateTime(round.endTime)}
+                    {formatDateTime(localEndTime ? new Date(localEndTime) : null)}
                   </div>
                 </div>
               </div>
@@ -867,7 +900,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             </div>
             <div>
               <div className="text-sm text-gray-400 mb-2">End Time</div>
-              <div className="text-lg font-bold text-[#FFB347]">{formatDateTime(round.endTime)}</div>
+              <div className="text-lg font-bold text-[#FFB347]">{formatDateTime(localEndTime ? new Date(localEndTime) : null)}</div>
             </div>
           </div>
         </div>

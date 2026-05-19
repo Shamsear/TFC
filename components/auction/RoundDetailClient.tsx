@@ -961,8 +961,38 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             </>
           )}
           {round.status === 'tiebreaker_pending' && (
-            <div className="text-purple-400 font-bold">
-              ⏳ Waiting for tiebreaker resolution...
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="text-purple-400 font-bold">
+                ⏳ Waiting for tiebreaker resolution...
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm('Force re-finalize? Use this only if all tiebreaker bids are submitted but the round is stuck.')) return
+                  setLoading(true)
+                  try {
+                    const res = await fetch(`/api/admin/rounds/${round.id}/finalize`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ force: true })
+                    })
+                    const data = await res.json()
+                    if (data.success) {
+                      setLocalStatus(data.tieDetected ? 'tiebreaker_pending' : (data.previewMode ? 'preview_finalized' : 'completed'))
+                      alert(data.message || 'Re-finalization triggered successfully.')
+                    } else {
+                      alert(`Error: ${data.error}`)
+                    }
+                  } catch (e) {
+                    alert('Failed to contact server.')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading}
+                className="px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 hover:bg-purple-500/30 transition-all text-sm font-bold disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : '🔄 Force Re-finalize'}
+              </button>
             </div>
           )}
           {round.status === 'preview_finalized' && (

@@ -52,6 +52,13 @@ export async function GET(
                 name: true,
                 photoUrl: true
               }
+            },
+            teamTiebreakerBids: {
+              select: {
+                id: true,
+                teamId: true,
+                submitted: true
+              }
             }
           }
         },

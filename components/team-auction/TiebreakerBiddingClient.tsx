@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -53,15 +53,64 @@ export default function TiebreakerBiddingClient({
   team,
   budget,
   myBid,
-  allTiedTeams
+  allTiedTeams: initialTiedTeams
 }: TiebreakerBiddingClientProps) {
   const router = useRouter()
   const [newBidAmount, setNewBidAmount] = useState(myBid?.newBidAmount || tiebreaker.originalAmount + 1)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
+  const [tiebreakerStatus, setTiebreakerStatus] = useState(tiebreaker.status)
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
+  const [liveTeams, setLiveTeams] = useState(initialTiedTeams)
 
   const maxBidLimit = reserveInfo ? reserveInfo.maxBid : budget
+
+  // Poll tiebreaker status and redirect when resolved
+  const checkTiebreakerStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tiebreakers/${tiebreaker.id}/status`)
+      if (res.ok) {
+        const data = await res.json()
+        // Update team submission statuses live
+        if (data.teamBids) {
+          setLiveTeams(prev => prev.map(t => {
+            const fresh = data.teamBids.find((b: any) => b.teamId === t.teamId)
+            return fresh ? { ...t, submitted: fresh.submitted, submittedAt: fresh.submittedAt } : t
+          }))
+        }
+        if (data.status && data.status !== 'active') {
+          setTiebreakerStatus(data.status)
+        }
+      }
+    } catch {}
+  }, [tiebreaker.id])
+
+  useEffect(() => {
+    // Only poll after the team has submitted their bid
+    if (!myBid?.submitted && tiebreakerStatus === 'active') return
+    if (tiebreakerStatus !== 'active') return
+
+    const interval = setInterval(checkTiebreakerStatus, 3000)
+    return () => clearInterval(interval)
+  }, [myBid?.submitted, tiebreakerStatus, checkTiebreakerStatus])
+
+  // Start redirect countdown when tiebreaker is resolved
+  useEffect(() => {
+    if (tiebreakerStatus !== 'active' && redirectCountdown === null) {
+      setRedirectCountdown(5)
+    }
+  }, [tiebreakerStatus, redirectCountdown])
+
+  useEffect(() => {
+    if (redirectCountdown === null) return
+    if (redirectCountdown <= 0) {
+      router.push('/team/auction')
+      return
+    }
+    const timer = setTimeout(() => setRedirectCountdown(c => (c ?? 1) - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [redirectCountdown, router])
 
   // Fetch reserve info on mount
   useEffect(() => {
@@ -99,9 +148,7 @@ export default function TiebreakerBiddingClient({
       const response = await fetch(`/api/tiebreakers/${tiebreaker.id}/bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          newBidAmount
-        })
+        body: JSON.stringify({ newBidAmount })
       })
 
       if (!response.ok) {
@@ -109,8 +156,16 @@ export default function TiebreakerBiddingClient({
         throw new Error(error.error || 'Failed to submit bid')
       }
 
-      setMessage({ type: 'success', text: 'Bid submitted successfully!' })
-      router.refresh()
+      const data = await response.json()
+      setMessage({ type: 'success', text: data.message || 'Bid submitted successfully!' })
+
+      if (data.roundComplete || data.tiebreakerResolved) {
+        // Tiebreaker resolved right away — start redirect
+        setTiebreakerStatus('completed')
+      } else {
+        // Wait for others — start polling
+        router.refresh()
+      }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -251,9 +306,9 @@ export default function TiebreakerBiddingClient({
 
         {/* Tied Teams Status */}
         <div className="mb-6 rounded-xl bg-white/5 border border-white/10 p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Tied Teams ({allTiedTeams.length})</h2>
+          <h2 className="text-xl font-bold text-white mb-4">Tied Teams ({liveTeams.length})</h2>
           <div className="space-y-3">
-            {allTiedTeams.map((tiedTeam) => (
+            {liveTeams.map((tiedTeam) => (
               <div
                 key={tiedTeam.teamId}
                 className={`flex items-center justify-between p-4 rounded-lg border ${
@@ -306,7 +361,7 @@ export default function TiebreakerBiddingClient({
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-400">Submission Progress</span>
               <span className="font-bold text-white">
-                {allTiedTeams.filter(t => t.submitted).length} / {allTiedTeams.length} submitted
+                {liveTeams.filter(t => t.submitted).length} / {liveTeams.length} submitted
               </span>
             </div>
           </div>
@@ -383,12 +438,28 @@ export default function TiebreakerBiddingClient({
         )}
 
         {/* Resolved State */}
-        {tiebreaker.status !== 'active' && (
-          <div className="rounded-xl bg-white/5 border border-white/10 p-6 text-center">
-            <h3 className="text-xl font-bold text-white mb-2">Tiebreaker Resolved</h3>
-            <p className="text-[#D4CCBB]">
+        {tiebreakerStatus !== 'active' && (
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-6 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Tiebreaker Resolved!</h3>
+            <p className="text-emerald-300 mb-4">
               This tiebreaker has been resolved. Check the auction results for details.
             </p>
+            {redirectCountdown !== null && redirectCountdown > 0 && (
+              <p className="text-sm text-[#D4CCBB]">
+                Redirecting to auction dashboard in <span className="font-bold text-white">{redirectCountdown}</span>s...
+              </p>
+            )}
+            <button
+              onClick={() => router.push('/team/auction')}
+              className="mt-4 px-6 py-2 rounded-lg bg-[#E8A800] text-black font-bold hover:bg-[#E8A800]/90 transition-all"
+            >
+              Go to Dashboard Now
+            </button>
           </div>
         )}
       </div>

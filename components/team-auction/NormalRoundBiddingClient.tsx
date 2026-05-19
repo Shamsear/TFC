@@ -1006,6 +1006,25 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
           </div>
         )}
 
+        {/* Search & Filters Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-bold text-white">Available Players</h2>
+          {(searchQuery !== '' || playingStyleFilter !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('')
+                setPlayingStyleFilter('all')
+              }}
+              className="px-4 py-2 text-sm rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all flex items-center gap-2 w-fit"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear Filters
+            </button>
+          )}
+        </div>
+
         {/* Search */}
         <div className="mb-6">
           <input

@@ -1320,7 +1320,21 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                               </span>
                             </>
                           )}
+                          {result.acquisitionType && (
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold flex-shrink-0 border ${
+                              result.acquisitionType === 'auto_assigned' 
+                                ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                                : result.acquisitionType === 'tiebreaker_won'
+                                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            }`}>
+                              {formatAcquisitionType(result.acquisitionType)}
+                            </span>
+                          )}
                         </div>
+                        {result.acquisitionNotes && (
+                          <div className="text-xs text-gray-500 mb-1">{result.acquisitionNotes}</div>
+                        )}
                         {playerStats?.nationality && (
                           <div className="text-xs text-gray-400 truncate">{playerStats.nationality}</div>
                         )}

@@ -122,8 +122,13 @@ export async function GET(
           'Team Name': transfer.team.name,
           'Final Bid Amount': transfer.soldPrice,
           'Status': round.status,
-          'Phase': transfer.acquisitionType === 'tiebreaker_won' ? 'Tiebreaker' : 'Normal Bidding',
-          'Original Bid Amount': originalBid
+          'Phase': transfer.acquisitionType === 'tiebreaker_won' 
+            ? 'Tiebreaker' 
+            : transfer.acquisitionType === 'auto_assigned'
+              ? 'Auto-assigned'
+              : 'Normal Bidding',
+          'Original Bid Amount': originalBid,
+          'Notes': transfer.acquisitionNotes || 'N/A'
         };
       });
     } else if (round.status === 'preview_finalized') {
@@ -198,8 +203,13 @@ export async function GET(
           'Team Name': alloc.team.name,
           'Final Bid Amount': alloc.amount,
           'Status': 'Preview',
-          'Phase': alloc.acquisitionType === 'tiebreaker_won' ? 'Tiebreaker' : 'Normal Bidding',
-          'Original Bid Amount': originalBid
+          'Phase': alloc.acquisitionType === 'tiebreaker_won' 
+            ? 'Tiebreaker' 
+            : alloc.acquisitionType === 'auto_assigned'
+              ? 'Auto-assigned'
+              : 'Normal Bidding',
+          'Original Bid Amount': originalBid,
+          'Notes': alloc.acquisitionNotes || 'N/A'
         };
       });
     }
@@ -225,7 +235,8 @@ export async function GET(
       { wch: 18 }, // Final Bid Amount
       { wch: 15 }, // Status
       { wch: 18 }, // Phase
-      { wch: 20 }  // Original Bid Amount
+      { wch: 20 }, // Original Bid Amount
+      { wch: 30 }  // Notes
     ];
 
     // Generate Excel file buffer

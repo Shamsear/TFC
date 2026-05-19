@@ -150,136 +150,121 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
       }
     })
 
-    teamBidsWithDetails = await Promise.all(
-      seasonTeams.map(async (st) => {
-        const team = st.team
-        const teamBid = teamBidsRaw.find(tb => tb.teamId === team.id)
+    // Step 1: Collect all bids and unique player IDs
+    const allDecryptedBids = new Map<string, any[]>() // teamId -> bids array
+    const allBidPlayerIds = new Set<string>()
+
+    for (const teamBid of teamBidsRaw) {
+      try {
+        const decrypted = decryptBids(teamBid.encryptedBids)
+        const parsed = JSON.parse(decrypted)
+        const bids = parsed.bids || []
+        allDecryptedBids.set(teamBid.teamId, bids)
         
-        let bids: any[] = []
-        if (teamBid) {
-          try {
-            const decrypted = decryptBids(teamBid.encryptedBids)
-            const parsed = JSON.parse(decrypted)
-            bids = parsed.bids || []
-          } catch (error) {
-            console.error(`Failed to decrypt bids for team ${team.id}:`, error)
+        bids.forEach((bid: any) => {
+          const playerId = bid.base_player_id || bid.playerId
+          if (playerId) {
+            allBidPlayerIds.add(playerId)
+          }
+        })
+      } catch (error) {
+        console.error(`Failed to decrypt bids for team ${teamBid.teamId}:`, error)
+        allDecryptedBids.set(teamBid.teamId, [])
+      }
+    }
+
+    // Step 2: Fetch all required player details in bulk
+    const playerIdsArray = Array.from(allBidPlayerIds)
+    
+    const [bidPlayers, bidSeasonalStats] = await Promise.all([
+      prisma.base_players.findMany({
+        where: { id: { in: playerIdsArray } },
+        select: { id: true, name: true, photoUrl: true }
+      }),
+      prisma.seasonal_player_stats.findMany({
+        where: { seasonId, basePlayerId: { in: playerIdsArray } },
+        select: { basePlayerId: true, position: true, position_group: true, overallRating: true }
+      })
+    ])
+
+    const bidPlayerMap = new Map(bidPlayers.map(p => [p.id, p]))
+    const bidStatsMap = new Map(bidSeasonalStats.map(s => [s.basePlayerId, s]))
+
+    // Step 3: Construct the final details synchronously
+    teamBidsWithDetails = seasonTeams.map((st) => {
+      const team = st.team
+      const bids = allDecryptedBids.get(team.id) || []
+      const teamBid = teamBidsRaw.find(tb => tb.teamId === team.id)
+      
+      const bidsWithPlayers = bids.map((bid: any) => {
+        const playerId = bid.base_player_id || bid.playerId
+        
+        if (!playerId) {
+          return {
+            playerId: '',
+            playerName: bid.player_name || 'Unknown',
+            photoUrl: getPlayerPhotoUrl(null),
+            amount: bid?.amount || 0,
+            position: 'Unknown',
+            overallRating: 0,
+            won: false,
+            acquisitionType: null,
+            acquisitionNotes: null
           }
         }
 
-        // Get player details for each bid
-        const bidsWithPlayers = await Promise.all(
-          bids.map(async (bid: any) => {
-            // Bids use base_player_id field
-            const playerId = bid.base_player_id || bid.playerId
-            
-            // Skip if playerId is missing
-            if (!playerId) {
-              console.log('Bid missing player ID:', bid)
-              return {
-                playerId: '',
-                playerName: 'Unknown',
-                photoUrl: getPlayerPhotoUrl(null),
-                amount: bid?.amount || 0,
-                position: 'Unknown',
-                overallRating: 0,
-                won: false,
-                acquisitionType: null,
-                acquisitionNotes: null
-              }
-            }
-
-            try {
-              const player = await prisma.base_players.findUnique({
-                where: { id: playerId },
-                select: {
-                  id: true,
-                  name: true,
-                  photoUrl: true
-                }
-              })
-
-              const seasonalStats = await prisma.seasonal_player_stats.findFirst({
-                where: {
-                  seasonId,
-                  basePlayerId: playerId
-                },
-                select: {
-                  position: true,
-                  position_group: true,
-                  overallRating: true
-                }
-              })
-
-              // Check if this bid won
-              const wonTransfer = rawResults.find(
-                r => r.basePlayerId === playerId && r.teamId === team.id
-              )
-
-              return {
-                playerId: playerId,
-                playerName: player?.name || 'Unknown',
-                photoUrl: getPlayerPhotoUrl(player?.photoUrl),
-                amount: bid.amount || 0,
-                position: seasonalStats?.position || 'Unknown',
-                overallRating: seasonalStats?.overallRating || 0,
-                won: !!wonTransfer,
-                acquisitionType: wonTransfer?.acquisitionType || null,
-                acquisitionNotes: wonTransfer?.acquisitionNotes || null
-              }
-            } catch (error) {
-              console.error(`Failed to fetch player details for ${playerId}:`, error)
-              return {
-                playerId: playerId,
-                playerName: 'Unknown',
-                photoUrl: getPlayerPhotoUrl(null),
-                amount: bid.amount || 0,
-                position: 'Unknown',
-                overallRating: 0,
-                won: false,
-                acquisitionType: null,
-                acquisitionNotes: null
-              }
-            }
-          })
+        const player = bidPlayerMap.get(playerId)
+        const seasonalStats = bidStatsMap.get(playerId)
+        const wonTransfer = rawResults.find(
+          r => r.basePlayerId === playerId && r.teamId === team.id
         )
-
-        // Check if team got any auto-allocated players (players they didn't bid on)
-        const autoAllocatedPlayers = rawResults.filter(
-          r => r.teamId === team.id && 
-               r.acquisitionType === 'auto_assigned' &&
-               !bids.some((b: any) => (b.base_player_id || b.playerId) === r.basePlayerId)
-        )
-
-        // Add auto-allocated players to the bids list
-        const autoAllocatedBids = await Promise.all(
-          autoAllocatedPlayers.map(async (result) => {
-            const stats = statsMap.get(result.basePlayerId)
-            return {
-              playerId: result.basePlayerId,
-              playerName: result.basePlayer.name,
-              photoUrl: getPlayerPhotoUrl(result.basePlayer.photoUrl),
-              amount: result.soldPrice,
-              position: stats?.position || 'Unknown',
-              overallRating: stats?.overallRating || 0,
-              won: true,
-              acquisitionType: result.acquisitionType,
-              acquisitionNotes: result.acquisitionNotes
-            }
-          })
-        )
-
-        const allBids = [...bidsWithPlayers, ...autoAllocatedBids]
 
         return {
-          teamId: team.id,
-          teamName: team.name,
-          teamLogo: team.logoUrl,
-          submitted: teamBid?.submitted || false,
-          bidCount: teamBid?.bidCount || 0,
-          bids: allBids
+          playerId: playerId,
+          playerName: player?.name || bid.player_name || 'Unknown',
+          photoUrl: getPlayerPhotoUrl(player?.photoUrl),
+          amount: bid.amount || 0,
+          position: seasonalStats?.position || 'Unknown',
+          overallRating: seasonalStats?.overallRating || 0,
+          won: !!wonTransfer,
+          acquisitionType: wonTransfer?.acquisitionType || null,
+          acquisitionNotes: wonTransfer?.acquisitionNotes || null
         }
       })
-    )
+
+      // Check if team got any auto-allocated players (players they didn't bid on)
+      const autoAllocatedPlayers = rawResults.filter(
+        r => r.teamId === team.id && 
+             r.acquisitionType === 'auto_assigned' &&
+             !bids.some((b: any) => (b.base_player_id || b.playerId) === r.basePlayerId)
+      ).map(r => {
+        // Find stats for this auto-assigned player
+        const stats = statsMap.get(r.basePlayerId)
+        
+        return {
+          playerId: r.basePlayerId,
+          playerName: r.basePlayer.name,
+          photoUrl: getPlayerPhotoUrl(r.basePlayer.photoUrl),
+          amount: r.soldPrice || 0,
+          position: stats?.position || 'Unknown',
+          overallRating: stats?.overallRating || 0,
+          won: true,
+          acquisitionType: r.acquisitionType,
+          acquisitionNotes: r.acquisitionNotes
+        }
+      })
+
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        teamLogo: team.logoUrl,
+        submitted: teamBid?.submitted || false,
+        bidCount: teamBid?.bidCount || 0,
+        bids: [...bidsWithPlayers, ...autoAllocatedPlayers].sort((a, b) => b.amount - a.amount),
+        totalSpent: bidsWithPlayers.reduce((sum: number, b: any) => b.won ? sum + b.amount : sum, 0) +
+                   autoAllocatedPlayers.reduce((sum: number, p: any) => sum + p.amount, 0)
+      }
+    })
   } else if (round.status === 'preview_finalized') {
     // Get preview allocations from database table
     const rawPreviewAllocations = await prisma.preview_allocations.findMany({

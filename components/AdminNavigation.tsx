@@ -71,6 +71,12 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                 >
                   Sub Admins
                 </Link>
+                <Link
+                  href="/super-admin/password-requests"
+                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                >
+                  Reset Requests
+                </Link>
               </>
             ) : (
               <>
@@ -172,6 +178,13 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Sub Admins
+                  </Link>
+                  <Link
+                    href="/super-admin/password-requests"
+                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Reset Requests
                   </Link>
                 </>
               ) : (

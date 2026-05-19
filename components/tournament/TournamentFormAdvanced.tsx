@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 interface Team {
   id: string
@@ -524,8 +525,9 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
         <button
           type="submit"
           disabled={loading || formData.selectedTeams.length < 2}
-          className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+          className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base flex items-center justify-center gap-2"
         >
+          {loading && <LoadingSpinner size="sm" />}
           {loading ? 'Creating...' : 'Create Tournament'}
         </button>
       </div>

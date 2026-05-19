@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 interface Team {
   id: string
@@ -276,9 +277,16 @@ export default function TeamSelectionForm({
         <button
           type="submit"
           disabled={isSubmitting || selectedTeamIds.length === 0}
-          className="w-full sm:w-auto bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-[#0a0a0a] font-bold px-6 sm:px-8 py-3 rounded-lg sm:rounded-xl transition-all transform hover:scale-105 disabled:transform-none shadow-lg"
+          className="w-full sm:w-auto bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-[#0a0a0a] font-bold px-6 sm:px-8 py-3 rounded-lg sm:rounded-xl transition-all transform hover:scale-105 disabled:transform-none shadow-lg flex items-center justify-center gap-2"
         >
-          {isSubmitting ? "Assigning Teams..." : "Assign Teams to Season"}
+          {isSubmitting ? (
+            <>
+              <LoadingSpinner size="sm" />
+              <span>Assigning Teams...</span>
+            </>
+          ) : (
+            "Assign Teams to Season"
+          )}
         </button>
       </div>
     </form>

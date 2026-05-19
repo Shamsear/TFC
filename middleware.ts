@@ -4,10 +4,19 @@ import { NextResponse } from "next/server"
 export default auth((req) => {
   const { pathname } = req.nextUrl
   const isAuthenticated = !!req.auth
+  const mustChange = !!(req.auth?.user as any)?.mustChangePassword
   const userRole = req.auth?.user?.role
 
   // Allow API and static files
   if (pathname.startsWith("/api") || pathname.startsWith("/_next")) {
+    return NextResponse.next()
+  }
+
+  // Enforce password change for users who have the mustChangePassword flag
+  if (isAuthenticated && mustChange) {
+    if (pathname !== "/auth/change-password") {
+      return NextResponse.redirect(new URL("/auth/change-password", req.url))
+    }
     return NextResponse.next()
   }
 

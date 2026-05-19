@@ -341,12 +341,32 @@ model users {
   teamId                String?             @map("team_id")
   createdBy             String?             @map("created_by")
   isActive              Boolean             @default(true) @map("is_active")
+  mustChangePassword    Boolean             @default(false) @map("must_change_password")
   assignedSeasons       Json                @default("[]") @map("assigned_seasons")
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   team                  teams?              @relation("TeamManager", fields: [teamId], references: [id], onDelete: SetNull)
   auditLogs             audit_logs[]
   updatedCalendars      auction_calendar[]  @relation("CalendarUpdatedBy")
+  passwordResetRequests password_reset_requests[] @relation("UserResetRequests")
+  reviewedResetRequests password_reset_requests[] @relation("ReviewedResetRequests")
+}
+
+model password_reset_requests {
+  id          String    @id
+  userId      String    @map("user_id")
+  teamName    String    @map("team_name")
+  status      String    @default("pending")
+  reviewedBy  String?   @map("reviewed_by")
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+  
+  user        users     @relation("UserResetRequests", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer    users?    @relation("ReviewedResetRequests", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
 }
 
 model audit_logs {

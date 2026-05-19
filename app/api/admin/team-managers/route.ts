@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         teamId: validatedData.teamId,
         createdBy: session.user.id,
         isActive: true,
+        mustChangePassword: true,
       },
       include: {
         team: true,

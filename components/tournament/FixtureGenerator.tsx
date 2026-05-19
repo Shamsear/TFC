@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface Team {
   id: string
@@ -408,9 +409,16 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base flex items-center justify-center gap-2"
           >
-            {loading ? 'Creating Fixtures...' : `Create ${preview.length} Fixtures`}
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span>Creating Fixtures...</span>
+              </>
+            ) : (
+              `Create ${preview.length} Fixtures`
+            )}
           </button>
         </div>
       )}

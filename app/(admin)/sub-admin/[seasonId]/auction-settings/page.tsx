@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import PageLoader from "@/components/ui/PageLoader"
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 interface AuctionSettings {
   id: number
@@ -393,8 +394,9 @@ export default function AuctionSettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-[#0a0a0a] px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50"
+              className="flex-1 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-[#0a0a0a] px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50 flex items-center justify-center gap-2"
             >
+              {saving && <LoadingSpinner size="sm" />}
               {saving ? 'Saving...' : 'Save Settings'}
             </button>
             <Link

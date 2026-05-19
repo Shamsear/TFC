@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ImageKitUpload } from "@/components/upload/ImageKitUpload"
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 interface TeamEditFormProps {
   team: {
@@ -221,8 +222,9 @@ export default function TeamEditForm({ team }: TeamEditFormProps) {
           <button
             type="submit"
             disabled={isSubmitting || !formData.logoUrl}
-            className="flex-1 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-[#0a0a0a] px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50 text-sm sm:text-base"
+            className="flex-1 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-[#0a0a0a] px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-[#E8A800]/50 text-sm sm:text-base flex items-center justify-center gap-2"
           >
+            {isSubmitting && <LoadingSpinner size="sm" />}
             {isSubmitting ? "Updating..." : "Update Team"}
           </button>
           <Link

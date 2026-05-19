@@ -45,7 +45,8 @@ const handler = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
-          teamId: user.teamId
+          teamId: user.teamId,
+          mustChangePassword: user.mustChangePassword
         }
       }
     })

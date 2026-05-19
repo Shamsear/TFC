@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PageLoader from "@/components/ui/PageLoader"
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 interface EditCalendarPageProps {
   params: Promise<{
@@ -541,8 +542,17 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
               disabled={submitting}
               className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-bold transition-all hover:scale-105 shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              <SaveIcon />
-              {submitting ? 'Updating...' : 'Update Auction Date'}
+              {submitting ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <>
+                  <SaveIcon />
+                  <span>Update Auction Date</span>
+                </>
+              )}
             </button>
             <Link
               href={`/sub-admin/${seasonId}/calendar`}

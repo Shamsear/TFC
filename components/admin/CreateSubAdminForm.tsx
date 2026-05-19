@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 interface Season {
   id: string
@@ -158,8 +159,9 @@ export default function CreateSubAdminForm({ seasons, creatorId }: CreateSubAdmi
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
+          {loading && <LoadingSpinner size="sm" />}
           {loading ? 'Creating...' : 'Create Sub-Admin'}
         </button>
         <button

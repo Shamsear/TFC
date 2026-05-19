@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface Team {
   id: string
@@ -37,6 +38,7 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
   const [editingPairing, setEditingPairing] = useState<string | null>(null)
   const [selectedTeam1, setSelectedTeam1] = useState<string>('')
   const [selectedTeam2, setSelectedTeam2] = useState<string>('')
+  const [savingPairingId, setSavingPairingId] = useState<string | null>(null)
 
   const getTeamById = (teamId: string | null) => {
     if (!teamId) return null
@@ -50,6 +52,7 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
   }
 
   const handleSavePairing = async (pairingId: string) => {
+    setSavingPairingId(pairingId)
     try {
       const response = await fetch(`/api/seasons/${seasonId}/tournaments/${tournamentId}/knockout/pairings/${pairingId}`, {
         method: 'PATCH',
@@ -66,6 +69,8 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
       }
     } catch (error) {
       console.error('Error updating pairing:', error)
+    } finally {
+      setSavingPairingId(null)
     }
   }
 
@@ -155,12 +160,21 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                       <div className="flex gap-2 mt-3">
                         <button
                           onClick={() => handleSavePairing(pairing.id)}
-                          className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600 transition-all"
+                          disabled={savingPairingId === pairing.id}
+                          className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5"
                         >
-                          Save
+                          {savingPairingId === pairing.id ? (
+                            <>
+                              <LoadingSpinner size="sm" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            'Save'
+                          )}
                         </button>
                         <button
                           onClick={() => setEditingPairing(null)}
+                          disabled={savingPairingId === pairing.id}
                           className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-all"
                         >
                           Cancel

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface Match {
   id: string
@@ -24,6 +25,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null)
   const [newDate, setNewDate] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [pushSubsequent, setPushSubsequent] = useState(true)
   const [gapDays, setGapDays] = useState(0)
 
@@ -49,6 +51,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
     if (!editingMatchId || !newDate) return
 
     setLoading(true)
+    setLoadingAction(`save-${editingMatchId}`)
     try {
       const response = await fetch(`/api/seasons/${seasonId}/tournaments/${tournamentId}/fixtures/reschedule`, {
         method: 'PATCH',
@@ -73,11 +76,13 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
       alert('Failed to update fixture')
     } finally {
       setLoading(false)
+      setLoadingAction(null)
     }
   }
 
   const addGapAfterMatchday = async (dateKey: string, days: number) => {
     setLoading(true)
+    setLoadingAction(`gap-${days}-${dateKey}`)
     try {
       const response = await fetch(`/api/seasons/${seasonId}/tournaments/${tournamentId}/fixtures/add-gap`, {
         method: 'PATCH',
@@ -99,6 +104,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
       alert('Failed to add gap')
     } finally {
       setLoading(false)
+      setLoadingAction(null)
     }
   }
 
@@ -137,16 +143,30 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                 <button
                   onClick={() => addGapAfterMatchday(dateKey, 1)}
                   disabled={loading}
-                  className="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50"
+                  className="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  +1 Day Gap
+                  {loadingAction === `gap-1-${dateKey}` ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span>Applying...</span>
+                    </>
+                  ) : (
+                    '+1 Day Gap'
+                  )}
                 </button>
                 <button
                   onClick={() => addGapAfterMatchday(dateKey, 2)}
                   disabled={loading}
-                  className="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50"
+                  className="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  +2 Days Gap
+                  {loadingAction === `gap-2-${dateKey}` ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span>Applying...</span>
+                    </>
+                  ) : (
+                    '+2 Days Gap'
+                  )}
                 </button>
               </div>
             </div>
@@ -193,12 +213,20 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                         <button
                           onClick={handleSaveDate}
                           disabled={loading}
-                          className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600 transition-all disabled:opacity-50"
+                          className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                         >
-                          {loading ? 'Saving...' : 'Save'}
+                          {loadingAction === `save-${match.id}` ? (
+                            <>
+                              <LoadingSpinner size="sm" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            'Save'
+                          )}
                         </button>
                         <button
                           onClick={() => setEditingMatchId(null)}
+                          disabled={loading}
                           className="px-4 py-2 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-all"
                         >
                           Cancel

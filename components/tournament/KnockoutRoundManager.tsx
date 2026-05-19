@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import KnockoutBracket from './KnockoutBracket'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface Team {
   id: string
@@ -334,9 +335,16 @@ export default function KnockoutRoundManager({
           <button
             type="submit"
             disabled={loading || formData.selectedTeams.length !== requiredTeams}
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? 'Creating Round...' : `Create ${selectedRound?.label}`}
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span>Creating Round...</span>
+              </>
+            ) : (
+              `Create ${selectedRound?.label}`
+            )}
           </button>
         </div>
       </form>

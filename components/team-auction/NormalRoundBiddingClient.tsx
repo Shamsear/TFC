@@ -266,6 +266,11 @@ export default function NormalRoundBiddingClient({
   }, [localStatus, localEndTime])
 
   const handleBidChange = (playerId: string, amount: string) => {
+    if (amount === '') {
+      handleRemoveBid(playerId)
+      return
+    }
+
     const numAmount = parseInt(amount) || 0
     
     // Check if bid exceeds reserve max bid
@@ -287,10 +292,14 @@ export default function NormalRoundBiddingClient({
       }
     }
     
-    setBids(prev => ({
-      ...prev,
-      [playerId]: numAmount
-    }))
+    if (numAmount === 0) {
+      handleRemoveBid(playerId)
+    } else {
+      setBids(prev => ({
+        ...prev,
+        [playerId]: numAmount
+      }))
+    }
   }
 
   const handleBidBlur = (playerId: string, amount: string) => {
@@ -957,16 +966,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                             <input
                               type="number"
                               value={amount || ''}
-                              onChange={(e) => {
-                                const newAmount = e.target.value
-                                // Allow empty string or valid numbers
-                                if (newAmount === '') {
-                                  setBids(prev => ({ ...prev, [playerId]: 0 }))
-                                } else {
-                                  const numAmount = parseInt(newAmount) || 0
-                                  setBids(prev => ({ ...prev, [playerId]: numAmount }))
-                                }
-                              }}
+                              onChange={(e) => handleBidChange(playerId, e.target.value)}
                               onBlur={(e) => handleBidBlur(playerId, e.target.value)}
                               disabled={round.status !== 'active' || isSubmitted}
                               placeholder="Enter amount"

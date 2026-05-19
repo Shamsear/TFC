@@ -391,7 +391,6 @@ export default function NormalRoundBiddingClient({
 
       localStorage.removeItem(`tfc_draft_bids_${round.id}_${teamId}`)
       setMessage({ type: 'success', text: 'Draft saved successfully' })
-      router.refresh()
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -533,7 +532,6 @@ export default function NormalRoundBiddingClient({
       localStorage.removeItem(`tfc_draft_bids_${round.id}_${teamId}`)
       setIsSubmitted(true)
       setMessage({ type: 'success', text: 'Bids submitted successfully!' })
-      router.refresh()
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {

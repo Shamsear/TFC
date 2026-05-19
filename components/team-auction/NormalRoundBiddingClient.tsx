@@ -440,6 +440,18 @@ export default function NormalRoundBiddingClient({
       return
     }
 
+    // Validate duplicate bid amounts
+    const nonZeroBids = Object.entries(bids).filter(([_, amount]) => amount > 0)
+    const amounts = nonZeroBids.map(([_, amount]) => amount)
+    const uniqueAmounts = new Set(amounts)
+    if (uniqueAmounts.size !== amounts.length) {
+      const duplicates = amounts.filter((item, index) => amounts.indexOf(item) !== index)
+      const duplicateList = Array.from(new Set(duplicates)).map(amount => `£${amount.toLocaleString()}`).join(', ')
+      setErrorModalMessage(`Each bid must have a unique amount. The following amount(s) are duplicated: ${duplicateList}`)
+      setShowErrorModal(true)
+      return
+    }
+
     // Phase 1 warning about skipping Phase 2 rounds
     if (reserveInfo && reserveInfo.phase === 'phase_1' && reserveInfo.phase2MinBalance && reserveInfo.phase2Rounds) {
       const exceedingBids = Object.entries(bids)
@@ -1067,7 +1079,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || bidCount === 0}
+                disabled={submitting || bidCount === 0 || !hasMaxBidsRequired}
                 className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Submit Bids'}

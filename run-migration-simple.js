@@ -11,7 +11,7 @@ async function runMigration() {
     await client.connect()
     console.log('✓ Connected to database')
     
-    const sql = fs.readFileSync('ADD-USER-COLUMNS.sql', 'utf8')
+    const sql = fs.readFileSync('scripts/remove-contract-duration.sql', 'utf8')
     
     console.log('Running migration...')
     await client.query(sql)

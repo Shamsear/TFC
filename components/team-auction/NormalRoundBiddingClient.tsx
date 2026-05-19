@@ -221,7 +221,14 @@ export default function NormalRoundBiddingClient({
       }
     }
     
-    // Check if this amount is already used for another player
+    setBids(prev => ({
+      ...prev,
+      [playerId]: numAmount
+    }))
+  }
+
+  const handleBidBlur = (playerId: string, amount: string) => {
+    const numAmount = parseInt(amount) || 0
     if (numAmount > 0) {
       const duplicateAmount = Object.entries(bids).find(
         ([pid, amt]) => pid !== playerId && amt === numAmount
@@ -231,14 +238,14 @@ export default function NormalRoundBiddingClient({
         const duplicatePlayer = players.find(p => p.basePlayerId === duplicateAmount[0])
         setErrorModalMessage(`Amount £${numAmount.toLocaleString()} is already used for ${duplicatePlayer?.basePlayer.name || 'another player'}. Each bid must be unique.`)
         setShowErrorModal(true)
-        return
+        
+        // Reset this duplicate bid to 0
+        setBids(prev => ({
+          ...prev,
+          [playerId]: 0
+        }))
       }
     }
-    
-    setBids(prev => ({
-      ...prev,
-      [playerId]: numAmount
-    }))
   }
 
   const handleRemoveBid = (playerId: string) => {
@@ -254,6 +261,19 @@ export default function NormalRoundBiddingClient({
     setMessage(null)
 
     try {
+      // Validate duplicate bid amounts
+      const nonZeroBids = Object.entries(bids).filter(([_, amount]) => amount > 0)
+      const amounts = nonZeroBids.map(([_, amount]) => amount)
+      const uniqueAmounts = new Set(amounts)
+      if (uniqueAmounts.size !== amounts.length) {
+        const duplicates = amounts.filter((item, index) => amounts.indexOf(item) !== index)
+        const duplicateList = Array.from(new Set(duplicates)).map(amount => `£${amount.toLocaleString()}`).join(', ')
+        setErrorModalMessage(`Each bid must have a unique amount. The following amount(s) are duplicated: ${duplicateList}`)
+        setShowErrorModal(true)
+        setSaving(false)
+        return
+      }
+
       // Validate bids against reserve max bid
       if (reserveInfo) {
         const exceedingBids = Object.entries(bids)
@@ -329,6 +349,18 @@ export default function NormalRoundBiddingClient({
     }
 
     if (!confirm('Are you sure you want to submit? You cannot change your bids after submission.')) {
+      return
+    }
+
+    // Validate duplicate bid amounts
+    const nonZeroBids = Object.entries(bids).filter(([_, amount]) => amount > 0)
+    const amounts = nonZeroBids.map(([_, amount]) => amount)
+    const uniqueAmounts = new Set(amounts)
+    if (uniqueAmounts.size !== amounts.length) {
+      const duplicates = amounts.filter((item, index) => amounts.indexOf(item) !== index)
+      const duplicateList = Array.from(new Set(duplicates)).map(amount => `£${amount.toLocaleString()}`).join(', ')
+      setErrorModalMessage(`Each bid must have a unique amount. The following amount(s) are duplicated: ${duplicateList}`)
+      setShowErrorModal(true)
       return
     }
 
@@ -510,6 +542,18 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
   const totalBidsInList = Object.keys(bids).filter(k => bids[k] !== undefined).length
   const maxBidsReached = round.maxBidsPerTeam ? bidCount >= round.maxBidsPerTeam : false
   const hasMaxBidsRequired = round.maxBidsPerTeam ? bidCount === round.maxBidsPerTeam : true
+
+  // Find duplicate amounts to highlight on the UI
+  const duplicateAmounts = new Set<number>()
+  const seenAmounts = new Set<number>()
+  Object.values(bids).forEach(amount => {
+    if (amount > 0) {
+      if (seenAmounts.has(amount)) {
+        duplicateAmounts.add(amount)
+      }
+      seenAmounts.add(amount)
+    }
+  })
 
   // Pagination Component
   const PaginationControls = () => {
@@ -779,10 +823,18 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                                   setBids(prev => ({ ...prev, [playerId]: numAmount }))
                                 }
                               }}
+                              onBlur={(e) => handleBidBlur(playerId, e.target.value)}
                               disabled={round.status !== 'active' || isSubmitted}
                               placeholder="Enter amount"
-                              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] disabled:opacity-50 disabled:cursor-not-allowed"
+                              className={`w-full px-3 py-2 rounded-lg bg-white/5 border text-white placeholder-[#7A7367] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                                duplicateAmounts.has(amount)
+                                  ? 'border-red-500/50 focus:border-red-500'
+                                  : 'border-white/10 focus:border-[#E8A800]'
+                              }`}
                             />
+                            {duplicateAmounts.has(amount) && (
+                              <div className="text-xs text-red-400 mt-1">⚠️ Duplicate bid amount</div>
+                            )}
                           </div>
                           {!isSubmitted && round.status === 'active' && (
                             <button
@@ -958,14 +1010,24 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
               </div>
 
               <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder={`Min £${round.basePrice?.toLocaleString() || 0}`}
-                  value={bids[player.basePlayerId] || ''}
-                  onChange={(e) => handleBidChange(player.basePlayerId, e.target.value)}
-                  disabled={round.status !== 'active' || isSubmitted || (maxBidsReached && !bids[player.basePlayerId])}
-                  className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    placeholder={`Min £${round.basePrice?.toLocaleString() || 0}`}
+                    value={bids[player.basePlayerId] || ''}
+                    onChange={(e) => handleBidChange(player.basePlayerId, e.target.value)}
+                    onBlur={(e) => handleBidBlur(player.basePlayerId, e.target.value)}
+                    disabled={round.status !== 'active' || isSubmitted || (maxBidsReached && !bids[player.basePlayerId])}
+                    className={`w-full px-3 py-2 rounded-lg bg-white/5 border text-white placeholder-[#7A7367] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                      duplicateAmounts.has(bids[player.basePlayerId])
+                        ? 'border-red-500/50 focus:border-red-500'
+                        : 'border-white/10 focus:border-[#E8A800]'
+                    }`}
+                  />
+                  {duplicateAmounts.has(bids[player.basePlayerId]) && (
+                    <div className="text-xs text-red-400 mt-1">⚠️ Duplicate bid amount</div>
+                  )}
+                </div>
                 {bids[player.basePlayerId] > 0 && !isSubmitted && round.status === 'active' && (
                   <button
                     onClick={() => handleRemoveBid(player.basePlayerId)}

@@ -128,6 +128,29 @@ export function validateNoDuplicates(bids: BidData[]): ValidationResult {
 }
 
 /**
+ * Validate no duplicate bid amounts
+ */
+export function validateNoDuplicateAmounts(bids: BidData[]): ValidationResult {
+  const errors: string[] = [];
+  const amounts = new Set<number>();
+  
+  bids.forEach((bid, index) => {
+    if (amounts.has(bid.amount)) {
+      errors.push(
+        `Bid ${index + 1} (${bid.player_name || bid.base_player_id}): ` +
+        `Duplicate bid amount £${bid.amount.toLocaleString()}. Each bid must be unique.`
+      );
+    }
+    amounts.add(bid.amount);
+  });
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
  * Validate team has sufficient budget for all bids
  * Note: This is a rough check. Actual budget is calculated with reserves during finalization.
  */
@@ -137,15 +160,15 @@ export function validateBudget(
 ): ValidationResult {
   const errors: string[] = [];
   
-  // Calculate total if team wins all bids (worst case)
-  const totalBidAmount = bids.reduce((sum, bid) => sum + bid.amount, 0);
-  
-  if (totalBidAmount > currentBudget) {
-    errors.push(
-      `Total bid amount (${totalBidAmount}) exceeds current budget (${currentBudget}). ` +
-      `Note: You won't win all bids, but this is a safety check.`
-    );
-  }
+  // Validate each bid amount does not exceed current budget
+  bids.forEach((bid, index) => {
+    if (bid.amount > currentBudget) {
+      errors.push(
+        `Bid ${index + 1} (${bid.player_name || bid.base_player_id}): ` +
+        `Amount £${bid.amount.toLocaleString()} exceeds current budget £${currentBudget.toLocaleString()}`
+      );
+    }
+  });
   
   return {
     valid: errors.length === 0,
@@ -231,21 +254,19 @@ export async function validateBidsAgainstReserves(
       config
     );
     
-    // Check each bid against reserve
-    // For normal rounds, we check if the TOTAL of all bids exceeds available budget
-    const totalBidAmount = bids.reduce((sum, bid) => sum + bid.amount, 0);
-    
-    // Validate total against reserve
-    const validation = validateBidAgainstReserve(totalBidAmount, reserveInfo);
-    
-    if (!validation.valid) {
-      errors.push(validation.error || 'Bid exceeds reserve requirements');
-    }
-    
-    if (validation.warning) {
-      // For warnings, we still allow but log it
-      console.warn(`Reserve warning for team ${context.teamId}:`, validation.warning);
-    }
+    // Validate each bid against reserve individually for normal rounds
+    bids.forEach((bid, index) => {
+      const validation = validateBidAgainstReserve(bid.amount, reserveInfo);
+      if (!validation.valid) {
+        errors.push(
+          `Bid ${index + 1} (${bid.player_name || bid.base_player_id}): ` +
+          (validation.error || 'Bid exceeds reserve requirements')
+        );
+      }
+      if (validation.warning) {
+        console.warn(`Reserve warning for team ${context.teamId} on bid ${index + 1}:`, validation.warning);
+      }
+    });
     
   } catch (error) {
     console.error('Error validating reserves:', error);
@@ -384,6 +405,10 @@ export async function validateBids(
   // 4. Duplicate validation
   const duplicateResult = validateNoDuplicates(bids);
   allErrors.push(...duplicateResult.errors);
+  
+  // 4b. Duplicate amount validation
+  const duplicateAmountResult = validateNoDuplicateAmounts(bids);
+  allErrors.push(...duplicateAmountResult.errors);
   
   // 5. Budget validation (rough check)
   const budgetResult = validateBudget(bids, context.currentBudget);

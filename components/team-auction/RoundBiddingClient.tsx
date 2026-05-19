@@ -105,7 +105,11 @@ export default function RoundBiddingClient({
   useEffect(() => {
     if (round.status !== 'active' || !round.endTime) return
 
+    let isExpired = false;
+
     const updateTimer = () => {
+      if (isExpired) return;
+
       const now = new Date()
       const end = new Date(round.endTime!)
       const diff = end.getTime() - now.getTime()
@@ -123,8 +127,9 @@ export default function RoundBiddingClient({
           setTimeRemaining(`${seconds}s`)
         }
       } else {
-        setTimeRemaining('Expired')
-        router.refresh()
+        isExpired = true;
+        setTimeRemaining('Processing...')
+        window.location.reload()
       }
     }
 
@@ -132,7 +137,7 @@ export default function RoundBiddingClient({
     const interval = setInterval(updateTimer, 1000)
 
     return () => clearInterval(interval)
-  }, [round.status, round.endTime, router])
+  }, [round.status, round.endTime])
 
   const handleBidChange = (playerId: string, amount: number) => {
     if (reserveInfo && amount > reserveInfo.maxBid) {

@@ -215,16 +215,18 @@ export default async function TeamAuctionPage() {
   })
 
   return (
-    <AuctionDashboardClient
-      team={team}
-      season={activeSeason}
-      budget={seasonTeam.currentBudget}
-      squadSize={squadSize}
-      rounds={rounds}
-      teamBids={teamBids}
-      bulkSelections={bulkSelections}
-      tiebreakers={tiebreakers}
-      bulkTiebreakers={bulkTiebreakers}
-    />
+    <div className="pt-20">
+      <AuctionDashboardClient
+        team={team}
+        season={activeSeason}
+        budget={seasonTeam.currentBudget}
+        squadSize={squadSize}
+        rounds={rounds}
+        teamBids={teamBids}
+        bulkSelections={bulkSelections}
+        tiebreakers={tiebreakers}
+        bulkTiebreakers={bulkTiebreakers}
+      />
+    </div>
   )
 }

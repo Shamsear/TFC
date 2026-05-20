@@ -257,6 +257,7 @@ export default function AuctionsView({
                       src={result.basePlayer.photoUrl}
                       alt={result.basePlayer.name}
                       fill
+                      unoptimized={true}
                       className="object-cover"
                     />
                   </div>

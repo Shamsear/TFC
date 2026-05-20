@@ -622,6 +622,7 @@ export default function SquadBuilderClient({
                               alt={player.name}
                               width={44}
                               height={44}
+                              unoptimized={true}
                               className="object-cover"
                             />
                           </div>

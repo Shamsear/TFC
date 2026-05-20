@@ -20,6 +20,7 @@ export default function PlayerCardImage({ playerCardId, playerName, fallbackUrl 
       fill
       className="object-contain"
       priority
+      unoptimized
       onError={() => {
         setImgSrc(fallbackUrl || '/default-player-card.png')
       }}

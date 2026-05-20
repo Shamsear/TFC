@@ -385,6 +385,7 @@ export default function BulkTiebreakerBiddingClient({
                   alt={liveData.basePlayer.name}
                   width={64}
                   height={64}
+                  unoptimized={true}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -697,6 +698,7 @@ export default function BulkTiebreakerBiddingClient({
                               alt={teamData.name}
                               width={32}
                               height={32}
+                              unoptimized={true}
                               className="w-full h-full object-cover"
                             />
                           </div>

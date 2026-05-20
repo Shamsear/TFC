@@ -213,6 +213,7 @@ export default function RetentionModule({
                           src={team.teamLogoUrl}
                           alt={team.teamName}
                           fill
+                          unoptimized={true}
                           className="object-cover"
                         />
                       </div>
@@ -267,6 +268,7 @@ export default function RetentionModule({
                                 src={player.photoUrl}
                                 alt={player.name}
                                 fill
+                                unoptimized={true}
                                 className="object-cover"
                               />
                             </div>

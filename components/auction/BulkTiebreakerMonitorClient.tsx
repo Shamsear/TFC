@@ -140,6 +140,7 @@ export default function BulkTiebreakerMonitorClient({
                   alt={liveData.basePlayer.name}
                   width={64}
                   height={64}
+                  unoptimized={true}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -218,6 +219,7 @@ export default function BulkTiebreakerMonitorClient({
                       alt={highestBidder.team.name}
                       width={48}
                       height={48}
+                      unoptimized={true}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -258,6 +260,7 @@ export default function BulkTiebreakerMonitorClient({
                             alt={bid.team.name}
                             width={40}
                             height={40}
+                            unoptimized={true}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -310,6 +313,7 @@ export default function BulkTiebreakerMonitorClient({
                             alt={participant.team.name}
                             width={40}
                             height={40}
+                            unoptimized={true}
                             className="w-full h-full object-cover"
                           />
                         </div>

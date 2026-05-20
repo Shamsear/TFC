@@ -1102,6 +1102,7 @@ export default function AuctionPlannerClient({
                             src={player.photoUrl}
                             alt={player.name}
                             fill
+                            unoptimized={true}
                             className="object-cover"
                           />
                           {/* Rating Badge */}
@@ -1160,6 +1161,7 @@ export default function AuctionPlannerClient({
                               src={player.photoUrl}
                               alt={player.name}
                               fill
+                              unoptimized={true}
                               className="object-cover"
                             />
                             {/* Rating Badge */}

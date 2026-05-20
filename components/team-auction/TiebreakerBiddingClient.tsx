@@ -194,6 +194,7 @@ export default function TiebreakerBiddingClient({
                 alt={tiebreaker.basePlayer.name}
                 width={64}
                 height={64}
+                unoptimized={true}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -323,6 +324,7 @@ export default function TiebreakerBiddingClient({
                       alt={tiedTeam.teamName}
                       width={32}
                       height={32}
+                      unoptimized={true}
                       className="w-8 h-8 rounded"
                     />
                   )}

@@ -134,6 +134,7 @@ export default function RoundResultsClient({
                             alt={tie.basePlayer.name}
                             width={48}
                             height={48}
+                            unoptimized={true}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -169,6 +170,7 @@ export default function RoundResultsClient({
                         alt={alloc.basePlayer.name}
                         width={64}
                         height={64}
+                        unoptimized={true}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -219,6 +221,7 @@ export default function RoundResultsClient({
                             alt={alloc.basePlayer.name}
                             width={48}
                             height={48}
+                            unoptimized={true}
                             className="w-full h-full object-cover"
                           />
                         </div>

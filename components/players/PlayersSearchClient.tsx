@@ -339,6 +339,7 @@ export default function PlayersSearchClient({
                         src={getSelectedTeamLogo()!}
                         alt=""
                         fill
+                        unoptimized={true}
                         className="object-cover"
                       />
                     </div>
@@ -399,6 +400,7 @@ export default function PlayersSearchClient({
                             src={team.logoUrl}
                             alt={team.name}
                             fill
+                            unoptimized={true}
                             className="object-cover"
                           />
                         </div>
@@ -527,6 +529,7 @@ export default function PlayersSearchClient({
                       src={player.photoUrl}
                       alt={player.name}
                       fill
+                      unoptimized={true}
                       className="object-cover"
                     />
                   </div>
@@ -562,6 +565,7 @@ export default function PlayersSearchClient({
                           src={player.teamLogoUrl!}
                           alt={player.teamName!}
                           fill
+                          unoptimized={true}
                           className="object-cover"
                         />
                       </div>

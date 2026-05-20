@@ -922,6 +922,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                             src={player.photoUrl}
                             alt={player.name}
                             fill
+                            unoptimized={true}
                             className="object-cover"
                           />
                         </div>
@@ -955,6 +956,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                                 src={player.team.logoUrl}
                                 alt={player.team.name}
                                 fill
+                                unoptimized={true}
                                 className="object-cover"
                               />
                             </div>

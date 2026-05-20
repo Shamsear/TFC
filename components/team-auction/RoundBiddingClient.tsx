@@ -281,6 +281,7 @@ export default function RoundBiddingClient({
                 alt={team.name}
                 width={64}
                 height={64}
+                unoptimized={true}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -449,6 +450,7 @@ export default function RoundBiddingClient({
                       alt={player.name}
                       width={64}
                       height={64}
+                      unoptimized={true}
                       className="w-full h-full object-cover"
                     />
                   </div>

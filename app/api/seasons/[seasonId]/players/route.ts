@@ -24,7 +24,11 @@ export async function GET(
     const seasonalStats = await prisma.seasonal_player_stats.findMany({
       where: {
         seasonId,
-        ...(position && { position }),
+        ...(position && {
+          position: position.includes(',')
+            ? { in: position.split(',') }
+            : position
+        }),
         ...(available && transferredPlayerIds.length > 0 && {
           basePlayerId: { notIn: transferredPlayerIds }
         })

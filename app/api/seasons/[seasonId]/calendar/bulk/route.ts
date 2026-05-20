@@ -69,6 +69,7 @@ export async function POST(
               auctionCalendarId: calendar.id,
               position: slot.position,
               position_group: slot.group || 'ALL',
+              roundType: slot.roundType || 'normal',
               slotOrder: i,
               updatedAt: new Date()
             }

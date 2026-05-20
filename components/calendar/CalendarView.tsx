@@ -10,6 +10,7 @@ interface Auction {
   auctionSlots: Array<{
     position: string
     position_group?: string | null
+    roundType?: string | null
   }>
 }
 
@@ -334,11 +335,19 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                           {formatDate(new Date(auction.auctionDate), 'h:mm a')}
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {auction.auctionSlots.map((slot, idx) => (
-                            <span key={idx} className="px-1.5 py-0.5 rounded bg-[#E8A800]/20 text-[#E8A800] text-[10px] font-bold">
-                              {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
-                            </span>
-                          ))}
+                          {auction.auctionSlots.map((slot, idx) => {
+                            const isBulk = slot.roundType === 'bulk';
+                            return (
+                              <span key={idx} className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                                isBulk 
+                                  ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]' 
+                                  : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
+                              }`}>
+                                {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                                {isBulk && <span className="text-[8px] font-normal ml-0.5 opacity-80">(Bulk)</span>}
+                              </span>
+                            );
+                          })}
                         </div>
                       </Link>
                     ))}
@@ -445,7 +454,11 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                                 {formatDate(new Date(auction.auctionDate), 'h:mm a')}
                               </div>
                               <div className="text-[10px] opacity-70 truncate">
-                                {auction.auctionSlots.map(s => `${s.position}${s.position_group && s.position_group !== 'ALL' ? `-${s.position_group}` : ''}`).join(', ')}
+                                {auction.auctionSlots.map(s => {
+                                  const groupPart = s.position_group && s.position_group !== 'ALL' ? `-${s.position_group}` : '';
+                                  const typePart = s.roundType === 'bulk' ? ' (Bulk)' : '';
+                                  return `${s.position}${groupPart}${typePart}`;
+                                }).join(', ')}
                               </div>
                             </Link>
                           ))}
@@ -506,11 +519,19 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                             {formatDate(event.date, 'h:mm a')}
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {event.data.auctionSlots.map((slot: any, idx: number) => (
-                              <span key={idx} className="px-2 py-1 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] text-xs font-bold">
-                                {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
-                              </span>
-                            ))}
+                            {event.data.auctionSlots.map((slot: any, idx: number) => {
+                              const isBulk = slot.roundType === 'bulk';
+                              return (
+                                <span key={idx} className={`px-2 py-1 rounded border text-xs font-bold transition-all ${
+                                  isBulk
+                                    ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]'
+                                    : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
+                                }`}>
+                                  {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                                  {isBulk && <span className="text-[10px] font-normal ml-1 opacity-80">(Bulk)</span>}
+                                </span>
+                              );
+                            })}
                           </div>
                         </>
                       ) : (

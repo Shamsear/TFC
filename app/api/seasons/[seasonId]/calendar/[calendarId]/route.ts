@@ -91,6 +91,7 @@ export async function PATCH(
               auctionCalendarId: calendarId,
               position: slot.position,
               position_group: slot.group || 'ALL',
+              roundType: slot.roundType || 'normal',
               slotOrder: index,
               updatedAt: new Date()
             }

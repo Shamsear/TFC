@@ -47,7 +47,8 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
               id: true,
               position: true,
               position_group: true,
-              slotOrder: true
+              slotOrder: true,
+              roundType: true
             },
             orderBy: {
               slotOrder: 'asc'

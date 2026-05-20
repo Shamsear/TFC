@@ -31,6 +31,7 @@ const GROUPED_POSITIONS = ['CB', 'DMF', 'CMF', 'AMF', 'CF'];
 interface PositionSlot {
   position: string;
   group?: 'A' | 'B' | 'ALL';
+  roundType: 'normal' | 'bulk';
 }
 
 export default function NewCalendarPage({ params }: NewCalendarPageProps) {
@@ -39,6 +40,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   const [auctionDates, setAuctionDates] = useState([
     { auctionDate: '', auctionTime: '', description: '', positionSlots: [] as PositionSlot[] }
   ])
+  const [builderStates, setBuilderStates] = useState<Record<number, { roundType: 'normal' | 'bulk'; selectedPositions: string[]; selectedGroup: 'A' | 'B' | 'ALL' }>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -63,26 +65,57 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     setAuctionDates(updated)
   }
 
+  const getBuilderState = (index: number) => {
+    return builderStates[index] || { roundType: 'normal', selectedPositions: [], selectedGroup: 'ALL' }
+  }
+
+  const updateBuilderState = (index: number, field: string, value: any) => {
+    setBuilderStates(prev => ({
+      ...prev,
+      [index]: {
+        ...getBuilderState(index),
+        [field]: value
+      }
+    }))
+  }
+
   const togglePositionSlot = (index: number, position: string, group?: 'A' | 'B' | 'ALL') => {
     const updated = [...auctionDates]
     const slots = updated[index].positionSlots
+    const targetGroup = group || 'ALL'
     
     // Check if this exact slot already exists
-    const existingIndex = slots.findIndex(s => s.position === position && s.group === group)
+    const existingIndex = slots.findIndex(s => s.position === position && s.group === targetGroup && s.roundType === 'normal')
     
     if (existingIndex >= 0) {
       // Remove the slot
       updated[index].positionSlots = slots.filter((_, i) => i !== existingIndex)
     } else {
       // Add the slot
-      updated[index].positionSlots = [...slots, { position, group: group || 'ALL' }]
+      updated[index].positionSlots = [...slots, { position, group: targetGroup, roundType: 'normal' }]
     }
     
     setAuctionDates(updated)
   }
 
   const hasPositionSlot = (index: number, position: string, group?: 'A' | 'B' | 'ALL') => {
-    return auctionDates[index].positionSlots.some(s => s.position === position && s.group === group)
+    return auctionDates[index].positionSlots.some(s => s.position === position && s.group === (group || 'ALL') && s.roundType === 'normal')
+  }
+
+  const addSlot = (index: number, position: string, group: 'A' | 'B' | 'ALL', roundType: 'normal' | 'bulk') => {
+    const updated = [...auctionDates]
+    const slots = updated[index].positionSlots
+    
+    if (!slots.some(s => s.position === position && s.group === group && s.roundType === roundType)) {
+      updated[index].positionSlots = [...slots, { position, group, roundType }]
+      setAuctionDates(updated)
+    }
+  }
+
+  const removeSlot = (index: number, slotIndex: number) => {
+    const updated = [...auctionDates]
+    updated[index].positionSlots = updated[index].positionSlots.filter((_, i) => i !== slotIndex)
+    setAuctionDates(updated)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -242,250 +275,398 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
               {/* Position Selection */}
               <div>
                 <label className="block text-xs sm:text-sm font-bold mb-3 text-white">
-                  Position Slots <span className="text-red-400">*</span>
+                  Configured Position Slots <span className="text-red-400">*</span>
                 </label>
                 
-                {/* Position Categories */}
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Goalkeeper */}
+                {/* Configured Slots List */}
+                <div className="mb-6">
+                  {auction.positionSlots.length === 0 ? (
+                    <div className="text-sm text-gray-500 italic p-4 bg-black/25 border border-white/5 rounded-xl text-center">
+                      No slots configured yet. Use the Slot Builder below to add position slots.
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 p-3 bg-black/25 border border-white/5 rounded-xl">
+                      {auction.positionSlots.map((slot, slotIdx) => (
+                        <div
+                          key={`${slot.position}-${slot.group}-${slotIdx}`}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            slot.roundType === 'bulk'
+                              ? 'bg-purple-500/10 border-purple-500/30 text-purple-400 hover:border-purple-500/50'
+                              : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800] hover:border-[#E8A800]/45'
+                          }`}
+                        >
+                          <span>
+                            {slot.position}{slot.group && slot.group !== 'ALL' ? `-${slot.group}` : ''}
+                            <span className="opacity-60 font-normal ml-1">({slot.roundType === 'bulk' ? 'Bulk' : 'Normal'})</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeSlot(index, slotIdx)}
+                            className="text-gray-400 hover:text-white transition-colors"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Slot Builder UI */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
+                  <div className="text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">
+                    Slot Builder
+                  </div>
+
+                  {/* Choose Slot Type */}
                   <div>
-                    <div className="text-xs font-bold text-yellow-400 mb-2">GOALKEEPER</div>
-                    <div className="flex gap-2">
+                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">
+                      Round Type
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
-                        onClick={() => togglePositionSlot(index, 'GK', 'ALL')}
-                        className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                          hasPositionSlot(index, 'GK', 'ALL')
-                            ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
-                            : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                        onClick={() => updateBuilderState(index, 'roundType', 'normal')}
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                          getBuilderState(index).roundType === 'normal'
+                            ? 'bg-[#E8A800]/10 border-[#E8A800] text-[#E8A800]'
+                            : 'bg-black/20 border-white/5 text-gray-400 hover:border-white/15'
                         }`}
                       >
-                        GK
+                        <span className="text-sm font-bold">Normal Round</span>
+                        <span className="text-[10px] opacity-70 mt-0.5">Single position standard round</span>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => updateBuilderState(index, 'roundType', 'bulk')}
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                          getBuilderState(index).roundType === 'bulk'
+                            ? 'bg-purple-500/10 border-purple-500 text-purple-400'
+                            : 'bg-black/20 border-white/5 text-gray-400 hover:border-white/15'
+                        }`}
+                      >
+                        <span className="text-sm font-bold">Bulk Round</span>
+                        <span className="text-[10px] opacity-70 mt-0.5">Multi-position group bidding</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Defenders */}
-                  <div>
-                    <div className="text-xs font-bold text-blue-400 mb-2">DEFENDERS</div>
-                    <div className="space-y-2">
-                      {['CB', 'LB', 'RB'].map((position) => (
-                        <div key={position} className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white w-8">{position}</span>
-                          {GROUPED_POSITIONS.includes(position) ? (
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'A')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'A')
-                                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                Group A
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'B')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'B')
-                                    ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                Group B
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'ALL')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'ALL')
-                                    ? 'bg-gray-500/20 border-gray-500 text-gray-300'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                All
-                              </button>
+                  {/* Builder Forms based on type */}
+                  {getBuilderState(index).roundType === 'normal' ? (
+                    <div className="space-y-4 pt-2">
+                      <label className="block text-xs font-bold text-gray-400 uppercase">
+                        Select Position (Click to Add as Normal Slot)
+                      </label>
+                      {/* Goalkeeper */}
+                      <div>
+                        <div className="text-[10px] font-bold text-yellow-400/80 mb-1.5">GOALKEEPER</div>
+                        <button
+                          type="button"
+                          onClick={() => addSlot(index, 'GK', 'ALL', 'normal')}
+                          className="px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-xs hover:border-[#E8A800]/50 hover:text-white transition-all"
+                        >
+                          GK
+                        </button>
+                      </div>
+
+                      {/* Defenders */}
+                      <div>
+                        <div className="text-[10px] font-bold text-blue-400/80 mb-1.5">DEFENDERS</div>
+                        <div className="space-y-2">
+                          {['CB', 'LB', 'RB'].map((position) => (
+                            <div key={position} className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white w-8">{position}</span>
+                              {GROUPED_POSITIONS.includes(position) ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'A', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-blue-500/50 hover:text-white transition-all"
+                                  >
+                                    Group A
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'B', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-purple-500/50 hover:text-white transition-all"
+                                  >
+                                    Group B
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'ALL', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-gray-500/50 hover:text-white transition-all"
+                                  >
+                                    All
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => addSlot(index, position, 'ALL', 'normal')}
+                                  className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-blue-500/50 hover:text-white transition-all"
+                                >
+                                  {position}
+                                </button>
+                              )}
                             </div>
-                          ) : (
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Midfielders */}
+                      <div>
+                        <div className="text-[10px] font-bold text-green-400/80 mb-1.5">MIDFIELDERS</div>
+                        <div className="space-y-2">
+                          {['DMF', 'CMF', 'LMF', 'RMF', 'AMF'].map((position) => (
+                            <div key={position} className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white w-8">{position}</span>
+                              {GROUPED_POSITIONS.includes(position) ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'A', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-green-500/50 hover:text-white transition-all"
+                                  >
+                                    Group A
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'B', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-purple-500/50 hover:text-white transition-all"
+                                  >
+                                    Group B
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'ALL', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-gray-500/50 hover:text-white transition-all"
+                                  >
+                                    All
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => addSlot(index, position, 'ALL', 'normal')}
+                                  className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-green-500/50 hover:text-white transition-all"
+                                >
+                                  {position}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Forwards */}
+                      <div>
+                        <div className="text-[10px] font-bold text-red-400/80 mb-1.5">FORWARDS</div>
+                        <div className="space-y-2">
+                          {['SS', 'LWF', 'RWF', 'CF'].map((position) => (
+                            <div key={position} className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white w-8">{position}</span>
+                              {GROUPED_POSITIONS.includes(position) ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'A', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-red-500/50 hover:text-white transition-all"
+                                  >
+                                    Group A
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'B', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-purple-500/50 hover:text-white transition-all"
+                                  >
+                                    Group B
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addSlot(index, position, 'ALL', 'normal')}
+                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-gray-500/50 hover:text-white transition-all"
+                                  >
+                                    All
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => addSlot(index, position, 'ALL', 'normal')}
+                                  className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-red-500/50 hover:text-white transition-all"
+                                >
+                                  {position}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Quick Select Buttons */}
+                      <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSlots = POSITIONS.map(p => ({ position: p, group: 'ALL' as const, roundType: 'normal' as const }));
+                            const currentSlots = [...auction.positionSlots];
+                            newSlots.forEach(ns => {
+                              if (!currentSlots.some(s => s.position === ns.position && s.group === ns.group && s.roundType === ns.roundType)) {
+                                currentSlots.push(ns);
+                              }
+                            });
+                            updateAuctionDate(index, 'positionSlots', currentSlots);
+                          }}
+                          className="px-3 py-1.5 bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/20 transition-all"
+                        >
+                          Select All (Normal)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateAuctionDate(index, 'positionSlots', [])}
+                          className="px-3 py-1.5 bg-gray-500/10 border border-gray-500/20 text-gray-400 rounded-lg text-xs font-bold hover:bg-gray-500/20 transition-all"
+                        >
+                          Clear All Slots
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const defenders = ['CB', 'LB', 'RB'];
+                            const newSlots = defenders.map(p => ({ position: p, group: 'ALL' as const, roundType: 'normal' as const }));
+                            const currentSlots = [...auction.positionSlots];
+                            newSlots.forEach(ns => {
+                              if (!currentSlots.some(s => s.position === ns.position && s.group === ns.group && s.roundType === ns.roundType)) {
+                                currentSlots.push(ns);
+                              }
+                            });
+                            updateAuctionDate(index, 'positionSlots', currentSlots);
+                          }}
+                          className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-500/20 transition-all"
+                        >
+                          Defenders Only (Normal)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const midfielders = ['DMF', 'CMF', 'LMF', 'RMF', 'AMF'];
+                            const newSlots = midfielders.map(p => ({ position: p, group: 'ALL' as const, roundType: 'normal' as const }));
+                            const currentSlots = [...auction.positionSlots];
+                            newSlots.forEach(ns => {
+                              if (!currentSlots.some(s => s.position === ns.position && s.group === ns.group && s.roundType === ns.roundType)) {
+                                currentSlots.push(ns);
+                              }
+                            });
+                            updateAuctionDate(index, 'positionSlots', currentSlots);
+                          }}
+                          className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-bold hover:bg-green-500/20 transition-all"
+                        >
+                          Midfielders Only (Normal)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const forwards = ['SS', 'LWF', 'RWF', 'CF'];
+                            const newSlots = forwards.map(p => ({ position: p, group: 'ALL' as const, roundType: 'normal' as const }));
+                            const currentSlots = [...auction.positionSlots];
+                            newSlots.forEach(ns => {
+                              if (!currentSlots.some(s => s.position === ns.position && s.group === ns.group && s.roundType === ns.roundType)) {
+                                currentSlots.push(ns);
+                              }
+                            });
+                            updateAuctionDate(index, 'positionSlots', currentSlots);
+                          }}
+                          className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-all"
+                        >
+                          Forwards Only (Normal)
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 pt-2">
+                      {/* Bulk Builder Form */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
+                          1. Check Positions to include in this Bulk Slot
+                        </label>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 p-3 bg-black/35 rounded-xl border border-white/5">
+                          {POSITIONS.map(p => {
+                            const isChecked = getBuilderState(index).selectedPositions.includes(p);
+                            return (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => {
+                                  const currentSel = getBuilderState(index).selectedPositions;
+                                  if (currentSel.includes(p)) {
+                                    updateBuilderState(index, 'selectedPositions', currentSel.filter(x => x !== p));
+                                  } else {
+                                    updateBuilderState(index, 'selectedPositions', [...currentSel, p]);
+                                  }
+                                }}
+                                className={`px-2.5 py-1.5 rounded-lg border-2 font-bold text-xs flex items-center justify-between transition-all ${
+                                  isChecked
+                                    ? 'bg-purple-500/20 border-purple-500 text-purple-400 font-black'
+                                    : 'bg-black/20 border-white/10 text-gray-400 hover:border-white/20'
+                                }`}
+                              >
+                                <span>{p}</span>
+                                {isChecked && (
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Group Selector */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
+                          2. Group Division (Optional)
+                        </label>
+                        <div className="flex gap-2">
+                          {['ALL', 'A', 'B'].map(g => (
                             <button
+                              key={g}
                               type="button"
-                              onClick={() => togglePositionSlot(index, position, 'ALL')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(index, position, 'ALL')
-                                  ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                              onClick={() => updateBuilderState(index, 'selectedGroup', g)}
+                              className={`px-4 py-2 rounded-lg border transition-all text-xs font-bold ${
+                                getBuilderState(index).selectedGroup === g
+                                  ? 'bg-purple-500/20 border-purple-500 text-purple-400'
                                   : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
                               }`}
                             >
-                              {position}
+                              {g === 'ALL' ? 'All (No division)' : `Group ${g}`}
                             </button>
-                          )}
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
 
-                  {/* Midfielders */}
-                  <div>
-                    <div className="text-xs font-bold text-green-400 mb-2">MIDFIELDERS</div>
-                    <div className="space-y-2">
-                      {['DMF', 'CMF', 'LMF', 'RMF', 'AMF'].map((position) => (
-                        <div key={position} className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white w-8">{position}</span>
-                          {GROUPED_POSITIONS.includes(position) ? (
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'A')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'A')
-                                    ? 'bg-green-500/20 border-green-500 text-green-400'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                Group A
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'B')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'B')
-                                    ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                Group B
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'ALL')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'ALL')
-                                    ? 'bg-gray-500/20 border-gray-500 text-gray-300'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                All
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(index, position, 'ALL')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(index, position, 'ALL')
-                                  ? 'bg-green-500/20 border-green-500 text-green-400'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              {position}
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                      {/* Add Bulk Slot Trigger */}
+                      <button
+                        type="button"
+                        disabled={getBuilderState(index).selectedPositions.length === 0}
+                        onClick={() => {
+                          const state = getBuilderState(index);
+                          if (state.selectedPositions.length > 0) {
+                            const joined = state.selectedPositions.join(',');
+                            addSlot(index, joined, state.selectedGroup, 'bulk');
+                            // Reset selections
+                            updateBuilderState(index, 'selectedPositions', []);
+                          }
+                        }}
+                        className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 disabled:from-gray-800 disabled:to-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-lg text-xs tracking-wide uppercase transition-all shadow-md"
+                      >
+                        Add Bulk Slot (Positions: {getBuilderState(index).selectedPositions.join(', ') || 'none'})
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Forwards */}
-                  <div>
-                    <div className="text-xs font-bold text-red-400 mb-2">FORWARDS</div>
-                    <div className="space-y-2">
-                      {['SS', 'LWF', 'RWF', 'CF'].map((position) => (
-                        <div key={position} className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white w-8">{position}</span>
-                          {GROUPED_POSITIONS.includes(position) ? (
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'A')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'A')
-                                    ? 'bg-red-500/20 border-red-500 text-red-400'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                Group A
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'B')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'B')
-                                    ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                Group B
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => togglePositionSlot(index, position, 'ALL')}
-                                className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                  hasPositionSlot(index, position, 'ALL')
-                                    ? 'bg-gray-500/20 border-gray-500 text-gray-300'
-                                    : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                                }`}
-                              >
-                                All
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => togglePositionSlot(index, position, 'ALL')}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                                hasPositionSlot(index, position, 'ALL')
-                                  ? 'bg-red-500/20 border-red-500 text-red-400'
-                                  : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              {position}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Select Buttons */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateAuctionDate(index, 'positions', POSITIONS)}
-                    className="px-3 py-1 bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/30 transition-all"
-                  >
-                    Select All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateAuctionDate(index, 'positions', [])}
-                    className="px-3 py-1 bg-gray-500/20 border border-gray-500/30 text-gray-400 rounded-lg text-xs font-bold hover:bg-gray-500/30 transition-all"
-                  >
-                    Clear All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateAuctionDate(index, 'positions', ['CB', 'LB', 'RB'])}
-                    className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-500/30 transition-all"
-                  >
-                    Defenders Only
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateAuctionDate(index, 'positions', ['DMF', 'CMF', 'LMF', 'RMF', 'AMF'])}
-                    className="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg text-xs font-bold hover:bg-green-500/30 transition-all"
-                  >
-                    Midfielders Only
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateAuctionDate(index, 'positions', ['SS', 'LWF', 'RWF', 'CF'])}
-                    className="px-3 py-1 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/30 transition-all"
-                  >
-                    Forwards Only
-                  </button>
+                  )}
                 </div>
               </div>
 

@@ -88,7 +88,11 @@ export default async function BulkRoundPage({
   const seasonalPlayers = await prisma.seasonal_player_stats.findMany({
     where: {
       seasonId: round.seasonId,
-      ...(round.position ? { position: round.position } : {}),
+      ...(round.position ? {
+        position: round.position.includes(',')
+          ? { in: round.position.split(',') }
+          : round.position
+      } : {}),
       // Filter by position_group if specified (and not 'ALL')
       ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
       // Exclude already owned players

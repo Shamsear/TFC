@@ -14,6 +14,7 @@ interface CalendarCardProps {
       id: string
       position: string
       position_group?: string | null
+      roundType?: string | null
     }>
   }
   seasonId: string
@@ -107,14 +108,22 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
             {calendar.auctionSlots.length === 0 ? (
               <div className="text-xs sm:text-sm text-[#7A7367]">No position slots configured</div>
             ) : (
-              calendar.auctionSlots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className="px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs sm:text-sm font-bold"
-                >
-                  {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
-                </div>
-              ))
+              calendar.auctionSlots.map((slot) => {
+                const isBulk = slot.roundType === 'bulk';
+                return (
+                  <div
+                    key={slot.id}
+                    className={`px-2 sm:px-3 py-1 rounded-lg border text-xs sm:text-sm font-bold transition-all ${
+                      isBulk
+                        ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                        : 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]'
+                    }`}
+                  >
+                    {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                    {isBulk && <span className="text-[10px] font-normal ml-1 opacity-80">(Bulk)</span>}
+                  </div>
+                );
+              })
             )}
           </div>
         </Link>

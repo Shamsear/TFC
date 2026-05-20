@@ -57,13 +57,14 @@ export async function POST(
       const slotId = await generateAuctionSlotId()
       await prisma.$executeRaw`
         INSERT INTO auction_slots (
-          id, auction_calendar_id, position, slot_order, updated_at
+          id, auction_calendar_id, position, slot_order, updated_at, round_type
         ) VALUES (
           ${slotId},
           ${calendarId},
           ${positions[i]},
           ${i},
-          NOW()
+          NOW(),
+          'normal'
         )
       `
     }

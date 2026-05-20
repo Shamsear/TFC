@@ -24,6 +24,7 @@ interface AuctionSlot {
   id: string
   position: string
   position_group?: string | null
+  roundType?: string | null
   slotOrder: number
 }
 
@@ -83,7 +84,10 @@ export default function CreateRoundClient({
   // Get all eligible players for the selected position and position group
   const eligiblePlayers = availablePlayers
     .filter(player => {
-      if (!selectedPosition || player.position !== selectedPosition) return false
+      if (!selectedPosition) return false
+      
+      const selectedPositions = selectedPosition.split(',').map(p => p.trim())
+      if (!selectedPositions.includes(player.position)) return false
       
       // If position_group is 'ALL' or null, include all players of this position
       if (!selectedPositionGroup || selectedPositionGroup === 'ALL') return true
@@ -307,9 +311,14 @@ export default function CreateRoundClient({
                     {calendar.auctionSlots.map(slot => (
                       <span
                         key={slot.id}
-                        className="px-2 py-1 rounded bg-white/10 text-xs text-gray-300"
+                        className={`px-2 py-0.5 rounded text-xs border ${
+                          slot.roundType === 'bulk'
+                            ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 font-semibold'
+                            : 'bg-white/5 border-white/10 text-gray-300'
+                        }`}
                       >
                         {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                        {slot.roundType === 'bulk' && ' (Bulk)'}
                       </span>
                     ))}
                   </div>
@@ -329,15 +338,27 @@ export default function CreateRoundClient({
                   type="button"
                   onClick={() => {
                     setSelectedSlotId(slot.id)
+                    if (slot.roundType === 'bulk' || slot.roundType === 'normal') {
+                      setRoundType(slot.roundType)
+                    }
                   }}
                   className={`p-3 rounded-lg border transition-all ${
                     selectedSlotId === slot.id
-                      ? 'border-[#E8A800] bg-[#E8A800]/10 text-white'
+                      ? slot.roundType === 'bulk'
+                        ? 'border-purple-500 bg-purple-500/10 text-white'
+                        : 'border-[#E8A800] bg-[#E8A800]/10 text-white'
                       : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
                   }`}
                 >
-                  <div className="font-bold">
-                    {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                  <div className="font-bold flex items-center justify-center gap-1.5 flex-wrap">
+                    <span>
+                      {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                    </span>
+                    {slot.roundType === 'bulk' && (
+                      <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 font-extrabold">
+                        Bulk
+                      </span>
+                    )}
                   </div>
                 </button>
               ))}

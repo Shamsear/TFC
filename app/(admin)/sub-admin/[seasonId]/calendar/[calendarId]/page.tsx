@@ -228,19 +228,36 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
             {/* Position Tabs */}
             <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
               <div className="flex gap-2 flex-wrap">
-                {calendar?.auction_slots?.map((slot: any) => (
-                  <button
-                    key={slot.id}
-                    onClick={() => setSelectedPosition(slot.position)}
-                    className={`px-6 py-3 rounded-xl font-bold transition-all ${
-                      selectedPosition === slot.position
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-black/30 text-gray-400 hover:bg-black/50'
-                    }`}
-                  >
-                    {slot.position}
-                  </button>
-                )) || <div className="text-gray-400">No position slots available</div>}
+                {calendar?.auction_slots?.map((slot: any) => {
+                  const isSelected = selectedPosition === slot.position;
+                  const isBulk = slot.roundType === 'bulk';
+                  return (
+                    <button
+                      key={slot.id}
+                      onClick={() => setSelectedPosition(slot.position)}
+                      className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 border ${
+                        isSelected
+                          ? isBulk
+                            ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20'
+                            : 'bg-[#E8A800] border-[#E8A800] text-[#0a0a0a] shadow-lg shadow-[#E8A800]/20'
+                          : isBulk
+                            ? 'bg-purple-500/5 border-purple-500/20 text-purple-400 hover:bg-purple-500/10'
+                            : 'bg-[#E8A800]/5 border-dashed border-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/10'
+                      }`}
+                    >
+                      <span>{slot.position}</span>
+                      {isBulk && (
+                        <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded font-extrabold ${
+                          isSelected
+                            ? 'bg-white/20 text-white'
+                            : 'bg-purple-500/20 text-purple-300'
+                        }`}>
+                          Bulk
+                        </span>
+                      )}
+                    </button>
+                  );
+                }) || <div className="text-gray-400">No position slots available</div>}
               </div>
             </div>
 

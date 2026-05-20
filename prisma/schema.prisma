@@ -413,6 +413,7 @@ model auction_slots {
   auctionCalendarId String
   position          String
   position_group    String?          @map("position_group")
+  roundType         String           @default("normal") @map("round_type")
   slotOrder         Int              @default(0)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime

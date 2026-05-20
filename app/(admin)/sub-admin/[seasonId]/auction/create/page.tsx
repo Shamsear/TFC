@@ -40,7 +40,8 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
             id: true,
             position: true,
             position_group: true,
-            slotOrder: true
+            slotOrder: true,
+            roundType: true
           },
           orderBy: { slotOrder: 'asc' }
         }

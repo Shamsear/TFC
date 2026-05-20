@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 
 interface TiebreakerBiddingClientProps {
@@ -189,13 +188,13 @@ export default function TiebreakerBiddingClient({
 
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-              <Image
+              <img
                 src={tiebreaker.basePlayer.photoUrl}
                 alt={tiebreaker.basePlayer.name}
-                width={64}
-                height={64}
-                unoptimized={true}
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
               />
             </div>
             <div>
@@ -319,13 +318,13 @@ export default function TiebreakerBiddingClient({
               >
                 <div className="flex items-center gap-3">
                   {tiedTeam.teamLogo && (
-                    <Image
+                    <img
                       src={tiedTeam.teamLogo}
                       alt={tiedTeam.teamName}
-                      width={32}
-                      height={32}
-                      unoptimized={true}
+                      loading="eager"
+                      decoding="async"
                       className="w-8 h-8 rounded"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/default-team-logo.png' }}
                     />
                   )}
                   <div>

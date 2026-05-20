@@ -583,7 +583,9 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     }
   }
 
-  const submittedBids = round.teamRoundBids.filter((bid: any) => bid.submitted).length
+  const submittedBids = round.roundType === 'bulk'
+    ? (round.bulkRoundSelections?.filter((bid: any) => bid.submitted).length || 0)
+    : round.teamRoundBids.filter((bid: any) => bid.submitted).length
   const totalTeams = teams.length
 
   // Format duration in hours and minutes

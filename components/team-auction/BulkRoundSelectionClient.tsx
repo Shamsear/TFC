@@ -80,6 +80,9 @@ export default function BulkRoundSelectionClient({
   maxSquadSize
 }: BulkRoundSelectionClientProps) {
   const router = useRouter()
+  const isBelowMin = squadSize < minSquadSize
+  const targetSlots = isBelowMin ? Math.max(0, minSquadSize - squadSize) : Math.max(0, maxSquadSize - squadSize)
+
   const [selections, setSelections] = useState<string[]>(
     initialSelections.map(s => s.playerId)
   )
@@ -211,10 +214,7 @@ export default function BulkRoundSelectionClient({
       if (prev.includes(playerId)) {
         return prev.filter(id => id !== playerId)
       } else {
-        const isBelowMin = squadSize < minSquadSize
-        const targetLimit = isBelowMin ? (minSquadSize - squadSize) : (maxSquadSize - squadSize)
-        
-        if (prev.length >= targetLimit) {
+        if (prev.length >= targetSlots) {
           return prev
         }
         return [...prev, playerId]
@@ -459,12 +459,15 @@ export default function BulkRoundSelectionClient({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Current Squad</div>
-              <div className="text-xl font-bold text-white">{squadSize} / {minSquadSize}</div>
+              <div className="text-xl font-bold text-white">
+                {squadSize} <span className="text-xs text-[#7A7367] font-normal">({minSquadSize} min / {maxSquadSize} max)</span>
+              </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Selected</div>
               <div className="text-xl font-bold text-white">
-                {selections.length} / {Math.max(0, minSquadSize - squadSize)}
+                {selections.length} / {targetSlots}
+                <span className="text-xs text-[#7A7367] font-normal"> ({isBelowMin ? 'needed' : 'max'})</span>
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
@@ -498,7 +501,7 @@ export default function BulkRoundSelectionClient({
                 <div className="text-left">
                   <h3 className="font-bold text-white">Your Selections ({selections.length})</h3>
                   <p className="text-xs text-[#D4CCBB]">
-                    {selections.length} / {Math.max(0, minSquadSize - squadSize)} needed
+                    {selections.length} / {targetSlots} {isBelowMin ? 'needed' : 'max allowed'}
                   </p>
                 </div>
               </div>
@@ -677,8 +680,7 @@ export default function BulkRoundSelectionClient({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
           {paginatedPlayers.map(player => {
             const isSelected = selections.includes(player.id)
-            const slotsNeeded = minSquadSize - squadSize
-            const limitReached = !isSelected && selections.length >= slotsNeeded
+            const limitReached = !isSelected && selections.length >= targetSlots
 
             return (
               <div

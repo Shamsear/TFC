@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 
 interface Player {
@@ -276,13 +275,13 @@ export default function RoundBiddingClient({
 
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-              <Image
+              <img
                 src={team.logoUrl}
                 alt={team.name}
-                width={64}
-                height={64}
-                unoptimized={true}
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/default-team-logo.png' }}
               />
             </div>
             <div>
@@ -445,13 +444,13 @@ export default function RoundBiddingClient({
               >
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                    <Image
+                    <img
                       src={player.photoUrl}
                       alt={player.name}
-                      width={64}
-                      height={64}
-                      unoptimized={true}
+                      loading="eager"
+                      decoding="async"
                       className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                     />
                   </div>
                   <div className="flex-1 min-w-0">

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 
 interface Player {
   id: string
@@ -530,13 +529,13 @@ export default function BulkRoundSelectionClient({
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                          <Image
+                          <img
                             src={player.photoUrl}
                             alt={player.name}
-                            width={48}
-                            height={48}
-                            unoptimized={true}
+                            loading="eager"
+                            decoding="async"
                             className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
                         </div>
                         <div className="flex-1">
@@ -743,13 +742,13 @@ export default function BulkRoundSelectionClient({
 
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                    <Image
+                    <img
                       src={player.photoUrl}
                       alt={player.name}
-                      width={48}
-                      height={48}
-                      unoptimized={true}
+                      loading="eager"
+                      decoding="async"
                       className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                     />
                   </div>
                   <div className="flex-1">

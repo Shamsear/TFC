@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 
 interface Player {
@@ -129,13 +128,13 @@ export default function RoundResultsClient({
                     <div key={tie.id} className="p-4 rounded-lg bg-black/30 border border-amber-500/20">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                          <Image
+                          <img
                             src={tie.basePlayer.photoUrl}
                             alt={tie.basePlayer.name}
-                            width={48}
-                            height={48}
-                            unoptimized={true}
+                            loading="eager"
+                            decoding="async"
                             className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
                         </div>
                         <div>
@@ -165,13 +164,13 @@ export default function RoundResultsClient({
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                      <Image
+                      <img
                         src={alloc.basePlayer.photoUrl}
                         alt={alloc.basePlayer.name}
-                        width={64}
-                        height={64}
-                        unoptimized={true}
+                        loading="eager"
+                        decoding="async"
                         className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                       />
                     </div>
                     <div className="flex-1">
@@ -216,13 +215,13 @@ export default function RoundResultsClient({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                          <Image
+                          <img
                             src={alloc.basePlayer.photoUrl}
                             alt={alloc.basePlayer.name}
-                            width={48}
-                            height={48}
-                            unoptimized={true}
+                            loading="eager"
+                            decoding="async"
                             className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
                         </div>
                         <div className="flex-1">

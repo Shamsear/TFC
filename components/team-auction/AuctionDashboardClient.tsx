@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 
 interface Team {
   id: string
@@ -233,13 +232,13 @@ export default function AuctionDashboardClient({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-              <Image
+              <img
                 src={team.logoUrl}
                 alt={team.name}
-                width={64}
-                height={64}
-                unoptimized={true}
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/default-team-logo.png' }}
               />
             </div>
             <div className="flex-1">
@@ -409,13 +408,13 @@ export default function AuctionDashboardClient({
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                      <Image
+                      <img
                         src={tb.basePlayer.photoUrl}
                         alt={tb.basePlayer.name}
-                        width={48}
-                        height={48}
-                        unoptimized={true}
+                        loading="eager"
+                        decoding="async"
                         className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                       />
                     </div>
                     <div className="flex-1">
@@ -443,13 +442,13 @@ export default function AuctionDashboardClient({
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                      <Image
+                      <img
                         src={tb.basePlayer.photoUrl}
                         alt={tb.basePlayer.name}
-                        width={48}
-                        height={48}
-                        unoptimized={true}
+                        loading="eager"
+                        decoding="async"
                         className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                       />
                     </div>
                     <div className="flex-1">

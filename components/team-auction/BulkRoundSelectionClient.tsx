@@ -535,6 +535,7 @@ export default function BulkRoundSelectionClient({
                             alt={player.name}
                             width={48}
                             height={48}
+                            unoptimized={true}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -747,6 +748,7 @@ export default function BulkRoundSelectionClient({
                       alt={player.name}
                       width={48}
                       height={48}
+                      unoptimized={true}
                       className="w-full h-full object-cover"
                     />
                   </div>

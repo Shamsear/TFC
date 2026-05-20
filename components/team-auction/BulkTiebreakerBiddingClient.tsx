@@ -103,6 +103,9 @@ export default function BulkTiebreakerBiddingClient({
   const bidHistoryTeamMap = new Map(
     tiebreaker.bidHistory.map(b => [b.teamId, b.team])
   )
+  if (!bidHistoryTeamMap.has(team.id)) {
+    bidHistoryTeamMap.set(team.id, { name: team.name })
+  }
 
   // Fetch reserve info on mount
   useEffect(() => {
@@ -151,7 +154,7 @@ export default function BulkTiebreakerBiddingClient({
 
     // Only poll if tiebreaker is active
     if (liveData.status === 'active' && isPolling) {
-      const interval = setInterval(fetchLiveData, 2000) // Poll every 2 seconds for real-time feel
+      const interval = setInterval(fetchLiveData, 500) // Poll every 500ms for real-time feel
       return () => clearInterval(interval)
     }
   }, [tiebreaker.id, liveData.status, isPolling])
@@ -231,6 +234,29 @@ export default function BulkTiebreakerBiddingClient({
         throw new Error(`Bid £${amount.toLocaleString()} exceeds your maximum allowed bid of £${maxBidLimit.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
       }
 
+      // Optimistic UI Update for instant feedback
+      setLiveData(prev => {
+        const newHistory = [{
+          id: Date.now(), // temporary id
+          teamId: team.id,
+          bidAmount: amount,
+          bidTime: new Date(),
+          team: { name: team.name }
+        }, ...prev.bidHistory].slice(0, 20)
+        
+        return {
+          ...prev,
+          currentHighestBid: amount,
+          currentHighestTeamId: team.id,
+          bidHistory: newHistory as any,
+          participants: prev.participants.map(p => 
+            p.teamId === team.id 
+              ? { ...p, currentBid: amount, lastBidTime: new Date() }
+              : p
+          )
+        }
+      })
+
       const response = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}/bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,6 +264,14 @@ export default function BulkTiebreakerBiddingClient({
       })
 
       if (!response.ok) {
+        // Revert on failure by re-fetching
+        const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}`)
+        if (refreshResponse.ok) {
+          const result = await refreshResponse.json()
+          if (result.success && result.tiebreaker) {
+            setLiveData(result.tiebreaker)
+          }
+        }
         const error = await response.json()
         throw new Error(error.error || 'Failed to place bid')
       }
@@ -245,7 +279,7 @@ export default function BulkTiebreakerBiddingClient({
       setMessage({ type: 'success', text: 'Bid placed successfully!' })
       setLastBidTime(Date.now()) // Start 10-second lock
       
-      // Immediately fetch updated data
+      // Immediately fetch updated data to confirm
       const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}`)
       if (refreshResponse.ok) {
         const result = await refreshResponse.json()

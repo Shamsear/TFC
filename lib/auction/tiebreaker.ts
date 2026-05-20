@@ -27,6 +27,11 @@ export async function createTiebreakers(
     tiedTeams: string[];
   }>
 ): Promise<TiebreakerInfo[]> {
+  console.log('\n' + '='.repeat(80));
+  console.log('🔗 CREATING TIEBREAKERS');
+  console.log('='.repeat(80));
+  console.log(`Round ID: ${roundId} | Ties to resolve: ${ties.length}\n`);
+
   const createdTiebreakers: TiebreakerInfo[] = [];
 
   for (const tie of ties) {
@@ -68,6 +73,9 @@ export async function createTiebreakers(
     });
   }
 
+  console.log(`✅ Successfully created ${createdTiebreakers.length} tiebreakers`);
+  console.log('='.repeat(80) + '\n');
+
   return createdTiebreakers;
 }
 
@@ -92,6 +100,12 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
   winningBid?: number;
   error?: string;
 }> {
+  console.log('\n' + '='.repeat(80));
+  console.log('⚔️ STARTING TIEBREAKER RESOLUTION');
+  console.log('='.repeat(80));
+  console.log(`Tiebreaker ID: ${tiebreakerId}`);
+  console.log(`Timestamp: ${new Date().toISOString()}\n`);
+
   try {
     // Get tiebreaker details
     const tiebreaker = await prisma.tiebreakers.findUnique({
@@ -177,6 +191,11 @@ export async function applyTiebreakerResult(
   winnerId: string,
   winningBid: number
 ): Promise<void> {
+  console.log('\n' + '='.repeat(80));
+  console.log('💾 APPLYING TIEBREAKER RESULT');
+  console.log('='.repeat(80));
+  console.log(`Tiebreaker ID: ${tiebreakerId} | Winner ID: ${winnerId} | Bid: £${winningBid.toLocaleString()}\n`);
+
   const tiebreaker = await prisma.tiebreakers.findUnique({
     where: { id: tiebreakerId },
     select: {
@@ -307,6 +326,11 @@ export async function resolveAllTiebreakers(roundId: string): Promise<{
   failed: number;
   errors: string[];
 }> {
+  console.log('\n' + '='.repeat(80));
+  console.log('🔄 RESOLVING ALL TIEBREAKERS');
+  console.log('='.repeat(80));
+  console.log(`Round ID: ${roundId}\n`);
+
   const tiebreakers = await getActiveTiebreakers(roundId);
   let resolved = 0;
   let failed = 0;
@@ -323,6 +347,10 @@ export async function resolveAllTiebreakers(roundId: string): Promise<{
       errors.push(`${tb.playerName}: ${result.error}`);
     }
   }
+
+  console.log(`\n✅ Finished resolving all tiebreakers`);
+  console.log(`   📊 Summary: Resolved: ${resolved} | Failed: ${failed}`);
+  console.log('='.repeat(80) + '\n');
 
   return {
     success: failed === 0,

@@ -101,6 +101,18 @@ export default function BulkRoundSelectionClient({
   const [showSelectedPlayers, setShowSelectedPlayers] = useState(false)
   const [playingStyleFilter, setPlayingStyleFilter] = useState<string>('all')
 
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    isError?: boolean
+    onConfirm?: () => void
+    confirmText?: string
+    cancelText?: string
+  }>({ isOpen: false, title: '', message: '' })
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+
   // Load starred players
   useEffect(() => {
     fetch(`/api/team/starred-players?seasonId=${season.id}`)
@@ -244,27 +256,59 @@ export default function BulkRoundSelectionClient({
         throw new Error(errorMessage)
       }
 
-      alert('Draft saved successfully')
+      setModalConfig({
+        isOpen: true,
+        title: 'Draft Saved',
+        message: 'Your draft has been saved successfully.'
+      })
       router.refresh()
     } catch (error: any) {
-      alert(error.message)
+      setModalConfig({
+        isOpen: true,
+        title: 'Error',
+        message: error.message,
+        isError: true
+      })
     } finally {
       setSaving(false)
     }
   }
 
-  const handleSubmit = async () => {
-    if (!confirm('Are you sure you want to submit? You can still edit your selections before the round ends.')) {
+  const handleSubmit = () => {
+    if (isBelowMin && selections.length < targetSlots) {
+      setModalConfig({
+        isOpen: true,
+        title: 'Validation Error',
+        message: `You must select exactly ${targetSlots} players to reach your minimum squad size.`,
+        isError: true
+      })
       return
     }
 
+    if (!isBelowMin && selections.length === 0) {
+      setModalConfig({
+        isOpen: true,
+        title: 'Validation Error',
+        message: 'Please select at least one player to submit.',
+        isError: true
+      })
+      return
+    }
+
+    setModalConfig({
+      isOpen: true,
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to submit? You can still edit your selections before the round ends.',
+      onConfirm: performSubmit,
+      confirmText: 'Submit',
+      cancelText: 'Cancel'
+    })
+  }
+
+  const performSubmit = async () => {
     setSubmitting(true)
 
     try {
-      if (selections.length === 0) {
-        throw new Error('Please select at least one player')
-      }
-
       const response = await fetch(`/api/team/bulk-rounds/${round.id}/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -283,20 +327,36 @@ export default function BulkRoundSelectionClient({
       }
 
       setSubmitted(true)
-      alert('Selections submitted successfully!')
+      setModalConfig({
+        isOpen: true,
+        title: 'Success',
+        message: 'Selections submitted successfully!'
+      })
       router.refresh()
     } catch (error: any) {
-      alert(error.message)
+      setModalConfig({
+        isOpen: true,
+        title: 'Error',
+        message: error.message,
+        isError: true
+      })
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleUnlockSelections = async () => {
-    if (!confirm('Are you sure you want to edit your selections? Your submission status will be changed to draft.')) {
-      return
-    }
+  const handleUnlockSelections = () => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Edit Selections',
+      message: 'Are you sure you want to edit your selections? Your submission status will be changed to draft.',
+      onConfirm: performUnlock,
+      confirmText: 'Unlock',
+      cancelText: 'Cancel'
+    })
+  }
 
+  const performUnlock = async () => {
     setUnlocking(true)
 
     try {
@@ -315,10 +375,19 @@ export default function BulkRoundSelectionClient({
       }
 
       setSubmitted(false)
-      alert('Selections unlocked. You can now edit them.')
+      setModalConfig({
+        isOpen: true,
+        title: 'Unlocked',
+        message: 'Selections unlocked. You can now edit them.'
+      })
       router.refresh()
     } catch (error: any) {
-      alert(error.message)
+      setModalConfig({
+        isOpen: true,
+        title: 'Error',
+        message: error.message,
+        isError: true
+      })
     } finally {
       setUnlocking(false)
     }
@@ -897,6 +966,50 @@ export default function BulkRoundSelectionClient({
           </div>
         )}
       </div>
+
+      {/* Custom Modal */}
+      {modalConfig.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className={`text-xl font-bold mb-3 ${modalConfig.isError ? 'text-red-400' : 'text-white'}`}>
+              {modalConfig.title}
+            </h3>
+            <p className="text-[#D4CCBB] mb-6 whitespace-pre-wrap">{modalConfig.message}</p>
+            <div className="flex justify-end gap-3">
+              {modalConfig.onConfirm ? (
+                <>
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors font-medium"
+                  >
+                    {modalConfig.cancelText || 'Cancel'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeModal()
+                      modalConfig.onConfirm!()
+                    }}
+                    className={`px-4 py-2 rounded-lg font-bold transition-all ${
+                      modalConfig.isError 
+                        ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/50' 
+                        : 'bg-[#E8A800] text-black hover:bg-[#E8A800]/90'
+                    }`}
+                  >
+                    {modalConfig.confirmText || 'Confirm'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-lg bg-[#E8A800] text-black hover:bg-[#E8A800]/90 font-bold transition-colors"
+                >
+                  OK
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

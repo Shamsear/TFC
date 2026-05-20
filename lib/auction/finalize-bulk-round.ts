@@ -115,6 +115,7 @@ function separateAllocationsAndConflicts(
 async function allocateSingleBidders(
   singleBidders: Map<string, string>,
   seasonId: string,
+  roundId: string,
   basePrice: number
 ): Promise<{ allocations: BulkAllocation[]; errors: string[] }> {
   const allocations: BulkAllocation[] = [];
@@ -160,7 +161,7 @@ async function allocateSingleBidders(
     });
 
     // Check budget with reserves using v2
-    const reserveInfo = await calculateReserve(teamId, '', seasonId);
+    const reserveInfo = await calculateReserve(teamId, roundId, seasonId);
     if (basePrice > reserveInfo.maxBid) {
       errors.push(
         `Team ${teamId} cannot afford ${playerNames.get(playerId)} ` +
@@ -185,9 +186,13 @@ async function allocateSingleBidders(
  * Finalize a bulk round
  */
 export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizationResult> {
+  console.log('\n' + '='.repeat(80));
+  console.log('🎯 STARTING BULK ROUND FINALIZATION');
+  console.log('='.repeat(80));
+  console.log(`Round ID: ${roundId}`);
+  console.log(`Timestamp: ${new Date().toISOString()}\n`);
+
   try {
-    console.log(`\n🎯 Starting bulk round finalization for ${roundId}`);
-    
     // 1. Get round details
     console.log(`📋 Step 1: Fetching round details...`);
     const round = await prisma.rounds.findUnique({
@@ -255,6 +260,7 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
     const { allocations, errors } = await allocateSingleBidders(
       singleBidders,
       round.seasonId,
+      roundId,
       round.basePrice
     );
     console.log(`   ✓ ${allocations.length} successful allocations`);
@@ -293,6 +299,7 @@ export async function finalizeBulkRound(roundId: string): Promise<BulkFinalizati
     console.log(`      - Allocations: ${allocations.length}`);
     console.log(`      - Conflicts: ${conflictsList.length}`);
     console.log(`      - Errors: ${errors.length}`);
+    console.log('='.repeat(80) + '\n');
 
     return {
       success: true,
@@ -318,7 +325,10 @@ export async function applyBulkFinalizationResults(
   allocations: BulkAllocation[],
   conflicts: BulkConflict[] = []
 ): Promise<void> {
-  console.log(`\n💾 Applying bulk finalization results to database...`);
+  console.log('\n' + '='.repeat(80));
+  console.log(`💾 APPLYING BULK FINALIZATION RESULTS`);
+  console.log('='.repeat(80));
+  console.log(`Round ID: ${roundId} | Allocations: ${allocations.length} | Conflicts: ${conflicts.length}\n`);
   
   const round = await prisma.rounds.findUnique({
     where: { id: roundId },
@@ -443,4 +453,5 @@ export async function applyBulkFinalizationResults(
   if (conflicts.length > 0) {
     console.log(`   ⚠️  ${conflicts.length} conflicts require bulk tiebreakers`);
   }
+  console.log('='.repeat(80) + '\n');
 }

@@ -460,7 +460,9 @@ export default function BulkRoundSelectionClient({
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Current Squad</div>
               <div className="text-xl font-bold text-white">
-                {squadSize} <span className="text-xs text-[#7A7367] font-normal">({minSquadSize} min / {maxSquadSize} max)</span>
+                {squadSize} <span className="text-xs text-[#7A7367] font-normal">
+                  {minSquadSize === maxSquadSize ? `(${minSquadSize} required)` : `(${minSquadSize} min / ${maxSquadSize} max)`}
+                </span>
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">

@@ -6,8 +6,8 @@
 const GITHUB_REPO = 'https://raw.githubusercontent.com/Shamsear/TFC-Images/main';
 const CDN_BASE_URL = 'https://cdn.jsdelivr.net/gh/Shamsear/TFC-Images@main';
 
-// Always use GitHub raw for now (CDN having issues)
-const USE_CDN = false;
+// Enable fast global CDN (jsDelivr) for instant image loading without rate limits
+const USE_CDN = true;
 const BASE_URL = USE_CDN ? CDN_BASE_URL : GITHUB_REPO;
 
 /**

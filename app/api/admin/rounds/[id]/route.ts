@@ -38,6 +38,14 @@ export async function GET(
             submittedAt: true
           }
         },
+        bulkRoundSelections: {
+          select: {
+            teamId: true,
+            submitted: true,
+            selectedPlayers: true,
+            lastUpdated: true
+          }
+        },
         tiebreakers: {
           select: {
             id: true,
@@ -67,7 +75,8 @@ export async function GET(
         _count: {
           select: {
             teamRoundBids: true,
-            tiebreakers: true
+            tiebreakers: true,
+            bulkRoundSelections: true
           }
         }
       }

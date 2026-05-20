@@ -28,6 +28,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         }
       },
       teamRoundBids: true,
+      bulkRoundSelections: true,
       tiebreakers: {
         include: {
           basePlayer: {
@@ -44,7 +45,8 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
       _count: {
         select: {
           teamRoundBids: true,
-          tiebreakers: true
+          tiebreakers: true,
+          bulkRoundSelections: true
         }
       }
     }

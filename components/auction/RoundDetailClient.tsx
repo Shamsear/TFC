@@ -647,7 +647,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               </span>
             </h1>
             <p className="text-[#D4CCBB] text-sm sm:text-base">
-              {round.season.name} • {round.position || 'All Positions'} • {round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}
+              {round.season.name} • {round.position || 'All Positions'}{round.position_group && round.position_group.toLowerCase() !== 'all' ? ` (${round.position_group.toUpperCase()})` : ''} • {round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}
             </p>
           </div>
           <div className="flex items-center gap-3">

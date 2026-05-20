@@ -8,6 +8,7 @@ interface Player {
   name: string
   photoUrl: string
   position: string
+  playing_style: string | null
   overall: number
   nationality: string
   pace: number
@@ -98,6 +99,7 @@ export default function BulkRoundSelectionClient({
   const [currentPage, setCurrentPage] = useState(1)
   const playersPerPage = 12
   const [showSelectedPlayers, setShowSelectedPlayers] = useState(false)
+  const [playingStyleFilter, setPlayingStyleFilter] = useState<string>('all')
 
   // Load starred players
   useEffect(() => {
@@ -326,7 +328,8 @@ export default function BulkRoundSelectionClient({
     .filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesPosition = positionFilter === 'all' || p.position === positionFilter
-      return matchesSearch && matchesPosition
+      const matchesStyle = playingStyleFilter === 'all' || p.playing_style === playingStyleFilter
+      return matchesSearch && matchesPosition && matchesStyle
     })
     .sort((a, b) => {
       // Sort: starred players first, then by overall rating
@@ -346,9 +349,10 @@ export default function BulkRoundSelectionClient({
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, positionFilter])
+  }, [searchQuery, positionFilter, playingStyleFilter])
 
   const positions = Array.from(new Set(players.map(p => p.position))).sort()
+  const playingStyles = Array.from(new Set(players.map(p => p.playing_style).filter(Boolean))) as string[]
 
   // Pagination Component
   const PaginationControls = () => {
@@ -433,51 +437,51 @@ export default function BulkRoundSelectionClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 overflow-x-hidden">
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-black text-white mb-1">
+          <div className="flex items-start justify-between mb-4 gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-black text-white mb-1 truncate">
                 Round {round.roundNumber} - Bulk Selection
               </h1>
-              <p className="text-sm text-[#D4CCBB]">
+              <p className="text-sm text-[#D4CCBB] truncate">
                 {season.name} {round.position && `— ${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}`}
               </p>
             </div>
             {timeRemaining && (
-              <div className="px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <div className="text-xs text-emerald-400 mb-1">Time Remaining</div>
-                <div className="text-lg font-bold text-emerald-300">{timeRemaining}</div>
+              <div className="px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0">
+                <div className="text-xs text-emerald-400 mb-0.5">Remaining</div>
+                <div className="text-base font-bold text-emerald-300">{timeRemaining}</div>
               </div>
             )}
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Current Squad</div>
-              <div className="text-xl font-bold text-white">
+              <div className="text-lg sm:text-xl font-bold text-white">
                 {squadSize} <span className="text-xs text-[#7A7367] font-normal">
-                  {minSquadSize === maxSquadSize ? `(${minSquadSize} required)` : `(${minSquadSize} min / ${maxSquadSize} max)`}
+                  {minSquadSize === maxSquadSize ? `(${minSquadSize} req)` : `(${minSquadSize}–${maxSquadSize})`}
                 </span>
               </div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Selected</div>
-              <div className="text-xl font-bold text-white">
+              <div className="text-lg sm:text-xl font-bold text-white">
                 {selections.length} / {targetSlots}
                 <span className="text-xs text-[#7A7367] font-normal"> ({isBelowMin ? 'needed' : 'max'})</span>
               </div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Price Each</div>
-              <div className="text-xl font-bold text-white">£{round.basePrice?.toLocaleString() || 0}</div>
+              <div className="text-lg sm:text-xl font-bold text-white">£{round.basePrice?.toLocaleString() || 0}</div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
+            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
               <div className="text-xs text-[#7A7367] mb-1">Status</div>
-              <div className={`text-xl font-bold ${submitted ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <div className={`text-lg sm:text-xl font-bold ${submitted ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {submitted ? 'Submitted' : 'Draft'}
               </div>
             </div>
@@ -651,26 +655,86 @@ export default function BulkRoundSelectionClient({
           );
         })()}
 
-        {/* Filters */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        {/* Search */}
+        <div className="mb-4">
           <input
             type="text"
             placeholder="Search players..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]"
+            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]"
           />
-          <select
-            value={positionFilter}
-            onChange={(e) => setPositionFilter(e.target.value)}
-            className="px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E8A800]"
-          >
-            <option value="all">All Positions</option>
-            {positions.map(pos => (
-              <option key={pos} value={pos}>{pos}</option>
-            ))}
-          </select>
         </div>
+
+        {/* Position Tabs */}
+        <div className="mb-3">
+          <div className="text-xs text-[#7A7367] mb-2 font-medium uppercase tracking-wide">Position</div>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <button
+              onClick={() => setPositionFilter('all')}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                positionFilter === 'all'
+                  ? 'bg-[#E8A800] text-black'
+                  : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+              }`}
+            >
+              All
+            </button>
+            {positions.map(pos => {
+              const count = players.filter(p => p.position === pos).length
+              return (
+                <button
+                  key={pos}
+                  onClick={() => setPositionFilter(pos)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    positionFilter === pos
+                      ? 'bg-[#E8A800] text-black'
+                      : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                  }`}
+                >
+                  {pos} <span className="opacity-60 text-xs">({count})</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Playing Style Tabs */}
+        {playingStyles.length > 0 && (
+          <div className="mb-5">
+            <div className="text-xs text-[#7A7367] mb-2 font-medium uppercase tracking-wide">Playing Style</div>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <button
+                onClick={() => setPlayingStyleFilter('all')}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  playingStyleFilter === 'all'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                }`}
+              >
+                All Styles
+              </button>
+              {playingStyles.sort().map(style => {
+                const count = players.filter(p =>
+                  (positionFilter === 'all' || p.position === positionFilter) && p.playing_style === style
+                ).length
+                return (
+                  <button
+                    key={style}
+                    onClick={() => setPlayingStyleFilter(style)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                      playingStyleFilter === style
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {style} <span className="opacity-60 text-xs">({count})</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Pagination - Top */}
         {filteredPlayers.length > playersPerPage && <PaginationControls />}
@@ -752,9 +816,10 @@ export default function BulkRoundSelectionClient({
                     />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-white">{player.name}</h3>
+                    <h3 className="font-bold text-white text-sm leading-tight">{player.name}</h3>
                     <p className="text-xs text-[#D4CCBB]">
                       {player.position} • OVR {player.overall}
+                      {player.playing_style && <span className="text-purple-400"> • {player.playing_style}</span>}
                     </p>
                   </div>
                   {isSelected && (

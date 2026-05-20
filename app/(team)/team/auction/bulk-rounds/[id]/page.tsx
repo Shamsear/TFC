@@ -138,6 +138,7 @@ export default async function BulkRoundPage({
     name: p.basePlayer.name,
     photoUrl: getPlayerPhotoUrl(`${p.basePlayer.player_id || p.basePlayer.id}.webp`),
     position: p.position,
+    playing_style: p.playing_style || null,
     overall: p.overallRating,
     nationality: p.nationality || 'Unknown',
     pace: p.speed || 0,
@@ -147,6 +148,7 @@ export default async function BulkRoundPage({
     defending: p.tackling || 0,
     physical: p.physical_contact || 0
   }))
+
 
   // Get existing selections
   const existingSelection = await prisma.bulk_round_selections.findUnique({

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 
 interface BulkTiebreakerBiddingClientProps {
@@ -380,13 +379,13 @@ export default function BulkTiebreakerBiddingClient({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-                <Image
+                <img
                   src={liveData.basePlayer.photoUrl}
                   alt={liveData.basePlayer.name}
-                  width={64}
-                  height={64}
-                  unoptimized={true}
+                  loading="eager"
+                  decoding="async"
                   className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                 />
               </div>
               <div>
@@ -693,13 +692,13 @@ export default function BulkTiebreakerBiddingClient({
                       >
                         <div className="flex items-center gap-3 mb-2">
                           <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                            <Image
+                            <img
                               src={teamData.logoUrl}
                               alt={teamData.name}
-                              width={32}
-                              height={32}
-                              unoptimized={true}
+                              loading="eager"
+                              decoding="async"
                               className="w-full h-full object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).src = '/default-team-logo.png' }}
                             />
                           </div>
                           <div className="flex-1">

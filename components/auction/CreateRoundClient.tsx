@@ -67,11 +67,35 @@ export default function CreateRoundClient({
   const [selectedCalendarId, setSelectedCalendarId] = useState('')
   const [selectedSlotId, setSelectedSlotId] = useState('')
 
+  const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'SS', 'LWF', 'RWF', 'CF']
+  const [checkedPositions, setCheckedPositions] = useState<string[]>([])
+
   // Get selected calendar and slot
   const selectedCalendar = auctionCalendar.find(c => c.id === selectedCalendarId)
   const selectedSlot = selectedCalendar?.auctionSlots.find(s => s.id === selectedSlotId)
   const selectedPosition = selectedSlot?.position
   const selectedPositionGroup = selectedSlot?.position_group
+
+  // Synchronize custom positions when calendar slot changes
+  useEffect(() => {
+    if (selectedSlot) {
+      if (selectedSlot.position) {
+        const parsedPositions = selectedSlot.position.split(',').map(p => p.trim()).filter(Boolean)
+        setCheckedPositions(parsedPositions)
+      } else {
+        setCheckedPositions([])
+      }
+    } else {
+      setCheckedPositions([])
+    }
+  }, [selectedSlotId])
+
+  // Synchronize custom positions or default when round type toggles to bulk (if no positions are checked)
+  useEffect(() => {
+    if (roundType === 'bulk' && checkedPositions.length === 0) {
+      setCheckedPositions(POSITIONS)
+    }
+  }, [roundType])
 
   // Calculate total duration in hours
   const totalDurationHours = parseFloat(durationHours || '0') + parseFloat(durationMinutes || '0') / 60
@@ -84,10 +108,9 @@ export default function CreateRoundClient({
   // Get all eligible players for the selected position and position group
   const eligiblePlayers = availablePlayers
     .filter(player => {
-      if (!selectedPosition) return false
+      if (checkedPositions.length === 0) return false
       
-      const selectedPositions = selectedPosition.split(',').map(p => p.trim())
-      if (!selectedPositions.includes(player.position)) return false
+      if (!checkedPositions.includes(player.position)) return false
       
       // If position_group is 'ALL' or null, include all players of this position
       if (!selectedPositionGroup || selectedPositionGroup === 'ALL') return true
@@ -107,8 +130,12 @@ export default function CreateRoundClient({
         throw new Error('Please fill in all required fields')
       }
 
+      if (checkedPositions.length === 0) {
+        throw new Error('Please select at least one position')
+      }
+
       if (eligiblePlayers.length === 0) {
-        throw new Error('No eligible players found for this position')
+        throw new Error('No eligible players found for selected positions')
       }
 
       // Calculate duration in seconds
@@ -125,7 +152,7 @@ export default function CreateRoundClient({
           seasonId,
           roundNumber: nextRoundNumber,
           durationSeconds,
-          position: selectedPosition,
+          position: checkedPositions.join(','),
           position_group: selectedPositionGroup,
           roundType: roundType,
           maxBidsPerTeam: seasonDefaults.maxBidsPerTeam,
@@ -160,7 +187,7 @@ export default function CreateRoundClient({
       {/* Round Type */}
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
         <label className="block text-sm font-bold text-white mb-3">Round Type</label>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <button
             type="button"
             onClick={() => setRoundType('normal')}
@@ -191,7 +218,7 @@ export default function CreateRoundClient({
       {/* Finalization Mode */}
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
         <label className="block text-sm font-bold text-white mb-3">Finalization Mode</label>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <button
             type="button"
             onClick={() => setFinalizationMode('auto')}
@@ -317,7 +344,7 @@ export default function CreateRoundClient({
                             : 'bg-white/5 border-white/10 text-gray-300'
                         }`}
                       >
-                        {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                        {slot.position.split(',').join(', ')}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
                         {slot.roundType === 'bulk' && ' (Bulk)'}
                       </span>
                     ))}
@@ -329,60 +356,98 @@ export default function CreateRoundClient({
         </div>
 
         {selectedCalendar && (
-          <div>
-            <label className="block text-sm font-bold text-white mb-2">Select Position Slot</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {selectedCalendar.auctionSlots.map(slot => (
-                <button
-                  key={slot.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedSlotId(slot.id)
-                    if (slot.roundType === 'bulk' || slot.roundType === 'normal') {
-                      setRoundType(slot.roundType)
-                    }
-                  }}
-                  className={`p-3 rounded-lg border transition-all ${
-                    selectedSlotId === slot.id
-                      ? slot.roundType === 'bulk'
-                        ? 'border-purple-500 bg-purple-500/10 text-white'
-                        : 'border-[#E8A800] bg-[#E8A800]/10 text-white'
-                      : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
-                  }`}
-                >
-                  <div className="font-bold flex items-center justify-center gap-1.5 flex-wrap">
-                    <span>
-                      {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
-                    </span>
-                    {slot.roundType === 'bulk' && (
-                      <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 font-extrabold">
-                        Bulk
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-white mb-2">Select Position Slot</label>
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {selectedCalendar.auctionSlots.map(slot => (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSlotId(slot.id)
+                      if (slot.roundType === 'bulk' || slot.roundType === 'normal') {
+                        setRoundType(slot.roundType)
+                      }
+                    }}
+                    className={`p-3 rounded-lg border transition-all w-full min-w-0 overflow-hidden flex items-center justify-center ${
+                      selectedSlotId === slot.id
+                        ? slot.roundType === 'bulk'
+                          ? 'border-purple-500 bg-purple-500/10 text-white'
+                          : 'border-[#E8A800] bg-[#E8A800]/10 text-white'
+                        : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="font-bold flex flex-col xs:flex-row items-center justify-center gap-1.5 flex-wrap w-full text-center break-words">
+                      <span className="break-words max-w-full">
+                        {slot.position.split(',').join(', ')}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
                       </span>
-                    )}
-                  </div>
-                </button>
-              ))}
+                      {slot.roundType === 'bulk' && (
+                        <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 font-extrabold shrink-0">
+                          Bulk
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {selectedSlot && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <label className="block text-sm font-bold text-white">Customize Positions for this Round</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCheckedPositions(POSITIONS)}
+                      className={`text-xs font-bold transition-all bg-white/5 px-2.5 py-1 rounded border border-white/10 hover:bg-white/10 ${
+                        roundType === 'bulk' ? 'text-purple-400 hover:text-purple-300' : 'text-[#E8A800] hover:text-[#FFB347]'
+                      }`}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCheckedPositions([])}
+                      className="text-xs font-bold text-gray-400 hover:text-white transition-all bg-white/5 px-2.5 py-1 rounded border border-white/10 hover:bg-white/10"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+                  {POSITIONS.map(position => {
+                    const isChecked = checkedPositions.includes(position)
+                    return (
+                      <button
+                        key={position}
+                        type="button"
+                        onClick={() => {
+                          if (isChecked) {
+                            setCheckedPositions(checkedPositions.filter(p => p !== position))
+                          } else {
+                            setCheckedPositions([...checkedPositions, position])
+                          }
+                        }}
+                        className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all text-center ${
+                          isChecked
+                            ? roundType === 'bulk'
+                              ? 'border-purple-500 bg-purple-500/20 text-white shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                              : 'border-[#E8A800] bg-[#E8A800]/20 text-white shadow-[0_0_10px_rgba(232,168,0,0.2)]'
+                            : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
+                        }`}
+                      >
+                        {position}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {/* Eligible Players Summary */}
-      {selectedPosition && (
-        <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
-          <div className="text-center">
-            <div className="text-sm font-bold text-gray-400 mb-2">
-              Eligible Players for {selectedPosition}{selectedPositionGroup && selectedPositionGroup !== 'ALL' ? `-${selectedPositionGroup}` : ''}
-            </div>
-            <div className="text-4xl font-black text-[#E8A800] mb-2">
-              {eligiblePlayers.length}
-            </div>
-            <div className="text-xs text-gray-400">
-              All unsold {selectedPosition}{selectedPositionGroup && selectedPositionGroup !== 'ALL' ? ` Group ${selectedPositionGroup}` : ''} players will be included in this round
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex gap-4">
@@ -394,10 +459,14 @@ export default function CreateRoundClient({
         </Link>
         <button
           type="submit"
-          disabled={loading || eligiblePlayers.length === 0 || !selectedSlotId}
-          className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading || checkedPositions.length === 0 || !selectedSlotId}
+          className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+            roundType === 'bulk'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white'
+              : 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a]'
+          }`}
         >
-          {loading ? 'Creating...' : `Create Round (${eligiblePlayers.length} players)`}
+          {loading ? 'Creating...' : 'Create Round'}
         </button>
       </div>
     </form>

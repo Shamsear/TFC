@@ -695,9 +695,14 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                     {auction.positionSlots.map((slot, idx) => (
                       <div
                         key={`${slot.position}-${slot.group}-${idx}`}
-                        className="px-2 py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold"
+                        className={`px-2 py-1 rounded-lg text-xs font-bold border transition-all ${
+                          slot.roundType === 'bulk'
+                            ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
+                            : 'bg-[#E8A800]/20 border-[#E8A800]/30 text-[#E8A800]'
+                        }`}
                       >
                         {slot.position}{slot.group && slot.group !== 'ALL' ? `-${slot.group}` : ''}
+                        <span className="opacity-60 font-normal ml-1">({slot.roundType === 'bulk' ? 'Bulk' : 'Normal'})</span>
                       </div>
                     ))}
                   </div>

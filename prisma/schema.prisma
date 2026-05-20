@@ -248,6 +248,7 @@ model seasons {
   starredPlayers          starred_players[]
   auctionPlans            auction_plans[]
   teamSquads              team_squads[]
+  auctionSettings         auction_settings?
 }
 
 model starred_players {
@@ -789,4 +790,28 @@ model preview_allocations {
   @@index([roundId])
   @@index([teamId])
   @@index([basePlayerId])
+}
+
+model auction_settings {
+  id                    Int       @id @default(autoincrement())
+  seasonId              String    @unique
+  auction_window        String?   @default("season_start")
+  
+  phase_1_end_round     Int?      @default(18)
+  phase_2_end_round     Int?      @default(20)
+  
+  phase_1_min_balance   Int?      @default(30)
+  phase_2_min_balance   Int?      @default(30)
+  phase_3_min_balance   Int?      @default(10)
+  
+  min_squad_size        Int?      @default(25)
+  max_squad_size        Int?      @default(30)
+  max_rounds            Int?      @default(25)
+  
+  min_balance_per_round Int?      @default(30)
+  
+  created_at            DateTime  @default(now()) @map("created_at")
+  updated_at            DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  season                seasons   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 }

@@ -141,7 +141,11 @@ export default async function RoundBiddingPage({
   const players = await prisma.seasonal_player_stats.findMany({
     where: {
       seasonId: round.seasonId,
-      ...(round.position ? { position: round.position } : {}),
+      ...(round.position ? {
+        position: round.position.includes(',')
+          ? { in: round.position.split(',').map(p => p.trim()) }
+          : round.position
+      } : {}),
       ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
       basePlayerId: {
         notIn: ownedPlayerIds

@@ -611,6 +611,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                       }`}
                     >
                       {slot.position}{slot.group && slot.group !== 'ALL' ? `-${slot.group}` : ''}
+                      <span className="opacity-60 font-normal ml-1">({slot.roundType === 'bulk' ? 'Bulk' : 'Normal'})</span>
                     </div>
                   ))}
                 </div>

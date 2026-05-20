@@ -493,14 +493,24 @@ export async function placeBulkTiebreakerBid(
  
     // Place bid
     await prisma.$transaction(async (tx) => {
-      // Update tiebreaker
-      await tx.bulk_tiebreakers.update({
-        where: { id: tiebreakerId },
+      // Update tiebreaker with concurrency control
+      const updateResult = await tx.bulk_tiebreakers.updateMany({
+        where: { 
+          id: tiebreakerId,
+          OR: [
+            { currentHighestBid: { lt: bidAmount } },
+            { currentHighestBid: null }
+          ]
+        },
         data: {
           currentHighestBid: bidAmount,
           currentHighestTeamId: teamId
         }
       });
+      
+      if (updateResult.count === 0) {
+        throw new Error('A higher or equal bid was already placed. Please bid again with a higher amount.');
+      }
  
       // Update participant
       await tx.bulk_tiebreaker_participants.updateMany({

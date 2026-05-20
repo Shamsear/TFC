@@ -234,29 +234,6 @@ export default function BulkTiebreakerBiddingClient({
         throw new Error(`Bid £${amount.toLocaleString()} exceeds your maximum allowed bid of £${maxBidLimit.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
       }
 
-      // Optimistic UI Update for instant feedback
-      setLiveData(prev => {
-        const newHistory = [{
-          id: Date.now(), // temporary id
-          teamId: team.id,
-          bidAmount: amount,
-          bidTime: new Date(),
-          team: { name: team.name }
-        }, ...prev.bidHistory].slice(0, 20)
-        
-        return {
-          ...prev,
-          currentHighestBid: amount,
-          currentHighestTeamId: team.id,
-          bidHistory: newHistory as any,
-          participants: prev.participants.map(p => 
-            p.teamId === team.id 
-              ? { ...p, currentBid: amount, lastBidTime: new Date() }
-              : p
-          )
-        }
-      })
-
       const response = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}/bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

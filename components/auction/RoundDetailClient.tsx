@@ -134,16 +134,35 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [liveTiebreakers, setLiveTiebreakers] = useState<any[]>(round.tiebreakers || [])
 
   const submittedTeamsList = teams.filter(t => {
+    if (round.roundType === 'bulk') {
+      const selection = round.bulkRoundSelections?.find((b: any) => b.teamId === t.id)
+      return selection?.submitted === true
+    }
     const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
     return bid?.submitted === true
   })
 
   const inProgressTeamsList = teams.map(t => {
+    if (round.roundType === 'bulk') {
+      const selection = round.bulkRoundSelections?.find((b: any) => b.teamId === t.id)
+      let count = 0
+      if (selection?.selectedPlayers) {
+        try {
+          const parsed = JSON.parse(selection.selectedPlayers)
+          count = parsed.players?.length || 0
+        } catch (e) {}
+      }
+      return { team: t, bid: selection, bidCount: count }
+    }
     const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
-    return { team: t, bid }
+    return { team: t, bid, bidCount: bid?.bidCount || 0 }
   }).filter(item => item.bid && !item.bid.submitted)
 
   const notStartedTeamsList = teams.filter(t => {
+    if (round.roundType === 'bulk') {
+      const selection = round.bulkRoundSelections?.find((b: any) => b.teamId === t.id)
+      return !selection
+    }
     const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
     return !bid
   })
@@ -153,7 +172,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       `*Submitted (${submittedTeamsList.length}):*\n` +
       `${submittedTeamsList.length > 0 ? submittedTeamsList.map(t => `- ${t.name}`).join('\n') : '- None'}\n\n` +
       `*In Progress (${inProgressTeamsList.length}):*\n` +
-      `${inProgressTeamsList.length > 0 ? inProgressTeamsList.map(item => `- ${item.team.name} (${item.bid.bidCount} bids)`).join('\n') : '- None'}\n\n` +
+      `${inProgressTeamsList.length > 0 ? inProgressTeamsList.map(item => `- ${item.team.name} (${item.bidCount} ${round.roundType === 'bulk' ? 'players' : 'bids'})`).join('\n') : '- None'}\n\n` +
       `*Not Started (${notStartedTeamsList.length}):*\n` +
       `${notStartedTeamsList.length > 0 ? notStartedTeamsList.map(t => `- ${t.name}`).join('\n') : '- None'}`
     

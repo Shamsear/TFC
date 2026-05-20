@@ -1644,6 +1644,49 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           ) : (
             // Simple view for non-completed rounds
             teams.map(team => {
+              if (round.roundType === 'bulk') {
+                const selection = round.bulkRoundSelections?.find((s: any) => s.teamId === team.id)
+                let selectedCount = 0
+                if (selection?.selectedPlayers) {
+                  try {
+                    const parsed = JSON.parse(selection.selectedPlayers)
+                    selectedCount = parsed.players?.length || 0
+                  } catch (e) {}
+                }
+                return (
+                  <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10 gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto text-left">
+                      {team.logoUrl && (
+                        <img src={team.logoUrl} alt={team.name} className="w-8 h-8 rounded" />
+                      )}
+                      <span className="font-bold text-white truncate">{team.name}</span>
+                    </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                      {selection ? (
+                        <div className="flex items-center gap-3 w-full justify-between sm:justify-end">
+                          <span className="text-sm text-gray-400">{selectedCount} players</span>
+                          {selection.submitted ? (
+                            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30 flex-shrink-0">
+                              Submitted
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold border border-yellow-500/30 flex-shrink-0">
+                              In Progress
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end w-full">
+                          <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-bold border border-gray-500/30 flex-shrink-0">
+                            Not Started
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }
+
               const teamBid = round.teamRoundBids.find((bid: any) => bid.teamId === team.id)
               return (
                 <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10 gap-3">

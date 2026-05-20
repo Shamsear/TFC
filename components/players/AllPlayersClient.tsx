@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import PositionGroupBadge from '@/components/player/PositionGroupBadge'
@@ -918,12 +917,13 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                       <div className="flex gap-4">
                         {/* Player Photo - Left Side */}
                         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-                          <Image
+                          <img
                             src={player.photoUrl}
                             alt={player.name}
-                            fill
-                            unoptimized={true}
-                            className="object-cover"
+                            loading="eager"
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
                         </div>
 
@@ -952,12 +952,13 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                         {player.team ? (
                           <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
                             <div className="relative w-5 h-5 rounded overflow-hidden bg-gray-800 flex-shrink-0">
-                              <Image
+                              <img
                                 src={player.team.logoUrl}
                                 alt={player.team.name}
-                                fill
-                                unoptimized={true}
-                                className="object-cover"
+                                loading="eager"
+                                decoding="async"
+                                className="w-full h-full object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).src = '/default-team-logo.png' }}
                               />
                             </div>
                             <div className="flex-1 min-w-0">

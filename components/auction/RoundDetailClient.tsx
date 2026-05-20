@@ -9,6 +9,7 @@ interface Round {
   roundNumber: number
   roundType: string
   position: string | null
+  position_group: string | null
   status: string
   durationSeconds: number
   startTime: Date | null
@@ -22,10 +23,12 @@ interface Round {
     seasonNumber: number
   }
   teamRoundBids: any[]
+  bulkRoundSelections?: any[]
   tiebreakers: any[]
   _count: {
     teamRoundBids: number
     tiebreakers: number
+    bulkRoundSelections?: number
   }
 }
 

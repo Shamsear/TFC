@@ -68,7 +68,9 @@ export default async function BulkRoundPage({
     },
     select: {
       id: true,
-      currentBudget: true
+      currentBudget: true,
+      football_min_slots: true,
+      football_max_slots: true
     }
   })
 
@@ -174,6 +176,14 @@ export default async function BulkRoundPage({
       }).filter((s: any) => s.player !== null)
     : []
 
+  // Get season's default min/max squad settings (fallback)
+  const auctionSettings = await prisma.auction_settings.findUnique({
+    where: { seasonId: round.seasonId }
+  })
+
+  const minSquadSize = seasonTeam.football_min_slots || auctionSettings?.min_squad_size || 25
+  const maxSquadSize = seasonTeam.football_max_slots || auctionSettings?.max_squad_size || 30
+
   return (
     <BulkRoundSelectionClient
       round={round}
@@ -182,7 +192,8 @@ export default async function BulkRoundPage({
       players={players}
       initialSelections={initialSelections}
       squadSize={squadSize}
-      minSquadSize={16}
+      minSquadSize={minSquadSize}
+      maxSquadSize={maxSquadSize}
     />
   )
 }

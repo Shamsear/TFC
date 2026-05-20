@@ -66,6 +66,7 @@ interface BulkRoundSelectionClientProps {
   initialSelections: Selection[]
   squadSize: number
   minSquadSize: number
+  maxSquadSize: number
 }
 
 export default function BulkRoundSelectionClient({
@@ -75,7 +76,8 @@ export default function BulkRoundSelectionClient({
   players,
   initialSelections,
   squadSize,
-  minSquadSize
+  minSquadSize,
+  maxSquadSize
 }: BulkRoundSelectionClientProps) {
   const router = useRouter()
   const [selections, setSelections] = useState<string[]>(
@@ -209,11 +211,10 @@ export default function BulkRoundSelectionClient({
       if (prev.includes(playerId)) {
         return prev.filter(id => id !== playerId)
       } else {
-        // Calculate how many more players needed to reach minimum squad size
-        const slotsNeeded = minSquadSize - squadSize
+        const isBelowMin = squadSize < minSquadSize
+        const targetLimit = isBelowMin ? (minSquadSize - squadSize) : (maxSquadSize - squadSize)
         
-        // Don't allow more selections than needed (this shouldn't happen with disabled buttons)
-        if (slotsNeeded > 0 && prev.length >= slotsNeeded) {
+        if (prev.length >= targetLimit) {
           return prev
         }
         return [...prev, playerId]

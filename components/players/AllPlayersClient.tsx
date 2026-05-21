@@ -198,6 +198,192 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   const [exportMode, setExportMode] = useState<'single' | 'multiple'>('single')
   const [exportLoading, setExportLoading] = useState(false)
 
+  const handleExportMultipleFiles = async () => {
+    console.log('🔵 [EXPORT-MULTI] Starting multiple files export...')
+    setExportLoading(true)
+    
+    try {
+      const apiUrl = `/api/admin/seasons/${seasonId}/players/export?is_sold=${exportFilter}`
+      console.log('🔵 [EXPORT-MULTI] Fetching from API:', apiUrl)
+      
+      const response = await fetch(apiUrl)
+      if (!response.ok) {
+        throw new Error('Failed to fetch player database')
+      }
+      
+      const data = await response.json()
+      const rawPlayers = data.players || []
+      console.log('🔵 [EXPORT-MULTI] Raw players count:', rawPlayers.length)
+
+      if (rawPlayers.length === 0) {
+        alert('No players found to export.')
+        setExportLoading(false)
+        return
+      }
+
+      // Dynamic import of exceljs and jszip
+      const ExcelJS = (await import('exceljs')).default
+      const JSZip = (await import('jszip')).default
+      console.log('🔵 [EXPORT-MULTI] Libraries imported')
+
+      // Group players by position-group combination
+      const positionGroupMap = new Map<string, any[]>()
+      rawPlayers.forEach((p: any) => {
+        const pos = p.position || 'N/A'
+        const group = p.position_group || 'ALL'
+        const combinedKey = group === 'ALL' ? pos : `${pos}-${group}`
+        
+        if (!positionGroupMap.has(combinedKey)) {
+          positionGroupMap.set(combinedKey, [])
+        }
+        positionGroupMap.get(combinedKey)!.push(p)
+      })
+
+      console.log('🔵 [EXPORT-MULTI] Position-Group combinations:', Array.from(positionGroupMap.keys()))
+
+      // Columns configuration
+      const columns = [
+        { header: 'Player ID', key: 'id', width: 25 },
+        { header: 'Name', key: 'name', width: 30 },
+        { header: 'Position', key: 'position', width: 12 },
+        { header: 'Position Group', key: 'position_group', width: 15 },
+        { header: 'Overall Rating', key: 'overallRating', width: 15 },
+        { header: 'Age', key: 'age', width: 10 },
+        { header: 'Nationality', key: 'nationality', width: 18 },
+        { header: 'Club', key: 'realWorldClub', width: 25 },
+        { header: 'Current Team Name', key: 'teamName', width: 25 },
+        { header: 'Auction Eligible', key: 'eligible', width: 18 },
+        { header: 'Is Sold', key: 'isSoldText', width: 12 },
+        { header: 'Acquisition Value', key: 'soldPrice', width: 18 },
+        { header: 'Playing Style', key: 'playing_style', width: 20 },
+        { header: 'Ball Control', key: 'ball_control', width: 14 },
+        { header: 'Dribbling', key: 'dribbling', width: 12 },
+        { header: 'Tight Possession', key: 'tight_possession', width: 16 },
+        { header: 'Low Pass', key: 'low_pass', width: 12 },
+        { header: 'Lofted Pass', key: 'lofted_pass', width: 12 },
+        { header: 'Finishing', key: 'finishing', width: 12 },
+        { header: 'Heading', key: 'heading', width: 12 },
+        { header: 'Set Piece Taking', key: 'set_piece_taking', width: 16 },
+        { header: 'Curl', key: 'curl', width: 10 },
+        { header: 'Offensive Awareness', key: 'offensive_awareness', width: 18 },
+        { header: 'Speed', key: 'speed', width: 10 },
+        { header: 'Acceleration', key: 'acceleration', width: 14 },
+        { header: 'Kicking Power', key: 'kicking_power', width: 14 },
+        { header: 'Jumping', key: 'jumping', width: 10 },
+        { header: 'Physical Contact', key: 'physical_contact', width: 16 },
+        { header: 'Balance', key: 'balance', width: 10 },
+        { header: 'Stamina', key: 'stamina', width: 10 },
+        { header: 'Tackling', key: 'tackling', width: 12 },
+        { header: 'Aggression', key: 'aggression', width: 12 },
+        { header: 'Defensive Engagement', key: 'defensive_engagement', width: 20 },
+        { header: 'Defensive Awareness', key: 'defensive_awareness', width: 18 },
+        { header: 'GK Awareness', key: 'gk_awareness', width: 14 },
+        { header: 'GK Catching', key: 'gk_catching', width: 14 },
+        { header: 'GK Parrying', key: 'gk_parrying', width: 14 },
+        { header: 'GK Reflexes', key: 'gk_reflexes', width: 14 },
+        { header: 'GK Reach', key: 'gk_reach', width: 14 }
+      ]
+
+      const styleWorksheet = (ws: any) => {
+        const headerRow = ws.getRow(1)
+        headerRow.height = 25
+        headerRow.eachCell((cell: any) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0066FF' } }
+          cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFFFF' } }
+          cell.alignment = { horizontal: 'center', vertical: 'middle' }
+          cell.border = { bottom: { style: 'medium', color: { argb: 'FF0044BB' } } }
+        })
+
+        const rCount = ws.rowCount
+        for (let i = 2; i <= rCount; i++) {
+          const row = ws.getRow(i)
+          row.height = 20
+          const isEven = i % 2 === 0
+          const bgFill = isEven ? 'FFF8F9FA' : 'FFFFFFFF'
+
+          row.eachCell((cell: any, colNumber: number) => {
+            cell.font = { name: 'Segoe UI', size: 9, color: { argb: 'FF333333' } }
+            cell.border = {
+              bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+              right: { style: 'thin', color: { argb: 'FFF0F0F0' } }
+            }
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgFill } }
+
+            const colKey = ws.columns[colNumber - 1]?.key
+            if (['id', 'name', 'nationality', 'realWorldClub', 'teamName', 'playing_style'].includes(colKey)) {
+              cell.alignment = { horizontal: 'left', vertical: 'middle' }
+            } else {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' }
+            }
+
+            if (colKey === 'eligible') {
+              const val = cell.value
+              if (val === 'Yes') {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4EDDA' } }
+                cell.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: 'FF155724' } }
+              } else if (val === 'No') {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } }
+                cell.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: 'FF721C24' } }
+              }
+            }
+          })
+        }
+      }
+
+      // Create a ZIP file to hold all Excel files
+      const zip = new JSZip()
+      let fileCount = 0
+
+      // Create one Excel file per position-group combination
+      for (const [combinedKey, players] of positionGroupMap.entries()) {
+        console.log(`🔵 [EXPORT-MULTI] Creating file for ${combinedKey} (${players.length} players)`)
+        
+        const workbook = new ExcelJS.Workbook()
+        workbook.creator = 'Turf Cats'
+        workbook.created = new Date()
+
+        const sheet = workbook.addWorksheet(combinedKey)
+        sheet.columns = columns
+        
+        players.forEach((p: any) => {
+          sheet.addRow({
+            ...p,
+            eligible: !p.isSold ? 'Yes' : 'No',
+            isSoldText: p.isSold ? 'Yes' : 'No',
+            soldPrice: p.soldPrice || 0
+          })
+        })
+        
+        styleWorksheet(sheet)
+
+        const buffer = await workbook.xlsx.writeBuffer()
+        zip.file(`${combinedKey}.xlsx`, buffer)
+        fileCount++
+      }
+
+      console.log(`🔵 [EXPORT-MULTI] Created ${fileCount} Excel files, generating ZIP...`)
+
+      // Generate ZIP and trigger download
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = window.URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      const filename = `TurfCats-Players-ByPosition-${new Date().toISOString().split('T')[0]}.zip`
+      a.download = filename
+      console.log('🔵 [EXPORT-MULTI] Triggering ZIP download:', filename)
+      a.click()
+      window.URL.revokeObjectURL(url)
+
+      setShowExportModal(false)
+      console.log('✅ [EXPORT-MULTI] Multiple files export completed successfully!')
+    } catch (err: any) {
+      console.error('🔴 [EXPORT-MULTI] Error:', err)
+      alert('Failed to export multiple files: ' + err.message)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   const handleExportToExcel = async () => {
     console.log('🔵 [EXPORT] Starting export process...')
     console.log('🔵 [EXPORT] Season ID:', seasonId)
@@ -1128,66 +1314,106 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !exportLoading && setShowExportModal(false)} />
           
-          <div className="relative w-full max-w-md rounded-2xl bg-[#121212]/95 border border-white/10 p-6 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-black text-white mb-4">Export Players Database</h3>
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#121212]/95 border border-white/10 p-4 sm:p-6 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg sm:text-xl font-black text-white mb-3 sm:mb-4">Export Players Database</h3>
             
-            <p className="text-sm text-[#7A7367] mb-6">
-              Choose which player records you want to include in the formatted multi-sheet Excel spreadsheet.
+            <p className="text-xs sm:text-sm text-[#7A7367] mb-4 sm:mb-6">
+              Choose export format and which player records to include.
             </p>
 
-            <div className="space-y-3 mb-6">
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
-                <input
-                  type="radio"
-                  name="exportFilter"
-                  checked={exportFilter === 'all'}
-                  onChange={() => setExportFilter('all')}
-                  className="w-4 h-4 accent-[#E8A800]"
-                  disabled={exportLoading}
-                />
-                <div>
-                  <div className="text-sm font-bold text-white">All Players</div>
-                  <div className="text-xs text-[#7A7367]">Export the entire database pool</div>
-                </div>
-              </label>
+            {/* Export Mode Selection */}
+            <div className="mb-4 sm:mb-6">
+              <label className="block text-xs sm:text-sm font-bold text-white mb-2 sm:mb-3">Export Format</label>
+              <div className="space-y-2 sm:space-y-3">
+                <label className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="exportMode"
+                    checked={exportMode === 'single'}
+                    onChange={() => setExportMode('single')}
+                    className="w-4 h-4 mt-0.5 accent-[#E8A800] flex-shrink-0"
+                    disabled={exportLoading}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-white">Single Excel File</div>
+                    <div className="text-[10px] sm:text-xs text-[#7A7367] leading-tight mt-0.5">One file with multiple sheets (Summary, All Players, Position Groups)</div>
+                  </div>
+                </label>
 
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
-                <input
-                  type="radio"
-                  name="exportFilter"
-                  checked={exportFilter === 'sold'}
-                  onChange={() => setExportFilter('sold')}
-                  className="w-4 h-4 accent-[#E8A800]"
-                  disabled={exportLoading}
-                />
-                <div>
-                  <div className="text-sm font-bold text-white">Sold Players Only</div>
-                  <div className="text-xs text-[#7A7367]">Only players assigned to a team</div>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
-                <input
-                  type="radio"
-                  name="exportFilter"
-                  checked={exportFilter === 'unsold'}
-                  onChange={() => setExportFilter('unsold')}
-                  className="w-4 h-4 accent-[#E8A800]"
-                  disabled={exportLoading}
-                />
-                <div>
-                  <div className="text-sm font-bold text-white">Unsold Players Only</div>
-                  <div className="text-xs text-[#7A7367]">Only players remaining in the draft pool</div>
-                </div>
-              </label>
+                <label className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="exportMode"
+                    checked={exportMode === 'multiple'}
+                    onChange={() => setExportMode('multiple')}
+                    className="w-4 h-4 mt-0.5 accent-[#E8A800] flex-shrink-0"
+                    disabled={exportLoading}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-white">Multiple Excel Files (ZIP)</div>
+                    <div className="text-[10px] sm:text-xs text-[#7A7367] leading-tight mt-0.5">Separate file for each position group (CF-A, CF-B, DMF-A, etc.)</div>
+                  </div>
+                </label>
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3">
+            {/* Player Filter Selection */}
+            <div className="mb-4 sm:mb-6">
+              <label className="block text-xs sm:text-sm font-bold text-white mb-2 sm:mb-3">Player Filter</label>
+              <div className="space-y-2 sm:space-y-3">
+                <label className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="exportFilter"
+                    checked={exportFilter === 'all'}
+                    onChange={() => setExportFilter('all')}
+                    className="w-4 h-4 mt-0.5 accent-[#E8A800] flex-shrink-0"
+                    disabled={exportLoading}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-white">All Players</div>
+                    <div className="text-[10px] sm:text-xs text-[#7A7367] leading-tight mt-0.5">Export the entire database pool</div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="exportFilter"
+                    checked={exportFilter === 'sold'}
+                    onChange={() => setExportFilter('sold')}
+                    className="w-4 h-4 mt-0.5 accent-[#E8A800] flex-shrink-0"
+                    disabled={exportLoading}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-white">Sold Players Only</div>
+                    <div className="text-[10px] sm:text-xs text-[#7A7367] leading-tight mt-0.5">Only players assigned to a team</div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="exportFilter"
+                    checked={exportFilter === 'unsold'}
+                    onChange={() => setExportFilter('unsold')}
+                    className="w-4 h-4 mt-0.5 accent-[#E8A800] flex-shrink-0"
+                    disabled={exportLoading}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-white">Unsold Players Only</div>
+                    <div className="text-[10px] sm:text-xs text-[#7A7367] leading-tight mt-0.5">Only players remaining in the draft pool</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 sm:gap-3 pt-2 border-t border-white/5">
               <button
                 type="button"
                 onClick={() => setShowExportModal(false)}
                 disabled={exportLoading}
-                className="px-4 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-gray-400 hover:text-white transition-colors text-sm font-bold disabled:opacity-50"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-gray-400 hover:text-white transition-colors text-xs sm:text-sm font-bold disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -1196,11 +1422,12 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                 onClick={() => {
                   console.log('🔵 [EXPORT] Modal Export button clicked')
                   console.log('🔵 [EXPORT] Export filter selected:', exportFilter)
+                  console.log('🔵 [EXPORT] Export mode selected:', exportMode)
                   console.log('🔵 [EXPORT] Export loading state:', exportLoading)
                   handleExportToExcel()
                 }}
                 disabled={exportLoading}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black transition-colors text-sm font-black disabled:opacity-50 min-w-[120px]"
+                className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black transition-colors text-xs sm:text-sm font-black disabled:opacity-50 min-w-[100px] sm:min-w-[120px]"
               >
                 {exportLoading ? (
                   <>

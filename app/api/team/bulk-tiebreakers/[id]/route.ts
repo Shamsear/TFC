@@ -62,6 +62,7 @@ export async function GET(
           },
           take: 20,
           select: {
+            id: true,
             teamId: true,
             bidAmount: true,
             bidTime: true

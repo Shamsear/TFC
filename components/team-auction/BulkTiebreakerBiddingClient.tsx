@@ -660,7 +660,7 @@ export default function BulkTiebreakerBiddingClient({
                       
                       return (
                         <div
-                          key={bid.id}
+                          key={bid.id || `${bid.teamId}-${bid.bidAmount}-${new Date(bid.bidTime).getTime()}`}
                           className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10"
                         >
                           <div>

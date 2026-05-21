@@ -63,27 +63,32 @@ export default function BulkTiebreakerMonitorClient({
   const [isPolling, setIsPolling] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
-  // Live update polling - fetch fresh data every 2 seconds
+  // Live update real-time SSE stream connection
   useEffect(() => {
-    const fetchLiveData = async () => {
+    if (liveData.status === 'completed' || !isPolling) return
+
+    console.log('🔌 Connecting admin monitor to bulk tiebreaker SSE stream...')
+    const eventSource = new EventSource(`/api/admin/bulk-tiebreakers/${initialData.id}/stream`)
+
+    eventSource.onmessage = (event) => {
       try {
-        const response = await fetch(`/api/admin/bulk-tiebreakers/${initialData.id}`)
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.tiebreaker) {
-            setLiveData(result.tiebreaker)
-            setLastUpdate(new Date())
-          }
+        const result = JSON.parse(event.data)
+        if (result) {
+          setLiveData(result)
+          setLastUpdate(new Date())
         }
       } catch (error) {
-        console.error('Failed to fetch live data:', error)
+        console.error('Error parsing SSE event in admin monitor:', error)
       }
     }
 
-    // Only poll if tiebreaker is active
-    if (liveData.status === 'pending' && isPolling) {
-      const interval = setInterval(fetchLiveData, 2000) // Poll every 2 seconds for real-time monitoring
-      return () => clearInterval(interval)
+    eventSource.onerror = (err) => {
+      console.error('🔌 Admin SSE Connection error:', err)
+    }
+
+    return () => {
+      console.log('🔌 Closing admin bulk tiebreaker SSE stream.')
+      eventSource.close()
     }
   }, [initialData.id, liveData.status, isPolling])
 
@@ -266,7 +271,7 @@ export default function BulkTiebreakerMonitorClient({
                         </div>
                         <div>
                           <div className="font-medium text-white">{bid.team.name}</div>
-                          <div className="text-xs text-[#7A7367]">
+                          <div className="text-xs text-[#7A7367]" suppressHydrationWarning>
                             {new Date(bid.bidTime).toLocaleString()}
                           </div>
                         </div>
@@ -339,7 +344,7 @@ export default function BulkTiebreakerMonitorClient({
                         )}
                       </div>
                       {participant.lastBidTime && (
-                        <div className="text-xs text-[#7A7367] mt-2">
+                        <div className="text-xs text-[#7A7367] mt-2" suppressHydrationWarning>
                           Last bid: {new Date(participant.lastBidTime).toLocaleTimeString()}
                         </div>
                       )}

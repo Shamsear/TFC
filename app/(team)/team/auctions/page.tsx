@@ -98,9 +98,9 @@ async function getAuctionsData(seasonId: string) {
       soldPrice: result.soldPrice,
       createdAt: result.createdAt,
       roundId: result.roundId,
-      roundStartTime: result.round?.startTime,
-      roundPosition: result.round?.position,
-      roundPositionGroup: result.round?.position_group,
+      roundStartTime: result.round?.startTime ?? null,
+      roundPosition: result.round?.position ?? null,
+      roundPositionGroup: result.round?.position_group ?? null,
       basePlayer: {
         id: result.basePlayer.id,
         playerId: result.basePlayer.id,

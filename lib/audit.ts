@@ -23,6 +23,7 @@ export type AuditAction =
   | 'DEACTIVATE_SUB_ADMIN'
   | 'ACTIVATE_SEASON'
   | 'DEACTIVATE_SEASON'
+  | 'REVEAL_POSITIONS'
   | 'LOGIN'
   | 'LOGOUT'
 

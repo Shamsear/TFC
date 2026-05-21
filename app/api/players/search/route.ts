@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
   const positionsParam = searchParams.get('positions') // comma-separated list for position groups
   const teamFilter = searchParams.get('team') || 'ALL'
   const groupFilter = searchParams.get('group') || 'ALL'
+  const playingStyleFilter = searchParams.get('playingStyle') || 'all'
   const sortBy = searchParams.get('sort') || 'rating'
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const skip = (page - 1) * ITEMS_PER_PAGE
@@ -67,6 +68,20 @@ export async function GET(request: NextRequest) {
       delete basePLayerWhere.OR
     } else {
       Object.assign(basePLayerWhere, posCond)
+    }
+  }
+  if (playingStyleFilter !== 'all') {
+    const styleCond = { seasonalPlayerStats: { some: { seasonId, playing_style: playingStyleFilter } } }
+    if (basePLayerWhere.AND) {
+      basePLayerWhere.AND.push(styleCond)
+    } else if (basePLayerWhere.OR) {
+      basePLayerWhere.AND = [{ OR: basePLayerWhere.OR }, styleCond]
+      delete basePLayerWhere.OR
+    } else if (Object.keys(basePLayerWhere).length > 0) {
+      basePLayerWhere.AND = [{ ...basePLayerWhere }, styleCond]
+      for (const k of Object.keys(basePLayerWhere)) { if (k !== 'AND') delete basePLayerWhere[k] }
+    } else {
+      Object.assign(basePLayerWhere, styleCond)
     }
   }
   if (teamFilter !== 'ALL') {
@@ -121,6 +136,17 @@ export async function GET(request: NextRequest) {
         Object.assign(statsWhere, posCondition)
       }
     }
+    if (playingStyleFilter !== 'all') {
+      const styleCond = { playing_style: playingStyleFilter }
+      if (statsWhere.AND) {
+        statsWhere.AND.push(styleCond)
+      } else if (statsWhere.OR) {
+        statsWhere.AND = [{ OR: statsWhere.OR }, styleCond]
+        delete statsWhere.OR
+      } else {
+        Object.assign(statsWhere, styleCond)
+      }
+    }
     if (teamFilter !== 'ALL') {
       const teamCond = teamFilter === 'Free Agent'
         ? { basePlayer: { transferHistory: { none: { seasonId } } } }
@@ -168,7 +194,8 @@ export async function GET(request: NextRequest) {
         team: transfer ? { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl } : null,
         soldPrice: transfer?.soldPrice || null,
         status: (transfer ? 'SOLD' : 'AVAILABLE') as 'SOLD' | 'AVAILABLE',
-        position_group: stats.position_group || null
+        position_group: stats.position_group || null,
+        playingStyle: stats.playing_style || null
       }
     })
 
@@ -211,6 +238,12 @@ export async function GET(request: NextRequest) {
         transferWhere.AND = [{ OR: transferWhere.OR }, posCond]; delete transferWhere.OR
       } else { Object.assign(transferWhere, posCond) }
     }
+    if (playingStyleFilter !== 'all') {
+      const styleCond = { basePlayer: { seasonalPlayerStats: { some: { seasonId, playing_style: playingStyleFilter } } } }
+      if (transferWhere.AND) transferWhere.AND.push(styleCond)
+      else if (transferWhere.OR) { transferWhere.AND = [{ OR: transferWhere.OR }, styleCond]; delete transferWhere.OR }
+      else Object.assign(transferWhere, styleCond)
+    }
     if (teamFilter === 'Free Agent') {
       // Free agents have no transfer history — return empty for price sort
       return NextResponse.json({ players: [], totalPlayers: 0, totalPages: 0, currentPage: page })
@@ -250,7 +283,8 @@ export async function GET(request: NextRequest) {
         team: { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl },
         soldPrice: transfer.soldPrice,
         status: 'SOLD' as const,
-        position_group: stats?.position_group || null
+        position_group: stats?.position_group || null,
+        playingStyle: stats?.playing_style || null
       }
     })
 
@@ -293,7 +327,8 @@ export async function GET(request: NextRequest) {
       team: transfer ? { id: transfer.team.id, name: transfer.team.name, logoUrl: transfer.team.logoUrl } : null,
       soldPrice: transfer?.soldPrice || null,
       status: (transfer ? 'SOLD' : 'AVAILABLE') as 'SOLD' | 'AVAILABLE',
-      position_group: stats?.position_group || null
+      position_group: stats?.position_group || null,
+      playingStyle: stats?.playing_style || null
     }
   })
 

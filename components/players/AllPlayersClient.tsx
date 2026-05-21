@@ -195,27 +195,55 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   // Export to Excel states
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportFilter, setExportFilter] = useState<'all' | 'sold' | 'unsold'>('all')
+  const [exportMode, setExportMode] = useState<'single' | 'multiple'>('single')
   const [exportLoading, setExportLoading] = useState(false)
 
   const handleExportToExcel = async () => {
+    console.log('🔵 [EXPORT] Starting export process...')
+    console.log('🔵 [EXPORT] Season ID:', seasonId)
+    console.log('🔵 [EXPORT] Export Filter:', exportFilter)
+    
     setExportLoading(true)
     try {
-      const response = await fetch(`/api/admin/seasons/${seasonId}/players/export?is_sold=${exportFilter}`)
+      const apiUrl = `/api/admin/seasons/${seasonId}/players/export?is_sold=${exportFilter}`
+      console.log('🔵 [EXPORT] Fetching from API:', apiUrl)
+      
+      const response = await fetch(apiUrl)
+      console.log('🔵 [EXPORT] Response status:', response.status)
+      console.log('🔵 [EXPORT] Response OK:', response.ok)
+      
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('🔴 [EXPORT] API Error Response:', errorText)
         throw new Error('Failed to fetch player database')
       }
+      
       const data = await response.json()
+      console.log('🔵 [EXPORT] Data received:', {
+        playersCount: data.players?.length || 0,
+        hasPlayers: !!data.players,
+        dataKeys: Object.keys(data)
+      })
+      
       const rawPlayers = data.players || []
+      console.log('🔵 [EXPORT] Raw players count:', rawPlayers.length)
 
       if (rawPlayers.length === 0) {
+        console.warn('⚠️ [EXPORT] No players found to export')
         alert('No players found to export.')
         setExportLoading(false)
         return
       }
 
+      console.log('🔵 [EXPORT] Sample player data:', rawPlayers[0])
+      console.log('🔵 [EXPORT] Importing ExcelJS...')
+      
       // Dynamic import of exceljs
       const ExcelJS = (await import('exceljs')).default
+      console.log('🔵 [EXPORT] ExcelJS imported successfully')
+      
       const workbook = new ExcelJS.Workbook()
+      console.log('🔵 [EXPORT] Workbook created')
       
       workbook.creator = 'Turf Cats'
       workbook.lastModifiedBy = 'Admin'
@@ -227,6 +255,13 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       const soldCount = rawPlayers.filter((p: any) => p.isSold).length
       const availableCount = totalCount - soldCount
       const eligibleCount = rawPlayers.filter((p: any) => !p.isSold).length // Unsold players
+      
+      console.log('🔵 [EXPORT] Stats calculated:', {
+        totalCount,
+        soldCount,
+        availableCount,
+        eligibleCount
+      })
 
       // Calculate position and group stats
       const positionGroupStats: Record<string, { total: number, sold: number, available: number }> = {}
@@ -483,32 +518,39 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       })
       styleWorksheet(allSheet)
 
-      // 3. Position Group Sheets
-      const groupsMap = new Map<string, any[]>()
+      // 3. Position + Group Combination Sheets (e.g., CF-A, CF-B, DMF-A, DMF-B)
+      const positionGroupMap = new Map<string, any[]>()
       rawPlayers.forEach((p: any) => {
-        const groupName = p.position_group || 'Unassigned'
-        if (!groupsMap.has(groupName)) {
-          groupsMap.set(groupName, [])
+        const pos = p.position || 'N/A'
+        const group = p.position_group || 'ALL'
+        
+        // Create combined key like "CF-A", "CF-B", "GK-ALL", etc.
+        const combinedKey = group === 'ALL' ? pos : `${pos}-${group}`
+        
+        if (!positionGroupMap.has(combinedKey)) {
+          positionGroupMap.set(combinedKey, [])
         }
-        groupsMap.get(groupName)!.push(p)
+        positionGroupMap.get(combinedKey)!.push(p)
       })
 
-      groupsMap.forEach((groupPlayers, groupName) => {
-        const safeSheetName = `${groupName.substring(0, 20)} Group (${groupPlayers.length})`
-        const groupSheet = workbook.addWorksheet(safeSheetName)
-        groupSheet.columns = columns
-        groupPlayers.forEach((p: any) => {
-          groupSheet.addRow({
+      console.log('🔵 [EXPORT] Position-Group combinations found:', Array.from(positionGroupMap.keys()))
+
+      positionGroupMap.forEach((players, combinedKey) => {
+        const safeSheetName = `${combinedKey} (${players.length})`
+        const sheet = workbook.addWorksheet(safeSheetName)
+        sheet.columns = columns
+        players.forEach((p: any) => {
+          sheet.addRow({
             ...p,
             eligible: !p.isSold ? 'Yes' : 'No',
             isSoldText: p.isSold ? 'Yes' : 'No',
             soldPrice: p.soldPrice || 0
           })
         })
-        styleWorksheet(groupSheet)
+        styleWorksheet(sheet)
       })
 
-      // 4. Position Sheets
+      // 4. Position Sheets (All groups combined per position)
       const positionsMap = new Map<string, any[]>()
       rawPlayers.forEach((p: any) => {
         const posName = p.position || 'N_A'
@@ -519,7 +561,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       })
 
       positionsMap.forEach((posPlayers, posName) => {
-        const safeSheetName = `${posName.substring(0, 15)} (${posPlayers.length})`
+        const safeSheetName = `${posName}-All (${posPlayers.length})`
         const posSheet = workbook.addWorksheet(safeSheetName)
         posSheet.columns = columns
         posPlayers.forEach((p: any) => {
@@ -533,23 +575,43 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
         styleWorksheet(posSheet)
       })
 
+      console.log('🔵 [EXPORT] All worksheets created successfully')
+      console.log('🔵 [EXPORT] Writing workbook to buffer...')
+      
       // Trigger download
       const buffer = await workbook.xlsx.writeBuffer()
+      console.log('🔵 [EXPORT] Buffer created, size:', buffer.byteLength, 'bytes')
+      
       const blob = new Blob([buffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       })
+      console.log('🔵 [EXPORT] Blob created, size:', blob.size, 'bytes')
+      
       const url = window.URL.createObjectURL(blob)
+      console.log('🔵 [EXPORT] Object URL created:', url)
+      
       const a = document.createElement('a')
       a.href = url
-      a.download = `TurfCats-Players-Database-${new Date().toISOString().split('T')[0]}.xlsx`
+      const filename = `TurfCats-Players-Database-${new Date().toISOString().split('T')[0]}.xlsx`
+      a.download = filename
+      console.log('🔵 [EXPORT] Triggering download:', filename)
+      
       a.click()
+      console.log('🔵 [EXPORT] Download triggered')
+      
       window.URL.revokeObjectURL(url)
+      console.log('🔵 [EXPORT] Object URL revoked')
       
       setShowExportModal(false)
+      console.log('✅ [EXPORT] Export completed successfully!')
     } catch (err: any) {
-      console.error('Error generating Excel export:', err)
+      console.error('🔴 [EXPORT] Error generating Excel export:', err)
+      console.error('🔴 [EXPORT] Error name:', err.name)
+      console.error('🔴 [EXPORT] Error message:', err.message)
+      console.error('🔴 [EXPORT] Error stack:', err.stack)
       alert('Failed to export to Excel: ' + err.message)
     } finally {
+      console.log('🔵 [EXPORT] Cleaning up, setting loading to false')
       setExportLoading(false)
     }
   }
@@ -841,7 +903,16 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             </button>
           )}
           <button
-            onClick={() => setShowExportModal(true)}
+            onClick={() => {
+              console.log('🔵 [EXPORT] Export button clicked')
+              console.log('🔵 [EXPORT] Current state:', {
+                showExportModal,
+                exportFilter,
+                exportLoading,
+                seasonId
+              })
+              setShowExportModal(true)
+            }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 font-bold transition-all text-xs"
           >
             📊 Export to Excel
@@ -1116,7 +1187,12 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
               </button>
               <button
                 type="button"
-                onClick={handleExportToExcel}
+                onClick={() => {
+                  console.log('🔵 [EXPORT] Modal Export button clicked')
+                  console.log('🔵 [EXPORT] Export filter selected:', exportFilter)
+                  console.log('🔵 [EXPORT] Export loading state:', exportLoading)
+                  handleExportToExcel()
+                }}
                 disabled={exportLoading}
                 className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black transition-colors text-sm font-black disabled:opacity-50 min-w-[120px]"
               >

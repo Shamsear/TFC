@@ -100,6 +100,7 @@ export default function BulkRoundSelectionClient({
   const playersPerPage = 12
   const [showSelectedPlayers, setShowSelectedPlayers] = useState(false)
   const [playingStyleFilter, setPlayingStyleFilter] = useState<string>('all')
+  const [showStarredOnly, setShowStarredOnly] = useState(false)
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean
@@ -398,7 +399,8 @@ export default function BulkRoundSelectionClient({
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesPosition = positionFilter === 'all' || p.position === positionFilter
       const matchesStyle = playingStyleFilter === 'all' || p.playing_style === playingStyleFilter
-      return matchesSearch && matchesPosition && matchesStyle
+      const matchesStarred = !showStarredOnly || starredPlayerIds.has(p.id)
+      return matchesSearch && matchesPosition && matchesStyle && matchesStarred
     })
     .sort((a, b) => {
       // Sort: starred players first, then by overall rating
@@ -418,7 +420,7 @@ export default function BulkRoundSelectionClient({
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, positionFilter, playingStyleFilter])
+  }, [searchQuery, positionFilter, playingStyleFilter, showStarredOnly])
 
   const positions = Array.from(new Set(players.map(p => p.position))).sort()
   const playingStyles = Array.from(new Set(players.map(p => p.playing_style).filter(Boolean))) as string[]
@@ -804,6 +806,24 @@ export default function BulkRoundSelectionClient({
             </div>
           </div>
         )}
+
+        {/* Starred Players Filter */}
+        <div className="mb-5">
+          <label className="flex items-center gap-2 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={showStarredOnly}
+              onChange={(e) => setShowStarredOnly(e.target.checked)}
+              className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0"
+            />
+            <span className="text-sm text-[#D4CCBB] flex items-center gap-1">
+              <svg className="w-4 h-4 text-[#E8A800]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              Show only starred players
+            </span>
+          </label>
+        </div>
 
         {/* Pagination - Top */}
         {filteredPlayers.length > playersPerPage && <PaginationControls />}

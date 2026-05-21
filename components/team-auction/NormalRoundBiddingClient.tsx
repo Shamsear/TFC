@@ -67,6 +67,7 @@ export default function NormalRoundBiddingClient({
   const [bids, setBids] = useState<Record<string, number>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [playingStyleFilter, setPlayingStyleFilter] = useState<string>('all')
+  const [showStarredOnly, setShowStarredOnly] = useState(false)
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -646,7 +647,8 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
   const filteredPlayers = players
     .filter(p =>
       p.basePlayer.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (playingStyleFilter === 'all' || p.playing_style === playingStyleFilter)
+      (playingStyleFilter === 'all' || p.playing_style === playingStyleFilter) &&
+      (!showStarredOnly || starredPlayerIds.has(p.basePlayer.id))
     )
     .sort((a, b) => {
       // Sort: starred players first, then by overall rating
@@ -1008,11 +1010,12 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
         {/* Search & Filters Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <h2 className="text-xl font-bold text-white">Available Players</h2>
-          {(searchQuery !== '' || playingStyleFilter !== 'all') && (
+          {(searchQuery !== '' || playingStyleFilter !== 'all' || showStarredOnly) && (
             <button
               onClick={() => {
                 setSearchQuery('')
                 setPlayingStyleFilter('all')
+                setShowStarredOnly(false)
               }}
               className="px-4 py-2 text-sm rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all flex items-center gap-2 w-fit"
             >
@@ -1069,6 +1072,24 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
             </div>
           </div>
         )}
+
+        {/* Starred Players Filter */}
+        <div className="mb-6">
+          <label className="flex items-center gap-2 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={showStarredOnly}
+              onChange={(e) => setShowStarredOnly(e.target.checked)}
+              className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0"
+            />
+            <span className="text-sm text-[#D4CCBB] flex items-center gap-1">
+              <svg className="w-4 h-4 text-[#E8A800]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              Show only starred players
+            </span>
+          </label>
+        </div>
 
         {/* Pagination - Top */}
         {filteredPlayers.length > playersPerPage && <PaginationControls />}

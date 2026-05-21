@@ -910,11 +910,17 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
         // Client-side filter for starred players if enabled
         if (enableStarring && opts.starred === 'starred') {
           filteredPlayers = filteredPlayers.filter((p: Player) => starredPlayerIds.has(p.id))
+          // When filtering starred on client-side, use filtered count
+          setPlayers(filteredPlayers)
+          setTotalPlayers(filteredPlayers.length)
+          setTotalPages(Math.ceil(filteredPlayers.length / 24))
+        } else {
+          // Use API response totals for server-side filtering
+          setPlayers(filteredPlayers)
+          setTotalPlayers(data.totalPlayers)
+          setTotalPages(data.totalPages)
         }
         
-        setPlayers(filteredPlayers)
-        setTotalPlayers(filteredPlayers.length)
-        setTotalPages(Math.ceil(filteredPlayers.length / 24))
         setLoading(false)
       }
     } catch (err: any) {

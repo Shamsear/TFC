@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -24,6 +24,86 @@ interface StarredPlayersClientProps {
 }
 
 const POSITIONS = ['ALL', 'GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'SS', 'LWF', 'RWF', 'CF']
+
+// ── Custom Select Component for Filters ──────────────────────────────────────
+function CustomSelect({ 
+  label, 
+  value, 
+  options, 
+  onChange, 
+  displayValue 
+}: {
+  label: string
+  value: string
+  options: string[]
+  onChange: (val: string) => void
+  displayValue?: (val: string) => string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">{label}</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base text-left"
+      >
+        <span className="truncate">
+          {displayValue ? displayValue(value) : value}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-20 mt-2 w-full max-h-60 overflow-y-auto rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          {options.map((option) => {
+            const isSelected = option === value
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option)
+                  setIsOpen(false)
+                }}
+                className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                  isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
+                }`}
+              >
+                <span className="truncate">{displayValue ? displayValue(option) : option}</span>
+                {isSelected && (
+                  <svg className="w-4 h-4 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function StarredPlayersClient({
   seasonId,
@@ -290,34 +370,22 @@ export default function StarredPlayersClient({
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Position Filter */}
-          <div>
-            <label className="block text-sm font-bold text-white mb-2">Position</label>
-            <select
-              value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all"
-            >
-              {POSITIONS.map(pos => (
-                <option key={pos} value={pos}>{pos === 'ALL' ? 'All Positions' : pos}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            label="Position"
+            value={positionFilter}
+            options={POSITIONS}
+            onChange={setPositionFilter}
+            displayValue={(val) => val === 'ALL' ? 'All Positions' : val}
+          />
 
           {/* Playing Style Filter */}
-          <div>
-            <label className="block text-sm font-bold text-white mb-2">Playing Style</label>
-            <select
-              value={playingStyleFilter}
-              onChange={(e) => setPlayingStyleFilter(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all"
-            >
-              {playingStyles.map(style => (
-                <option key={style} value={style}>
-                  {style === 'all' ? 'All Styles' : style}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            label="Playing Style"
+            value={playingStyleFilter}
+            options={playingStyles}
+            onChange={setPlayingStyleFilter}
+            displayValue={(val) => val === 'all' ? 'All Styles' : val}
+          />
         </div>
       </div>
 
@@ -538,33 +606,21 @@ export default function StarredPlayersClient({
 
                     {/* Position and Style Filters */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-bold text-white mb-2">Position</label>
-                        <select
-                          value={modalPositionFilter}
-                          onChange={(e) => setModalPositionFilter(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all"
-                        >
-                          {POSITIONS.map(pos => (
-                            <option key={pos} value={pos}>{pos === 'ALL' ? 'All Positions' : pos}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <CustomSelect
+                        label="Position"
+                        value={modalPositionFilter}
+                        options={POSITIONS}
+                        onChange={setModalPositionFilter}
+                        displayValue={(val) => val === 'ALL' ? 'All Positions' : val}
+                      />
 
-                      <div>
-                        <label className="block text-sm font-bold text-white mb-2">Playing Style</label>
-                        <select
-                          value={modalPlayingStyleFilter}
-                          onChange={(e) => setModalPlayingStyleFilter(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all"
-                        >
-                          {modalPlayingStyles.map(style => (
-                            <option key={style} value={style}>
-                              {style === 'all' ? 'All Styles' : style}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <CustomSelect
+                        label="Playing Style"
+                        value={modalPlayingStyleFilter}
+                        options={modalPlayingStyles}
+                        onChange={setModalPlayingStyleFilter}
+                        displayValue={(val) => val === 'all' ? 'All Styles' : val}
+                      />
                     </div>
                   </div>
 

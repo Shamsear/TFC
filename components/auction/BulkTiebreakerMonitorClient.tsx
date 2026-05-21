@@ -251,7 +251,7 @@ export default function BulkTiebreakerMonitorClient({
                 ) : (
                   liveData.bidHistory.map((bid, index) => (
                     <div
-                      key={bid.id}
+                      key={bid.id ? `bid-${bid.id}` : `bid-fallback-${index}`}
                       className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
                         index === 0
                           ? 'bg-[#E8A800]/10 border-[#E8A800]/30'
@@ -302,7 +302,7 @@ export default function BulkTiebreakerMonitorClient({
                   .sort((a, b) => (b.currentBid || 0) - (a.currentBid || 0))
                   .map((participant, index) => (
                     <div
-                      key={participant.id}
+                      key={participant.id ? `participant-${participant.id}` : `participant-fallback-${index}`}
                       className={`p-4 rounded-lg border transition-all ${
                         participant.status === 'active'
                           ? index === 0 && participant.currentBid

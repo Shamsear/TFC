@@ -655,12 +655,12 @@ export default function BulkTiebreakerBiddingClient({
                 ) : (
                   liveData.bidHistory
                     .filter((bid) => bidHistoryTeamMap.has(bid.teamId))
-                    .map((bid) => {
+                    .map((bid, index) => {
                       const teamData = bidHistoryTeamMap.get(bid.teamId)!
                       
                       return (
                         <div
-                          key={bid.id || `${bid.teamId}-${bid.bidAmount}-${new Date(bid.bidTime).getTime()}`}
+                          key={bid.id ? `bid-${bid.id}` : `bid-fallback-${bid.teamId}-${bid.bidAmount}-${new Date(bid.bidTime || 0).getTime()}-${index}`}
                           className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10"
                         >
                           <div>

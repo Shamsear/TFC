@@ -264,7 +264,6 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
             {/* Search Bar */}
             <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
               <div className="relative">
-                <SearchIcon />
                 <input
                   type="text"
                   value={searchQuery}
@@ -409,12 +408,14 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                 {teams.map((team) => (
                   <div key={team.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gray-800">
+                      <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
                         <Image
                           src={team.logoUrl}
                           alt={team.name}
-                          fill
+                          width={32}
+                          height={32}
                           className="object-cover"
+                          loading="lazy"
                         />
                       </div>
                       <span className="text-sm font-medium text-white">{team.name}</span>

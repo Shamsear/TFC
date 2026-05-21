@@ -450,7 +450,7 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                             <Link
                               key={auction.id}
                               href={`${basePath}/auctions?auctionId=${auction.id}&from=calendar`}
-                              className="block p-1.5 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] cursor-pointer hover:bg-[#E8A800]/20 transition-all"
+                              className="block p-1.5 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/20 transition-all"
                               title={`Auction: ${auction.description || 'Auction Round'} - ${auction.auctionSlots.length} positions`}
                             >
                               <div className="font-bold truncate text-xs leading-tight">{auction.description || 'Auction'}</div>
@@ -496,86 +496,101 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
               </div>
             ) : (
               allEvents.map((event, index) => (
-                <Link
-                  key={`${event.type}-${index}`}
-                  href={event.type === 'auction' ? `${basePath}/auctions?auctionId=${event.data.id}&from=calendar` : `${basePath}/tournaments/${event.data.tournamentId}?round=${encodeURIComponent(event.data.round)}`}
-                  className="block rounded-xl bg-white/[0.02] border border-white/10 p-6 hover:border-white/20 hover:bg-white/[0.04] transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Date */}
-                    <div className="flex-shrink-0">
-                      <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
-                        <div className="text-2xl font-black text-white">{formatDate(event.date, 'd')}</div>
-                        <div className="text-xs text-gray-500 uppercase">{formatDate(event.date, 'MMM')}</div>
+                event.type === 'auction' ? (
+                  <Link
+                    key={`${event.type}-${index}`}
+                    href={`${basePath}/auctions?auctionId=${event.data.id}&from=calendar`}
+                    className="block rounded-xl bg-white/[0.02] border border-white/10 p-6 hover:border-white/20 hover:bg-white/[0.04] transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Date */}
+                      <div className="flex-shrink-0">
+                        <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
+                          <div className="text-2xl font-black text-white">{formatDate(event.date, 'd')}</div>
+                          <div className="text-xs text-gray-500 uppercase">{formatDate(event.date, 'MMM')}</div>
+                        </div>
+                      </div>
+
+                      {/* Event Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-[#E8A800]"></div>
+                          <span className="text-sm font-bold text-[#E8A800]">AUCTION</span>
+                        </div>
+                        <div className="text-[#F5F0E8] font-bold mb-1">
+                          {event.data.description || 'Auction Round'}
+                        </div>
+                        <div className="text-sm text-[#D4CCBB] mb-2">
+                          {formatDate(event.date, 'h:mm a')}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {event.data.auctionSlots.map((slot: any, idx: number) => {
+                            const isBulk = slot.roundType === 'bulk';
+                            const displayPosition = slot.positionHidden ? '???' : slot.position;
+                            const displayGroup = slot.positionHidden ? '' : (slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : '');
+                            return (
+                              <span key={idx} className={`px-2 py-1 rounded border text-xs font-bold transition-all ${
+                                isBulk
+                                  ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]'
+                                  : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
+                              } ${slot.positionHidden ? 'opacity-75' : ''}`}>
+                                {displayPosition}{displayGroup}
+                                {isBulk && <span className="text-[10px] font-normal ml-1 opacity-80">(Bulk)</span>}
+                                {slot.positionHidden && <span className="text-[10px] font-normal ml-1 opacity-80">(Hidden)</span>}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
+                  </Link>
+                ) : (
+                  <Link
+                    key={`${event.type}-${index}`}
+                    href={`${basePath}/tournaments/${event.data.tournamentId}?round=${encodeURIComponent(event.data.round)}`}
+                    className="block rounded-xl bg-white/[0.02] border border-white/10 p-6 hover:border-white/20 hover:bg-white/[0.04] transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Date */}
+                      <div className="flex-shrink-0">
+                        <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
+                          <div className="text-2xl font-black text-white">{formatDate(event.date, 'd')}</div>
+                          <div className="text-xs text-gray-500 uppercase">{formatDate(event.date, 'MMM')}</div>
+                        </div>
+                      </div>
 
-                    {/* Event Details */}
-                    <div className="flex-1">
-                      {event.type === 'auction' ? (
-                        <>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 rounded-full bg-[#E8A800]"></div>
-                            <span className="text-sm font-bold text-[#E8A800]">AUCTION</span>
-                          </div>
-                          <div className="text-[#F5F0E8] font-bold mb-1">
-                            {event.data.description || 'Auction Round'}
-                          </div>
-                          <div className="text-sm text-[#D4CCBB] mb-2">
-                            {formatDate(event.date, 'h:mm a')}
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {event.data.auctionSlots.map((slot: any, idx: number) => {
-                              const isBulk = slot.roundType === 'bulk';
-                              const displayPosition = slot.positionHidden ? '???' : slot.position;
-                              const displayGroup = slot.positionHidden ? '' : (slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : '');
-                              return (
-                                <span key={idx} className={`px-2 py-1 rounded border text-xs font-bold transition-all ${
-                                  isBulk
-                                    ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]'
-                                    : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
-                                } ${slot.positionHidden ? 'opacity-75' : ''}`}>
-                                  {displayPosition}{displayGroup}
-                                  {isBulk && <span className="text-[10px] font-normal ml-1 opacity-80">(Bulk)</span>}
-                                  {slot.positionHidden && <span className="text-[10px] font-normal ml-1 opacity-80">(Hidden)</span>}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 rounded-full bg-[#FFB347]"></div>
-                            <span className="text-sm font-bold text-[#FFB347]">MATCHES</span>
-                          </div>
-                          <div className="text-[#F5F0E8] font-bold mb-1">
-                            {event.data.tournament}
-                          </div>
-                          <div className="text-sm text-[#D4CCBB] mb-2">
-                            {event.data.round} • {formatDate(event.date, 'h:mm a')} • {event.data.matches.length} {event.data.matches.length === 1 ? 'match' : 'matches'}
-                          </div>
-                          <div className="text-sm text-[#F5F0E8] space-y-1">
-                            {event.data.matches.slice(0, 3).map((m: any, idx: number) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <span className="text-[#7A7367]">•</span>
-                                <span>{m.homeTeam.team.name} vs {m.awayTeam.team.name}</span>
-                                {m.homeScore !== null && m.awayScore !== null && (
-                                  <span className="text-[#E8A800] font-bold">({m.homeScore}-{m.awayScore})</span>
-                                )}
-                              </div>
-                            ))}
-                            {event.data.matches.length > 3 && (
-                              <div className="text-[#7A7367] text-xs">
-                                +{event.data.matches.length - 3} more matches
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
+                      {/* Event Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-[#FFB347]"></div>
+                          <span className="text-sm font-bold text-[#FFB347]">MATCHES</span>
+                        </div>
+                        <div className="text-[#F5F0E8] font-bold mb-1">
+                          {event.data.tournament}
+                        </div>
+                        <div className="text-sm text-[#D4CCBB] mb-2">
+                          {event.data.round} • {formatDate(event.date, 'h:mm a')} • {event.data.matches.length} {event.data.matches.length === 1 ? 'match' : 'matches'}
+                        </div>
+                        <div className="text-sm text-[#F5F0E8] space-y-1">
+                          {event.data.matches.slice(0, 3).map((m: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="text-[#7A7367]">•</span>
+                              <span>{m.homeTeam.team.name} vs {m.awayTeam.team.name}</span>
+                              {m.homeScore !== null && m.awayScore !== null && (
+                                <span className="text-[#E8A800] font-bold">({m.homeScore}-{m.awayScore})</span>
+                              )}
+                            </div>
+                          ))}
+                          {event.data.matches.length > 3 && (
+                            <div className="text-[#7A7367] text-xs">
+                              +{event.data.matches.length - 3} more matches
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                )
               ))
             )}
           </div>

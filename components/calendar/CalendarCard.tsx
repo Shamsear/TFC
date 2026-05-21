@@ -56,8 +56,40 @@ const TrashIcon = () => (
   </svg>
 );
 
+const EyeIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
 export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) {
   const router = useRouter()
+
+  const hasHiddenPositions = calendar.auctionSlots.some(slot => slot.positionHidden)
+
+  const handleReveal = async () => {
+    if (!confirm('Are you sure you want to reveal all hidden positions for this auction date?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/seasons/${seasonId}/calendar/${calendar.id}/reveal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}) // Empty body reveals all positions
+      })
+
+      if (response.ok) {
+        router.refresh()
+      } else {
+        alert('Failed to reveal positions')
+      }
+    } catch (error) {
+      console.error('Error revealing positions:', error)
+      alert('Failed to reveal positions')
+    }
+  }
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this auction date?')) {
@@ -133,6 +165,16 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
         </Link>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          {hasHiddenPositions && (
+            <button
+              type="button"
+              onClick={handleReveal}
+              className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-all"
+              title="Reveal Hidden Positions"
+            >
+              <EyeIcon />
+            </button>
+          )}
           <Link
             href={`/sub-admin/${seasonId}/calendar/${calendar.id}/edit`}
             className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition-all"

@@ -125,6 +125,8 @@ export default async function TeamAuctionsPage({
             initialPosition={position}
             backLink={backLink}
             backLabel={backLabel}
+            basePath="/team/auctions"
+            fromParam={from}
           />
         </div>
       </main>

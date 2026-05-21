@@ -39,6 +39,8 @@ interface AuctionsViewProps {
   initialPosition?: string
   backLink?: string
   backLabel?: string
+  basePath?: string
+  fromParam?: string
 }
 
 export default function AuctionsView({
@@ -48,7 +50,9 @@ export default function AuctionsView({
   initialAuctionId,
   initialPosition,
   backLink = '/calendar',
-  backLabel = 'Back to Calendar'
+  backLabel = 'Back to Calendar',
+  basePath = '/auctions',
+  fromParam
 }: AuctionsViewProps) {
   const router = useRouter()
   const [selectedAuction, setSelectedAuction] = useState<string>(initialAuctionId || 'all')
@@ -105,7 +109,8 @@ export default function AuctionsView({
     const params = new URLSearchParams()
     if (auctionId !== 'all') params.set('auctionId', auctionId)
     if (selectedPosition !== 'all') params.set('position', selectedPosition)
-    router.push(`/auctions${params.toString() ? `?${params.toString()}` : ''}`)
+    if (fromParam) params.set('from', fromParam)
+    router.push(`${basePath}${params.toString() ? `?${params.toString()}` : ''}`)
   }
 
   const handlePositionChange = (position: string) => {
@@ -113,7 +118,8 @@ export default function AuctionsView({
     const params = new URLSearchParams()
     if (selectedAuction !== 'all') params.set('auctionId', selectedAuction)
     if (position !== 'all') params.set('position', position)
-    router.push(`/auctions${params.toString() ? `?${params.toString()}` : ''}`)
+    if (fromParam) params.set('from', fromParam)
+    router.push(`${basePath}${params.toString() ? `?${params.toString()}` : ''}`)
   }
 
   // Get all unique positions from auction results

@@ -121,6 +121,14 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
       ...prev,
       [field]: value
     }))
+    
+    // If updating positionHidden, update all existing slots
+    if (field === 'positionHidden') {
+      setPositionSlots(prev => prev.map(slot => ({
+        ...slot,
+        positionHidden: value
+      })))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

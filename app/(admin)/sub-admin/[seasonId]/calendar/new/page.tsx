@@ -78,6 +78,16 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
         [field]: value
       }
     }))
+    
+    // If updating positionHidden, update all existing slots for this auction
+    if (field === 'positionHidden') {
+      const updated = [...auctionDates]
+      updated[index].positionSlots = updated[index].positionSlots.map(slot => ({
+        ...slot,
+        positionHidden: value
+      }))
+      setAuctionDates(updated)
+    }
   }
 
   const togglePositionSlot = (index: number, position: string, group?: 'A' | 'B' | 'ALL') => {

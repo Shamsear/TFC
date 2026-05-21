@@ -91,6 +91,15 @@ export async function GET(
       // Send initial state immediately
       await sendState();
 
+      // Keep-alive ping interval to prevent connection timeout by reverse proxies/gateways
+      const keepAliveInterval = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`:\n\n`));
+        } catch (err) {
+          console.error('Keep-alive ping error:', err);
+        }
+      }, 15000);
+
       // Listen for updates
       const listener = async () => {
         await sendState();
@@ -101,6 +110,7 @@ export async function GET(
 
       // Clean up when connection closed
       request.signal.addEventListener('abort', () => {
+        clearInterval(keepAliveInterval);
         tiebreakerEvents.off(eventName, listener);
       });
     }
@@ -109,8 +119,11 @@ export async function GET(
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'Content-Encoding': 'none',
+      'Pragma': 'no-cache'
     }
   });
 }

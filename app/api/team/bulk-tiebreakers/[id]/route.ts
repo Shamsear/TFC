@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/team/bulk-tiebreakers/[id] - Get bulk tiebreaker info
  */
@@ -109,6 +112,12 @@ export async function GET(
         timeRemaining
       },
       myParticipation
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
   } catch (error) {
     console.error('Get bulk tiebreaker info error:', error);

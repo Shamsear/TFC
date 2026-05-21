@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import BulkTiebreakerBiddingClient from "@/components/team-auction/BulkTiebreakerBiddingClient"
 
+export const dynamic = 'force-dynamic';
+
 export default async function BulkTiebreakerPage({
   params
 }: {

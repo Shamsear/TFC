@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import BulkTiebreakerMonitorClient from '@/components/auction/BulkTiebreakerMonitorClient'
 
+export const dynamic = 'force-dynamic';
+
 interface BulkTiebreakerMonitorPageProps {
   params: Promise<{ seasonId: string; id: string }>
 }

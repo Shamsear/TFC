@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/bulk-tiebreakers/[id] - Get bulk tiebreaker details
  */
@@ -100,6 +103,12 @@ export async function GET(
       tiebreaker: {
         ...tiebreaker,
         timeRemaining
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       }
     });
   } catch (error) {

@@ -111,7 +111,7 @@ export default function BulkTiebreakerBiddingClient({
   useEffect(() => {
     async function fetchReserveInfo() {
       try {
-        const response = await fetch(`/api/team/reserve-info?season_id=${roundData.season.id}&round_id=${roundData.id}`)
+        const response = await fetch(`/api/team/reserve-info?season_id=${roundData.season.id}&round_id=${roundData.id}&t=${Date.now()}`, { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
           setReserveInfo(data)
@@ -128,7 +128,7 @@ export default function BulkTiebreakerBiddingClient({
     if (liveData.status === 'completed' || !isPolling) return
 
     console.log('🔌 Connecting to bulk tiebreaker SSE stream...')
-    const eventSource = new EventSource(`/api/team/bulk-tiebreakers/${tiebreaker.id}/stream`)
+    const eventSource = new EventSource(`/api/team/bulk-tiebreakers/${tiebreaker.id}/stream?t=${Date.now()}`)
 
     eventSource.onmessage = (event) => {
       try {
@@ -241,7 +241,7 @@ export default function BulkTiebreakerBiddingClient({
 
       if (!response.ok) {
         // Revert on failure by re-fetching
-        const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}`)
+        const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}?t=${Date.now()}`, { cache: 'no-store' })
         if (refreshResponse.ok) {
           const result = await refreshResponse.json()
           if (result.success && result.tiebreaker) {
@@ -256,7 +256,7 @@ export default function BulkTiebreakerBiddingClient({
       setLastBidTime(Date.now()) // Start 10-second lock
       
       // Immediately fetch updated data to confirm
-      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}`)
+      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}?t=${Date.now()}`, { cache: 'no-store' })
       if (refreshResponse.ok) {
         const result = await refreshResponse.json()
         if (result.success && result.tiebreaker) {
@@ -300,7 +300,7 @@ export default function BulkTiebreakerBiddingClient({
       setMessage({ type: 'success', text: 'Withdrawn successfully' })
       
       // Immediately fetch updated data to check if tiebreaker was auto-finalized
-      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}`)
+      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}?t=${Date.now()}`, { cache: 'no-store' })
       if (refreshResponse.ok) {
         const result = await refreshResponse.json()
         if (result.success && result.tiebreaker) {

@@ -128,7 +128,10 @@ export default function BulkTiebreakerBiddingClient({
     if (liveData.status === 'completed' || !isPolling) return
 
     console.log('🔌 Connecting to bulk tiebreaker SSE stream...')
-    const eventSource = new EventSource(`/api/team/bulk-tiebreakers/${tiebreaker.id}/stream?t=${Date.now()}`)
+    const eventSource = new EventSource(
+      `/api/team/bulk-tiebreakers/${tiebreaker.id}/stream?t=${Date.now()}`,
+      { withCredentials: true }
+    )
 
     eventSource.onmessage = (event) => {
       try {

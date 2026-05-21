@@ -68,7 +68,10 @@ export default function BulkTiebreakerMonitorClient({
     if (liveData.status === 'completed' || !isPolling) return
 
     console.log('🔌 Connecting admin monitor to bulk tiebreaker SSE stream...')
-    const eventSource = new EventSource(`/api/admin/bulk-tiebreakers/${initialData.id}/stream?t=${Date.now()}`)
+    const eventSource = new EventSource(
+      `/api/admin/bulk-tiebreakers/${initialData.id}/stream?t=${Date.now()}`,
+      { withCredentials: true }
+    )
 
     eventSource.onmessage = (event) => {
       try {

@@ -713,7 +713,7 @@ export default async function TeamDashboardPage() {
         {/* Quick Actions */}
         <div>
           <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
             <Link
               href="/team/auction"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
@@ -735,6 +735,17 @@ export default async function TeamDashboardPage() {
                 </svg>
               </div>
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Planner</div>
+            </Link>
+            <Link
+              href="/team/starred"
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Starred</div>
             </Link>
             <Link
               href="/team/players"

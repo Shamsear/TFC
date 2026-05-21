@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 interface Player {
@@ -489,11 +488,11 @@ export default function StarredPlayersClient({
 
                 {/* Player Photo */}
                 <div className="relative w-24 h-24 mx-auto mb-3">
-                  <Image
+                  <img
                     src={player.photoUrl}
                     alt={player.name}
-                    fill
-                    className="object-cover rounded-lg"
+                    className="w-full h-full object-cover rounded-lg"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                   />
                 </div>
 
@@ -683,11 +682,11 @@ export default function StarredPlayersClient({
 
                             {/* Player Photo */}
                             <div className="relative w-16 h-16 mx-auto mb-2">
-                              <Image
+                              <img
                                 src={player.photoUrl}
                                 alt={player.name}
-                                fill
-                                className="object-cover rounded-lg"
+                                className="w-full h-full object-cover rounded-lg"
+                                onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                               />
                             </div>
 

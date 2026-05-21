@@ -192,11 +192,19 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
     const bidPlayerMap = new Map(bidPlayers.map(p => [p.id, p]))
     const bidStatsMap = new Map(bidSeasonalStats.map(s => [s.basePlayerId, s]))
 
+    // Create a fast lookup for won transfers
+    const wonTransferMap = new Map<string, any>()
+    rawResults.forEach(r => {
+      wonTransferMap.set(`${r.teamId}_${r.basePlayerId}`, r)
+    })
+
     // Step 3: Construct the final details synchronously
     teamBidsWithDetails = seasonTeams.map((st) => {
       const team = st.team
       const bids = allDecryptedBids.get(team.id) || []
       const teamBid = teamBidsRaw.find(tb => tb.teamId === team.id)
+      
+      const teamBidPlayerIds = new Set(bids.map((b: any) => b.base_player_id || b.playerId))
       
       const bidsWithPlayers = bids.map((bid: any) => {
         const playerId = bid.base_player_id || bid.playerId
@@ -217,9 +225,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
 
         const player = bidPlayerMap.get(playerId)
         const seasonalStats = bidStatsMap.get(playerId)
-        const wonTransfer = rawResults.find(
-          r => r.basePlayerId === playerId && r.teamId === team.id
-        )
+        const wonTransfer = wonTransferMap.get(`${team.id}_${playerId}`)
 
         return {
           playerId: playerId,
@@ -238,7 +244,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
       const autoAllocatedPlayers = rawResults.filter(
         r => r.teamId === team.id && 
              r.acquisitionType === 'auto_assigned' &&
-             !bids.some((b: any) => (b.base_player_id || b.playerId) === r.basePlayerId)
+             !teamBidPlayerIds.has(r.basePlayerId)
       ).map(r => {
         // Find stats for this auto-assigned player
         const stats = statsMap.get(r.basePlayerId)

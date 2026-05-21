@@ -151,6 +151,11 @@ export default function BulkTiebreakerBiddingClient({
             }
             lastHighestBidRef.current = result.currentHighestBid
             
+            // Instantly clear any lingering success message if another team outbids current team
+            if (result.currentHighestTeamId && result.currentHighestTeamId !== team.id) {
+              setMessage(null)
+            }
+            
             setLiveData(result)
           }
         } catch (error) {
@@ -364,7 +369,7 @@ export default function BulkTiebreakerBiddingClient({
         throw new Error(data.error || 'Failed to place bid')
       }
 
-      setMessage({ type: 'success', text: 'Bid placed successfully!' })
+      setMessage({ type: 'success', text: `Bid of £${amount.toLocaleString()} placed successfully for ${liveData.basePlayer.name}!` })
       setLastBidTime(Date.now()) // Start 10-second lock
       
       // Instantly apply the authoritative tiebreaker state returned in the POST response
@@ -443,7 +448,7 @@ export default function BulkTiebreakerBiddingClient({
     }
   }
 
-  const isMyBidHighest = liveData.currentHighestTeamId === team.id
+  const isMyBidHighest = !!liveData.currentHighestTeamId && !!team.id && liveData.currentHighestTeamId === team.id
   const isActive = myParticipation?.status === 'active'
   // Show warning UI when winning (regardless of time)
   const isBidLocked = isMyBidHighest
@@ -758,12 +763,17 @@ export default function BulkTiebreakerBiddingClient({
                 </div>
 
                 {isMyBidHighest && (
-                  <div className="mt-4 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                    <div className="flex items-center gap-2 text-emerald-300">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="font-medium">You have the highest bid! Last team standing wins.</span>
+                  <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-emerald-500/10 border border-amber-500/30 shadow-lg shadow-amber-500/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 flex-shrink-0 animate-pulse">
+                        👑
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-amber-300">Active Leader</h4>
+                        <p className="text-xs text-white/80">
+                          Your team ({team.name}) currently holds the highest bid of <span className="font-bold text-[#E8A800]">£{(liveData.currentHighestBid || 0).toLocaleString()}</span>. Last team standing wins!
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}

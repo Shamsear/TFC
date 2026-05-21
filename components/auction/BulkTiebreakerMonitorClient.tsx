@@ -63,35 +63,90 @@ export default function BulkTiebreakerMonitorClient({
   const [isPolling, setIsPolling] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
-  // Live update real-time SSE stream connection
+  // Live update real-time SSE stream connection with resilient visibility-change restore & auto-reconnect
   useEffect(() => {
     if (liveData.status === 'completed' || !isPolling) return
 
-    console.log('🔌 Connecting admin monitor to bulk tiebreaker SSE stream...')
-    const eventSource = new EventSource(
-      `/api/admin/bulk-tiebreakers/${initialData.id}/stream?t=${Date.now()}`,
-      { withCredentials: true }
-    )
+    let eventSource: EventSource | null = null
 
-    eventSource.onmessage = (event) => {
-      try {
-        const result = JSON.parse(event.data)
-        if (result) {
-          setLiveData(result)
-          setLastUpdate(new Date())
+    const connectStream = () => {
+      if (eventSource) {
+        eventSource.close()
+      }
+
+      console.log('🔌 Connecting admin monitor to bulk tiebreaker SSE stream...')
+      eventSource = new EventSource(
+        `/api/admin/bulk-tiebreakers/${initialData.id}/stream?t=${Date.now()}`,
+        { withCredentials: true }
+      )
+
+      eventSource.onmessage = (event) => {
+        try {
+          const result = JSON.parse(event.data)
+          if (result) {
+            setLiveData(result)
+            setLastUpdate(new Date())
+          }
+        } catch (error) {
+          console.error('Error parsing SSE event in admin monitor:', error)
         }
-      } catch (error) {
-        console.error('Error parsing SSE event in admin monitor:', error)
+      }
+
+      eventSource.onerror = (err) => {
+        console.error('🔌 Admin SSE Connection error:', err)
+        if (eventSource) {
+          eventSource.close()
+        }
+        // Attempt automatic reconnection after 3 seconds
+        setTimeout(() => {
+          if (document.visibilityState === 'visible' && liveData.status !== 'completed' && isPolling) {
+            connectStream()
+          }
+        }, 3000)
       }
     }
 
-    eventSource.onerror = (err) => {
-      console.error('🔌 Admin SSE Connection error:', err)
+    // Connect initially
+    connectStream()
+
+    // Handle tab visibility change (e.g. tab minimized, user changed tab, or phone locked)
+    // When returning, we immediately fetch latest state to catch up, then reconnect SSE cleanly
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Admin Monitor Tab became visible. Instantly synchronizing state and reconnecting stream...')
+        
+        // 1. Fetch the absolute latest state from the database immediately to bypass any missed events
+        try {
+          const response = await fetch(`/api/admin/bulk-tiebreakers/${initialData.id}?t=${Date.now()}`, { cache: 'no-store' })
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success && result.tiebreaker) {
+              setLiveData(result.tiebreaker)
+              setLastUpdate(new Date())
+              if (result.tiebreaker.status === 'completed') {
+                setIsPolling(false)
+                if (eventSource) eventSource.close()
+                return
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error synchronizing state on visible restore in admin monitor:', err)
+        }
+
+        // 2. Re-open a fresh stream connection
+        connectStream()
+      }
     }
 
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
-      console.log('🔌 Closing admin bulk tiebreaker SSE stream.')
-      eventSource.close()
+      console.log('🔌 Closing admin bulk tiebreaker SSE stream and removing visibility listener.')
+      if (eventSource) {
+        eventSource.close()
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [initialData.id, liveData.status, isPolling])
 

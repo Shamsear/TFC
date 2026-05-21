@@ -377,7 +377,8 @@ export async function placeBulkTiebreakerBid(
         status: true,
         currentHighestBid: true,
         basePrice: true,
-        roundId: true
+        roundId: true,
+        teamsRemaining: true
       }
     });
 
@@ -387,6 +388,36 @@ export async function placeBulkTiebreakerBid(
 
     if (tiebreaker.status !== 'active') {
       return { success: false, error: 'Tiebreaker is not active' };
+    }
+
+    // Check if only one team remains - should not be able to bid
+    if (tiebreaker.teamsRemaining === 1) {
+      console.log(`🎯 Only 1 team remaining in tiebreaker ${tiebreakerId} - auto-finalizing instead of accepting bid...`);
+      
+      // Auto-finalize the tiebreaker
+      const finalizeResult = await finalizeBulkTiebreaker(tiebreakerId);
+      
+      if (finalizeResult.success && finalizeResult.winnerId && finalizeResult.winningBid) {
+        await applyBulkTiebreakerResult(tiebreakerId, finalizeResult.winnerId, finalizeResult.winningBid);
+        
+        // Emit change after finalization
+        try {
+          const { emitTiebreakerChange } = await import('./tiebreaker-events');
+          await emitTiebreakerChange(tiebreakerId);
+        } catch (e) {
+          console.error('Error emitting tiebreaker change event after auto-finalization:', e);
+        }
+        
+        return { 
+          success: false, 
+          error: 'You are the only team remaining. The tiebreaker has been automatically finalized and the player has been assigned to you.' 
+        };
+      }
+      
+      return { 
+        success: false, 
+        error: 'You are the only team remaining. Cannot place additional bids.' 
+      };
     }
 
     const minBid = tiebreaker.currentHighestBid
@@ -584,6 +615,31 @@ export async function placeBulkTiebreakerBid(
       await emitTiebreakerChange(tiebreakerId);
     } catch (e) {
       console.error('Error emitting tiebreaker change event on bid:', e);
+    }
+    
+    // Check if should auto-finalize after bid (e.g., if this team is now the only one left)
+    console.log(`🔍 Checking auto-finalization after bid for tiebreaker ${tiebreakerId}...`);
+    const shouldFinalize = await shouldAutoFinalizeBulkTiebreaker(tiebreakerId);
+    console.log(`📊 Should finalize: ${shouldFinalize}`);
+    
+    if (shouldFinalize) {
+      console.log(`🎯 Auto-finalizing tiebreaker ${tiebreakerId} after bid...`);
+      const finalizeResult = await finalizeBulkTiebreaker(tiebreakerId);
+      console.log(`📊 Finalization result:`, finalizeResult);
+      
+      if (finalizeResult.success && finalizeResult.winnerId && finalizeResult.winningBid) {
+        console.log(`💰 Applying result: Winner=${finalizeResult.winnerId}, Bid=£${finalizeResult.winningBid}`);
+        await applyBulkTiebreakerResult(tiebreakerId, finalizeResult.winnerId, finalizeResult.winningBid);
+        console.log(`✅ Tiebreaker ${tiebreakerId} finalized successfully after bid!`);
+        
+        // Emit change again after finalization
+        try {
+          const { emitTiebreakerChange } = await import('./tiebreaker-events');
+          await emitTiebreakerChange(tiebreakerId);
+        } catch (e) {
+          console.error('Error emitting tiebreaker change event after finalization:', e);
+        }
+      }
     }
     
     return result;

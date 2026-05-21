@@ -20,11 +20,8 @@ export async function GET(request: NextRequest) {
 
     if (duplicatesMode) {
       // Find duplicates by grouping by name and nationality
-      // First, get all base players with their latest stats to determine nationality
+      // First, get ALL base players with their latest stats to determine nationality
       const allPlayers = await prisma.base_players.findMany({
-        where: query ? {
-          name: { contains: query, mode: 'insensitive' as const }
-        } : undefined,
         include: {
           seasonalPlayerStats: {
             orderBy: { seasonId: 'desc' },
@@ -39,7 +36,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      // Group by name + nationality
+      // Group all players by name + nationality
       const groups: Record<string, typeof allPlayers> = {}
       allPlayers.forEach(player => {
         const nationality = player.seasonalPlayerStats[0]?.nationality || 'Unknown'
@@ -48,9 +45,21 @@ export async function GET(request: NextRequest) {
         groups[key].push(player)
       })
 
-      // Filter to only those with duplicates
-      const duplicatePlayers = Object.values(groups)
-        .filter(group => group.length > 1)
+      // Filter to only those with duplicates globally
+      let duplicateGroups = Object.values(groups).filter(group => group.length > 1)
+
+      // If there's a query, only keep groups where at least one player matches the query
+      if (query) {
+        const lowerQuery = query.toLowerCase()
+        duplicateGroups = duplicateGroups.filter(group => 
+          group.some(player => 
+            player.name.toLowerCase().includes(lowerQuery) || 
+            (player.seasonalPlayerStats[0]?.realWorldClub?.toLowerCase().includes(lowerQuery))
+          )
+        )
+      }
+
+      const duplicatePlayers = duplicateGroups
         .flat()
         .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -65,8 +74,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Normal mode (paginated search)
-    const whereClause = query ? {
-      name: { contains: query, mode: 'insensitive' as const }
+    const whereClause: any = query ? {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' as const } },
+        { seasonalPlayerStats: { some: { realWorldClub: { contains: query, mode: 'insensitive' as const } } } }
+      ]
     } : {}
 
     const [players, totalCount] = await Promise.all([

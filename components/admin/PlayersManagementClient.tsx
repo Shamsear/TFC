@@ -78,6 +78,26 @@ export default function PlayersManagementClient() {
     }
   }
 
+  const selectMatchingOnPage = () => {
+    if (!query) return;
+    const lowerQuery = query.toLowerCase()
+    
+    // Find all players on the current page that match the query
+    const matchingIds = players.filter(p => {
+      const nameMatch = p.name.toLowerCase().includes(lowerQuery)
+      const clubMatch = p.seasonalPlayerStats[0]?.realWorldClub?.toLowerCase().includes(lowerQuery)
+      return nameMatch || clubMatch
+    }).map(p => p.id)
+    
+    if (matchingIds.length === 0) return;
+
+    setSelectedPlayers(prev => {
+      const next = new Set(prev)
+      matchingIds.forEach(id => next.add(id))
+      return next
+    })
+  }
+
   const handleBulkDelete = async () => {
     setIsBulkDeleting(true)
     try {
@@ -140,7 +160,15 @@ export default function PlayersManagementClient() {
           </button>
         </form>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          {query && players.length > 0 && (
+            <button
+              onClick={selectMatchingOnPage}
+              className="px-4 sm:px-6 py-3 rounded-xl font-bold transition-all border bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 text-sm whitespace-nowrap"
+            >
+              Select Matches
+            </button>
+          )}
           {selectedPlayers.size > 0 && (
             <button
               onClick={() => setShowBulkDeleteModal(true)}

@@ -54,8 +54,8 @@ export async function POST(
     });
 
     try {
-      const { tiebreakerEvents } = await import('@/lib/auction/tiebreaker-events');
-      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+      const { emitTiebreakerChange } = await import('@/lib/auction/tiebreaker-events');
+      await emitTiebreakerChange(tiebreakerId);
     } catch (e) {
       console.error('Error emitting tiebreaker change event on activation:', e);
     }

@@ -147,8 +147,8 @@ export async function finalizeBulkTiebreaker(
     });
 
     try {
-      const { tiebreakerEvents } = await import('./tiebreaker-events');
-      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+      const { emitTiebreakerChange } = await import('./tiebreaker-events');
+      await emitTiebreakerChange(tiebreakerId);
     } catch (e) {
       console.error('Error emitting tiebreaker change event on finalization:', e);
     }
@@ -345,8 +345,8 @@ export async function withdrawFromBulkTiebreaker(
     }
 
     try {
-      const { tiebreakerEvents } = await import('./tiebreaker-events');
-      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+      const { emitTiebreakerChange } = await import('./tiebreaker-events');
+      await emitTiebreakerChange(tiebreakerId);
     } catch (e) {
       console.error('Error emitting tiebreaker change event on withdrawal:', e);
     }
@@ -580,8 +580,8 @@ export async function placeBulkTiebreakerBid(
     }
     
     try {
-      const { tiebreakerEvents } = await import('./tiebreaker-events');
-      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+      const { emitTiebreakerChange } = await import('./tiebreaker-events');
+      await emitTiebreakerChange(tiebreakerId);
     } catch (e) {
       console.error('Error emitting tiebreaker change event on bid:', e);
     }

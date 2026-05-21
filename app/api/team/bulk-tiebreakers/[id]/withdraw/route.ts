@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { withdrawFromBulkTiebreaker } from '@/lib/auction/finalize-bulk-tiebreaker';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/team/bulk-tiebreakers/[id]/withdraw - Withdraw from bulk tiebreaker
  */
@@ -38,9 +41,57 @@ export async function POST(
       );
     }
 
+    // Fetch the updated tiebreaker details to return immediately, matching GET route structure
+    const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
+      where: { id: tiebreakerId },
+      select: {
+        id: true,
+        roundId: true,
+        basePlayerId: true,
+        basePrice: true,
+        status: true,
+        currentHighestBid: true,
+        currentHighestTeamId: true,
+        teamsRemaining: true,
+        startTime: true,
+        maxEndTime: true,
+        createdAt: true,
+        basePlayer: {
+          select: {
+            name: true,
+            photoUrl: true
+          }
+        },
+        participants: {
+          select: {
+            teamId: true,
+            status: true,
+            currentBid: true,
+            lastBidTime: true
+          }
+        },
+        bidHistory: {
+          orderBy: {
+            bidTime: 'desc'
+          },
+          take: 20,
+          select: {
+            id: true,
+            teamId: true,
+            bidAmount: true,
+            bidTime: true
+          }
+        }
+      }
+    });
+
+    const myParticipation = tiebreaker?.participants.find(p => p.teamId === teamId);
+
     return NextResponse.json({
       success: true,
-      message: 'Withdrawn from tiebreaker successfully'
+      message: 'Withdrawn from tiebreaker successfully',
+      tiebreaker,
+      myParticipation: myParticipation || null
     });
   } catch (error) {
     console.error('Withdraw from bulk tiebreaker error:', error);

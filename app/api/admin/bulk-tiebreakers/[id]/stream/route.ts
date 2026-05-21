@@ -103,8 +103,18 @@ export async function GET(
       }, 15000);
 
       // Listen for updates
-      const listener = async () => {
-        await sendState();
+      const listener = async (updatedTiebreaker?: any) => {
+        if (updatedTiebreaker) {
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(updatedTiebreaker)}\n\n`)
+            );
+          } catch (err) {
+            console.error('Error sending passed state to admin stream:', err);
+          }
+        } else {
+          await sendState();
+        }
       };
 
       const eventName = `change:${tiebreakerId}`;

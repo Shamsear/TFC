@@ -223,6 +223,9 @@ export default function BulkTiebreakerBiddingClient({
     setMessage(null)
     setShowConfirmModal(false)
 
+    // Save previous state for rollback in case of error
+    const previousData = liveData
+
     try {
       const minBid = (liveData.currentHighestBid || liveData.basePrice) + 1
       if (amount < minBid) {
@@ -233,14 +236,50 @@ export default function BulkTiebreakerBiddingClient({
         throw new Error(`Bid £${amount.toLocaleString()} exceeds your maximum allowed bid of £${maxBidLimit.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
       }
 
+      // 1. PERFORM OPTIMISTIC UPDATE (0ms delay UI update)
+      const optimisticBid = {
+        id: -Date.now(), // Negative temporary ID to ensure unique key
+        teamId: team.id,
+        bidAmount: amount,
+        bidTime: new Date(),
+        team: { name: team.name }
+      }
+
+      const updatedParticipants = previousData.participants.map(p => 
+        p.teamId === team.id 
+          ? { ...p, currentBid: amount, lastBidTime: new Date() } 
+          : p
+      )
+
+      const updatedBidHistory = [
+        optimisticBid,
+        ...previousData.bidHistory
+      ].slice(0, 20)
+
+      const optimisticData = {
+        ...previousData,
+        currentHighestBid: amount,
+        currentHighestTeamId: team.id,
+        participants: updatedParticipants,
+        bidHistory: updatedBidHistory
+      }
+
+      setLiveData(optimisticData)
+
+      // 2. DISPATCH ASYNC SERVER CALL
       const response = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}/bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bidAmount: amount })
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        // Revert on failure by re-fetching
+        // Rollback optimistic state immediately
+        setLiveData(previousData)
+
+        // Re-fetch to synchronize state correctly from server
         const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}?t=${Date.now()}`, { cache: 'no-store' })
         if (refreshResponse.ok) {
           const result = await refreshResponse.json()
@@ -248,22 +287,19 @@ export default function BulkTiebreakerBiddingClient({
             setLiveData(result.tiebreaker)
           }
         }
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to place bid')
+        throw new Error(data.error || 'Failed to place bid')
       }
 
       setMessage({ type: 'success', text: 'Bid placed successfully!' })
       setLastBidTime(Date.now()) // Start 10-second lock
       
-      // Immediately fetch updated data to confirm
-      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}?t=${Date.now()}`, { cache: 'no-store' })
-      if (refreshResponse.ok) {
-        const result = await refreshResponse.json()
-        if (result.success && result.tiebreaker) {
-          setLiveData(result.tiebreaker)
-        }
+      // Instantly apply the authoritative tiebreaker state returned in the POST response
+      if (data.success && data.tiebreaker) {
+        setLiveData(data.tiebreaker)
       }
     } catch (error: any) {
+      // Rollback optimistic state
+      setLiveData(previousData)
       setMessage({ type: 'error', text: error.message })
     } finally {
       setSubmitting(false)
@@ -287,32 +323,46 @@ export default function BulkTiebreakerBiddingClient({
     setWithdrawing(true)
     setMessage(null)
 
+    // Save previous state for rollback in case of error
+    const previousData = liveData
+
+    // 1. PERFORM OPTIMISTIC UPDATE
+    const optimisticData = {
+      ...previousData,
+      teamsRemaining: Math.max(0, previousData.teamsRemaining - 1),
+      participants: previousData.participants.map(p => 
+        p.teamId === team.id ? { ...p, status: 'withdrawn' } : p
+      )
+    }
+
+    setLiveData(optimisticData)
+
     try {
+      // 2. DISPATCH ASYNC SERVER CALL
       const response = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}/withdraw`, {
         method: 'POST'
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to withdraw')
+        throw new Error(data.error || 'Failed to withdraw')
       }
 
       setMessage({ type: 'success', text: 'Withdrawn successfully' })
       
-      // Immediately fetch updated data to check if tiebreaker was auto-finalized
-      const refreshResponse = await fetch(`/api/team/bulk-tiebreakers/${liveData.id}?t=${Date.now()}`, { cache: 'no-store' })
-      if (refreshResponse.ok) {
-        const result = await refreshResponse.json()
-        if (result.success && result.tiebreaker) {
-          setLiveData(result.tiebreaker)
-          
-          // If tiebreaker is now completed, stop polling
-          if (result.tiebreaker.status === 'completed') {
-            setIsPolling(false)
-          }
+      // Instantly apply the authoritative tiebreaker state returned in the POST response
+      if (data.success && data.tiebreaker) {
+        setLiveData(data.tiebreaker)
+        
+        // If tiebreaker is now completed, stop polling
+        if (data.tiebreaker.status === 'completed') {
+          setIsPolling(false)
         }
       }
     } catch (error: any) {
+      // Rollback optimistic state
+      setLiveData(previousData)
       setMessage({ type: 'error', text: error.message })
     } finally {
       setWithdrawing(false)

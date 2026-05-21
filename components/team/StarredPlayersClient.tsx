@@ -491,6 +491,198 @@ export default function StarredPlayersClient({
           </Link>
         </div>
       )}
+
+      {/* Add Players Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div>
+                <h2 className="text-2xl font-black text-white mb-1">Add Players to Starred</h2>
+                <p className="text-sm text-gray-400">Select players to add to your starred list</p>
+              </div>
+              <button
+                onClick={closeAddModal}
+                className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingPlayers ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-[#E8A800] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading players...</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Filters */}
+                  <div className="mb-6 space-y-4">
+                    {/* Search Bar */}
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Search players by name..."
+                        value={modalSearchQuery}
+                        onChange={(e) => setModalSearchQuery(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white placeholder-gray-500 focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all"
+                      />
+                    </div>
+
+                    {/* Position and Style Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-white mb-2">Position</label>
+                        <select
+                          value={modalPositionFilter}
+                          onChange={(e) => setModalPositionFilter(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all"
+                        >
+                          {POSITIONS.map(pos => (
+                            <option key={pos} value={pos}>{pos === 'ALL' ? 'All Positions' : pos}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-white mb-2">Playing Style</label>
+                        <select
+                          value={modalPlayingStyleFilter}
+                          onChange={(e) => setModalPlayingStyleFilter(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all"
+                        >
+                          {modalPlayingStyles.map(style => (
+                            <option key={style} value={style}>
+                              {style === 'all' ? 'All Styles' : style}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selection Actions */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-gray-400">
+                      {modalSelectedPlayers.size > 0 && (
+                        <span className="text-[#E8A800] font-bold">{modalSelectedPlayers.size} selected • </span>
+                      )}
+                      Showing {filteredModalPlayers.length} players
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={selectAllModal}
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-all"
+                      >
+                        Select All
+                      </button>
+                      {modalSelectedPlayers.size > 0 && (
+                        <button
+                          onClick={clearModalSelection}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-all"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Players Grid */}
+                  {filteredModalPlayers.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {filteredModalPlayers.map(player => (
+                        <div
+                          key={player.id}
+                          onClick={() => toggleModalPlayer(player.id)}
+                          className={`rounded-xl bg-white/5 border-2 transition-all cursor-pointer ${
+                            modalSelectedPlayers.has(player.id)
+                              ? 'border-[#E8A800] bg-[#E8A800]/10'
+                              : 'border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <div className="p-3">
+                            {/* Selection Checkbox */}
+                            <div className="flex items-start justify-between mb-2">
+                              <div
+                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                  modalSelectedPlayers.has(player.id)
+                                    ? 'bg-[#E8A800] border-[#E8A800]'
+                                    : 'border-white/30'
+                                }`}
+                              >
+                                {modalSelectedPlayers.has(player.id) && (
+                                  <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Player Photo */}
+                            <div className="relative w-16 h-16 mx-auto mb-2">
+                              <Image
+                                src={player.photoUrl}
+                                alt={player.name}
+                                fill
+                                className="object-cover rounded-lg"
+                              />
+                            </div>
+
+                            {/* Player Info */}
+                            <div className="text-center">
+                              <h3 className="text-white font-bold text-xs mb-1 line-clamp-1">{player.name}</h3>
+                              <div className="flex items-center justify-center gap-1 text-xs mb-1">
+                                <span className="px-1.5 py-0.5 rounded-full bg-[#E8A800]/20 text-[#E8A800] font-bold text-[10px]">
+                                  {player.position}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-full bg-[#FFB347]/20 text-[#FFB347] font-bold text-[10px]">
+                                  {player.overallRating}
+                                </span>
+                              </div>
+                              {player.playingStyle && (
+                                <div className="text-[10px] text-gray-400 line-clamp-1">{player.playingStyle}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 rounded-xl bg-white/5 border border-white/10">
+                      <div className="text-gray-400 mb-2">No players found</div>
+                      <div className="text-sm text-gray-500">Try adjusting your filters</div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between gap-4 p-6 border-t border-white/10">
+              <button
+                onClick={closeAddModal}
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-lg font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={starSelectedPlayers}
+                disabled={modalSelectedPlayers.size === 0 || starringPlayers}
+                className="px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-black rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {starringPlayers ? 'Adding...' : `Add ${modalSelectedPlayers.size > 0 ? modalSelectedPlayers.size : ''} Player${modalSelectedPlayers.size !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

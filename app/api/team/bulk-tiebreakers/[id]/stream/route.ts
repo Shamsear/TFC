@@ -96,20 +96,27 @@ export async function GET(
       await sendState();
 
       // Keep-alive ping interval to prevent connection timeout by reverse proxies/gateways
-      const keepAliveInterval = setInterval(() => {
-        if (isClosed) {
-          clearInterval(keepAliveInterval);
-          return;
-        }
-        
-        try {
-          controller.enqueue(encoder.encode(`:\n\n`));
-        } catch (err) {
-          console.error('Keep-alive ping error:', err);
-          isClosed = true;
-          clearInterval(keepAliveInterval);
-        }
-      }, 15000);
+      let keepAliveInterval: NodeJS.Timeout | null = null;
+      
+      try {
+        keepAliveInterval = setInterval(() => {
+          if (isClosed) {
+            if (keepAliveInterval) clearInterval(keepAliveInterval);
+            return;
+          }
+          
+          try {
+            controller.enqueue(encoder.encode(`:\n\n`));
+          } catch (err) {
+            console.error('Keep-alive ping error:', err);
+            isClosed = true;
+            if (keepAliveInterval) clearInterval(keepAliveInterval);
+          }
+        }, 15000);
+      } catch (err) {
+        console.error('Failed to create keep-alive interval:', err);
+        isClosed = true;
+      }
 
       // Listen for updates
       const listener = async (updatedTiebreaker?: any) => {
@@ -135,7 +142,7 @@ export async function GET(
       // Clean up when connection closed
       request.signal.addEventListener('abort', () => {
         isClosed = true;
-        clearInterval(keepAliveInterval);
+        if (keepAliveInterval) clearInterval(keepAliveInterval);
         tiebreakerEvents.off(eventName, listener);
       });
     }

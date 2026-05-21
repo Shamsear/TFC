@@ -131,7 +131,7 @@ export default function BulkTiebreakerBiddingClient({
 
   // Live update real-time SSE stream connection with resilient visibility-change restore & auto-reconnect
   useEffect(() => {
-    if (liveData.status === 'completed' || !isPolling) return
+    if (liveData.status === 'completed') return
 
     let eventSource: EventSource | null = null
 
@@ -176,7 +176,7 @@ export default function BulkTiebreakerBiddingClient({
         }
         // Attempt automatic reconnection after 3 seconds
         setTimeout(() => {
-          if (document.visibilityState === 'visible' && liveDataRef.current.status !== 'completed' && isPolling) {
+          if (document.visibilityState === 'visible' && liveDataRef.current.status !== 'completed') {
             connectStream()
           }
         }, 3000)
@@ -188,7 +188,7 @@ export default function BulkTiebreakerBiddingClient({
 
     // 500ms Hybrid Polling fallback safety net
     const pollInterval = setInterval(async () => {
-      if (document.visibilityState !== 'visible' || liveDataRef.current.status === 'completed' || !isPolling) {
+      if (document.visibilityState !== 'visible' || liveDataRef.current.status === 'completed') {
         return
       }
 
@@ -275,7 +275,7 @@ export default function BulkTiebreakerBiddingClient({
       clearInterval(pollInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [tiebreaker.id, liveData.status, isPolling])
+  }, [tiebreaker.id, liveData.status])
 
   // Clear success / error messages after 5 seconds to prevent them lingering
   useEffect(() => {
@@ -506,7 +506,8 @@ export default function BulkTiebreakerBiddingClient({
   }
 
   const isMyBidHighest = !!liveData.currentHighestTeamId && !!team.id && liveData.currentHighestTeamId === team.id
-  const isActive = myParticipation?.status === 'active'
+  const myCurrentParticipation = liveData.participants.find(p => p.teamId === team.id)
+  const isActive = myCurrentParticipation ? myCurrentParticipation.status === 'active' : false
   // Show warning UI when winning (regardless of time)
   const isBidLocked = isMyBidHighest
 

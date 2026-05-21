@@ -71,7 +71,7 @@ export default function BulkTiebreakerMonitorClient({
 
   // Live update real-time SSE stream connection with resilient visibility-change restore & auto-reconnect
   useEffect(() => {
-    if (liveData.status === 'completed' || !isPolling) return
+    if (liveData.status === 'completed') return
 
     let eventSource: EventSource | null = null
 
@@ -105,7 +105,7 @@ export default function BulkTiebreakerMonitorClient({
         }
         // Attempt automatic reconnection after 3 seconds
         setTimeout(() => {
-          if (document.visibilityState === 'visible' && liveDataRef.current.status !== 'completed' && isPolling) {
+          if (document.visibilityState === 'visible' && liveDataRef.current.status !== 'completed') {
             connectStream()
           }
         }, 3000)
@@ -117,7 +117,7 @@ export default function BulkTiebreakerMonitorClient({
 
     // 500ms Hybrid Polling fallback safety net
     const pollInterval = setInterval(async () => {
-      if (document.visibilityState !== 'visible' || liveDataRef.current.status === 'completed' || !isPolling) {
+      if (document.visibilityState !== 'visible' || liveDataRef.current.status === 'completed') {
         return
       }
 
@@ -197,7 +197,7 @@ export default function BulkTiebreakerMonitorClient({
       clearInterval(pollInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [initialData.id, liveData.status, isPolling])
+  }, [initialData.id, liveData.status])
 
   // Timer
   useEffect(() => {
@@ -267,10 +267,16 @@ export default function BulkTiebreakerMonitorClient({
             </div>
             <div className="flex items-center gap-4">
               {/* Live Indicator */}
-              {liveData.status === 'pending' && (
+              {liveData.status === 'active' && (
                 <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
                   <span className="text-sm font-medium text-red-300">LIVE</span>
+                </div>
+              )}
+              {liveData.status === 'pending' && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                  <span className="text-sm font-medium text-amber-300">AWAITING START</span>
                 </div>
               )}
               {timeRemaining && (
@@ -281,7 +287,7 @@ export default function BulkTiebreakerMonitorClient({
               )}
             </div>
           </div>
-
+ 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
@@ -302,6 +308,7 @@ export default function BulkTiebreakerMonitorClient({
               <div className="text-xs text-[#7A7367] mb-1">Status</div>
               <div className={`text-xl font-bold ${
                 liveData.status === 'pending' ? 'text-amber-400' : 
+                liveData.status === 'active' ? 'text-red-400' : 
                 liveData.status === 'completed' ? 'text-emerald-400' : 'text-gray-400'
               }`}>
                 {liveData.status.charAt(0).toUpperCase() + liveData.status.slice(1)}
@@ -316,13 +323,13 @@ export default function BulkTiebreakerMonitorClient({
           </div>
         </div>
       </div>
-
+ 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Bid History */}
           <div className="lg:col-span-2">
             {/* Current Leader */}
-            {highestBidder && liveData.status === 'pending' && (
+            {highestBidder && liveData.status !== 'pending' && (
               <div className="rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/30 p-6 mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 border border-white/10">

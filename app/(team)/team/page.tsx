@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import TeamDashboardTabs from "@/components/team/TeamDashboardTabs"
 import TeamLogo from "@/components/team/TeamLogo"
+import TiebreakerSection from "@/components/team/TiebreakerSection"
 
 export const metadata = {
   title: "Team Dashboard | Turf Cats",
@@ -140,15 +141,13 @@ export default async function TeamDashboardPage() {
     take: 3,
   })
 
-  // Get pending and active bulk tiebreakers for this team
-  const pendingBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
+  // Get active bulk tiebreakers for this team
+  const activeBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
     where: {
       round: {
         seasonId: activeSeason.id,
       },
-      status: {
-        in: ['pending', 'active']
-      },
+      status: 'active',
       participants: {
         some: {
           teamId: team.id,
@@ -180,8 +179,70 @@ export default async function TeamDashboardPage() {
     },
   })
 
-  // Get pending normal tiebreakers for this team
-  const pendingNormalTiebreakers = await prisma.tiebreakers.findMany({
+  // Get pending bulk tiebreakers for this team
+  const pendingBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
+    where: {
+      round: {
+        seasonId: activeSeason.id,
+      },
+      status: 'pending',
+      participants: {
+        some: {
+          teamId: team.id,
+          status: 'active'
+        }
+      }
+    },
+    include: {
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      round: {
+        select: {
+          id: true,
+          roundNumber: true,
+        },
+      },
+      participants: {
+        where: {
+          status: 'active'
+        },
+        select: {
+          teamId: true
+        }
+      }
+    },
+  })
+
+  // Fetch team details for pending bulk tiebreakers
+  const pendingBulkTiebreakerTeamIds = pendingBulkTiebreakers.flatMap(t => t.participants.map(p => p.teamId))
+  const pendingBulkTiebreakerTeams = await prisma.teams.findMany({
+    where: {
+      id: {
+        in: pendingBulkTiebreakerTeamIds
+      }
+    },
+    select: {
+      id: true,
+      name: true,
+      logoUrl: true
+    }
+  })
+
+  // Map teams to bulk tiebreakers
+  const pendingBulkTiebreakersWithTeams = pendingBulkTiebreakers.map(t => ({
+    ...t,
+    participants: t.participants.map(p => ({
+      ...p,
+      team: pendingBulkTiebreakerTeams.find(team => team.id === p.teamId)
+    }))
+  }))
+
+  // Get active normal tiebreakers for this team
+  const activeNormalTiebreakers = await prisma.tiebreakers.findMany({
     where: {
       round: {
         seasonId: activeSeason.id,
@@ -220,6 +281,66 @@ export default async function TeamDashboardPage() {
     },
   })
 
+  // Get pending normal tiebreakers for this team
+  const pendingNormalTiebreakers = await prisma.tiebreakers.findMany({
+    where: {
+      round: {
+        seasonId: activeSeason.id,
+      },
+      status: 'pending',
+      teamTiebreakerBids: {
+        some: {
+          teamId: team.id
+        }
+      }
+    },
+    include: {
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+          photoUrl: true,
+        },
+      },
+      round: {
+        select: {
+          id: true,
+          roundNumber: true,
+        },
+      },
+      teamTiebreakerBids: {
+        select: {
+          teamId: true
+        }
+      }
+    },
+  })
+
+  // Fetch team details for pending normal tiebreakers
+  const pendingNormalTiebreakerTeamIds = pendingNormalTiebreakers.flatMap(t => t.teamTiebreakerBids.map(b => b.teamId))
+  const pendingNormalTiebreakerTeams = await prisma.teams.findMany({
+    where: {
+      id: {
+        in: pendingNormalTiebreakerTeamIds
+      }
+    },
+    select: {
+      id: true,
+      name: true,
+      logoUrl: true
+    }
+  })
+
+  // Map teams to tiebreakers
+  const pendingNormalTiebreakersWithTeams = pendingNormalTiebreakers.map(t => ({
+    ...t,
+    teamTiebreakerBids: t.teamTiebreakerBids.map(b => ({
+      ...b,
+      team: pendingNormalTiebreakerTeams.find(team => team.id === b.teamId)
+    }))
+  }))
+
+  const totalActiveTiebreakers = activeBulkTiebreakers.length + activeNormalTiebreakers.length
   const totalPendingTiebreakers = pendingBulkTiebreakers.length + pendingNormalTiebreakers.length
 
   // Get recent auction results (last 5 players won from transfer_history)
@@ -363,124 +484,13 @@ export default async function TeamDashboardPage() {
           </div>
         </div>
 
-        {/* Pending Tiebreakers Alert */}
-        {totalPendingTiebreakers > 0 && (
-          <div className="mb-6 sm:mb-8">
-            <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500 flex items-center justify-center animate-pulse">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white">Action Required: Tiebreakers</h2>
-                  <p className="text-xs sm:text-sm text-[#D4CCBB]">
-                    {totalPendingTiebreakers} tiebreaker{totalPendingTiebreakers > 1 ? 's' : ''} need{totalPendingTiebreakers === 1 ? 's' : ''} your bid
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {/* Normal Tiebreakers */}
-                {pendingNormalTiebreakers.map((tie) => {
-                  const teamBid = tie.teamTiebreakerBids[0]
-                  return (
-                    <Link
-                      key={tie.id}
-                      href={`/team/auction/tiebreakers/${tie.id}`}
-                      className="block rounded-lg bg-black/30 border border-purple-500/30 p-3 hover:bg-black/40 hover:border-purple-500/50 transition-all"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                            <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30">
-                              Normal Round
-                            </span>
-                          </div>
-                          <div className="text-xs text-[#D4CCBB]">
-                            Round {tie.round.roundNumber} • Original bid: £{tie.originalAmount.toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {teamBid?.submitted ? (
-                            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                              ✓ Submitted
-                            </span>
-                          ) : (
-                            <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30 animate-pulse">
-                              Bid Now
-                            </span>
-                          )}
-                          <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </Link>
-                  )
-                })}
-                
-                {/* Bulk Tiebreakers */}
-                {pendingBulkTiebreakers.map((tie) => {
-                  const isActive = tie.status === 'active'
-                  const isPending = tie.status === 'pending'
-                  
-                  if (isActive) {
-                    return (
-                      <Link
-                        key={tie.id}
-                        href={`/team/auction/bulk-tiebreakers/${tie.id}`}
-                        className="block rounded-lg bg-black/30 border border-amber-500/30 hover:bg-amber-500/5 p-3 cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
-                                Bulk Round
-                              </span>
-                            </div>
-                            <div className="text-xs text-[#D4CCBB]">
-                              Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
-                            </div>
-                          </div>
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                            Active - Bid Now →
-                          </span>
-                        </div>
-                      </Link>
-                    )
-                  }
-                  
-                  return (
-                    <div
-                      key={tie.id}
-                      className="rounded-lg bg-black/30 border border-gray-500/30 p-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
-                              Bulk Round
-                            </span>
-                          </div>
-                          <div className="text-xs text-[#D4CCBB]">
-                            Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
-                          </div>
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30">
-                          Awaiting Admin
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Tiebreakers Section */}
+        <TiebreakerSection
+          activeNormalTiebreakers={activeNormalTiebreakers}
+          activeBulkTiebreakers={activeBulkTiebreakers}
+          pendingNormalTiebreakers={pendingNormalTiebreakersWithTeams}
+          pendingBulkTiebreakers={pendingBulkTiebreakersWithTeams}
+        />
 
         {/* Active Auction Rounds - Prominent Alert */}
         {activeRounds.length > 0 && (

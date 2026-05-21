@@ -208,17 +208,35 @@ export default async function TeamAuctionPage() {
       },
       teamTiebreakerBids: {
         select: {
-          teamId: true,
-          team: {
-            select: {
-              name: true,
-              logoUrl: true
-            }
-          }
+          teamId: true
         }
       }
     }
   })
+
+  // Fetch team details for pending tiebreakers
+  const pendingTiebreakerTeamIds = pendingTiebreakers.flatMap(t => t.teamTiebreakerBids.map(b => b.teamId))
+  const pendingTiebreakerTeams = await prisma.teams.findMany({
+    where: {
+      id: {
+        in: pendingTiebreakerTeamIds
+      }
+    },
+    select: {
+      id: true,
+      name: true,
+      logoUrl: true
+    }
+  })
+
+  // Map teams to tiebreakers
+  const pendingTiebreakersWithTeams = pendingTiebreakers.map(t => ({
+    ...t,
+    teamTiebreakerBids: t.teamTiebreakerBids.map(b => ({
+      ...b,
+      team: pendingTiebreakerTeams.find(team => team.id === b.teamId)
+    }))
+  }))
 
   // Fetch active bulk tiebreakers
   const activeBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
@@ -303,7 +321,7 @@ export default async function TeamAuctionPage() {
         teamBids={teamBids}
         bulkSelections={bulkSelections}
         activeTiebreakers={activeTiebreakers}
-        pendingTiebreakers={pendingTiebreakers}
+        pendingTiebreakers={pendingTiebreakersWithTeams}
         activeBulkTiebreakers={activeBulkTiebreakers}
         pendingBulkTiebreakers={pendingBulkTiebreakers}
       />

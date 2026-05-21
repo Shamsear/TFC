@@ -23,6 +23,17 @@ async function getAuctionsData(seasonId: string) {
       }
     })
 
+    // Get all rounds for this season to map auction dates to rounds
+    const rounds = await prisma.rounds.findMany({
+      where: { seasonId },
+      select: {
+        id: true,
+        startTime: true,
+        position: true,
+        position_group: true
+      }
+    })
+
     // Get all auction results (transfer history) with seasonal player stats
     const auctionResults = await prisma.transfer_history.findMany({
       where: { seasonId },
@@ -35,7 +46,15 @@ async function getAuctionsData(seasonId: string) {
             }
           }
         },
-        team: true
+        team: true,
+        round: {
+          select: {
+            id: true,
+            startTime: true,
+            position: true,
+            position_group: true
+          }
+        }
       }
     })
 
@@ -44,6 +63,10 @@ async function getAuctionsData(seasonId: string) {
       id: result.id,
       soldPrice: result.soldPrice,
       createdAt: result.createdAt,
+      roundId: result.roundId,
+      roundStartTime: result.round?.startTime,
+      roundPosition: result.round?.position,
+      roundPositionGroup: result.round?.position_group,
       basePlayer: {
         id: result.basePlayer.id,
         playerId: result.basePlayer.id,
@@ -62,11 +85,12 @@ async function getAuctionsData(seasonId: string) {
 
     return {
       auctions,
-      auctionResults: transformedAuctionResults
+      auctionResults: transformedAuctionResults,
+      rounds
     }
   } catch (error) {
     console.error('Error fetching auctions data:', error)
-    return { auctions: [], auctionResults: [] }
+    return { auctions: [], auctionResults: [], rounds: [] }
   }
 }
 

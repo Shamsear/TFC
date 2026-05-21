@@ -19,6 +19,10 @@ interface AuctionsViewProps {
     id: string
     soldPrice: number
     createdAt: Date
+    roundId: string | null
+    roundStartTime: Date | null
+    roundPosition: string | null
+    roundPositionGroup: string | null
     basePlayer: {
       id: string
       playerId: string
@@ -34,6 +38,12 @@ interface AuctionsViewProps {
       logoUrl: string
     }
   }>
+  rounds?: Array<{
+    id: string
+    startTime: Date | null
+    position: string | null
+    position_group: string | null
+  }>
   seasonName: string | null
   initialAuctionId?: string
   initialPosition?: string
@@ -46,6 +56,7 @@ interface AuctionsViewProps {
 export default function AuctionsView({
   auctions,
   auctionResults,
+  rounds = [],
   seasonName,
   initialAuctionId,
   initialPosition,
@@ -127,13 +138,20 @@ export default function AuctionsView({
 
   // Filter results
   const filteredResults = auctionResults.filter(result => {
-    // Filter by auction (using createdAt to match auction date)
+    // Filter by auction (match rounds that occurred on the same day as the auction)
     if (selectedAuction !== 'all') {
       const auction = auctions.find(a => a.id === selectedAuction)
-      if (auction) {
+      if (auction && result.roundStartTime) {
+        const auctionDate = new Date(auction.auctionDate)
+        const roundDate = new Date(result.roundStartTime)
+        // Check if round started on the same day as auction
+        if (auctionDate.toDateString() !== roundDate.toDateString()) {
+          return false
+        }
+      } else if (auction && !result.roundStartTime) {
+        // Fallback to createdAt if roundStartTime is not available
         const auctionDate = new Date(auction.auctionDate)
         const resultDate = new Date(result.createdAt)
-        // Check if result was created on the same day as auction
         if (auctionDate.toDateString() !== resultDate.toDateString()) {
           return false
         }

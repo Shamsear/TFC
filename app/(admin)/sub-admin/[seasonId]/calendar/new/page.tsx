@@ -32,6 +32,7 @@ interface PositionSlot {
   position: string;
   group?: 'A' | 'B' | 'ALL';
   roundType: 'normal' | 'bulk';
+  positionHidden?: boolean; // New field for hidden positions
 }
 
 export default function NewCalendarPage({ params }: NewCalendarPageProps) {
@@ -40,7 +41,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   const [auctionDates, setAuctionDates] = useState([
     { auctionDate: '', auctionTime: '', description: '', positionSlots: [] as PositionSlot[] }
   ])
-  const [builderStates, setBuilderStates] = useState<Record<number, { roundType: 'normal' | 'bulk'; selectedPositions: string[]; selectedGroup: 'A' | 'B' | 'ALL' }>>({})
+  const [builderStates, setBuilderStates] = useState<Record<number, { roundType: 'normal' | 'bulk'; selectedPositions: string[]; selectedGroup: 'A' | 'B' | 'ALL'; positionHidden: boolean }>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -66,7 +67,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   }
 
   const getBuilderState = (index: number) => {
-    return builderStates[index] || { roundType: 'normal', selectedPositions: [], selectedGroup: 'ALL' }
+    return builderStates[index] || { roundType: 'normal', selectedPositions: [], selectedGroup: 'ALL', positionHidden: false }
   }
 
   const updateBuilderState = (index: number, field: string, value: any) => {
@@ -102,14 +103,21 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     return auctionDates[index].positionSlots.some(s => s.position === position && s.group === (group || 'ALL') && s.roundType === 'normal')
   }
 
-  const addSlot = (index: number, position: string, group: 'A' | 'B' | 'ALL', roundType: 'normal' | 'bulk') => {
+  const addSlot = (index: number, position: string, group: 'A' | 'B' | 'ALL', roundType: 'normal' | 'bulk', positionHidden: boolean = false) => {
     const updated = [...auctionDates]
     const slots = updated[index].positionSlots
     
-    if (!slots.some(s => s.position === position && s.group === group && s.roundType === roundType)) {
-      updated[index].positionSlots = [...slots, { position, group, roundType }]
-      setAuctionDates(updated)
+    const existingIndex = slots.findIndex(s => s.position === position && s.group === group && s.roundType === roundType)
+    
+    if (existingIndex >= 0) {
+      // Remove if already exists (deselect)
+      updated[index].positionSlots = slots.filter((_, i) => i !== existingIndex)
+    } else {
+      // Add if doesn't exist (select)
+      updated[index].positionSlots = [...slots, { position, group, roundType, positionHidden }]
     }
+    
+    setAuctionDates(updated)
   }
 
   const removeSlot = (index: number, slotIndex: number) => {
@@ -293,11 +301,13 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                             slot.roundType === 'bulk'
                               ? 'bg-purple-500/10 border-purple-500/30 text-purple-400 hover:border-purple-500/50'
                               : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800] hover:border-[#E8A800]/45'
-                          }`}
+                          } ${slot.positionHidden ? 'opacity-75' : ''}`}
                         >
                           <span>
-                            {slot.position}{slot.group && slot.group !== 'ALL' ? `-${slot.group}` : ''}
-                            <span className="opacity-60 font-normal ml-1">({slot.roundType === 'bulk' ? 'Bulk' : 'Normal'})</span>
+                            {slot.positionHidden ? '???' : slot.position}{slot.group && slot.group !== 'ALL' && !slot.positionHidden ? `-${slot.group}` : ''}
+                            <span className="opacity-60 font-normal ml-1">
+                              ({slot.roundType === 'bulk' ? 'Bulk' : 'Normal'}{slot.positionHidden ? ' • Hidden' : ''})
+                            </span>
                           </span>
                           <button
                             type="button"
@@ -354,6 +364,24 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                     </div>
                   </div>
 
+                  {/* Position Visibility Toggle */}
+                  <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={getBuilderState(index).positionHidden}
+                        onChange={(e) => updateBuilderState(index, 'positionHidden', e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded border-amber-500/30 bg-black/50 text-amber-500 focus:ring-amber-500/20 focus:ring-2"
+                      />
+                      <div className="flex-1">
+                        <div className="text-xs font-bold text-amber-400 uppercase">Hide Position (Mystery Round)</div>
+                        <div className="text-[10px] text-amber-300/70 mt-0.5">
+                          Position will be hidden from teams until you reveal it later. Shows as "???" in the calendar.
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
                   {/* Builder Forms based on type */}
                   {getBuilderState(index).roundType === 'normal' ? (
                     <div className="space-y-4 pt-2">
@@ -365,8 +393,12 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                         <div className="text-[10px] font-bold text-yellow-400/80 mb-1.5">GOALKEEPER</div>
                         <button
                           type="button"
-                          onClick={() => addSlot(index, 'GK', 'ALL', 'normal')}
-                          className="px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-xs hover:border-[#E8A800]/50 hover:text-white transition-all"
+                          onClick={() => addSlot(index, 'GK', 'ALL', 'normal', getBuilderState(index).positionHidden)}
+                          className={`px-3 py-2 rounded-lg border font-bold text-xs transition-all ${
+                            hasPositionSlot(index, 'GK', 'ALL')
+                              ? 'bg-[#E8A800]/20 border-[#E8A800] text-[#E8A800]'
+                              : 'bg-black/40 border-white/10 text-gray-300 hover:border-[#E8A800]/50 hover:text-white'
+                          }`}
                         >
                           GK
                         </button>
@@ -383,22 +415,34 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                                 <div className="flex gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'A', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-blue-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'A', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'A')
+                                        ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-blue-500/50 hover:text-white'
+                                    }`}
                                   >
                                     Group A
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'B', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-purple-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'B', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'B')
+                                        ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-purple-500/50 hover:text-white'
+                                    }`}
                                   >
                                     Group B
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'ALL', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-gray-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'ALL', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'ALL')
+                                        ? 'bg-gray-500/20 border-gray-500 text-gray-300'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-gray-500/50 hover:text-white'
+                                    }`}
                                   >
                                     All
                                   </button>
@@ -406,8 +450,12 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                               ) : (
                                 <button
                                   type="button"
-                                  onClick={() => addSlot(index, position, 'ALL', 'normal')}
-                                  className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-blue-500/50 hover:text-white transition-all"
+                                  onClick={() => addSlot(index, position, 'ALL', 'normal', getBuilderState(index).positionHidden)}
+                                  className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                    hasPositionSlot(index, position, 'ALL')
+                                      ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                                      : 'bg-black/40 border-white/10 text-gray-300 hover:border-blue-500/50 hover:text-white'
+                                  }`}
                                 >
                                   {position}
                                 </button>
@@ -428,22 +476,34 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                                 <div className="flex gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'A', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-green-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'A', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'A')
+                                        ? 'bg-green-500/20 border-green-500 text-green-400'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-green-500/50 hover:text-white'
+                                    }`}
                                   >
                                     Group A
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'B', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-purple-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'B', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'B')
+                                        ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-purple-500/50 hover:text-white'
+                                    }`}
                                   >
                                     Group B
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'ALL', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-gray-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'ALL', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'ALL')
+                                        ? 'bg-gray-500/20 border-gray-500 text-gray-300'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-gray-500/50 hover:text-white'
+                                    }`}
                                   >
                                     All
                                   </button>
@@ -451,8 +511,12 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                               ) : (
                                 <button
                                   type="button"
-                                  onClick={() => addSlot(index, position, 'ALL', 'normal')}
-                                  className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-green-500/50 hover:text-white transition-all"
+                                  onClick={() => addSlot(index, position, 'ALL', 'normal', getBuilderState(index).positionHidden)}
+                                  className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                    hasPositionSlot(index, position, 'ALL')
+                                      ? 'bg-green-500/20 border-green-500 text-green-400'
+                                      : 'bg-black/40 border-white/10 text-gray-300 hover:border-green-500/50 hover:text-white'
+                                  }`}
                                 >
                                   {position}
                                 </button>
@@ -473,22 +537,34 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                                 <div className="flex gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'A', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-red-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'A', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'A')
+                                        ? 'bg-red-500/20 border-red-500 text-red-400'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-red-500/50 hover:text-white'
+                                    }`}
                                   >
                                     Group A
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'B', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-purple-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'B', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'B')
+                                        ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-purple-500/50 hover:text-white'
+                                    }`}
                                   >
                                     Group B
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => addSlot(index, position, 'ALL', 'normal')}
-                                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-gray-500/50 hover:text-white transition-all"
+                                    onClick={() => addSlot(index, position, 'ALL', 'normal', getBuilderState(index).positionHidden)}
+                                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                      hasPositionSlot(index, position, 'ALL')
+                                        ? 'bg-gray-500/20 border-gray-500 text-gray-300'
+                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-gray-500/50 hover:text-white'
+                                    }`}
                                   >
                                     All
                                   </button>
@@ -496,8 +572,12 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                               ) : (
                                 <button
                                   type="button"
-                                  onClick={() => addSlot(index, position, 'ALL', 'normal')}
-                                  className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 font-bold text-[10px] hover:border-red-500/50 hover:text-white transition-all"
+                                  onClick={() => addSlot(index, position, 'ALL', 'normal', getBuilderState(index).positionHidden)}
+                                  className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] transition-all ${
+                                    hasPositionSlot(index, position, 'ALL')
+                                      ? 'bg-red-500/20 border-red-500 text-red-400'
+                                      : 'bg-black/40 border-white/10 text-gray-300 hover:border-red-500/50 hover:text-white'
+                                  }`}
                                 >
                                   {position}
                                 </button>
@@ -656,7 +736,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                           const state = getBuilderState(index);
                           if (state.selectedPositions.length > 0) {
                             const joined = state.selectedPositions.join(',');
-                            addSlot(index, joined, state.selectedGroup, 'bulk');
+                            addSlot(index, joined, state.selectedGroup, 'bulk', state.positionHidden);
                             // Reset selections
                             updateBuilderState(index, 'selectedPositions', []);
                           }
@@ -699,10 +779,12 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                           slot.roundType === 'bulk'
                             ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
                             : 'bg-[#E8A800]/20 border-[#E8A800]/30 text-[#E8A800]'
-                        }`}
+                        } ${slot.positionHidden ? 'opacity-75' : ''}`}
                       >
-                        {slot.position}{slot.group && slot.group !== 'ALL' ? `-${slot.group}` : ''}
-                        <span className="opacity-60 font-normal ml-1">({slot.roundType === 'bulk' ? 'Bulk' : 'Normal'})</span>
+                        {slot.positionHidden ? '???' : slot.position}{slot.group && slot.group !== 'ALL' && !slot.positionHidden ? `-${slot.group}` : ''}
+                        <span className="opacity-60 font-normal ml-1">
+                          ({slot.roundType === 'bulk' ? 'Bulk' : 'Normal'}{slot.positionHidden ? ' • Hidden' : ''})
+                        </span>
                       </div>
                     ))}
                   </div>

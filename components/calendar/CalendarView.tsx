@@ -11,6 +11,7 @@ interface Auction {
     position: string
     position_group?: string | null
     roundType?: string | null
+    positionHidden?: boolean | null
   }>
 }
 
@@ -337,14 +338,17 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                         <div className="flex flex-wrap gap-1">
                           {auction.auctionSlots.map((slot, idx) => {
                             const isBulk = slot.roundType === 'bulk';
+                            const displayPosition = slot.positionHidden ? '???' : slot.position;
+                            const displayGroup = slot.positionHidden ? '' : (slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : '');
                             return (
                               <span key={idx} className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
                                 isBulk 
                                   ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]' 
                                   : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
-                              }`}>
-                                {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                              } ${slot.positionHidden ? 'opacity-75' : ''}`}>
+                                {displayPosition}{displayGroup}
                                 {isBulk && <span className="text-[8px] font-normal ml-0.5 opacity-80">(Bulk)</span>}
+                                {slot.positionHidden && <span className="text-[8px] font-normal ml-0.5 opacity-80">(Hidden)</span>}
                               </span>
                             );
                           })}
@@ -455,9 +459,11 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                               </div>
                               <div className="text-[10px] opacity-70 truncate">
                                 {auction.auctionSlots.map(s => {
-                                  const groupPart = s.position_group && s.position_group !== 'ALL' ? `-${s.position_group}` : '';
+                                  const displayPosition = s.positionHidden ? '???' : s.position;
+                                  const groupPart = s.positionHidden ? '' : (s.position_group && s.position_group !== 'ALL' ? `-${s.position_group}` : '');
                                   const typePart = s.roundType === 'bulk' ? ' (Bulk)' : '';
-                                  return `${s.position}${groupPart}${typePart}`;
+                                  const hiddenPart = s.positionHidden ? ' (Hidden)' : '';
+                                  return `${displayPosition}${groupPart}${typePart}${hiddenPart}`;
                                 }).join(', ')}
                               </div>
                             </Link>
@@ -521,14 +527,17 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                           <div className="flex flex-wrap gap-2">
                             {event.data.auctionSlots.map((slot: any, idx: number) => {
                               const isBulk = slot.roundType === 'bulk';
+                              const displayPosition = slot.positionHidden ? '???' : slot.position;
+                              const displayGroup = slot.positionHidden ? '' : (slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : '');
                               return (
                                 <span key={idx} className={`px-2 py-1 rounded border text-xs font-bold transition-all ${
                                   isBulk
                                     ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]'
                                     : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
-                                }`}>
-                                  {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                                } ${slot.positionHidden ? 'opacity-75' : ''}`}>
+                                  {displayPosition}{displayGroup}
                                   {isBulk && <span className="text-[10px] font-normal ml-1 opacity-80">(Bulk)</span>}
+                                  {slot.positionHidden && <span className="text-[10px] font-normal ml-1 opacity-80">(Hidden)</span>}
                                 </span>
                               );
                             })}

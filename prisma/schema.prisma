@@ -415,6 +415,7 @@ model auction_slots {
   position          String
   position_group    String?          @map("position_group")
   roundType         String           @default("normal") @map("round_type")
+  positionHidden    Boolean          @default(false)
   slotOrder         Int              @default(0)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime
@@ -620,6 +621,7 @@ model rounds {
   seasonId            String    @map("season_id")
   position            String?
   position_group      String?   @map("position_group")
+  position_hidden     Boolean   @default(false) @map("position_hidden")
   roundNumber         Int       @map("round_number")
   roundType           String    @map("round_type") // 'normal' | 'bulk'
   maxBidsPerTeam      Int?      @map("max_bids_per_team")

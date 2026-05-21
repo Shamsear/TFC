@@ -15,6 +15,7 @@ interface CalendarCardProps {
       position: string
       position_group?: string | null
       roundType?: string | null
+      positionHidden?: boolean | null
     }>
   }
   seasonId: string
@@ -110,6 +111,8 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
             ) : (
               calendar.auctionSlots.map((slot) => {
                 const isBulk = slot.roundType === 'bulk';
+                const displayPosition = slot.positionHidden ? '???' : slot.position;
+                const displayGroup = slot.positionHidden ? '' : (slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : '');
                 return (
                   <div
                     key={slot.id}
@@ -117,10 +120,11 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
                       isBulk
                         ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
                         : 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]'
-                    }`}
+                    } ${slot.positionHidden ? 'opacity-75' : ''}`}
                   >
-                    {slot.position}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                    {displayPosition}{displayGroup}
                     {isBulk && <span className="text-[10px] font-normal ml-1 opacity-80">(Bulk)</span>}
+                    {slot.positionHidden && <span className="text-[10px] font-normal ml-1 opacity-80">(Hidden)</span>}
                   </div>
                 );
               })

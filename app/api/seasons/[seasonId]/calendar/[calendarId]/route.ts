@@ -92,6 +92,7 @@ export async function PATCH(
               position: slot.position,
               position_group: slot.group || 'ALL',
               roundType: slot.roundType || 'normal',
+              positionHidden: slot.positionHidden || false,
               slotOrder: index,
               updatedAt: new Date()
             }

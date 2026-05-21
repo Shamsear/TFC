@@ -252,18 +252,15 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       console.log('🔵 [EXPORT-MULTI] Position-Group combinations:', Array.from(positionGroupMap.keys()))
 
       // Columns configuration
-      const columns = [
+      let columns = [
         { header: 'Player ID', key: 'id', width: 25 },
         { header: 'Name', key: 'name', width: 30 },
         { header: 'Position', key: 'position', width: 12 },
-        { header: 'Position Group', key: 'position_group', width: 15 },
         { header: 'Overall Rating', key: 'overallRating', width: 15 },
         { header: 'Age', key: 'age', width: 10 },
         { header: 'Nationality', key: 'nationality', width: 18 },
         { header: 'Club', key: 'realWorldClub', width: 25 },
         { header: 'Current Team Name', key: 'teamName', width: 25 },
-        { header: 'Auction Eligible', key: 'eligible', width: 18 },
-        { header: 'Is Sold', key: 'isSoldText', width: 12 },
         { header: 'Acquisition Value', key: 'soldPrice', width: 18 },
         { header: 'Playing Style', key: 'playing_style', width: 20 },
         { header: 'Ball Control', key: 'ball_control', width: 14 },
@@ -293,6 +290,10 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
         { header: 'GK Reflexes', key: 'gk_reflexes', width: 14 },
         { header: 'GK Reach', key: 'gk_reach', width: 14 }
       ]
+
+      if (exportFilter === 'unsold') {
+        columns = columns.filter(col => col.key !== 'teamName' && col.key !== 'soldPrice')
+      }
 
       const styleWorksheet = (ws: any) => {
         const headerRow = ws.getRow(1)
@@ -575,18 +576,15 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       summarySheet.getColumn('D').width = 18
 
       // Columns configuration
-      const columns = [
+      let columns = [
         { header: 'Player ID', key: 'id', width: 25 },
         { header: 'Name', key: 'name', width: 30 },
         { header: 'Position', key: 'position', width: 12 },
-        { header: 'Position Group', key: 'position_group', width: 15 },
         { header: 'Overall Rating', key: 'overallRating', width: 15 },
         { header: 'Age', key: 'age', width: 10 },
         { header: 'Nationality', key: 'nationality', width: 18 },
         { header: 'Club', key: 'realWorldClub', width: 25 },
         { header: 'Current Team Name', key: 'teamName', width: 25 },
-        { header: 'Auction Eligible', key: 'eligible', width: 18 },
-        { header: 'Is Sold', key: 'isSoldText', width: 12 },
         { header: 'Acquisition Value', key: 'soldPrice', width: 18 },
         { header: 'Playing Style', key: 'playing_style', width: 20 },
         
@@ -620,6 +618,10 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
         { header: 'GK Reflexes', key: 'gk_reflexes', width: 14 },
         { header: 'GK Reach', key: 'gk_reach', width: 14 }
       ]
+
+      if (exportFilter === 'unsold') {
+        columns = columns.filter(col => col.key !== 'teamName' && col.key !== 'soldPrice')
+      }
 
       const styleWorksheet = (ws: any) => {
         const headerRow = ws.getRow(1)

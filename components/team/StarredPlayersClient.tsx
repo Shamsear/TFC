@@ -126,6 +126,9 @@ export default function StarredPlayersClient({
   const [allPlayers, setAllPlayers] = useState<Player[]>([])
   const [loadingPlayers, setLoadingPlayers] = useState(false)
   const [starringPlayers, setStarringPlayers] = useState(false)
+  const [modalPage, setModalPage] = useState(1)
+  const [modalTotalPages, setModalTotalPages] = useState(1)
+  const [isModalLoadingMore, setIsModalLoadingMore] = useState(false)
 
   // Get unique playing styles
   const playingStyles = useMemo(() => {
@@ -136,39 +139,68 @@ export default function StarredPlayersClient({
     return ['all', ...Array.from(styles).sort()]
   }, [players])
 
-  // Get unique playing styles for modal
-  const modalPlayingStyles = useMemo(() => {
-    const styles = new Set<string>()
-    allPlayers.forEach(p => {
-      if (p.playingStyle) styles.add(p.playingStyle)
-    })
-    return ['all', ...Array.from(styles).sort()]
-  }, [allPlayers])
+  // Get unique playing styles for modal - keep the same as main for simplicity or derive from all players if needed
+  // Since we fetch paginated data, we use the known playing styles from the starred list as options for now
+  // to avoid sending a huge list of styles that might not be relevant.
+  const modalPlayingStyles = playingStyles
 
-  // Load all players for modal
-  const loadAllPlayers = async () => {
-    setLoadingPlayers(true)
+
+  // Load modal players from server with pagination and filtering
+  const loadModalPlayers = async (pageToLoad: number, append = false) => {
+    if (append) {
+      setIsModalLoadingMore(true)
+    } else {
+      setLoadingPlayers(true)
+    }
+    
     try {
-      const response = await fetch(`/api/players/search?seasonId=${seasonId}`)
+      const searchParams = new URLSearchParams({
+        seasonId,
+        page: pageToLoad.toString(),
+      })
+      if (modalSearchQuery) searchParams.append('search', modalSearchQuery)
+      if (modalPositionFilter !== 'ALL') searchParams.append('position', modalPositionFilter)
+      if (modalPlayingStyleFilter !== 'all') searchParams.append('playingStyle', modalPlayingStyleFilter)
+
+      const response = await fetch(`/api/players/search?${searchParams.toString()}`)
       const data = await response.json()
       
       // Filter out already starred players
       const starredIds = new Set(players.map(p => p.id))
-      const unstarredPlayers = data.players.filter((p: Player) => !starredIds.has(p.id))
+      const unstarredPlayers = (data.players || []).filter((p: Player) => !starredIds.has(p.id))
       
-      setAllPlayers(unstarredPlayers)
+      if (append) {
+        setAllPlayers(prev => [...prev, ...unstarredPlayers])
+      } else {
+        setAllPlayers(unstarredPlayers)
+      }
+      
+      setModalTotalPages(data.totalPages || 1)
+      setModalPage(pageToLoad)
     } catch (error) {
       console.error('Error loading players:', error)
       alert('Failed to load players')
     } finally {
       setLoadingPlayers(false)
+      setIsModalLoadingMore(false)
     }
   }
 
-  // Open modal and load players
+  // Effect to load modal players on filter/search change
+  useEffect(() => {
+    if (showAddModal) {
+      const debounce = setTimeout(() => {
+        loadModalPlayers(1, false)
+      }, 300)
+      return () => clearTimeout(debounce)
+    }
+  }, [showAddModal, modalSearchQuery, modalPositionFilter, modalPlayingStyleFilter])
+
+
+  // Open modal
   const openAddModal = () => {
     setShowAddModal(true)
-    loadAllPlayers()
+    // loadModalPlayers is triggered by useEffect on showAddModal becoming true
   }
 
   // Close modal and reset
@@ -178,17 +210,12 @@ export default function StarredPlayersClient({
     setModalPositionFilter('ALL')
     setModalPlayingStyleFilter('all')
     setModalSelectedPlayers(new Set())
+    setModalPage(1)
   }
 
-  // Filter modal players
-  const filteredModalPlayers = useMemo(() => {
-    return allPlayers.filter(player => {
-      const searchMatch = player.name.toLowerCase().includes(modalSearchQuery.toLowerCase())
-      const positionMatch = modalPositionFilter === 'ALL' || player.position === modalPositionFilter
-      const styleMatch = modalPlayingStyleFilter === 'all' || player.playingStyle === modalPlayingStyleFilter
-      return searchMatch && positionMatch && styleMatch
-    })
-  }, [allPlayers, modalSearchQuery, modalPositionFilter, modalPlayingStyleFilter])
+  // Server-filtered players are stored in allPlayers directly
+  const filteredModalPlayers = allPlayers
+
 
   // Toggle modal player selection
   const toggleModalPlayer = (playerId: string) => {
@@ -709,6 +736,26 @@ export default function StarredPlayersClient({
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Load More Button */}
+                    {modalPage < modalTotalPages && (
+                      <div className="mt-8 flex justify-center">
+                        <button
+                          onClick={() => loadModalPlayers(modalPage + 1, true)}
+                          disabled={isModalLoadingMore}
+                          className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {isModalLoadingMore ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Loading...
+                            </>
+                          ) : (
+                            'Load More Players'
+                          )}
+                        </button>
+                      </div>
+                    )}
                   ) : (
                     <div className="text-center py-12 rounded-xl bg-white/5 border border-white/10">
                       <div className="text-gray-400 mb-2">No players found</div>

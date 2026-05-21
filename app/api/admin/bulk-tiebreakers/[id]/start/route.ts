@@ -53,6 +53,13 @@ export async function POST(
       }
     });
 
+    try {
+      const { tiebreakerEvents } = await import('@/lib/auction/tiebreaker-events');
+      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+    } catch (e) {
+      console.error('Error emitting tiebreaker change event on activation:', e);
+    }
+
     console.log(`✅ Bulk tiebreaker ${tiebreakerId} activated for ${tiebreaker.basePlayer.name}`);
 
     return NextResponse.json({

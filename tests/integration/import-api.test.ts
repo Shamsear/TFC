@@ -25,7 +25,7 @@ describe('POST /api/import', () => {
   });
 
   it('should reject unauthenticated requests', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue(null);
+    vi.mocked(authModule.auth as any).mockResolvedValue(null);
 
     const formData = new FormData();
     formData.append('file', new File(['test'], 'test.db'));
@@ -44,7 +44,7 @@ describe('POST /api/import', () => {
   });
 
   it('should reject non-Super Admin users', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'subadmin@test.com',
@@ -70,7 +70,7 @@ describe('POST /api/import', () => {
   });
 
   it('should reject requests without file', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'admin@test.com',
@@ -95,7 +95,7 @@ describe('POST /api/import', () => {
   });
 
   it('should reject requests without seasonId', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'admin@test.com',
@@ -120,7 +120,7 @@ describe('POST /api/import', () => {
   });
 
   it('should reject non-.db files', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'admin@test.com',
@@ -146,7 +146,7 @@ describe('POST /api/import', () => {
   });
 
   it('should reject empty files', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'admin@test.com',
@@ -172,7 +172,7 @@ describe('POST /api/import', () => {
   });
 
   it('should successfully import valid .db file', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'admin@test.com',
@@ -213,7 +213,7 @@ describe('POST /api/import', () => {
   });
 
   it('should return partial success with errors', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'admin@test.com',
@@ -248,7 +248,7 @@ describe('POST /api/import', () => {
   });
 
   it('should return error when import completely fails', async () => {
-    vi.mocked(authModule.auth).mockResolvedValue({
+    vi.mocked(authModule.auth as any).mockResolvedValue({
       user: {
         id: 'user-123',
         email: 'admin@test.com',

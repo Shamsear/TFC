@@ -146,6 +146,13 @@ export async function finalizeBulkTiebreaker(
       }
     });
 
+    try {
+      const { tiebreakerEvents } = await import('./tiebreaker-events');
+      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+    } catch (e) {
+      console.error('Error emitting tiebreaker change event on finalization:', e);
+    }
+
     console.log(`✅ Tiebreaker finalized successfully!`);
     return {
       success: true,
@@ -335,6 +342,13 @@ export async function withdrawFromBulkTiebreaker(
         await applyBulkTiebreakerResult(tiebreakerId, result.winnerId, result.winningBid);
         console.log(`✅ Tiebreaker ${tiebreakerId} finalized successfully!`);
       }
+    }
+
+    try {
+      const { tiebreakerEvents } = await import('./tiebreaker-events');
+      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+    } catch (e) {
+      console.error('Error emitting tiebreaker change event on withdrawal:', e);
     }
 
     return { success: true };
@@ -563,6 +577,13 @@ export async function placeBulkTiebreakerBid(
       if (validation.warning) {
         result.warning = validation.warning;
       }
+    }
+    
+    try {
+      const { tiebreakerEvents } = await import('./tiebreaker-events');
+      tiebreakerEvents.emit(`change:${tiebreakerId}`);
+    } catch (e) {
+      console.error('Error emitting tiebreaker change event on bid:', e);
     }
     
     return result;

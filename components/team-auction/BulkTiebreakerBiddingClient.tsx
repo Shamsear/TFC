@@ -123,39 +123,38 @@ export default function BulkTiebreakerBiddingClient({
     fetchReserveInfo()
   }, [roundData.season.id, roundData.id])
 
-  // Live update polling - fetch fresh data every 2 seconds for real-time updates
+  // Live update real-time SSE stream connection
   useEffect(() => {
-    const fetchLiveData = async () => {
+    if (liveData.status === 'completed' || !isPolling) return
+
+    console.log('🔌 Connecting to bulk tiebreaker SSE stream...')
+    const eventSource = new EventSource(`/api/team/bulk-tiebreakers/${tiebreaker.id}/stream`)
+
+    eventSource.onmessage = (event) => {
       try {
-        const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}`)
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.tiebreaker) {
-            // Check if highest bid changed (new bid from another team)
-            if (lastHighestBidRef.current !== result.tiebreaker.currentHighestBid) {
-              setNewBidAnimation(true)
-              setTimeout(() => setNewBidAnimation(false), 1000)
-            }
-            lastHighestBidRef.current = result.tiebreaker.currentHighestBid
-            
-            setLiveData(result.tiebreaker)
+        const result = JSON.parse(event.data)
+        if (result) {
+          // Check if highest bid changed (new bid from another team)
+          if (lastHighestBidRef.current !== result.currentHighestBid) {
+            setNewBidAnimation(true)
+            setTimeout(() => setNewBidAnimation(false), 1000)
           }
+          lastHighestBidRef.current = result.currentHighestBid
+          
+          setLiveData(result)
         }
       } catch (error) {
-        // Suppress errors if tiebreaker is completed (polling will stop anyway)
-        if (liveData.status !== 'completed') {
-          console.error('Failed to fetch live data:', error)
-        }
+        console.error('Error parsing SSE event:', error)
       }
     }
 
-    // Initial fetch
-    fetchLiveData()
+    eventSource.onerror = (err) => {
+      console.error('🔌 SSE Connection error:', err)
+    }
 
-    // Only poll if tiebreaker is active
-    if (liveData.status === 'active' && isPolling) {
-      const interval = setInterval(fetchLiveData, 500) // Poll every 500ms for real-time feel
-      return () => clearInterval(interval)
+    return () => {
+      console.log('🔌 Closing bulk tiebreaker SSE stream.')
+      eventSource.close()
     }
   }, [tiebreaker.id, liveData.status, isPolling])
 

@@ -5,6 +5,8 @@ import { checkTeamSeasonParticipation } from "@/lib/team-auth"
 import StarredPlayersClient from "@/components/team/StarredPlayersClient"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: "Starred Players | Team Dashboard",
   description: "View and manage your starred players",

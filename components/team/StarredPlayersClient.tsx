@@ -548,15 +548,15 @@ export default function StarredPlayersClient({
               ? "You haven't starred any players yet"
               : "No players match your current filters"}
           </p>
-          <Link
-            href="/team/players"
+          <button
+            onClick={openAddModal}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800] hover:bg-[#FFC93A] text-black rounded-lg font-bold text-sm transition-all"
           >
             Browse All Players
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </Link>
+          </button>
         </div>
       )}
 

@@ -37,6 +37,16 @@ export default function StarredPlayersClient({
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set())
   const [isAddingToPlanner, setIsAddingToPlanner] = useState(false)
   const [addMode, setAddMode] = useState<'primary' | 'backup'>('primary')
+  
+  // Modal state
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [modalSearchQuery, setModalSearchQuery] = useState('')
+  const [modalPositionFilter, setModalPositionFilter] = useState('ALL')
+  const [modalPlayingStyleFilter, setModalPlayingStyleFilter] = useState('all')
+  const [modalSelectedPlayers, setModalSelectedPlayers] = useState<Set<string>>(new Set())
+  const [allPlayers, setAllPlayers] = useState<Player[]>([])
+  const [loadingPlayers, setLoadingPlayers] = useState(false)
+  const [starringPlayers, setStarringPlayers] = useState(false)
 
   // Get unique playing styles
   const playingStyles = useMemo(() => {
@@ -46,6 +56,110 @@ export default function StarredPlayersClient({
     })
     return ['all', ...Array.from(styles).sort()]
   }, [players])
+
+  // Get unique playing styles for modal
+  const modalPlayingStyles = useMemo(() => {
+    const styles = new Set<string>()
+    allPlayers.forEach(p => {
+      if (p.playingStyle) styles.add(p.playingStyle)
+    })
+    return ['all', ...Array.from(styles).sort()]
+  }, [allPlayers])
+
+  // Load all players for modal
+  const loadAllPlayers = async () => {
+    setLoadingPlayers(true)
+    try {
+      const response = await fetch(`/api/players/search?seasonId=${seasonId}`)
+      const data = await response.json()
+      
+      // Filter out already starred players
+      const starredIds = new Set(players.map(p => p.id))
+      const unstarredPlayers = data.players.filter((p: Player) => !starredIds.has(p.id))
+      
+      setAllPlayers(unstarredPlayers)
+    } catch (error) {
+      console.error('Error loading players:', error)
+      alert('Failed to load players')
+    } finally {
+      setLoadingPlayers(false)
+    }
+  }
+
+  // Open modal and load players
+  const openAddModal = () => {
+    setShowAddModal(true)
+    loadAllPlayers()
+  }
+
+  // Close modal and reset
+  const closeAddModal = () => {
+    setShowAddModal(false)
+    setModalSearchQuery('')
+    setModalPositionFilter('ALL')
+    setModalPlayingStyleFilter('all')
+    setModalSelectedPlayers(new Set())
+  }
+
+  // Filter modal players
+  const filteredModalPlayers = useMemo(() => {
+    return allPlayers.filter(player => {
+      const searchMatch = player.name.toLowerCase().includes(modalSearchQuery.toLowerCase())
+      const positionMatch = modalPositionFilter === 'ALL' || player.position === modalPositionFilter
+      const styleMatch = modalPlayingStyleFilter === 'all' || player.playingStyle === modalPlayingStyleFilter
+      return searchMatch && positionMatch && styleMatch
+    })
+  }, [allPlayers, modalSearchQuery, modalPositionFilter, modalPlayingStyleFilter])
+
+  // Toggle modal player selection
+  const toggleModalPlayer = (playerId: string) => {
+    const newSelected = new Set(modalSelectedPlayers)
+    if (newSelected.has(playerId)) {
+      newSelected.delete(playerId)
+    } else {
+      newSelected.add(playerId)
+    }
+    setModalSelectedPlayers(newSelected)
+  }
+
+  // Select all modal filtered players
+  const selectAllModal = () => {
+    const allIds = new Set(filteredModalPlayers.map(p => p.id))
+    setModalSelectedPlayers(allIds)
+  }
+
+  // Clear modal selection
+  const clearModalSelection = () => {
+    setModalSelectedPlayers(new Set())
+  }
+
+  // Star selected players
+  const starSelectedPlayers = async () => {
+    if (modalSelectedPlayers.size === 0) return
+    
+    setStarringPlayers(true)
+    try {
+      // Star each player
+      const promises = Array.from(modalSelectedPlayers).map(playerId =>
+        fetch('/api/team/starred-players', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId, seasonId }),
+        })
+      )
+      
+      await Promise.all(promises)
+      
+      alert(`Successfully starred ${modalSelectedPlayers.size} player(s)!`)
+      closeAddModal()
+      router.refresh()
+    } catch (error) {
+      console.error('Error starring players:', error)
+      alert('Failed to star players')
+    } finally {
+      setStarringPlayers(false)
+    }
+  }
 
   // Filter players
   const filteredPlayers = useMemo(() => {
@@ -142,7 +256,7 @@ export default function StarredPlayersClient({
     <div>
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <Link
             href="/team"
             className="inline-flex items-center gap-2 text-[#E8A800] hover:text-[#FFC93A] transition-colors font-medium text-sm"
@@ -152,6 +266,15 @@ export default function StarredPlayersClient({
             </svg>
             Back to Dashboard
           </Link>
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800] hover:bg-[#FFC93A] text-black rounded-lg font-bold text-sm transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Players
+          </button>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">
           <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">

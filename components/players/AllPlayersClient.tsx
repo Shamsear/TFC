@@ -202,6 +202,12 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     console.log('🔵 [EXPORT] Starting export process...')
     console.log('🔵 [EXPORT] Season ID:', seasonId)
     console.log('🔵 [EXPORT] Export Filter:', exportFilter)
+    console.log('🔵 [EXPORT] Export Mode:', exportMode)
+    
+    if (exportMode === 'multiple') {
+      await handleExportMultipleFiles()
+      return
+    }
     
     setExportLoading(true)
     try {

@@ -94,6 +94,33 @@ export default function BulkTiebreakerBiddingClient({
   const lastHighestBidRef = useRef(liveData.currentHighestBid)
   const [newBidAnimation, setNewBidAnimation] = useState(false)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
+  const [syncTrigger, setSyncTrigger] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true)
+    try {
+      console.log('🔄 Participant: Manually triggering data sync and stream reboot...')
+      const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}?t=${Date.now()}`, { cache: 'no-store' })
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.tiebreaker) {
+          setLiveData(result.tiebreaker)
+          
+          if (result.tiebreaker.status !== 'completed') {
+            setIsPolling(true)
+          }
+
+          // Instantly reboot the SSE connection
+          setSyncTrigger(prev => prev + 1)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to manually sync bidding data:', err)
+    } finally {
+      setRefreshing(false)
+    }
+  }
   
   const maxBidLimit = reserveInfo ? reserveInfo.maxBid : budget
   
@@ -275,7 +302,7 @@ export default function BulkTiebreakerBiddingClient({
       clearInterval(pollInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [tiebreaker.id, liveData.status])
+  }, [tiebreaker.id, liveData.status, syncTrigger])
 
   // Clear success / error messages after 5 seconds to prevent them lingering
   useEffect(() => {
@@ -595,6 +622,19 @@ export default function BulkTiebreakerBiddingClient({
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* Sync / Reconnect Button */}
+              <button
+                onClick={handleManualRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 hover:border-white/20 transition-all text-[#D4CCBB] hover:text-white disabled:opacity-50 active:scale-95 cursor-pointer shadow-lg shadow-black/35"
+                title="Force Refresh Data & Reconnect Stream"
+              >
+                <svg className={`w-4 h-4 text-[#E8A800] ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M21 20v-5h-.581m0 0a8.003 8.003 0 11-15.357-2" />
+                </svg>
+                <span>{refreshing ? 'Syncing...' : 'Sync'}</span>
+              </button>
+
               {/* Live Indicator */}
               {liveData.status === 'active' && (
                 <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20">

@@ -123,43 +123,114 @@ export default function BulkTiebreakerBiddingClient({
     fetchReserveInfo()
   }, [roundData.season.id, roundData.id])
 
-  // Live update real-time SSE stream connection
+  // Live update real-time SSE stream connection with resilient visibility-change restore & auto-reconnect
   useEffect(() => {
     if (liveData.status === 'completed' || !isPolling) return
 
-    console.log('🔌 Connecting to bulk tiebreaker SSE stream...')
-    const eventSource = new EventSource(
-      `/api/team/bulk-tiebreakers/${tiebreaker.id}/stream?t=${Date.now()}`,
-      { withCredentials: true }
-    )
+    let eventSource: EventSource | null = null
 
-    eventSource.onmessage = (event) => {
-      try {
-        const result = JSON.parse(event.data)
-        if (result) {
-          // Check if highest bid changed (new bid from another team)
-          if (lastHighestBidRef.current !== result.currentHighestBid) {
-            setNewBidAnimation(true)
-            setTimeout(() => setNewBidAnimation(false), 1000)
+    const connectStream = () => {
+      if (eventSource) {
+        eventSource.close()
+      }
+
+      console.log('🔌 Connecting to bulk tiebreaker SSE stream...')
+      eventSource = new EventSource(
+        `/api/team/bulk-tiebreakers/${tiebreaker.id}/stream?t=${Date.now()}`,
+        { withCredentials: true }
+      )
+
+      eventSource.onmessage = (event) => {
+        try {
+          const result = JSON.parse(event.data)
+          if (result) {
+            // Check if highest bid changed (new bid from another team)
+            if (lastHighestBidRef.current !== result.currentHighestBid) {
+              setNewBidAnimation(true)
+              setTimeout(() => setNewBidAnimation(false), 1000)
+            }
+            lastHighestBidRef.current = result.currentHighestBid
+            
+            setLiveData(result)
           }
-          lastHighestBidRef.current = result.currentHighestBid
-          
-          setLiveData(result)
+        } catch (error) {
+          console.error('Error parsing SSE event:', error)
         }
-      } catch (error) {
-        console.error('Error parsing SSE event:', error)
+      }
+
+      eventSource.onerror = (err) => {
+        console.error('🔌 SSE Connection error:', err)
+        if (eventSource) {
+          eventSource.close()
+        }
+        // Attempt automatic reconnection after 3 seconds
+        setTimeout(() => {
+          if (document.visibilityState === 'visible' && liveData.status !== 'completed' && isPolling) {
+            connectStream()
+          }
+        }, 3000)
       }
     }
 
-    eventSource.onerror = (err) => {
-      console.error('🔌 SSE Connection error:', err)
+    // Connect initially
+    connectStream()
+
+    // Handle tab visibility change (e.g. tab minimized, user changed tab, or phone locked)
+    // When returning, we immediately fetch latest state to catch up, then reconnect SSE cleanly
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Bidding Tab became visible. Instantly synchronizing state and reconnecting stream...')
+        
+        // 1. Fetch the absolute latest state from the database immediately to bypass any missed events
+        try {
+          const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}?t=${Date.now()}`, { cache: 'no-store' })
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success && result.tiebreaker) {
+              setLiveData(result.tiebreaker)
+              if (result.tiebreaker.status === 'completed') {
+                setIsPolling(false)
+                if (eventSource) eventSource.close()
+                return
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error synchronizing state on visible restore:', err)
+        }
+
+        // 2. Re-open a fresh stream connection
+        connectStream()
+      }
     }
 
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
-      console.log('🔌 Closing bulk tiebreaker SSE stream.')
-      eventSource.close()
+      console.log('🔌 Closing bulk tiebreaker SSE stream and removing visibility listener.')
+      if (eventSource) {
+        eventSource.close()
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [tiebreaker.id, liveData.status, isPolling])
+
+  // Clear success / error messages after 5 seconds to prevent them lingering
+  useEffect(() => {
+    if (message && message.type === 'success') {
+      const timer = setTimeout(() => {
+        setMessage(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
+
+  // Automatically clear messages when outbid by another team
+  useEffect(() => {
+    if (liveData.currentHighestTeamId && liveData.currentHighestTeamId !== team.id) {
+      setMessage(null)
+    }
+  }, [liveData.currentHighestTeamId, team.id])
 
   // Bid lock countdown timer
   useEffect(() => {

@@ -8,6 +8,7 @@ interface PlayerStats {
   nationality: string | null
   position: string
   overallRating: number
+  realWorldClub: string | null
 }
 
 interface BasePlayer {
@@ -28,6 +29,9 @@ export default function PlayersManagementClient() {
   const [totalCount, setTotalCount] = useState(0)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null)
+  const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set())
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true)
@@ -53,7 +57,49 @@ export default function PlayersManagementClient() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
+    setSelectedPlayers(new Set())
     fetchPlayers()
+  }
+
+  const toggleSelection = (id: string) => {
+    setSelectedPlayers(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAllOnPage = () => {
+    if (selectedPlayers.size === players.length && players.length > 0) {
+      setSelectedPlayers(new Set())
+    } else {
+      setSelectedPlayers(new Set(players.map(p => p.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/players`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerIds: Array.from(selectedPlayers) })
+      })
+      if (res.ok) {
+        setShowBulkDeleteModal(false)
+        setSelectedPlayers(new Set())
+        // Refetch to ensure duplicate grouping updates correctly
+        fetchPlayers()
+      } else {
+        alert("Failed to delete players")
+      }
+    } catch (error) {
+      console.error("Error bulk deleting:", error)
+      alert("An error occurred")
+    } finally {
+      setIsBulkDeleting(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -61,9 +107,9 @@ export default function PlayersManagementClient() {
     try {
       const res = await fetch(`/api/admin/players?id=${id}`, { method: 'DELETE' })
       if (res.ok) {
-        setPlayers(players.filter(p => p.id !== id))
-        setTotalCount(prev => prev - 1)
         setShowDeleteModal(null)
+        // Refetch to ensure duplicate grouping updates correctly
+        fetchPlayers()
       } else {
         alert("Failed to delete player")
       }
@@ -94,19 +140,30 @@ export default function PlayersManagementClient() {
           </button>
         </form>
 
-        <button
-          onClick={() => {
-            setDuplicatesMode(!duplicatesMode)
-            setPage(1)
-          }}
-          className={`px-6 py-3 rounded-xl font-bold transition-all border ${
-            duplicatesMode 
-              ? 'bg-[#E8A800] text-black border-[#E8A800] hover:bg-[#FFC93A]' 
-              : 'bg-white/5 text-white border-white/10 hover:bg-white/10'
-          }`}
-        >
-          {duplicatesMode ? "Show All Players" : "Find Duplicates"}
-        </button>
+        <div className="flex gap-2">
+          {selectedPlayers.size > 0 && (
+            <button
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="px-4 sm:px-6 py-3 rounded-xl font-bold transition-all border bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 text-sm whitespace-nowrap"
+            >
+              Delete Selected ({selectedPlayers.size})
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setDuplicatesMode(!duplicatesMode)
+              setPage(1)
+              setSelectedPlayers(new Set())
+            }}
+            className={`px-4 sm:px-6 py-3 rounded-xl font-bold transition-all border text-sm whitespace-nowrap ${
+              duplicatesMode 
+                ? 'bg-[#E8A800] text-black border-[#E8A800] hover:bg-[#FFC93A]' 
+                : 'bg-white/5 text-white border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {duplicatesMode ? "Show All Players" : "Find Duplicates"}
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 text-sm text-gray-400">
@@ -118,8 +175,17 @@ export default function PlayersManagementClient() {
           <table className="w-full text-left">
             <thead className="bg-black/40 border-b border-white/10">
               <tr>
+                <th className="px-6 py-4 w-10">
+                  <input
+                    type="checkbox"
+                    checked={players.length > 0 && selectedPlayers.size === players.length}
+                    onChange={toggleAllOnPage}
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0 cursor-pointer"
+                  />
+                </th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Player</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Nationality</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Club</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Position/Rating</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
               </tr>
@@ -127,7 +193,7 @@ export default function PlayersManagementClient() {
             <tbody className="divide-y divide-white/10">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-8 h-8 border-4 border-[#E8A800]/30 border-t-[#E8A800] rounded-full animate-spin" />
                       Loading players...
@@ -136,7 +202,7 @@ export default function PlayersManagementClient() {
                 </tr>
               ) : players.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                     No players found
                   </td>
                 </tr>
@@ -145,6 +211,14 @@ export default function PlayersManagementClient() {
                   const stats = player.seasonalPlayerStats[0]
                   return (
                     <tr key={player.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedPlayers.has(player.id)}
+                          onChange={() => toggleSelection(player.id)}
+                          className="w-4 h-4 rounded border-white/20 bg-black/50 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-lg bg-black/50 border border-white/10 overflow-hidden relative">
@@ -164,6 +238,9 @@ export default function PlayersManagementClient() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-300">{stats?.nationality || "Unknown"}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-300">{stats?.realWorldClub || "Unknown"}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {stats ? (
@@ -253,6 +330,49 @@ export default function PlayersManagementClient() {
                   </>
                 ) : (
                   "Delete Permanently"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#111] border border-red-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-black text-white mb-2 flex items-center gap-2">
+              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Delete {selectedPlayers.size} Players?
+            </h3>
+            <p className="text-gray-400 text-sm mb-6">
+              This action cannot be undone. You are about to permanently delete <strong className="text-white">{selectedPlayers.size}</strong> players. This will remove their base profiles, all seasonal stats, transfer history, and starred records.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 rounded-xl text-white font-bold hover:bg-white/10 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all flex items-center gap-2"
+              >
+                {isBulkDeleting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete All Permanently"
                 )}
               </button>
             </div>

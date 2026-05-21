@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
               nationality: true,
               position: true,
               overallRating: true,
+              realWorldClub: true,
             }
           }
         }
@@ -82,6 +83,7 @@ export async function GET(request: NextRequest) {
               nationality: true,
               position: true,
               overallRating: true,
+              realWorldClub: true,
             }
           }
         }
@@ -107,21 +109,40 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = request.nextUrl
-    const playerId = searchParams.get('id')
+    let playerIds: string[] = []
 
-    if (!playerId) {
-      return NextResponse.json({ error: 'Player ID required' }, { status: 400 })
+    // Try parsing from body
+    try {
+      const body = await request.json()
+      if (body.playerIds && Array.isArray(body.playerIds)) {
+        playerIds = body.playerIds
+      }
+    } catch (e) {
+      // Fallback to query param
+      const { searchParams } = request.nextUrl
+      const playerId = searchParams.get('id')
+      if (playerId) playerIds = [playerId]
     }
 
-    // Delete the player (will cascade to seasonal_player_stats, transfer_history, etc.)
-    await prisma.base_players.delete({
-      where: { id: playerId }
+    if (playerIds.length === 0) {
+      // If body parsing failed and no query param, try query param directly just in case
+      const { searchParams } = request.nextUrl
+      const playerId = searchParams.get('id')
+      if (playerId) playerIds = [playerId]
+    }
+
+    if (playerIds.length === 0) {
+      return NextResponse.json({ error: 'Player IDs required' }, { status: 400 })
+    }
+
+    // Delete the players (will cascade to seasonal_player_stats, transfer_history, etc.)
+    await prisma.base_players.deleteMany({
+      where: { id: { in: playerIds } }
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, deletedCount: playerIds.length })
   } catch (error) {
-    console.error('Error deleting player:', error)
-    return NextResponse.json({ error: 'Failed to delete player' }, { status: 500 })
+    console.error('Error deleting players:', error)
+    return NextResponse.json({ error: 'Failed to delete players' }, { status: 500 })
   }
 }

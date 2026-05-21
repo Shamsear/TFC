@@ -551,7 +551,7 @@ export default function BulkTiebreakerBiddingClient({
   const quickBidAmounts = [1, 5, 10, 100]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 sm:pt-24 md:pt-28">
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -590,7 +590,7 @@ export default function BulkTiebreakerBiddingClient({
       )}
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <Link
             href="/team/auction"
             className="inline-flex items-center gap-2 text-[#D4CCBB] hover:text-white mb-4 transition-colors"
@@ -601,9 +601,9 @@ export default function BulkTiebreakerBiddingClient({
             Back to Auction
           </Link>
 
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
                 <img
                   src={getPhotoUrlFromDb(liveData.basePlayer.photoUrl)}
                   alt={liveData.basePlayer.name}
@@ -614,70 +614,70 @@ export default function BulkTiebreakerBiddingClient({
                 />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-white mb-1">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white mb-1">
                   Bulk Tiebreaker
                 </h1>
-                <p className="text-sm text-[#D4CCBB]">
+                <p className="text-xs sm:text-sm text-[#D4CCBB]">
                   {liveData.basePlayer.name} — Round {roundData.roundNumber}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
               {/* Sync / Reconnect Button */}
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 hover:border-white/20 transition-all text-[#D4CCBB] hover:text-white disabled:opacity-50 active:scale-95 cursor-pointer shadow-lg shadow-black/35"
+                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold hover:bg-white/10 hover:border-white/20 transition-all text-[#D4CCBB] hover:text-white disabled:opacity-50 active:scale-95 cursor-pointer shadow-lg shadow-black/35"
                 title="Force Refresh Data & Reconnect Stream"
               >
-                <svg className={`w-4 h-4 text-[#E8A800] ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className={`w-3 h-3 sm:w-4 sm:h-4 text-[#E8A800] ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M21 20v-5h-.581m0 0a8.003 8.003 0 11-15.357-2" />
                 </svg>
-                <span>{refreshing ? 'Syncing...' : 'Sync'}</span>
+                <span className="hidden sm:inline">{refreshing ? 'Syncing...' : 'Sync'}</span>
               </button>
 
               {/* Live Indicator */}
               {liveData.status === 'active' && (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  <span className="text-sm font-medium text-red-300">LIVE</span>
+                  <span className="text-xs sm:text-sm font-medium text-red-300">LIVE</span>
                 </div>
               )}
               {timeRemaining && (
-                <div className="px-4 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <div className="text-xs text-purple-400 mb-1">Time Remaining</div>
-                  <div className="text-lg font-bold text-purple-300">{timeRemaining}</div>
+                <div className="px-2 sm:px-4 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <div className="text-[10px] sm:text-xs text-purple-400 mb-0.5 sm:mb-1">Time Left</div>
+                  <div className="text-sm sm:text-lg font-bold text-purple-300">{timeRemaining}</div>
                 </div>
               )}
             </div>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Your Budget</div>
-              <div className="text-xl font-bold text-white">£{budget.toLocaleString()}</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
+              <div className="text-[10px] sm:text-xs text-[#7A7367] mb-1">Your Budget</div>
+              <div className="text-base sm:text-xl font-bold text-white">£{budget.toLocaleString()}</div>
             </div>
-            <div className={`rounded-lg bg-white/5 border border-white/10 p-4 transition-all ${
+            <div className={`rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4 transition-all ${
               newBidAnimation ? 'ring-2 ring-[#E8A800] scale-105' : ''
             }`}>
-              <div className="text-xs text-[#7A7367] mb-1">Current Highest</div>
-              <div className="text-xl font-bold text-[#E8A800]">
+              <div className="text-[10px] sm:text-xs text-[#7A7367] mb-1">Current Highest</div>
+              <div className="text-base sm:text-xl font-bold text-[#E8A800]">
                 £{(liveData.currentHighestBid || liveData.basePrice).toLocaleString()}
               </div>
               {liveData.currentHighestTeamId && (
-                <div className="text-xs text-[#D4CCBB] mt-1">
+                <div className="text-[10px] sm:text-xs text-[#D4CCBB] mt-1 truncate">
                   {participantTeamMap.get(liveData.currentHighestTeamId)?.name || 'Unknown Team'}
                 </div>
               )}
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Teams Remaining</div>
-              <div className="text-xl font-bold text-white">{liveData.teamsRemaining}</div>
+            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
+              <div className="text-[10px] sm:text-xs text-[#7A7367] mb-1">Teams Remaining</div>
+              <div className="text-base sm:text-xl font-bold text-white">{liveData.teamsRemaining}</div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Your Status</div>
-              <div className={`text-xl font-bold ${
+            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
+              <div className="text-[10px] sm:text-xs text-[#7A7367] mb-1">Your Status</div>
+              <div className={`text-base sm:text-xl font-bold ${
                 !liveData.currentHighestBid || liveData.currentHighestBid === liveData.basePrice
                   ? 'text-[#D4CCBB]'
                   : isActive 
@@ -848,11 +848,11 @@ export default function BulkTiebreakerBiddingClient({
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <button
                     onClick={handlePlaceBid}
                     disabled={submitting || bidAmount <= (liveData.currentHighestBid || liveData.basePrice) || bidAmount > maxBidLimit}
-                    className={`flex-1 px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50 ${
+                    className={`flex-1 px-4 sm:px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50 text-sm sm:text-base ${
                       isBidLocked 
                         ? 'bg-amber-500 hover:bg-amber-600 text-black' 
                         : 'bg-[#E8A800] hover:bg-[#E8A800]/90 text-black'
@@ -866,7 +866,7 @@ export default function BulkTiebreakerBiddingClient({
                     type="button"
                     onClick={handleManualRefresh}
                     disabled={refreshing}
-                    className="px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 hover:border-white/20 transition-all text-[#D4CCBB] hover:text-white disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-black/35 min-w-[120px]"
+                    className="px-4 sm:px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold hover:bg-white/10 hover:border-white/20 transition-all text-[#D4CCBB] hover:text-white disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-black/35 min-w-[100px] sm:min-w-[120px]"
                     title="Sync Latest Data & Reconnect Stream"
                   >
                     <svg className={`w-4 h-4 text-[#E8A800] ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -878,7 +878,7 @@ export default function BulkTiebreakerBiddingClient({
                   <button
                     onClick={handleWithdraw}
                     disabled={withdrawing || isMyBidHighest}
-                    className="px-6 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="px-4 sm:px-6 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base"
                     title={isMyBidHighest ? 'Cannot withdraw while winning' : 'Withdraw from tiebreaker'}
                   >
                     {withdrawing ? 'Withdrawing...' : 'Withdraw'}
@@ -1004,3 +1004,8 @@ export default function BulkTiebreakerBiddingClient({
     </div>
   )
 }
+
+
+
+
+

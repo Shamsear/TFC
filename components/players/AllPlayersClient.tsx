@@ -180,6 +180,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   const [positionFilter, setPositionFilter] = useState(() => getParam('position', 'ALL'))
   const [teamFilter, setTeamFilter] = useState(() => getParam('team', 'ALL'))
   const [groupFilter, setGroupFilter] = useState(() => getParam('group', 'ALL'))
+  const [starredFilter, setStarredFilter] = useState(() => getParam('starred', 'all'))
   const [currentPage, setCurrentPage] = useState(() => parseInt(getParam('page', '1'), 10))
 
   const [players, setPlayers] = useState<Player[]>([])
@@ -871,6 +872,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     position: string
     team: string
     group: string
+    starred: string
     page: number
   }) => {
     if (abortRef.current) abortRef.current.abort()
@@ -903,9 +905,16 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       if (!res.ok) throw new Error('Failed to fetch players')
       const data = await res.json()
       if (!controller.signal.aborted) {
-        setPlayers(data.players)
-        setTotalPlayers(data.totalPlayers)
-        setTotalPages(data.totalPages)
+        let filteredPlayers = data.players
+        
+        // Client-side filter for starred players if enabled
+        if (enableStarring && opts.starred === 'starred') {
+          filteredPlayers = filteredPlayers.filter((p: Player) => starredPlayerIds.has(p.id))
+        }
+        
+        setPlayers(filteredPlayers)
+        setTotalPlayers(filteredPlayers.length)
+        setTotalPages(Math.ceil(filteredPlayers.length / 24))
         setLoading(false)
       }
     } catch (err: any) {
@@ -914,11 +923,11 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
         setLoading(false)
       }
     }
-  }, [seasonId, POSITION_GROUPS])
+  }, [seasonId, POSITION_GROUPS, enableStarring, starredPlayerIds])
 
   // ── Silently sync state → URL (no navigation, no reload) ────────────────────
   const syncURL = useCallback((opts: {
-    search: string; position: string; team: string; group: string; page: number
+    search: string; position: string; team: string; group: string; starred: string; page: number
   }) => {
     const params = new URLSearchParams()
     if (opts.page > 1) params.set('page', String(opts.page))
@@ -926,6 +935,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     if (opts.position !== 'ALL') params.set('position', opts.position)
     if (opts.team !== 'ALL') params.set('team', opts.team)
     if (opts.group !== 'ALL') params.set('group', opts.group)
+    if (opts.starred !== 'all') params.set('starred', opts.starred)
     const qs = params.toString()
     window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname)
   }, [pathname])
@@ -941,8 +951,8 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     debounceRef.current = setTimeout(() => {
       const newPage = 1
       setCurrentPage(newPage)
-      syncURL({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, page: newPage })
-      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, page: newPage })
+      syncURL({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, starred: starredFilter, page: newPage })
+      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, starred: starredFilter, page: newPage })
     }, 400)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -950,24 +960,25 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
 
   // ── Instant filter changes ───────────────────────────────────────────────────
   const applyFilters = useCallback((overrides: Partial<{
-    position: string; team: string; group: string; page: number
+    position: string; team: string; group: string; starred: string; page: number
   }>) => {
     const next = {
       search: searchQuery,
       position: positionFilter,
       team: teamFilter,
       group: groupFilter,
+      starred: starredFilter,
       page: 1,
       ...overrides
     }
     setCurrentPage(next.page)
     syncURL(next)
     fetchPlayers(next)
-  }, [searchQuery, positionFilter, teamFilter, groupFilter, syncURL, fetchPlayers])
+  }, [searchQuery, positionFilter, teamFilter, groupFilter, starredFilter, syncURL, fetchPlayers])
 
   // ── Initial load ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, page: currentPage })
+    fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, starred: starredFilter, page: currentPage })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -987,6 +998,11 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     applyFilters({ group: value })
   }
 
+  const handleStarredChange = (value: string) => {
+    setStarredFilter(value)
+    applyFilters({ starred: value })
+  }
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     applyFilters({ page })
@@ -998,7 +1014,8 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     setPositionFilter('ALL')
     setTeamFilter('ALL')
     setGroupFilter('ALL')
-    const next = { search: '', position: 'ALL', team: 'ALL', group: 'ALL', page: 1 }
+    setStarredFilter('all')
+    const next = { search: '', position: 'ALL', team: 'ALL', group: 'ALL', starred: 'all', page: 1 }
     syncURL(next)
     fetchPlayers(next)
   }
@@ -1008,7 +1025,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     <div className="space-y-4 sm:space-y-6">
       {/* Filters */}
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
             <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Search Players</label>
@@ -1043,6 +1060,17 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             onChange={handleTeamChange}
             displayValue={(val) => val === 'ALL' ? 'All Teams' : val}
           />
+
+          {/* Starred Filter - Only show when starring is enabled */}
+          {enableStarring && (
+            <CustomSelect
+              label="Starred"
+              value={starredFilter}
+              options={['all', 'starred']}
+              onChange={handleStarredChange}
+              displayValue={(val) => val === 'all' ? 'All Players' : '⭐ Starred Only'}
+            />
+          )}
 
           {/* Group Filter - Show when any position in the filter supports groups */}
           {(() => {
@@ -1086,7 +1114,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
           )}
         </span>
         <div className="flex items-center gap-4">
-          {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || groupFilter !== 'ALL') && (
+          {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || groupFilter !== 'ALL' || starredFilter !== 'all') && (
             <button
               onClick={handleClearFilters}
               className="text-[#E8A800] hover:text-[#FFC93A] transition-colors text-xs"

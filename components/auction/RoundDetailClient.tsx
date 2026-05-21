@@ -132,19 +132,21 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set())
   const [copied, setCopied] = useState(false)
   const [liveTiebreakers, setLiveTiebreakers] = useState<any[]>(round.tiebreakers || [])
+  const [liveTeamBids, setLiveTeamBids] = useState<any[]>(round.teamRoundBids || [])
+  const [liveBulkSelections, setLiveBulkSelections] = useState<any[]>(round.bulkRoundSelections || [])
 
   const submittedTeamsList = teams.filter(t => {
     if (round.roundType === 'bulk') {
-      const selection = round.bulkRoundSelections?.find((b: any) => b.teamId === t.id)
+      const selection = liveBulkSelections?.find((b: any) => b.teamId === t.id)
       return selection?.submitted === true
     }
-    const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
+    const bid = liveTeamBids?.find((b: any) => b.teamId === t.id)
     return bid?.submitted === true
   })
 
   const inProgressTeamsList = teams.map(t => {
     if (round.roundType === 'bulk') {
-      const selection = round.bulkRoundSelections?.find((b: any) => b.teamId === t.id)
+      const selection = liveBulkSelections?.find((b: any) => b.teamId === t.id)
       let count = 0
       if (selection?.selectedPlayers) {
         try {
@@ -154,16 +156,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       }
       return { team: t, bid: selection, bidCount: count }
     }
-    const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
+    const bid = liveTeamBids?.find((b: any) => b.teamId === t.id)
     return { team: t, bid, bidCount: bid?.bidCount || 0 }
   }).filter(item => item.bid && !item.bid.submitted)
 
   const notStartedTeamsList = teams.filter(t => {
     if (round.roundType === 'bulk') {
-      const selection = round.bulkRoundSelections?.find((b: any) => b.teamId === t.id)
+      const selection = liveBulkSelections?.find((b: any) => b.teamId === t.id)
       return !selection
     }
-    const bid = round.teamRoundBids?.find((b: any) => b.teamId === t.id)
+    const bid = liveTeamBids?.find((b: any) => b.teamId === t.id)
     return !bid
   })
 
@@ -223,11 +225,19 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               })
             }
             
-            // If the status transitioned to completed, force a full page reload to fetch new completed results
-            if (data.round.status === 'completed' && round.status !== 'completed') {
-              setLocalStatus(data.round.status)
-              window.location.reload()
-              return
+            if (data.round.teamRoundBids) {
+              setLiveTeamBids(data.round.teamRoundBids)
+            }
+            if (data.round.bulkRoundSelections) {
+              setLiveBulkSelections(data.round.bulkRoundSelections)
+            }
+            
+            // If the status changed drastically, force a full page reload to fetch new completed results/tiebreakers
+            if (data.round.status !== localStatus) {
+              if (['tiebreaker_pending', 'completed', 'finalizing', 'preview_finalized'].includes(data.round.status)) {
+                window.location.reload()
+                return
+              }
             }
             
             setLocalStatus(data.round.status)
@@ -338,7 +348,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         throw new Error(data.error || 'Failed to start round')
       }
 
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -368,7 +378,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         throw new Error(data.error || 'Failed to finalize round')
       }
 
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -398,7 +408,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         throw new Error(data.error || 'Failed to stop round')
       }
 
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -434,7 +444,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         alert(`Tiebreakers created! Teams must submit bids before you can see final results.\n\nTiebreakers: ${data.tiebreakers?.length || 0}`)
       }
 
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -465,7 +475,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       }
 
       setShowPreviewModal(false)
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -491,7 +501,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         throw new Error(data.error || 'Failed to make results public')
       }
 
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -584,8 +594,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   }
 
   const submittedBids = round.roundType === 'bulk'
-    ? (round.bulkRoundSelections?.filter((bid: any) => bid.submitted).length || 0)
-    : round.teamRoundBids.filter((bid: any) => bid.submitted).length
+    ? (liveBulkSelections?.filter((bid: any) => bid.submitted).length || 0)
+    : (liveTeamBids?.filter((bid: any) => bid.submitted).length || 0)
   const totalTeams = teams.length
 
   // Format duration in hours and minutes
@@ -1687,7 +1697,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 )
               }
 
-              const teamBid = round.teamRoundBids.find((bid: any) => bid.teamId === team.id)
+              const teamBid = liveTeamBids.find((bid: any) => bid.teamId === team.id)
               return (
                 <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10 gap-3">
                   <div className="flex items-center gap-3 w-full sm:w-auto text-left">

@@ -226,6 +226,7 @@ export default function PlayersManagementClient() {
                               src={getPlayerPhotoUrl(player.photoUrl)}
                               alt={player.name}
                               fill
+                              unoptimized
                               className="object-contain"
                               sizes="48px"
                             />
@@ -273,21 +274,62 @@ export default function PlayersManagementClient() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-8">
+        <div className="flex flex-wrap justify-center items-center gap-2 mt-8">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 rounded-lg text-white font-bold transition-all"
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 rounded-lg text-white font-bold transition-all hidden sm:block"
           >
-            Previous
+            Prev
           </button>
-          <span className="px-4 py-2 text-gray-400 flex items-center">
-            Page {page} of {totalPages}
-          </span>
+          
+          <div className="flex items-center gap-1 overflow-x-auto max-w-full">
+            {(() => {
+              const pages = []
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i)
+              } else {
+                if (page <= 4) {
+                  for (let i = 1; i <= 5; i++) pages.push(i)
+                  pages.push('...')
+                  pages.push(totalPages)
+                } else if (page >= totalPages - 3) {
+                  pages.push(1)
+                  pages.push('...')
+                  for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
+                } else {
+                  pages.push(1)
+                  pages.push('...')
+                  for (let i = page - 1; i <= page + 1; i++) pages.push(i)
+                  pages.push('...')
+                  pages.push(totalPages)
+                }
+              }
+              
+              return pages.map((p, i) => (
+                p === '...' ? (
+                  <span key={`ellipsis-${i}`} className="px-3 py-2 text-gray-500">...</span>
+                ) : (
+                  <button
+                    key={`page-${p}`}
+                    onClick={() => setPage(p as number)}
+                    className={`min-w-[40px] px-3 py-2 rounded-lg font-bold transition-all ${
+                      page === p 
+                        ? 'bg-red-500 text-white border-red-500' 
+                        : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              ))
+            })()}
+          </div>
+
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 rounded-lg text-white font-bold transition-all"
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 rounded-lg text-white font-bold transition-all hidden sm:block"
           >
             Next
           </button>

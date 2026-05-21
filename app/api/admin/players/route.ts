@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       // First, get all base players with their latest stats to determine nationality
       const allPlayers = await prisma.base_players.findMany({
         where: query ? {
-          name: { contains: query, mode: 'insensitive' }
+          name: { contains: query, mode: 'insensitive' as const }
         } : undefined,
         include: {
           seasonalPlayerStats: {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     // Normal mode (paginated search)
     const whereClause = query ? {
-      name: { contains: query, mode: 'insensitive' }
+      name: { contains: query, mode: 'insensitive' as const }
     } : {}
 
     const [players, totalCount] = await Promise.all([

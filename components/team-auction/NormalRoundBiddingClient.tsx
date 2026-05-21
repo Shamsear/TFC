@@ -162,39 +162,11 @@ export default function NormalRoundBiddingClient({
 
   // Load existing bids
   useEffect(() => {
-    let initialBids = existingBids?.bids || {}
-    
-    const localDataStr = localStorage.getItem(`tfc_draft_bids_${round.id}_${teamId}`)
-    if (localDataStr) {
-      try {
-        const localData = JSON.parse(localDataStr)
-        const dbTime = existingBids?.lastUpdated ? new Date(existingBids.lastUpdated).getTime() : 0
-        const localTime = localData.timestamp ? new Date(localData.timestamp).getTime() : 0
-        
-        if (localTime > dbTime) {
-          initialBids = localData.bids
-        }
-      } catch (e) {
-        console.error('Failed to parse local storage bids:', e)
-      }
-    }
-    
-    setBids(initialBids)
+    setBids(existingBids?.bids || {})
     hasLoadedInitial.current = true
-  }, [round.id, teamId])
+  }, [round.id, teamId, existingBids])
 
-  // Save to local storage on change
-  useEffect(() => {
-    if (!hasLoadedInitial.current) return
-    
-    localStorage.setItem(
-      `tfc_draft_bids_${round.id}_${teamId}`,
-      JSON.stringify({
-        bids,
-        timestamp: new Date().toISOString()
-      })
-    )
-  }, [bids, round.id, teamId])
+
 
   // Poll every 3 seconds for real-time status/timer updates (especially for extended time)
   useEffect(() => {
@@ -405,7 +377,6 @@ export default function NormalRoundBiddingClient({
         throw new Error(error.error || 'Failed to save draft')
       }
 
-      localStorage.removeItem(`tfc_draft_bids_${round.id}_${teamId}`)
       setMessage({ type: 'success', text: 'Draft saved successfully' })
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
@@ -546,7 +517,6 @@ export default function NormalRoundBiddingClient({
         throw new Error(error.error || 'Failed to submit bids')
       }
 
-      localStorage.removeItem(`tfc_draft_bids_${round.id}_${teamId}`)
       setIsSubmitted(true)
       setMessage({ type: 'success', text: 'Bids submitted successfully!' })
     } catch (error: any) {
@@ -591,7 +561,6 @@ export default function NormalRoundBiddingClient({
         throw new Error(error.error || 'Failed to unlock bids')
       }
 
-      localStorage.removeItem(`tfc_draft_bids_${round.id}_${teamId}`)
       setIsSubmitted(false)
       setMessage({ type: 'success', text: 'Bids unlocked. You can now edit them.' })
       

@@ -36,7 +36,7 @@ export default function PlayersManagementClient() {
   const fetchPlayers = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/players?query=${encodeURIComponent(query)}&duplicates=${duplicatesMode}&page=${page}`)
+      const res = await fetch(`/api/admin/players?query=${encodeURIComponent(query)}&duplicates=${duplicatesMode}&page=${page}&t=${Date.now()}`)
       if (res.ok) {
         const data = await res.json()
         setPlayers(data.players)

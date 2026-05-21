@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface TiebreakerBiddingClientProps {
   tiebreaker: {
@@ -189,7 +190,7 @@ export default function TiebreakerBiddingClient({
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
               <img
-                src={tiebreaker.basePlayer.photoUrl}
+                src={getPhotoUrlFromDb(tiebreaker.basePlayer.photoUrl)}
                 alt={tiebreaker.basePlayer.name}
                 loading="eager"
                 decoding="async"

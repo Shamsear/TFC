@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface BulkTiebreakerBiddingClientProps {
   tiebreaker: {
@@ -604,7 +605,7 @@ export default function BulkTiebreakerBiddingClient({
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
                 <img
-                  src={liveData.basePlayer.photoUrl}
+                  src={getPhotoUrlFromDb(liveData.basePlayer.photoUrl)}
                   alt={liveData.basePlayer.name}
                   loading="eager"
                   decoding="async"

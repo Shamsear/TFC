@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface BulkTiebreakerMonitorClientProps {
   initialData: {
@@ -276,7 +277,7 @@ export default function BulkTiebreakerMonitorClient({
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10">
                 <Image
-                  src={liveData.basePlayer.photoUrl}
+                  src={getPhotoUrlFromDb(liveData.basePlayer.photoUrl)}
                   alt={liveData.basePlayer.name}
                   width={64}
                   height={64}

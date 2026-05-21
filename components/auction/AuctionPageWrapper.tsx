@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import RoundsListClient from './RoundsListClient'
 import PageLoader from '@/components/ui/PageLoader'
+import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface Round {
   id: string
@@ -135,7 +136,7 @@ export default function AuctionPageWrapper({
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10">
                           <img
-                            src={tb.basePlayer.photoUrl}
+                            src={getPhotoUrlFromDb(tb.basePlayer.photoUrl)}
                             alt={tb.basePlayer.name}
                             className="w-full h-full object-cover"
                           />

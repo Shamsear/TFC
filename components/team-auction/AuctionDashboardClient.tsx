@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface Team {
   id: string
@@ -409,7 +410,7 @@ export default function AuctionDashboardClient({
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
                       <img
-                        src={tb.basePlayer.photoUrl}
+                        src={getPhotoUrlFromDb(tb.basePlayer.photoUrl)}
                         alt={tb.basePlayer.name}
                         loading="eager"
                         decoding="async"
@@ -443,7 +444,7 @@ export default function AuctionDashboardClient({
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
                       <img
-                        src={tb.basePlayer.photoUrl}
+                        src={getPhotoUrlFromDb(tb.basePlayer.photoUrl)}
                         alt={tb.basePlayer.name}
                         loading="eager"
                         decoding="async"

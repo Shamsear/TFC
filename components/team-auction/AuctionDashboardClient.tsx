@@ -447,12 +447,12 @@ export default function AuctionDashboardClient({
           </div>
         )}
 
-        {/* Tiebreakers */}
-        {(tiebreakers.length > 0 || bulkTiebreakers.length > 0) && (
-          <div id="tiebreakers" className="mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Tiebreakers</h2>
+        {/* Active Tiebreakers */}
+        {(activeTiebreakers.length > 0 || activeBulkTiebreakers.length > 0) && (
+          <div id="active-tiebreakers" className="mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Active Tiebreakers</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {tiebreakers.map(tb => (
+              {liveData.activeTiebreakers.map(tb => (
                 <Link
                   key={tb.id}
                   href={`/team/auction/tiebreakers/${tb.id}`}
@@ -473,6 +473,9 @@ export default function AuctionDashboardClient({
                       <h3 className="text-lg font-bold text-white">{tb.basePlayer.name}</h3>
                       <p className="text-sm text-[#D4CCBB]">Round {tb.round.roundNumber}</p>
                     </div>
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium border bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                      LIVE
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className={`text-sm font-medium ${
@@ -486,7 +489,7 @@ export default function AuctionDashboardClient({
                   </div>
                 </Link>
               ))}
-              {bulkTiebreakers.map(tb => (
+              {liveData.activeBulkTiebreakers.map(tb => (
                 <Link
                   key={tb.id}
                   href={`/team/auction/bulk-tiebreakers/${tb.id}`}
@@ -505,8 +508,11 @@ export default function AuctionDashboardClient({
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-white">{tb.basePlayer.name}</h3>
-                      <p className="text-sm text-[#D4CCBB]">Bulk Tiebreaker</p>
+                      <p className="text-sm text-[#D4CCBB]">Round {tb.round.roundNumber} — Bulk Tiebreaker</p>
                     </div>
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium border bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                      LIVE
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-purple-300">
@@ -519,6 +525,113 @@ export default function AuctionDashboardClient({
                 </Link>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Pending Tiebreakers (Awaiting Admin) */}
+        {(pendingTiebreakers.length > 0 || pendingBulkTiebreakers.length > 0) && (
+          <div className="mb-8">
+            <button
+              onClick={() => setShowPendingTiebreakers(!showPendingTiebreakers)}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all mb-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <h2 className="text-lg sm:text-xl font-bold text-white">
+                    Pending Tiebreakers ({pendingActionItemsCount})
+                  </h2>
+                  <p className="text-sm text-[#D4CCBB]">Awaiting admin to start</p>
+                </div>
+              </div>
+              <svg 
+                className={`w-5 h-5 text-[#E8A800] transition-transform ${showPendingTiebreakers ? 'rotate-180' : ''}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showPendingTiebreakers && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {liveData.pendingTiebreakers.map(tb => (
+                  <Link
+                    key={tb.id}
+                    href={`/team/auction/tiebreakers/${tb.id}/preview`}
+                    className="block rounded-xl bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all p-6"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                        <img
+                          src={getPhotoUrlFromDb(tb.basePlayer.photoUrl)}
+                          alt={tb.basePlayer.name}
+                          loading="eager"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-white">{tb.basePlayer.name}</h3>
+                        <p className="text-sm text-[#D4CCBB]">Round {tb.round.roundNumber}</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-lg text-xs font-medium border bg-amber-500/20 text-amber-300 border-amber-500/30">
+                        Pending
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#7A7367]">
+                        {tb.teamTiebreakerBids.length} contested teams
+                      </span>
+                      <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </Link>
+                ))}
+                {liveData.pendingBulkTiebreakers.map(tb => (
+                  <Link
+                    key={tb.id}
+                    href={`/team/auction/bulk-tiebreakers/${tb.id}/preview`}
+                    className="block rounded-xl bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all p-6"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                        <img
+                          src={getPhotoUrlFromDb(tb.basePlayer.photoUrl)}
+                          alt={tb.basePlayer.name}
+                          loading="eager"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-white">{tb.basePlayer.name}</h3>
+                        <p className="text-sm text-[#D4CCBB]">Round {tb.round.roundNumber} — Bulk Tiebreaker</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-lg text-xs font-medium border bg-amber-500/20 text-amber-300 border-amber-500/30">
+                        Pending
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#7A7367]">
+                        {tb.participants.length} contested teams
+                      </span>
+                      <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -602,7 +715,7 @@ export default function AuctionDashboardClient({
         )}
 
         {/* Empty State */}
-        {activeRounds.length === 0 && upcomingRounds.length === 0 && tiebreakers.length === 0 && bulkTiebreakers.length === 0 && (
+        {activeRounds.length === 0 && upcomingRounds.length === 0 && activeTiebreakers.length === 0 && activeBulkTiebreakers.length === 0 && (
           <div className="rounded-xl bg-white/5 border border-white/10 p-12 text-center">
             <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#E8A800] mx-auto mb-6">
               <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">

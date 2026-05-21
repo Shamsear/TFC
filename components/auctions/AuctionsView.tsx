@@ -44,6 +44,7 @@ interface AuctionsViewProps {
     position: string | null
     position_group: string | null
   }>
+  auctionToRoundsMap?: Record<string, string[]>
   seasonName: string | null
   initialAuctionId?: string
   initialPosition?: string
@@ -57,6 +58,7 @@ export default function AuctionsView({
   auctions,
   auctionResults,
   rounds = [],
+  auctionToRoundsMap = {},
   seasonName,
   initialAuctionId,
   initialPosition,
@@ -138,22 +140,27 @@ export default function AuctionsView({
 
   // Filter results
   const filteredResults = auctionResults.filter(result => {
-    // Filter by auction (match rounds that occurred on the same day as the auction)
+    // Filter by auction (using the auction-to-rounds mapping)
     if (selectedAuction !== 'all') {
-      const auction = auctions.find(a => a.id === selectedAuction)
-      if (auction && result.roundStartTime) {
-        const auctionDate = new Date(auction.auctionDate)
-        const roundDate = new Date(result.roundStartTime)
-        // Check if round started on the same day as auction
-        if (auctionDate.toDateString() !== roundDate.toDateString()) {
+      const roundIds = auctionToRoundsMap[selectedAuction] || []
+      
+      // Check if this result's roundId is in the mapped rounds for this auction
+      if (result.roundId && roundIds.length > 0) {
+        if (!roundIds.includes(result.roundId)) {
           return false
         }
-      } else if (auction && !result.roundStartTime) {
-        // Fallback to createdAt if roundStartTime is not available
-        const auctionDate = new Date(auction.auctionDate)
-        const resultDate = new Date(result.createdAt)
-        if (auctionDate.toDateString() !== resultDate.toDateString()) {
-          return false
+      } else if (roundIds.length > 0) {
+        // If we have a mapping but result has no roundId, exclude it
+        return false
+      } else {
+        // Fallback: if no mapping exists, use date matching
+        const auction = auctions.find(a => a.id === selectedAuction)
+        if (auction) {
+          const auctionDate = new Date(auction.auctionDate)
+          const resultDate = new Date(result.createdAt)
+          if (auctionDate.toDateString() !== resultDate.toDateString()) {
+            return false
+          }
         }
       }
     }

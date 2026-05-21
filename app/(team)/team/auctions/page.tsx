@@ -23,15 +23,49 @@ async function getAuctionsData(seasonId: string) {
       }
     })
 
-    // Get all rounds for this season to map auction dates to rounds
+    // Get all rounds for this season
     const rounds = await prisma.rounds.findMany({
       where: { seasonId },
       select: {
         id: true,
         startTime: true,
         position: true,
-        position_group: true
+        position_group: true,
+        roundType: true
       }
+    })
+
+    // Create a mapping of auction calendar to round IDs
+    const auctionToRoundsMap = new Map<string, string[]>()
+    
+    auctions.forEach(auction => {
+      const auctionDate = new Date(auction.auctionDate)
+      const matchingRoundIds: string[] = []
+      
+      // Find rounds that match this auction's date and slots
+      auction.auctionSlots.forEach(slot => {
+        const matchingRounds = rounds.filter(round => {
+          if (!round.startTime) return false
+          
+          const roundDate = new Date(round.startTime)
+          const sameDate = auctionDate.toDateString() === roundDate.toDateString()
+          
+          // Match by position and position_group
+          const positionMatch = round.position === slot.position
+          const groupMatch = round.position_group === slot.position_group
+          const typeMatch = round.roundType === slot.roundType
+          
+          return sameDate && positionMatch && groupMatch && typeMatch
+        })
+        
+        matchingRounds.forEach(r => {
+          if (!matchingRoundIds.includes(r.id)) {
+            matchingRoundIds.push(r.id)
+          }
+        })
+      })
+      
+      auctionToRoundsMap.set(auction.id, matchingRoundIds)
     })
 
     // Get all auction results (transfer history) with seasonal player stats
@@ -86,11 +120,12 @@ async function getAuctionsData(seasonId: string) {
     return {
       auctions,
       auctionResults: transformedAuctionResults,
-      rounds
+      rounds,
+      auctionToRoundsMap: Object.fromEntries(auctionToRoundsMap)
     }
   } catch (error) {
     console.error('Error fetching auctions data:', error)
-    return { auctions: [], auctionResults: [], rounds: [] }
+    return { auctions: [], auctionResults: [], rounds: [], auctionToRoundsMap: {} }
   }
 }
 
@@ -145,6 +180,7 @@ export default async function TeamAuctionsPage({
             auctions={data.auctions}
             auctionResults={data.auctionResults}
             rounds={data.rounds}
+            auctionToRoundsMap={data.auctionToRoundsMap}
             seasonName={activeSeason.name}
             initialAuctionId={auctionId}
             initialPosition={position}

@@ -118,7 +118,6 @@ export default function AuctionsView({
   }
 
   const handleAuctionChange = (auctionId: string) => {
-    setSelectedAuction(auctionId)
     const params = new URLSearchParams()
     if (auctionId !== 'all') params.set('auctionId', auctionId)
     if (selectedPosition !== 'all') params.set('position', selectedPosition)
@@ -127,7 +126,6 @@ export default function AuctionsView({
   }
 
   const handlePositionChange = (position: string) => {
-    setSelectedPosition(position)
     const params = new URLSearchParams()
     if (selectedAuction !== 'all') params.set('auctionId', selectedAuction)
     if (position !== 'all') params.set('position', position)
@@ -144,24 +142,16 @@ export default function AuctionsView({
     if (selectedAuction !== 'all') {
       const roundIds = auctionToRoundsMap[selectedAuction] || []
       
-      // Check if this result's roundId is in the mapped rounds for this auction
-      if (result.roundId && roundIds.length > 0) {
-        if (!roundIds.includes(result.roundId)) {
+      // If we have a mapping for this auction, use it strictly
+      if (roundIds.length > 0) {
+        // Check if this result's roundId is in the mapped rounds for this auction
+        if (!result.roundId || !roundIds.includes(result.roundId)) {
           return false
         }
-      } else if (roundIds.length > 0) {
-        // If we have a mapping but result has no roundId, exclude it
-        return false
       } else {
-        // Fallback: if no mapping exists, use date matching
-        const auction = auctions.find(a => a.id === selectedAuction)
-        if (auction) {
-          const auctionDate = new Date(auction.auctionDate)
-          const resultDate = new Date(result.createdAt)
-          if (auctionDate.toDateString() !== resultDate.toDateString()) {
-            return false
-          }
-        }
+        // No mapping exists - this means no rounds have been created/started for this auction yet
+        // So there should be no results for this auction
+        return false
       }
     }
 

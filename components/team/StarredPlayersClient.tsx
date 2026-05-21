@@ -146,12 +146,8 @@ export default function StarredPlayersClient({
 
 
   // Load modal players from server with pagination and filtering
-  const loadModalPlayers = async (pageToLoad: number, append = false) => {
-    if (append) {
-      setIsModalLoadingMore(true)
-    } else {
-      setLoadingPlayers(true)
-    }
+  const loadModalPlayers = async (pageToLoad: number) => {
+    setLoadingPlayers(true)
     
     try {
       const searchParams = new URLSearchParams({
@@ -169,12 +165,7 @@ export default function StarredPlayersClient({
       const starredIds = new Set(players.map(p => p.id))
       const unstarredPlayers = (data.players || []).filter((p: Player) => !starredIds.has(p.id))
       
-      if (append) {
-        setAllPlayers(prev => [...prev, ...unstarredPlayers])
-      } else {
-        setAllPlayers(unstarredPlayers)
-      }
-      
+      setAllPlayers(unstarredPlayers)
       setModalTotalPages(data.totalPages || 1)
       setModalPage(pageToLoad)
     } catch (error) {
@@ -182,7 +173,6 @@ export default function StarredPlayersClient({
       alert('Failed to load players')
     } finally {
       setLoadingPlayers(false)
-      setIsModalLoadingMore(false)
     }
   }
 
@@ -190,7 +180,7 @@ export default function StarredPlayersClient({
   useEffect(() => {
     if (showAddModal) {
       const debounce = setTimeout(() => {
-        loadModalPlayers(1, false)
+        loadModalPlayers(1)
       }, 300)
       return () => clearTimeout(debounce)
     }
@@ -738,22 +728,33 @@ export default function StarredPlayersClient({
                         ))}
                       </div>
                       
-                      {/* Load More Button */}
-                      {modalPage < modalTotalPages && (
-                        <div className="mt-4 flex justify-center">
+                      {/* Pagination Controls */}
+                      {modalTotalPages > 1 && (
+                        <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
                           <button
-                            onClick={() => loadModalPlayers(modalPage + 1, true)}
-                            disabled={isModalLoadingMore}
-                            className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                            onClick={() => loadModalPlayers(Math.max(1, modalPage - 1))}
+                            disabled={modalPage === 1}
+                            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2"
                           >
-                            {isModalLoadingMore ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Loading...
-                              </>
-                            ) : (
-                              'Load More Players'
-                            )}
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Previous
+                          </button>
+                          
+                          <div className="text-sm text-gray-400 font-medium">
+                            Page <span className="text-white">{modalPage}</span> of <span className="text-white">{modalTotalPages}</span>
+                          </div>
+                          
+                          <button
+                            onClick={() => loadModalPlayers(Math.min(modalTotalPages, modalPage + 1))}
+                            disabled={modalPage === modalTotalPages}
+                            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                          >
+                            Next
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
                           </button>
                         </div>
                       )}

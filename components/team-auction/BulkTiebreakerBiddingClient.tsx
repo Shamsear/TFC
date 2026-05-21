@@ -934,13 +934,16 @@ export default function BulkTiebreakerBiddingClient({
                   .sort((a, b) => (b.currentBid || 0) - (a.currentBid || 0))
                   .map((participant) => {
                     const teamData = participantTeamMap.get(participant.teamId)!
+                    const isLeading = participant.teamId === liveData.currentHighestTeamId;
                     
                     return (
                       <div
                         key={participant.teamId}
-                        className={`p-3 rounded-lg border ${
+                        className={`p-3 rounded-lg border transition-all ${
                           participant.status === 'active'
-                            ? 'bg-white/5 border-white/10'
+                            ? isLeading
+                              ? 'bg-emerald-500/10 border-emerald-500/30'
+                              : 'bg-white/5 border-white/10'
                             : 'bg-red-500/5 border-red-500/20 opacity-50'
                         }`}
                       >
@@ -959,21 +962,24 @@ export default function BulkTiebreakerBiddingClient({
                             <div className="font-medium text-white text-sm">
                               {teamData.name}
                             </div>
+                            {isLeading && participant.status === 'active' && (
+                              <div className="text-xs text-emerald-400">Leading</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-[#7A7367]">
+                            {participant.status === 'active' ? 'Active' : 'Withdrawn'}
+                          </span>
+                          {participant.currentBid && (
+                            <span className="text-sm font-bold text-[#E8A800]">
+                              £{participant.currentBid.toLocaleString()}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-[#7A7367]">
-                          {participant.status === 'active' ? 'Active' : 'Withdrawn'}
-                        </span>
-                        {participant.currentBid && (
-                          <span className="text-sm font-bold text-[#E8A800]">
-                            £{participant.currentBid.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
               </div>
             </div>
           </div>

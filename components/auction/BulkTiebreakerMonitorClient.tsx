@@ -455,37 +455,39 @@ export default function BulkTiebreakerMonitorClient({
               <div className="space-y-3">
                 {liveData.participants
                   .sort((a, b) => (b.currentBid || 0) - (a.currentBid || 0))
-                  .map((participant, index) => (
-                    <div
-                      key={participant.id ? `participant-${participant.id}` : `participant-fallback-${index}`}
-                      className={`p-4 rounded-lg border transition-all ${
-                        participant.status === 'active'
-                          ? index === 0 && participant.currentBid
-                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : 'bg-white/5 border-white/10'
-                          : 'bg-red-500/5 border-red-500/20 opacity-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                          <Image
-                            src={participant.team.logoUrl}
-                            alt={participant.team.name}
-                            width={40}
-                            height={40}
-                            unoptimized={true}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-white text-sm">
-                            {participant.team.name}
+                  .map((participant, index) => {
+                    const isLeading = participant.teamId === liveData.currentHighestTeamId;
+                    return (
+                      <div
+                        key={participant.id ? `participant-${participant.id}` : `participant-fallback-${index}`}
+                        className={`p-4 rounded-lg border transition-all ${
+                          participant.status === 'active'
+                            ? isLeading
+                              ? 'bg-emerald-500/10 border-emerald-500/30'
+                              : 'bg-white/5 border-white/10'
+                            : 'bg-red-500/5 border-red-500/20 opacity-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                            <Image
+                              src={participant.team.logoUrl}
+                              alt={participant.team.name}
+                              width={40}
+                              height={40}
+                              unoptimized={true}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
-                          {index === 0 && participant.status === 'active' && participant.currentBid && (
-                            <div className="text-xs text-emerald-400">Leading</div>
-                          )}
+                          <div className="flex-1">
+                            <div className="font-medium text-white text-sm">
+                              {participant.team.name}
+                            </div>
+                            {isLeading && participant.status === 'active' && (
+                              <div className="text-xs text-emerald-400">Leading</div>
+                            )}
+                          </div>
                         </div>
-                      </div>
                       <div className="flex items-center justify-between">
                         <span className={`text-xs font-medium ${
                           participant.status === 'active' ? 'text-emerald-400' : 'text-red-400'
@@ -503,8 +505,9 @@ export default function BulkTiebreakerMonitorClient({
                           Last bid: {new Date(participant.lastBidTime).toLocaleTimeString()}
                         </div>
                       )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import TeamDashboardTabs from "@/components/team/TeamDashboardTabs"
+import TeamLogo from "@/components/team/TeamLogo"
 
 export const metadata = {
   title: "Team Dashboard | Turf Cats",
@@ -291,16 +292,7 @@ export default async function TeamDashboardPage() {
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-4">
-            {team.logoUrl && (
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-transparent ring-2 ring-[#E8A800]/20">
-                <Image
-                  src={team.logoUrl}
-                  alt={team.name}
-                  fill
-                  className="object-contain p-2"
-                />
-              </div>
-            )}
+            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="lg" />
             <div className="flex-1">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
                 <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">

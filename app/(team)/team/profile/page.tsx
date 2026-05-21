@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { canEditTeam, checkTeamSeasonParticipation } from "@/lib/team-auth"
 import Image from "next/image"
 import Link from "next/link"
+import TeamLogo from "@/components/team/TeamLogo"
 
 export const metadata = {
   title: "Team Profile | Turf Cats",
@@ -142,16 +143,7 @@ export default async function TeamProfilePage() {
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
             {/* Team Logo */}
-            {team.logoUrl && (
-              <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 ring-2 ring-[#E8A800]/20">
-                <Image
-                  src={team.logoUrl}
-                  alt={team.name}
-                  fill
-                  className="object-contain p-2"
-                />
-              </div>
-            )}
+            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="xl" />
 
             {/* Team Details */}
             <div className="flex-1">

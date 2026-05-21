@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import TeamLogo from "@/components/team/TeamLogo"
 
 export const metadata = {
   title: "Not in Active Season | Turf Cats",
@@ -53,16 +54,7 @@ export default async function NotInSeasonPage() {
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center gap-4 mb-2">
-            {team.logoUrl && (
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-white/5 ring-2 ring-[#E8A800]/20">
-                <Image
-                  src={team.logoUrl}
-                  alt={team.name}
-                  fill
-                  className="object-contain p-1"
-                />
-              </div>
-            )}
+            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="lg" />
             <div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black">
                 <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">

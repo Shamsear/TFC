@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import TeamLogo from "./TeamLogo"
 
 interface TeamNavigationClientProps {
   user: {
@@ -116,15 +117,8 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
             >
-              {team?.logoUrl && (
-                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5">
-                  <Image
-                    src={team.logoUrl}
-                    alt={team.name}
-                    fill
-                    className="object-contain p-0.5"
-                  />
-                </div>
+              {team && (
+                <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="xs" />
               )}
               <div className="text-right">
                 <div className="text-sm font-bold text-white">{team?.name || "Team"}</div>
@@ -198,15 +192,8 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
               {/* Mobile Team Info */}
               <div className="pt-4 border-t border-white/10">
                 <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10 mb-4">
-                  {team?.logoUrl && (
-                    <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5">
-                      <Image
-                        src={team.logoUrl}
-                        alt={team.name}
-                        fill
-                        className="object-contain p-0.5"
-                      />
-                    </div>
+                  {team && (
+                    <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="xs" />
                   )}
                   <div>
                     <div className="text-sm font-bold text-white">{team?.name || "Team"}</div>

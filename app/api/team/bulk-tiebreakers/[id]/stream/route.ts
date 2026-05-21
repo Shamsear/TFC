@@ -25,8 +25,12 @@ export async function GET(
   
   const stream = new ReadableStream({
     async start(controller) {
+      let isClosed = false;
+
       // Function to fetch and send current state
       const sendState = async () => {
+        if (isClosed) return;
+        
         try {
           const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
             where: { id: tiebreakerId },
@@ -78,7 +82,7 @@ export async function GET(
             }
           });
 
-          if (tiebreaker) {
+          if (tiebreaker && !isClosed) {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify(tiebreaker)}\n\n`)
             );
@@ -93,15 +97,24 @@ export async function GET(
 
       // Keep-alive ping interval to prevent connection timeout by reverse proxies/gateways
       const keepAliveInterval = setInterval(() => {
+        if (isClosed) {
+          clearInterval(keepAliveInterval);
+          return;
+        }
+        
         try {
           controller.enqueue(encoder.encode(`:\n\n`));
         } catch (err) {
           console.error('Keep-alive ping error:', err);
+          isClosed = true;
+          clearInterval(keepAliveInterval);
         }
       }, 15000);
 
       // Listen for updates
       const listener = async (updatedTiebreaker?: any) => {
+        if (isClosed) return;
+        
         if (updatedTiebreaker) {
           try {
             controller.enqueue(
@@ -109,6 +122,7 @@ export async function GET(
             );
           } catch (err) {
             console.error('Error sending passed state to team stream:', err);
+            isClosed = true;
           }
         } else {
           await sendState();
@@ -120,6 +134,7 @@ export async function GET(
 
       // Clean up when connection closed
       request.signal.addEventListener('abort', () => {
+        isClosed = true;
         clearInterval(keepAliveInterval);
         tiebreakerEvents.off(eventName, listener);
       });

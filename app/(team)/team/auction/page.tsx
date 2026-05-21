@@ -232,10 +232,19 @@ export default async function TeamAuctionPage() {
   // Map teams to tiebreakers
   const pendingTiebreakersWithTeams = pendingTiebreakers.map(t => ({
     ...t,
-    teamTiebreakerBids: t.teamTiebreakerBids.map(b => ({
-      ...b,
-      team: pendingTiebreakerTeams.find(team => team.id === b.teamId)
-    }))
+    teamTiebreakerBids: t.teamTiebreakerBids
+      .map(b => {
+        const team = pendingTiebreakerTeams.find(team => team.id === b.teamId)
+        if (!team) return null
+        return {
+          teamId: b.teamId,
+          team: {
+            name: team.name,
+            logoUrl: team.logoUrl
+          }
+        }
+      })
+      .filter((b): b is { teamId: string; team: { name: string; logoUrl: string } } => b !== null)
   }))
 
   // Fetch active bulk tiebreakers

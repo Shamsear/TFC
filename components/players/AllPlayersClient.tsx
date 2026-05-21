@@ -161,13 +161,22 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     'Forwards': ['SS', 'LWF', 'RWF', 'CF']
   }
 
-  // Create enhanced position list with groups
+  // Create position list in specific order
   const enhancedPositions = [
     'ALL',
-    '─── Position Groups ───',
-    ...Object.keys(POSITION_GROUPS),
-    '─── Individual Positions ───',
-    ...positions.filter(p => p !== 'ALL').sort()
+    'GK',
+    'CB',
+    'LB',
+    'RB',
+    'DMF',
+    'CMF',
+    'AMF',
+    'LMF',
+    'RMF',
+    'LWF',
+    'RWF',
+    'SS',
+    'CF'
   ]
 
   // Read initial values from URL so direct links / back-nav work
@@ -885,16 +894,9 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     const params = new URLSearchParams({ seasonId, page: String(opts.page), sort: 'rating' })
     if (opts.search) params.set('search', opts.search)
     
-    // Handle position groups
-    if (opts.position !== 'ALL' && !opts.position.includes('───')) {
-      const groupPositions = POSITION_GROUPS[opts.position as keyof typeof POSITION_GROUPS]
-      if (groupPositions) {
-        // It's a group - send multiple positions
-        params.set('positions', groupPositions.join(','))
-      } else {
-        // It's a single position
-        params.set('position', opts.position)
-      }
+    // Single position only (no groups)
+    if (opts.position !== 'ALL') {
+      params.set('position', opts.position)
     }
     
     if (opts.team !== 'ALL') params.set('team', opts.team)

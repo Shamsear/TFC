@@ -260,13 +260,26 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                   <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
                     Date <span className="text-red-400">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={auction.auctionDate}
-                    onChange={(e) => updateAuctionDate(index, 'auctionDate', e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={auction.auctionDate}
+                      onChange={(e) => updateAuctionDate(index, 'auctionDate', e.target.value)}
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date().toISOString().split('T')[0]
+                        updateAuctionDate(index, 'auctionDate', today)
+                      }}
+                      className="px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/20 transition-all whitespace-nowrap"
+                      title="Set to today's date"
+                    >
+                      Today
+                    </button>
+                  </div>
                 </div>
 
                 {/* Time */}

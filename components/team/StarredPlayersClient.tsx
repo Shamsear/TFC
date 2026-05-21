@@ -678,84 +678,86 @@ export default function StarredPlayersClient({
 
                   {/* Players Grid */}
                   {filteredModalPlayers.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                      {filteredModalPlayers.map(player => (
-                        <div
-                          key={player.id}
-                          onClick={() => toggleModalPlayer(player.id)}
-                          className={`rounded-xl bg-white/5 border-2 transition-all cursor-pointer ${
-                            modalSelectedPlayers.has(player.id)
-                              ? 'border-[#E8A800] bg-[#E8A800]/10'
-                              : 'border-white/10 hover:border-white/20'
-                          }`}
-                        >
-                          <div className="p-3">
-                            {/* Selection Checkbox */}
-                            <div className="flex items-start justify-between mb-2">
-                              <div
-                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                                  modalSelectedPlayers.has(player.id)
-                                    ? 'bg-[#E8A800] border-[#E8A800]'
-                                    : 'border-white/30'
-                                }`}
-                              >
-                                {modalSelectedPlayers.has(player.id) && (
-                                  <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
+                    <div className="flex flex-col gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {filteredModalPlayers.map(player => (
+                          <div
+                            key={player.id}
+                            onClick={() => toggleModalPlayer(player.id)}
+                            className={`rounded-xl bg-white/5 border-2 transition-all cursor-pointer ${
+                              modalSelectedPlayers.has(player.id)
+                                ? 'border-[#E8A800] bg-[#E8A800]/10'
+                                : 'border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="p-3">
+                              {/* Selection Checkbox */}
+                              <div className="flex items-start justify-between mb-2">
+                                <div
+                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                    modalSelectedPlayers.has(player.id)
+                                      ? 'bg-[#E8A800] border-[#E8A800]'
+                                      : 'border-white/30'
+                                  }`}
+                                >
+                                  {modalSelectedPlayers.has(player.id) && (
+                                    <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Player Photo */}
+                              <div className="relative w-16 h-16 mx-auto mb-2">
+                                <img
+                                  src={player.photoUrl}
+                                  alt={player.name}
+                                  className="w-full h-full object-cover rounded-lg"
+                                  onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
+                                />
+                              </div>
+
+                              {/* Player Info */}
+                              <div className="text-center">
+                                <h3 className="text-white font-bold text-xs mb-1 line-clamp-1">{player.name}</h3>
+                                <div className="flex items-center justify-center gap-1 text-xs mb-1">
+                                  <span className="px-1.5 py-0.5 rounded-full bg-[#E8A800]/20 text-[#E8A800] font-bold text-[10px]">
+                                    {player.position}
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded-full bg-[#FFB347]/20 text-[#FFB347] font-bold text-[10px]">
+                                    {player.overallRating}
+                                  </span>
+                                </div>
+                                {player.playingStyle && (
+                                  <div className="text-[10px] text-gray-400 line-clamp-1">{player.playingStyle}</div>
                                 )}
                               </div>
                             </div>
-
-                            {/* Player Photo */}
-                            <div className="relative w-16 h-16 mx-auto mb-2">
-                              <img
-                                src={player.photoUrl}
-                                alt={player.name}
-                                className="w-full h-full object-cover rounded-lg"
-                                onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
-                              />
-                            </div>
-
-                            {/* Player Info */}
-                            <div className="text-center">
-                              <h3 className="text-white font-bold text-xs mb-1 line-clamp-1">{player.name}</h3>
-                              <div className="flex items-center justify-center gap-1 text-xs mb-1">
-                                <span className="px-1.5 py-0.5 rounded-full bg-[#E8A800]/20 text-[#E8A800] font-bold text-[10px]">
-                                  {player.position}
-                                </span>
-                                <span className="px-1.5 py-0.5 rounded-full bg-[#FFB347]/20 text-[#FFB347] font-bold text-[10px]">
-                                  {player.overallRating}
-                                </span>
-                              </div>
-                              {player.playingStyle && (
-                                <div className="text-[10px] text-gray-400 line-clamp-1">{player.playingStyle}</div>
-                              )}
-                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Load More Button */}
-                    {modalPage < modalTotalPages && (
-                      <div className="mt-8 flex justify-center">
-                        <button
-                          onClick={() => loadModalPlayers(modalPage + 1, true)}
-                          disabled={isModalLoadingMore}
-                          className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all disabled:opacity-50 flex items-center gap-2"
-                        >
-                          {isModalLoadingMore ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              Loading...
-                            </>
-                          ) : (
-                            'Load More Players'
-                          )}
-                        </button>
+                        ))}
                       </div>
-                    )}
+                      
+                      {/* Load More Button */}
+                      {modalPage < modalTotalPages && (
+                        <div className="mt-4 flex justify-center">
+                          <button
+                            onClick={() => loadModalPlayers(modalPage + 1, true)}
+                            disabled={isModalLoadingMore}
+                            className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                          >
+                            {isModalLoadingMore ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Loading...
+                              </>
+                            ) : (
+                              'Load More Players'
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="text-center py-12 rounded-xl bg-white/5 border border-white/10">
                       <div className="text-gray-400 mb-2">No players found</div>

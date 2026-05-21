@@ -51,7 +51,15 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   }, [params])
 
   const addAuctionDate = () => {
-    setAuctionDates([...auctionDates, { auctionDate: '', auctionTime: '', description: '', positionSlots: [] }])
+    // Copy date from the last entry for convenience in bulk creation
+    const lastEntry = auctionDates[auctionDates.length - 1]
+    const newEntry = {
+      auctionDate: lastEntry?.auctionDate || '',
+      auctionTime: '',
+      description: '',
+      positionSlots: []
+    }
+    setAuctionDates([...auctionDates, newEntry])
   }
 
   const removeAuctionDate = (index: number) => {

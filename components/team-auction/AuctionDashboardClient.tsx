@@ -58,15 +58,55 @@ interface Tiebreaker {
   }>
 }
 
+interface PendingTiebreaker {
+  id: string
+  basePlayer: {
+    name: string
+    photoUrl: string
+  }
+  round: {
+    roundNumber: number
+  }
+  teamTiebreakerBids: Array<{
+    teamId: string
+    team: {
+      name: string
+      logoUrl: string
+    }
+  }>
+}
+
 interface BulkTiebreaker {
   id: number
   basePlayer: {
     name: string
     photoUrl: string
   }
+  round: {
+    roundNumber: number
+  }
   participants: Array<{
     status: string
     currentBid: number | null
+  }>
+}
+
+interface PendingBulkTiebreaker {
+  id: number
+  basePlayer: {
+    name: string
+    photoUrl: string
+  }
+  round: {
+    roundNumber: number
+  }
+  participants: Array<{
+    teamId: string
+    status: string
+    team: {
+      name: string
+      logoUrl: string
+    }
   }>
 }
 
@@ -78,8 +118,10 @@ interface AuctionDashboardClientProps {
   rounds: Round[]
   teamBids: TeamBid[]
   bulkSelections: BulkSelection[]
-  tiebreakers: Tiebreaker[]
-  bulkTiebreakers: BulkTiebreaker[]
+  activeTiebreakers: Tiebreaker[]
+  pendingTiebreakers: PendingTiebreaker[]
+  activeBulkTiebreakers: BulkTiebreaker[]
+  pendingBulkTiebreakers: PendingBulkTiebreaker[]
 }
 
 export default function AuctionDashboardClient({
@@ -90,18 +132,23 @@ export default function AuctionDashboardClient({
   rounds,
   teamBids,
   bulkSelections,
-  tiebreakers,
-  bulkTiebreakers
+  activeTiebreakers,
+  pendingTiebreakers,
+  activeBulkTiebreakers,
+  pendingBulkTiebreakers
 }: AuctionDashboardClientProps) {
   const router = useRouter()
   const [timeRemainingMap, setTimeRemainingMap] = useState<Record<string, string>>({})
   const [isPolling, setIsPolling] = useState(true)
+  const [showPendingTiebreakers, setShowPendingTiebreakers] = useState(false)
   const [liveData, setLiveData] = useState({
     rounds,
     teamBids,
     bulkSelections,
-    tiebreakers,
-    bulkTiebreakers,
+    activeTiebreakers,
+    pendingTiebreakers,
+    activeBulkTiebreakers,
+    pendingBulkTiebreakers,
     budget,
     squadSize
   })
@@ -129,12 +176,14 @@ export default function AuctionDashboardClient({
       rounds,
       teamBids,
       bulkSelections,
-      tiebreakers,
-      bulkTiebreakers,
+      activeTiebreakers,
+      pendingTiebreakers,
+      activeBulkTiebreakers,
+      pendingBulkTiebreakers,
       budget,
       squadSize
     })
-  }, [rounds, teamBids, bulkSelections, tiebreakers, bulkTiebreakers, budget, squadSize])
+  }, [rounds, teamBids, bulkSelections, activeTiebreakers, pendingTiebreakers, activeBulkTiebreakers, pendingBulkTiebreakers, budget, squadSize])
 
   // Calculate time remaining for active rounds
   useEffect(() => {
@@ -224,7 +273,9 @@ export default function AuctionDashboardClient({
   const completedRounds = liveData.rounds.filter(r => r.status === 'completed')
 
   // Count action items
-  const actionItemsCount = liveData.tiebreakers.length + liveData.bulkTiebreakers.length
+  const activeActionItemsCount = liveData.activeTiebreakers.length + liveData.activeBulkTiebreakers.length
+  const pendingActionItemsCount = liveData.pendingTiebreakers.length + liveData.pendingBulkTiebreakers.length
+  const totalActionItemsCount = activeActionItemsCount + pendingActionItemsCount
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -296,9 +347,9 @@ export default function AuctionDashboardClient({
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Tiebreakers</div>
+              <div className="text-xs text-[#7A7367] mb-1">Action Items</div>
               <div className="text-lg sm:text-xl font-bold text-purple-400">
-                {actionItemsCount}
+                {activeActionItemsCount}
               </div>
             </div>
           </div>
@@ -307,7 +358,7 @@ export default function AuctionDashboardClient({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Tiebreakers Alert */}
-        {actionItemsCount > 0 && (
+        {activeActionItemsCount > 0 && (
           <div className="mb-6 rounded-xl bg-purple-500/10 border border-purple-500/30 p-4 sm:p-6">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
@@ -317,16 +368,16 @@ export default function AuctionDashboardClient({
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-white mb-1">
-                  Action Required: Tiebreakers
+                  Action Required: Active Tiebreakers
                 </h3>
                 <p className="text-sm text-purple-200 mb-3">
-                  You have {actionItemsCount} tiebreaker(s) waiting for your bid
+                  You have {activeActionItemsCount} active tiebreaker(s) waiting for your bid
                 </p>
                 <Link
-                  href="#tiebreakers"
+                  href="#active-tiebreakers"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 rounded-lg font-medium transition-all text-sm"
                 >
-                  View Tiebreakers
+                  View Active Tiebreakers
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>

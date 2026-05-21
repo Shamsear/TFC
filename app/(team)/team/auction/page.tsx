@@ -151,7 +151,7 @@ export default async function TeamAuctionPage() {
   })
 
   // Fetch active tiebreakers for this team
-  const tiebreakers = await prisma.tiebreakers.findMany({
+  const activeTiebreakers = await prisma.tiebreakers.findMany({
     where: {
       status: 'active',
       teamTiebreakerBids: {
@@ -184,10 +184,46 @@ export default async function TeamAuctionPage() {
     }
   })
 
-  // Fetch active bulk tiebreakers
-  const bulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
+  // Fetch pending tiebreakers (awaiting admin)
+  const pendingTiebreakers = await prisma.tiebreakers.findMany({
     where: {
       status: 'pending',
+      teamTiebreakerBids: {
+        some: {
+          teamId: team.id
+        }
+      }
+    },
+    include: {
+      basePlayer: {
+        select: {
+          name: true,
+          photoUrl: true
+        }
+      },
+      round: {
+        select: {
+          roundNumber: true
+        }
+      },
+      teamTiebreakerBids: {
+        select: {
+          teamId: true,
+          team: {
+            select: {
+              name: true,
+              logoUrl: true
+            }
+          }
+        }
+      }
+    }
+  })
+
+  // Fetch active bulk tiebreakers
+  const activeBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
+    where: {
+      status: 'active',
       participants: {
         some: {
           teamId: team.id,
@@ -202,6 +238,11 @@ export default async function TeamAuctionPage() {
           photoUrl: true
         }
       },
+      round: {
+        select: {
+          roundNumber: true
+        }
+      },
       participants: {
         where: {
           teamId: team.id
@@ -209,6 +250,43 @@ export default async function TeamAuctionPage() {
         select: {
           status: true,
           currentBid: true
+        }
+      }
+    }
+  })
+
+  // Fetch pending bulk tiebreakers
+  const pendingBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
+    where: {
+      status: 'pending',
+      participants: {
+        some: {
+          teamId: team.id
+        }
+      }
+    },
+    include: {
+      basePlayer: {
+        select: {
+          name: true,
+          photoUrl: true
+        }
+      },
+      round: {
+        select: {
+          roundNumber: true
+        }
+      },
+      participants: {
+        select: {
+          teamId: true,
+          status: true,
+          team: {
+            select: {
+              name: true,
+              logoUrl: true
+            }
+          }
         }
       }
     }
@@ -224,8 +302,10 @@ export default async function TeamAuctionPage() {
         rounds={rounds}
         teamBids={teamBids}
         bulkSelections={bulkSelections}
-        tiebreakers={tiebreakers}
-        bulkTiebreakers={bulkTiebreakers}
+        activeTiebreakers={activeTiebreakers}
+        pendingTiebreakers={pendingTiebreakers}
+        activeBulkTiebreakers={activeBulkTiebreakers}
+        pendingBulkTiebreakers={pendingBulkTiebreakers}
       />
     </div>
   )

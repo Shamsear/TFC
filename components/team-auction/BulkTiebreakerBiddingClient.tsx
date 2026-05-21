@@ -551,7 +551,7 @@ export default function BulkTiebreakerBiddingClient({
   const quickBidAmounts = [1, 5, 10, 100]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 sm:pt-24 md:pt-28">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 sm:pt-20 md:pt-24">
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">

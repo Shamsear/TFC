@@ -144,6 +144,7 @@ export default async function TeamAuctionsPage({
           <AuctionsView
             auctions={data.auctions}
             auctionResults={data.auctionResults}
+            rounds={data.rounds}
             seasonName={activeSeason.name}
             initialAuctionId={auctionId}
             initialPosition={position}

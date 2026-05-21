@@ -78,6 +78,7 @@ export default function AuctionPlannerClient({
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedPlayingStyle, setSelectedPlayingStyle] = useState<string>('all')
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [groupMode, setGroupMode] = useState<'positions' | 'groups'>('positions')
   const [minRating, setMinRating] = useState(60)
@@ -272,8 +273,8 @@ export default function AuctionPlannerClient({
       playerId: player.id,
       playerName: player.name,
       position: player.position,
-      minBid: 10000,
-      maxBid: 50000,
+      minBid: 0,
+      maxBid: 0,
       priority,
     }
 
@@ -281,6 +282,9 @@ export default function AuctionPlannerClient({
     updatePositionPlan(player.position, {
       targets: [...(positionPlans.find(p => p.position === player.position)?.targets || []), newTarget],
     })
+    
+    // Close the dropdown after adding
+    setOpenDropdownId(null)
   }
 
   const removePlayerTarget = (targetId: string) => {
@@ -1215,26 +1219,46 @@ export default function AuctionPlannerClient({
                                   Backup
                                 </button>
                                 {/* Mobile: Dropdown Menu */}
-                                <div className="sm:hidden relative group/menu">
-                                  <button className="p-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10">
+                                <div className="sm:hidden relative">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setOpenDropdownId(openDropdownId === player.id ? null : player.id)
+                                    }}
+                                    className="p-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10"
+                                  >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                     </svg>
                                   </button>
-                                  <div className="hidden group-hover/menu:block absolute right-0 mt-1 bg-black border border-white/10 rounded-lg shadow-xl z-20 min-w-[120px]">
-                                    <button
-                                      onClick={() => addPlayerTarget(player, 'primary')}
-                                      className="w-full px-3 py-2 text-left text-emerald-400 hover:bg-emerald-500/10 text-xs font-bold"
-                                    >
-                                      Add Primary
-                                    </button>
-                                    <button
-                                      onClick={() => addPlayerTarget(player, 'backup')}
-                                      className="w-full px-3 py-2 text-left text-[#FFB347] hover:bg-[#FFB347]/10 text-xs font-bold"
-                                    >
-                                      Add Backup
-                                    </button>
-                                  </div>
+                                  {openDropdownId === player.id && (
+                                    <>
+                                      <div 
+                                        className="fixed inset-0 z-10" 
+                                        onClick={() => setOpenDropdownId(null)}
+                                      />
+                                      <div className="absolute right-0 mt-1 bg-black border border-white/10 rounded-lg shadow-xl z-20 min-w-[120px]">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            addPlayerTarget(player, 'primary')
+                                          }}
+                                          className="w-full px-3 py-2 text-left text-emerald-400 hover:bg-emerald-500/10 text-xs font-bold"
+                                        >
+                                          Add Primary
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            addPlayerTarget(player, 'backup')
+                                          }}
+                                          className="w-full px-3 py-2 text-left text-[#FFB347] hover:bg-[#FFB347]/10 text-xs font-bold"
+                                        >
+                                          Add Backup
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               </>
                             ) : (

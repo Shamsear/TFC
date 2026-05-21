@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -59,6 +59,12 @@ export default function BulkTiebreakerMonitorClient({
   seasonId
 }: BulkTiebreakerMonitorClientProps) {
   const [liveData, setLiveData] = useState(initialData)
+
+  const liveDataRef = useRef(liveData)
+  useEffect(() => {
+    liveDataRef.current = liveData
+  }, [liveData])
+
   const [timeRemaining, setTimeRemaining] = useState('')
   const [isPolling, setIsPolling] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
@@ -99,7 +105,7 @@ export default function BulkTiebreakerMonitorClient({
         }
         // Attempt automatic reconnection after 3 seconds
         setTimeout(() => {
-          if (document.visibilityState === 'visible' && liveData.status !== 'completed' && isPolling) {
+          if (document.visibilityState === 'visible' && liveDataRef.current.status !== 'completed' && isPolling) {
             connectStream()
           }
         }, 3000)
@@ -108,6 +114,48 @@ export default function BulkTiebreakerMonitorClient({
 
     // Connect initially
     connectStream()
+
+    // 500ms Hybrid Polling fallback safety net
+    const pollInterval = setInterval(async () => {
+      if (document.visibilityState !== 'visible' || liveDataRef.current.status === 'completed' || !isPolling) {
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/admin/bulk-tiebreakers/${initialData.id}?t=${Date.now()}`, { cache: 'no-store' })
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.tiebreaker) {
+            const newTiebreaker = result.tiebreaker
+            const current = liveDataRef.current
+
+            // Check if anything meaningful has changed to avoid redundant state updates
+            const hasHighestBidChanged = current.currentHighestBid !== newTiebreaker.currentHighestBid
+            const hasHighestTeamChanged = current.currentHighestTeamId !== newTiebreaker.currentHighestTeamId
+            const hasStatusChanged = current.status !== newTiebreaker.status
+            const hasRemainingChanged = current.teamsRemaining !== newTiebreaker.teamsRemaining
+            const hasHistoryLenChanged = current.bidHistory.length !== newTiebreaker.bidHistory.length
+            
+            // Compare participants list
+            const hasParticipantsChanged = JSON.stringify(current.participants.map(p => ({ id: p.id, bid: p.currentBid, status: p.status }))) !== 
+                                           JSON.stringify(newTiebreaker.participants.map((p: any) => ({ id: p.id, bid: p.currentBid, status: p.status })))
+
+            if (hasHighestBidChanged || hasHighestTeamChanged || hasStatusChanged || hasRemainingChanged || hasHistoryLenChanged || hasParticipantsChanged) {
+              console.log('🔄 Admin Hybrid Poller [500ms]: State changed. Synchronizing liveData...')
+              
+              setLiveData(newTiebreaker)
+              setLastUpdate(new Date())
+
+              if (newTiebreaker.status === 'completed') {
+                setIsPolling(false)
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Admin Hybrid Poller: Failed to fetch fallback updates:', err)
+      }
+    }, 500)
 
     // Handle tab visibility change (e.g. tab minimized, user changed tab, or phone locked)
     // When returning, we immediately fetch latest state to catch up, then reconnect SSE cleanly
@@ -142,10 +190,11 @@ export default function BulkTiebreakerMonitorClient({
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      console.log('🔌 Closing admin bulk tiebreaker SSE stream and removing visibility listener.')
+      console.log('🔌 Closing admin bulk tiebreaker SSE stream, removing visibility listener, and clearing 500ms poller.')
       if (eventSource) {
         eventSource.close()
       }
+      clearInterval(pollInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [initialData.id, liveData.status, isPolling])

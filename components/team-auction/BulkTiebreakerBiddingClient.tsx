@@ -80,6 +80,12 @@ export default function BulkTiebreakerBiddingClient({
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [timeRemaining, setTimeRemaining] = useState('')
   const [liveData, setLiveData] = useState(tiebreaker)
+
+  const liveDataRef = useRef(liveData)
+  useEffect(() => {
+    liveDataRef.current = liveData
+  }, [liveData])
+
   const [isPolling, setIsPolling] = useState(true)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [pendingBidAmount, setPendingBidAmount] = useState(0)
@@ -170,7 +176,7 @@ export default function BulkTiebreakerBiddingClient({
         }
         // Attempt automatic reconnection after 3 seconds
         setTimeout(() => {
-          if (document.visibilityState === 'visible' && liveData.status !== 'completed' && isPolling) {
+          if (document.visibilityState === 'visible' && liveDataRef.current.status !== 'completed' && isPolling) {
             connectStream()
           }
         }, 3000)
@@ -179,6 +185,56 @@ export default function BulkTiebreakerBiddingClient({
 
     // Connect initially
     connectStream()
+
+    // 500ms Hybrid Polling fallback safety net
+    const pollInterval = setInterval(async () => {
+      if (document.visibilityState !== 'visible' || liveDataRef.current.status === 'completed' || !isPolling) {
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}?t=${Date.now()}`, { cache: 'no-store' })
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.tiebreaker) {
+            const newTiebreaker = result.tiebreaker
+            const current = liveDataRef.current
+
+            // Check if anything meaningful has changed to avoid redundant state updates
+            const hasHighestBidChanged = current.currentHighestBid !== newTiebreaker.currentHighestBid
+            const hasHighestTeamChanged = current.currentHighestTeamId !== newTiebreaker.currentHighestTeamId
+            const hasStatusChanged = current.status !== newTiebreaker.status
+            const hasRemainingChanged = current.teamsRemaining !== newTiebreaker.teamsRemaining
+            const hasHistoryLenChanged = current.bidHistory.length !== newTiebreaker.bidHistory.length
+            
+            // Compare participants list
+            const hasParticipantsChanged = JSON.stringify(current.participants.map(p => ({ id: p.id, bid: p.currentBid, status: p.status }))) !== 
+                                           JSON.stringify(newTiebreaker.participants.map((p: any) => ({ id: p.id, bid: p.currentBid, status: p.status })))
+
+            if (hasHighestBidChanged || hasHighestTeamChanged || hasStatusChanged || hasRemainingChanged || hasHistoryLenChanged || hasParticipantsChanged) {
+              console.log('🔄 Hybrid Poller [500ms]: State changed. Synchronizing liveData...')
+              
+              if (current.currentHighestBid !== newTiebreaker.currentHighestBid) {
+                setNewBidAnimation(true)
+                setTimeout(() => setNewBidAnimation(false), 1000)
+              }
+
+              if (newTiebreaker.currentHighestTeamId && newTiebreaker.currentHighestTeamId !== team.id) {
+                setMessage(null)
+              }
+
+              setLiveData(newTiebreaker)
+
+              if (newTiebreaker.status === 'completed') {
+                setIsPolling(false)
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Hybrid Poller: Failed to fetch fallback updates:', err)
+      }
+    }, 500)
 
     // Handle tab visibility change (e.g. tab minimized, user changed tab, or phone locked)
     // When returning, we immediately fetch latest state to catch up, then reconnect SSE cleanly
@@ -212,10 +268,11 @@ export default function BulkTiebreakerBiddingClient({
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      console.log('🔌 Closing bulk tiebreaker SSE stream and removing visibility listener.')
+      console.log('🔌 Closing bulk tiebreaker SSE stream, removing visibility listener, and clearing 500ms poller.')
       if (eventSource) {
         eventSource.close()
       }
+      clearInterval(pollInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [tiebreaker.id, liveData.status, isPolling])
@@ -643,12 +700,21 @@ export default function BulkTiebreakerBiddingClient({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg border ${
+          <div className={`mb-6 p-4 rounded-lg border flex items-center justify-between gap-3 ${
             message.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-red-500/10 border-red-500/30 text-red-300'
           }`}>
-            {message.text}
+            <span className="flex-1 font-medium">{message.text}</span>
+            <button
+              onClick={() => setMessage(null)}
+              className="text-white/60 hover:text-white p-1 rounded-full hover:bg-white/5 transition-all flex-shrink-0"
+              aria-label="Dismiss alert"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
 
@@ -763,15 +829,18 @@ export default function BulkTiebreakerBiddingClient({
                 </div>
 
                 {isMyBidHighest && (
-                  <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-emerald-500/10 border border-amber-500/30 shadow-lg shadow-amber-500/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 flex-shrink-0 animate-pulse">
+                  <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-amber-950/40 via-amber-900/25 to-[#1a1510] border border-amber-500/40 shadow-lg shadow-amber-500/10 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl transform translate-x-8 -translate-y-8"></div>
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-black text-lg flex-shrink-0 shadow-md shadow-amber-500/20 animate-bounce">
                         👑
                       </div>
                       <div className="flex-1">
-                        <h4 className="text-sm font-bold text-amber-300">Active Leader</h4>
-                        <p className="text-xs text-white/80">
-                          Your team ({team.name}) currently holds the highest bid of <span className="font-bold text-[#E8A800]">£{(liveData.currentHighestBid || 0).toLocaleString()}</span>. Last team standing wins!
+                        <h4 className="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                          Active Leader
+                        </h4>
+                        <p className="text-xs text-[#D4CCBB] mt-0.5">
+                          Your team ({team.name}) holds the highest bid of <span className="font-extrabold text-amber-300 text-sm">£{(liveData.currentHighestBid || 0).toLocaleString()}</span>. You are currently in the lead!
                         </p>
                       </div>
                     </div>

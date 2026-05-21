@@ -57,22 +57,21 @@ export default async function StarredPlayersPage() {
     },
   })
 
-  // Get current squad player IDs
-  const currentSquad = await prisma.transfer_history.findMany({
+  // Get ALL sold players in this season
+  const allSoldPlayers = await prisma.transfer_history.findMany({
     where: {
       seasonId: activeSeason.id,
-      teamId: session.user.teamId,
     },
     select: {
       basePlayerId: true,
     },
   })
 
-  const currentSquadPlayerIds = currentSquad.map(t => t.basePlayerId)
+  const allSoldPlayerIds = allSoldPlayers.map(t => t.basePlayerId)
 
   // Transform starred players data
   const players = starredPlayers
-    .filter(sp => !currentSquadPlayerIds.includes(sp.playerId)) // Exclude already owned players
+    .filter(sp => !allSoldPlayerIds.includes(sp.playerId)) // Exclude all already sold players
     .map(sp => {
       const stats = sp.basePlayer.seasonalPlayerStats[0]
       return {

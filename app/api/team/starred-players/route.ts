@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Star a player
+// POST - Star a player or players
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
@@ -58,10 +58,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { playerId, seasonId } = body
+    const { playerId, playerIds, seasonId } = body
 
-    if (!playerId || !seasonId) {
-      return NextResponse.json({ error: 'Player ID and Season ID required' }, { status: 400 })
+    if ((!playerId && (!playerIds || !playerIds.length)) || !seasonId) {
+      return NextResponse.json({ error: 'Player ID(s) and Season ID required' }, { status: 400 })
     }
 
     // Get the season team
@@ -76,27 +76,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
-    // Star the player (upsert to handle duplicates)
-    const starredPlayer = await prisma.starred_players.upsert({
-      where: {
-        starred_players_unique: {
-          seasonTeamId: seasonTeam.id,
-          playerId: playerId,
-          seasonId: seasonId,
-        },
-      },
-      update: {},
-      create: {
-        seasonTeamId: seasonTeam.id,
-        playerId: playerId,
-        seasonId: seasonId,
-      },
-    })
+    const idsToStar = playerIds || [playerId]
 
-    return NextResponse.json({ success: true, starredPlayer })
+    // Star the players (upsert to handle duplicates)
+    // Run in a transaction for bulk operations
+    const results = await prisma.$transaction(
+      idsToStar.map((id: string) => 
+        prisma.starred_players.upsert({
+          where: {
+            starred_players_unique: {
+              seasonTeamId: seasonTeam.id,
+              playerId: id,
+              seasonId: seasonId,
+            },
+          },
+          update: {},
+          create: {
+            seasonTeamId: seasonTeam.id,
+            playerId: id,
+            seasonId: seasonId,
+          },
+        })
+      )
+    )
+
+    return NextResponse.json({ success: true, count: results.length })
   } catch (error) {
-    console.error('Error starring player:', error)
-    return NextResponse.json({ error: 'Failed to star player' }, { status: 500 })
+    console.error('Error starring player(s):', error)
+    return NextResponse.json({ error: 'Failed to star player(s)' }, { status: 500 })
   }
 }
 

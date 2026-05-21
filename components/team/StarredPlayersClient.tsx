@@ -153,6 +153,7 @@ export default function StarredPlayersClient({
       const searchParams = new URLSearchParams({
         seasonId,
         page: pageToLoad.toString(),
+        team: 'Free Agent', // Only show eligible/unsold players
       })
       if (modalSearchQuery) searchParams.append('search', modalSearchQuery)
       if (modalPositionFilter !== 'ALL') searchParams.append('position', modalPositionFilter)
@@ -235,16 +236,19 @@ export default function StarredPlayersClient({
     
     setStarringPlayers(true)
     try {
-      // Star each player
-      const promises = Array.from(modalSelectedPlayers).map(playerId =>
-        fetch('/api/team/starred-players', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playerId, seasonId }),
-        })
-      )
+      // Bulk star players
+      const response = await fetch('/api/team/starred-players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          playerIds: Array.from(modalSelectedPlayers), 
+          seasonId 
+        }),
+      })
       
-      await Promise.all(promises)
+      if (!response.ok) {
+        throw new Error('Failed to star players')
+      }
       
       alert(`Successfully starred ${modalSelectedPlayers.size} player(s)!`)
       closeAddModal()

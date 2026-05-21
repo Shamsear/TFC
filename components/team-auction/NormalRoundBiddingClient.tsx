@@ -86,6 +86,8 @@ export default function NormalRoundBiddingClient({
   const hasLoadedInitial = useRef(false)
   const [localEndTime, setLocalEndTime] = useState<string | null>(round.endTime ? new Date(round.endTime).toISOString() : null)
   const [localStatus, setLocalStatus] = useState<string>(round.status)
+  const [editBidModal, setEditBidModal] = useState<{ playerId: string; currentAmount: number; player: Player } | null>(null)
+  const [editBidAmount, setEditBidAmount] = useState('')
 
   // Load starred players
   useEffect(() => {
@@ -335,10 +337,9 @@ export default function NormalRoundBiddingClient({
     })
   }
 
-  const handleEditBid = (playerName: string) => {
-    setSearchQuery(playerName)
-    setShowBiddedPlayers(false) // Close the drawer
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  const handleEditBid = (playerId: string, currentAmount: number, player: Player) => {
+    setEditBidModal({ playerId, currentAmount, player })
+    setEditBidAmount(currentAmount.toString())
   }
 
   const handleSaveDraft = async () => {
@@ -939,7 +940,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                     return { playerId, amount, player }
                   })
                   .filter(item => item.player !== undefined)
-                  .sort((a, b) => a.player!.basePlayer.name.localeCompare(b.player!.basePlayer.name))
+                  .sort((a, b) => b.amount - a.amount)
                   .map(({ playerId, amount, player }) => {
                     if (!player) return null
 
@@ -981,7 +982,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                           {!isSubmitted && round.status === 'active' && (
                             <div className="flex items-center gap-2 mt-5">
                               <button
-                                onClick={() => handleEditBid(player.basePlayer.name)}
+                                onClick={() => handleEditBid(playerId, amount, player)}
                                 className="px-4 py-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 transition-all font-medium"
                                 title="Edit bid"
                               >
@@ -1327,6 +1328,50 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
             >
               Got it
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Bid Modal */}
+      {editBidModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-white mb-2">Edit Bid</h3>
+            <p className="text-sm text-[#D4CCBB] mb-6">
+              Update your bid for {editBidModal.player.basePlayer.name}
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm text-[#D4CCBB] mb-2">New Bid Amount</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">£</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={editBidAmount}
+                  onChange={(e) => setEditBidAmount(e.target.value)}
+                  className="w-full pl-8 pr-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setEditBidModal(null)}
+                className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleBidChange(editBidModal.playerId, editBidAmount)
+                  handleBidBlur(editBidModal.playerId, editBidAmount)
+                  setEditBidModal(null)
+                }}
+                className="px-4 py-2 rounded-lg bg-[#E8A800] text-black font-bold hover:bg-[#FFC93A] transition-all"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       )}

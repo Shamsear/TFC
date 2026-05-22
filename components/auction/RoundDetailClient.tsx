@@ -1521,6 +1521,29 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                           </span>
                         )}
                         <span className="text-sm text-gray-400 flex-shrink-0">{teamBid.bidCount} bids</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const bidsText = teamBid.bids
+                              .map(bid => `${bid.playerName} (${bid.position}, ${bid.overallRating} OVR) - £${bid.amount.toLocaleString()}${bid.won ? ' ✓ WON' : ''}`)
+                              .join('\n')
+                            const fullText = `${teamBid.teamName} - Bids:\n\n${bidsText}\n\nTotal Spent: £${teamBid.totalSpent.toLocaleString()}`
+                            navigator.clipboard.writeText(fullText)
+                            // Show feedback
+                            const btn = e.currentTarget
+                            const originalHTML = btn.innerHTML
+                            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
+                            setTimeout(() => {
+                              btn.innerHTML = originalHTML
+                            }, 1500)
+                          }}
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex-shrink-0"
+                          title="Copy bids to clipboard"
+                        >
+                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
                       </div>
                       <svg 
                         className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}

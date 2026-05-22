@@ -12,9 +12,31 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = request.nextUrl
+    
+    // Check if this is a request for clubs list
+    if (searchParams.get('getClubs') === 'true') {
+      const clubs = await prisma.seasonal_player_stats.findMany({
+        where: {
+          realWorldClub: { not: null }
+        },
+        select: {
+          realWorldClub: true
+        },
+        distinct: ['realWorldClub'],
+        orderBy: {
+          realWorldClub: 'asc'
+        }
+      })
+      
+      return NextResponse.json({
+        clubs: clubs.map(c => c.realWorldClub).filter(Boolean)
+      })
+    }
+
     const query = searchParams.get('query') || ''
     const duplicatesMode = searchParams.get('duplicates') === 'true'
     const positionFilter = searchParams.get('position') || 'all'
+    const clubFilter = searchParams.get('club') || 'all'
     
     // Handle multiple sort fields
     const sortConfigs: Array<{ field: string; direction: string }> = []
@@ -90,6 +112,13 @@ export async function GET(request: NextRequest) {
         )
       }
 
+      // If there's a club filter, only keep groups where at least one player matches the club
+      if (clubFilter !== 'all') {
+        duplicateGroups = duplicateGroups.filter(group => 
+          group.some(player => player.seasonalPlayerStats[0]?.realWorldClub === clubFilter)
+        )
+      }
+
       const duplicatePlayers = duplicateGroups
         .flat()
 
@@ -155,6 +184,12 @@ export async function GET(request: NextRequest) {
     if (positionFilter !== 'all') {
       whereClause.AND.push({
         seasonalPlayerStats: { some: { position: positionFilter } }
+      })
+    }
+
+    if (clubFilter !== 'all') {
+      whereClause.AND.push({
+        seasonalPlayerStats: { some: { realWorldClub: clubFilter } }
       })
     }
 

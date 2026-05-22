@@ -34,6 +34,8 @@ export default function PlayersManagementClient() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState("")
   const [positionFilter, setPositionFilter] = useState<string>("all")
+  const [clubFilter, setClubFilter] = useState<string>("all")
+  const [clubs, setClubs] = useState<string[]>([])
   const [duplicatesMode, setDuplicatesMode] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -53,7 +55,7 @@ export default function PlayersManagementClient() {
         `sortField${index > 0 ? index + 1 : ''}=${config.field}&sortDirection${index > 0 ? index + 1 : ''}=${config.direction}`
       ).join('&')
       
-      const res = await fetch(`/api/admin/players?query=${encodeURIComponent(query)}&duplicates=${duplicatesMode}&page=${page}&position=${positionFilter}&${sortParams}&t=${Date.now()}`)
+      const res = await fetch(`/api/admin/players?query=${encodeURIComponent(query)}&duplicates=${duplicatesMode}&page=${page}&position=${positionFilter}&club=${encodeURIComponent(clubFilter)}&${sortParams}&t=${Date.now()}`)
       if (res.ok) {
         const data = await res.json()
         setPlayers(data.players)
@@ -65,11 +67,27 @@ export default function PlayersManagementClient() {
     } finally {
       setLoading(false)
     }
-  }, [query, duplicatesMode, page, positionFilter, sortConfigs])
+  }, [query, duplicatesMode, page, positionFilter, clubFilter, sortConfigs])
 
   useEffect(() => {
     fetchPlayers()
   }, [fetchPlayers])
+
+  // Fetch clubs list on mount
+  useEffect(() => {
+    const fetchClubs = async () => {
+      try {
+        const res = await fetch('/api/admin/players?getClubs=true')
+        if (res.ok) {
+          const data = await res.json()
+          setClubs(data.clubs || [])
+        }
+      } catch (error) {
+        console.error("Failed to fetch clubs:", error)
+      }
+    }
+    fetchClubs()
+  }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -300,6 +318,25 @@ export default function PlayersManagementClient() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Club Filter */}
+      <div className="mb-6">
+        <label className="block text-sm font-bold text-gray-400 mb-2">Filter by Club</label>
+        <select
+          value={clubFilter}
+          onChange={(e) => {
+            setClubFilter(e.target.value)
+            setPage(1)
+            setSelectedPlayers(new Set())
+          }}
+          className="w-full max-w-md bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#E8A800] focus:ring-1 focus:ring-[#E8A800] transition-all"
+        >
+          <option value="all">All Clubs</option>
+          {clubs.map(club => (
+            <option key={club} value={club}>{club}</option>
+          ))}
+        </select>
       </div>
 
       <div className="mb-4 text-sm text-gray-400 flex items-center justify-between">

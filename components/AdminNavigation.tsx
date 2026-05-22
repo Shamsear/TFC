@@ -92,12 +92,14 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                 >
                   Import
                 </Link>
-                <Link
-                  href="/teams"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                >
+                {activeSeasonId && (
+                  <Link
+                    href="/sub-admin/${activeSeasonId}/all-teams"
+                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  >
                   Teams
                 </Link>
+                )}
                 {activeSeasonId && (
                   <Link
                     href={`/sub-admin/${activeSeasonId}/all-players`}

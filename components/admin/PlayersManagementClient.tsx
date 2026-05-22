@@ -18,6 +18,7 @@ interface BasePlayer {
   name: string
   photoUrl: string
   seasonalPlayerStats: PlayerStats[]
+  transferHistory?: { id: string }[]
 }
 
 type SortField = 'name' | 'nationality' | 'club' | 'position' | 'rating' | 'playingStyle'
@@ -387,13 +388,14 @@ export default function PlayersManagementClient() {
                     <SortIcon field="playingStyle" />
                   </button>
                 </th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-8 h-8 border-4 border-[#E8A800]/30 border-t-[#E8A800] rounded-full animate-spin" />
                       Loading players...
@@ -402,7 +404,7 @@ export default function PlayersManagementClient() {
                 </tr>
               ) : players.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                     No players found
                   </td>
                 </tr>
@@ -410,6 +412,7 @@ export default function PlayersManagementClient() {
                 players.map((player) => {
                   const stats = player.seasonalPlayerStats[0]
                   const isSelected = selectedPlayers.has(player.id)
+                  const isSold = player.transferHistory && player.transferHistory.length > 0
                   return (
                     <tr 
                       key={player.id} 
@@ -467,6 +470,23 @@ export default function PlayersManagementClient() {
                           <span className="text-sm text-gray-300">{stats.playing_style}</span>
                         ) : (
                           <span className="text-sm text-gray-500">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {isSold ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Sold
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-500/10 border border-gray-500/30 text-gray-400 text-xs font-bold">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Unsold
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>

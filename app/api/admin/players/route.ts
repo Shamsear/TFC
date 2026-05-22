@@ -50,6 +50,12 @@ export async function GET(request: NextRequest) {
               realWorldClub: true,
               playing_style: true,
             }
+          },
+          transferHistory: {
+            select: {
+              id: true
+            },
+            take: 1
           }
         }
       })
@@ -176,6 +182,12 @@ export async function GET(request: NextRequest) {
               realWorldClub: true,
               playing_style: true,
             }
+          },
+          transferHistory: {
+            select: {
+              id: true
+            },
+            take: 1
           }
         }
       }),

@@ -66,10 +66,7 @@ export default function TeamDetailTabs({
   const [seasonSubTab, setSeasonSubTab] = useState<SeasonSubTab>('stats')
 
   const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(1)}M`
-    }
-    return `${(amount / 1000).toFixed(0)}K`
+    return `£${amount.toLocaleString()}`
   }
 
   const getPositionColor = (position: string) => {
@@ -264,8 +261,8 @@ export default function TeamDetailTabs({
                                   {player.overallRating} OVR
                                 </span>
                                 <PositionGroupBadge position={player.position} group={player.position_group} size="sm" />
-                                <span className="text-xs text-gray-400">
-                                  {formatCurrency(player.soldPrice)}
+                                <span className="text-xs font-bold text-emerald-400">
+                                  £{player.soldPrice.toLocaleString()}
                                 </span>
                               </div>
                             </div>

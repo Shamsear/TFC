@@ -125,10 +125,7 @@ export default async function TeamTeamsPage() {
   )
 
   const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(1)}M`
-    }
-    return `${(amount / 1000).toFixed(0)}K`
+    return `£${amount.toLocaleString()}`
   }
 
   return (
@@ -202,13 +199,20 @@ export default async function TeamTeamsPage() {
               >
                 <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                   {/* Team Logo */}
-                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-2 ring-white/10 p-2">
-                    <Image
-                      src={teamDetail.team.logoUrl}
-                      alt={teamDetail.team.name}
-                      fill
-                      className="object-contain"
-                    />
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-2 ring-white/10 flex items-center justify-center">
+                    {teamDetail.team.logoUrl ? (
+                      <Image
+                        src={teamDetail.team.logoUrl}
+                        alt={teamDetail.team.name}
+                        fill
+                        className="object-contain p-2"
+                        unoptimized
+                      />
+                    ) : (
+                      <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                      </svg>
+                    )}
                   </div>
 
                   {/* Team Info */}
@@ -258,7 +262,7 @@ export default async function TeamTeamsPage() {
                       <div className="rounded-lg sm:rounded-xl bg-black/30 border border-white/5 p-2 sm:p-3">
                         <div className="text-xs text-[#7A7367] mb-1">Remaining</div>
                         <div className="text-sm sm:text-base font-black text-purple-400">
-                          {formatCurrency(season.startingPurse - teamDetail.totalSpent)}
+                          {formatCurrency(teamDetail.currentBudget)}
                         </div>
                       </div>
                     </div>

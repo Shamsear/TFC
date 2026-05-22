@@ -182,10 +182,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   const { team, seasonTeam, currentSeason, historicalSeasons } = teamData
 
   const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(1)}M`
-    }
-    return `${(amount / 1000).toFixed(0)}K`
+    return `£${amount.toLocaleString()}`
   }
 
   return (
@@ -206,14 +203,21 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8 mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Team Logo */}
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-4 ring-white/10 p-3">
-              <Image
-                src={team.logoUrl}
-                alt={team.name}
-                fill
-                className="object-contain"
-                priority
-              />
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-4 ring-white/10 flex items-center justify-center">
+              {team.logoUrl ? (
+                <Image
+                  src={team.logoUrl}
+                  alt={team.name}
+                  fill
+                  className="object-contain p-3"
+                  priority
+                  unoptimized
+                />
+              ) : (
+                <svg className="w-12 h-12 sm:w-16 sm:h-16 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                </svg>
+              )}
             </div>
 
             {/* Team Info */}

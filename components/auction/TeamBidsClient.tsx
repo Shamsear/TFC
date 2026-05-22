@@ -24,20 +24,14 @@ interface Round {
   }
 }
 
-interface BidData {
-  base_player_id: string
-  player_name?: string
-  amount: number
-  timestamp?: string
-  player_exists?: boolean
-}
-
 interface TeamBidData {
   teamId: string
-  bids: BidData[]
+  playerIds: string[]
   submitted: boolean
   submittedAt: Date | null
   bidCount: number
+  invalidCount: number
+  hasInvalidBids: boolean
 }
 
 interface TeamBidsClientProps {
@@ -53,12 +47,11 @@ interface TeamBidsClientProps {
 
 export default function TeamBidsClient({ round, teams, teamBidsData, validationStats }: TeamBidsClientProps) {
   const router = useRouter()
-  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'submitted' | 'not-submitted' | 'invalid'>('all')
   const [deletingTeam, setDeletingTeam] = useState<string | null>(null)
   const [cleaningTeam, setCleaningTeam] = useState<string | null>(null)
-  const [unsubmittingTeam, setUnsubmittingTeam] = useState<string | null>(null)
+  const [togglingTeam, setTogglingTeam] = useState<string | null>(null)
 
   const handleDeleteBids = async (teamId: string, teamName: string) => {
     if (!confirm(`Are you sure you want to delete all bids for ${teamName}?\n\nThis will allow them to submit new bids. This action cannot be undone.`)) {
@@ -113,21 +106,26 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
     }
   }
 
-  const handleUnsubmit = async (teamId: string, teamName: string) => {
-    if (!confirm(`Unsubmit bids for ${teamName}?\n\nThis will allow them to edit and resubmit their bids.`)) {
+  const handleToggleSubmit = async (teamId: string, teamName: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'unsubmit' : 'submit'
+    const message = currentStatus 
+      ? `Mark ${teamName}'s bids as NOT submitted?\n\nThis will allow them to edit their bids again.`
+      : `Mark ${teamName}'s bids as submitted?\n\nThis will lock their bids.`
+    
+    if (!confirm(message)) {
       return
     }
 
-    setUnsubmittingTeam(teamId)
+    setTogglingTeam(teamId)
 
     try {
-      const response = await fetch(`/api/admin/rounds/${round.id}/team-bids/${teamId}/unsubmit`, {
+      const response = await fetch(`/api/admin/rounds/${round.id}/team-bids/${teamId}/toggle-submit`, {
         method: 'POST'
       })
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to unsubmit bids')
+        throw new Error(data.error || 'Failed to toggle submission status')
       }
 
       const data = await response.json()
@@ -136,34 +134,24 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
     } catch (error: any) {
       alert(`Error: ${error.message}`)
     } finally {
-      setUnsubmittingTeam(null)
+      setTogglingTeam(null)
     }
   }
 
-  const toggleTeam = (teamId: string) => {
-    const newExpanded = new Set(expandedTeams)
-    if (newExpanded.has(teamId)) {
-      newExpanded.delete(teamId)
-    } else {
-      newExpanded.add(teamId)
-    }
-    setExpandedTeams(newExpanded)
-  }
-
-  const expandAll = () => {
-    setExpandedTeams(new Set(teams.map(t => t.id)))
-  }
-
-  const collapseAll = () => {
-    setExpandedTeams(new Set())
-  }
-
-  // Get team bids from pre-decrypted data
+  // Get team bids from pre-validated data
   const getTeamBids = (teamId: string): TeamBidData => {
     const teamData = teamBidsData.find(tb => tb.teamId === teamId)
     
     if (!teamData) {
-      return { teamId, bids: [], submitted: false, submittedAt: null, bidCount: 0 }
+      return { 
+        teamId, 
+        playerIds: [], 
+        submitted: false, 
+        submittedAt: null, 
+        bidCount: 0,
+        invalidCount: 0,
+        hasInvalidBids: false
+      }
     }
 
     return teamData
@@ -176,7 +164,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
     
     if (filterStatus === 'submitted' && !teamBids.submitted) return false
     if (filterStatus === 'not-submitted' && teamBids.submitted) return false
-    if (filterStatus === 'invalid' && !teamBids.bids.some(b => !b.player_exists)) return false
+    if (filterStatus === 'invalid' && !teamBids.hasInvalidBids) return false
     
     return matchesSearch
   })
@@ -295,34 +283,19 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
             )}
           </div>
         </div>
-        <div className="flex gap-2 mt-4">
-          <button
-            onClick={expandAll}
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-sm"
-          >
-            Expand All
-          </button>
-          <button
-            onClick={collapseAll}
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-sm"
-          >
-            Collapse All
-          </button>
-        </div>
       </div>
 
-      {/* Team Bids List */}
+      {/* Team List */}
       <div className="space-y-4">
         {filteredTeams.map(team => {
           const teamBids = getTeamBids(team.id)
-          const isExpanded = expandedTeams.has(team.id)
-          const hasInvalidBids = teamBids.bids.some(b => !b.player_exists)
-          const invalidCount = teamBids.bids.filter(b => !b.player_exists).length
+          const hasInvalidBids = teamBids.hasInvalidBids
+          const invalidCount = teamBids.invalidCount
 
           return (
             <div
               key={team.id}
-              className={`rounded-xl border transition-all ${
+              className={`rounded-xl border p-4 ${
                 hasInvalidBids
                   ? 'bg-red-500/5 border-red-500/30'
                   : teamBids.submitted
@@ -331,10 +304,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
               }`}
             >
               {/* Team Header */}
-              <button
-                onClick={() => toggleTeam(team.id)}
-                className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-all"
-              >
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   {team.logoUrl && (
                     <img
@@ -343,7 +313,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
                       className="w-10 h-10 rounded-lg object-cover"
                     />
                   )}
-                  <div className="text-left">
+                  <div>
                     <div className="font-bold text-white text-lg flex items-center gap-2">
                       {team.name}
                       {hasInvalidBids && (
@@ -372,135 +342,76 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
                       Not Submitted
                     </span>
                   )}
-                  <svg
-                    className={`w-5 h-5 text-gray-400 transition-transform ${
-                      isExpanded ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
                 </div>
-              </button>
+              </div>
 
-              {/* Bids List */}
-              {isExpanded && (
-                <div className="border-t border-white/10 p-4">
-                  {/* Action Buttons */}
-                  {teamBids.bids.length > 0 && ['active', 'draft'].includes(round.status) && (
-                    <div className="mb-4 pb-4 border-b border-white/10 space-y-2">
-                      {/* Clean Invalid Bids Button - Only show if there are invalid bids */}
-                      {hasInvalidBids && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleCleanInvalidBids(team.id, team.name, invalidCount)
-                          }}
-                          disabled={cleaningTeam === team.id || deletingTeam === team.id}
-                          className="w-full px-4 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {cleaningTeam === team.id ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Cleaning...
-                            </span>
-                          ) : (
-                            <span className="flex items-center justify-center gap-2">
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              Remove {invalidCount} Invalid Bid{invalidCount > 1 ? 's' : ''} (Keep Valid)
-                            </span>
-                          )}
-                        </button>
-                      )}
-                      
-                      {/* Delete All Bids Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteBids(team.id, team.name)
-                        }}
-                        disabled={deletingTeam === team.id || cleaningTeam === team.id}
-                        className="w-full px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {deletingTeam === team.id ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Deleting...
-                          </span>
-                        ) : (
-                          <span className="flex items-center justify-center gap-2">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete All Bids (Start Over)
-                          </span>
-                        )}
-                      </button>
-                      
-                      {hasInvalidBids && (
-                        <p className="text-xs text-orange-400 mt-2 text-center">
-                          💡 Tip: Use "Remove Invalid" to keep valid bids, or "Delete All" to start fresh.
-                        </p>
-                      )}
-                    </div>
-                  )}
+              {/* Action Buttons */}
+              {teamBids.bidCount > 0 && ['active', 'draft'].includes(round.status) && (
+                <div className="space-y-2 pt-4 border-t border-white/10">
+                  {/* Toggle Submission Status */}
+                  <button
+                    onClick={() => handleToggleSubmit(team.id, team.name, teamBids.submitted)}
+                    disabled={togglingTeam === team.id || deletingTeam === team.id || cleaningTeam === team.id}
+                    className={`w-full px-4 py-2 rounded-lg border transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
+                      teamBids.submitted
+                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
+                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    {togglingTeam === team.id ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Updating...
+                      </span>
+                    ) : teamBids.submitted ? (
+                      '↩️ Mark as Not Submitted'
+                    ) : (
+                      '✓ Mark as Submitted'
+                    )}
+                  </button>
 
-                  {teamBids.bids.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                      No bids placed yet
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {teamBids.bids
-                        .sort((a, b) => b.amount - a.amount)
-                        .map((bid, idx) => (
-                          <div
-                            key={idx}
-                            className={`flex items-center justify-between p-3 rounded-lg border ${
-                              !bid.player_exists
-                                ? 'bg-red-500/10 border-red-500/30'
-                                : 'bg-black/30 border-white/10'
-                            }`}
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <div className="font-bold text-white">
-                                  {bid.player_name || bid.base_player_id}
-                                </div>
-                                {!bid.player_exists && (
-                                  <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
-                                    ⚠️ NOT IN DATABASE
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                ID: {bid.base_player_id}
-                                {bid.timestamp && (
-                                  <span className="ml-2">
-                                    • {new Date(bid.timestamp).toLocaleString()}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xl font-black text-[#E8A800]">
-                                £{bid.amount.toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+                  {/* Clean Invalid Bids Button */}
+                  {hasInvalidBids && (
+                    <button
+                      onClick={() => handleCleanInvalidBids(team.id, team.name, invalidCount)}
+                      disabled={cleaningTeam === team.id || deletingTeam === team.id || togglingTeam === team.id}
+                      className="w-full px-4 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {cleaningTeam === team.id ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Cleaning...
+                        </span>
+                      ) : (
+                        `🧹 Remove ${invalidCount} Invalid Bid${invalidCount > 1 ? 's' : ''}`
+                      )}
+                    </button>
                   )}
+                  
+                  {/* Delete All Bids Button */}
+                  <button
+                    onClick={() => handleDeleteBids(team.id, team.name)}
+                    disabled={deletingTeam === team.id || cleaningTeam === team.id || togglingTeam === team.id}
+                    className="w-full px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deletingTeam === team.id ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Deleting...
+                      </span>
+                    ) : (
+                      '🗑️ Delete All Bids'
+                    )}
+                  </button>
                 </div>
               )}
             </div>

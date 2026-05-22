@@ -59,7 +59,7 @@ export default async function RoundBidsPage({
     }
   })
 
-  // Get team bids based on round type and decrypt on server
+  // Get team bids based on round type - only extract player IDs for validation
   let teamBidsData: any[] = []
 
   if (round.roundType === 'bulk') {
@@ -73,19 +73,16 @@ export default async function RoundBidsPage({
       }
     })
     
-    // Parse bulk selections
+    // Parse bulk selections - only extract player IDs
     teamBidsData = rawData.map(data => {
       try {
         const parsed = JSON.parse(data.selectedPlayers || '{}')
         const players = parsed.players || []
+        const playerIds = players.map((p: any) => p.basePlayerId)
+        
         return {
           teamId: data.teamId,
-          bids: players.map((p: any) => ({
-            base_player_id: p.basePlayerId,
-            player_name: p.name,
-            amount: round.basePrice || 0,
-            timestamp: data.submittedAt?.toISOString()
-          })),
+          playerIds,
           submitted: data.submitted,
           submittedAt: data.submittedAt,
           bidCount: players.length
@@ -93,7 +90,7 @@ export default async function RoundBidsPage({
       } catch (e) {
         return {
           teamId: data.teamId,
-          bids: [],
+          playerIds: [],
           submitted: false,
           submittedAt: null,
           bidCount: 0
@@ -112,14 +109,17 @@ export default async function RoundBidsPage({
       }
     })
     
-    // Decrypt bids on server
+    // Decrypt bids only to extract player IDs
     teamBidsData = rawData.map(data => {
       try {
         const decrypted = decryptBids(data.encryptedBids)
         const parsed = JSON.parse(decrypted)
+        const bids = parsed.bids || []
+        const playerIds = bids.map((b: any) => b.base_player_id)
+        
         return {
           teamId: data.teamId,
-          bids: parsed.bids || [],
+          playerIds,
           submitted: data.submitted,
           submittedAt: data.submittedAt,
           bidCount: data.bidCount || 0
@@ -128,7 +128,7 @@ export default async function RoundBidsPage({
         console.error(`Failed to decrypt bids for team ${data.teamId}:`, e)
         return {
           teamId: data.teamId,
-          bids: [],
+          playerIds: [],
           submitted: data.submitted,
           submittedAt: data.submittedAt,
           bidCount: 0
@@ -140,9 +140,9 @@ export default async function RoundBidsPage({
   // Validate all player IDs exist in database
   const allPlayerIds = new Set<string>()
   teamBidsData.forEach(teamData => {
-    teamData.bids.forEach((bid: any) => {
-      if (bid.base_player_id) {
-        allPlayerIds.add(bid.base_player_id)
+    teamData.playerIds.forEach((playerId: string) => {
+      if (playerId) {
+        allPlayerIds.add(playerId)
       }
     })
   })
@@ -153,32 +153,26 @@ export default async function RoundBidsPage({
       id: { in: Array.from(allPlayerIds) }
     },
     select: {
-      id: true,
-      name: true
+      id: true
     }
   })
 
   const existingPlayerIds = new Set(existingPlayers.map(p => p.id))
-  const playerNameMap = new Map(existingPlayers.map(p => [p.id, p.name]))
 
-  // Mark invalid players and update player names
-  teamBidsData = teamBidsData.map(teamData => ({
-    ...teamData,
-    bids: teamData.bids.map((bid: any) => ({
-      ...bid,
-      player_exists: existingPlayerIds.has(bid.base_player_id),
-      player_name: playerNameMap.get(bid.base_player_id) || bid.player_name || bid.base_player_id
-    }))
-  }))
+  // Calculate validation stats for each team
+  teamBidsData = teamBidsData.map(teamData => {
+    const invalidPlayerIds = teamData.playerIds.filter((id: string) => !existingPlayerIds.has(id))
+    return {
+      ...teamData,
+      invalidCount: invalidPlayerIds.length,
+      hasInvalidBids: invalidPlayerIds.length > 0
+    }
+  })
 
-  // Calculate validation stats
-  const totalBids = teamBidsData.reduce((sum, td) => sum + td.bids.length, 0)
-  const invalidBids = teamBidsData.reduce((sum, td) => 
-    sum + td.bids.filter((b: any) => !b.player_exists).length, 0
-  )
-  const teamsWithInvalidBids = teamBidsData.filter(td => 
-    td.bids.some((b: any) => !b.player_exists)
-  ).length
+  // Calculate overall validation stats
+  const totalBids = teamBidsData.reduce((sum, td) => sum + td.bidCount, 0)
+  const invalidBids = teamBidsData.reduce((sum, td) => sum + td.invalidCount, 0)
+  const teamsWithInvalidBids = teamBidsData.filter(td => td.hasInvalidBids).length
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">

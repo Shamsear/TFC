@@ -51,10 +51,11 @@ async function getTeamData(teamId: string, seasonId: string) {
     },
     include: {
       basePlayer: {
-        include: {
-          seasonalPlayerStats: {
-            where: { seasonId }
-          }
+        select: {
+          id: true,
+          player_id: true,
+          name: true,
+          photoUrl: true
         }
       }
     },
@@ -62,6 +63,24 @@ async function getTeamData(teamId: string, seasonId: string) {
       soldPrice: 'desc'
     }
   })
+
+  // Get seasonal stats for the players
+  const playerIds = transfers.map(t => t.basePlayerId)
+  const seasonalStats = await prisma.seasonal_player_stats.findMany({
+    where: {
+      seasonId,
+      basePlayerId: { in: playerIds }
+    },
+    select: {
+      basePlayerId: true,
+      position: true,
+      position_group: true,
+      overallRating: true,
+      realWorldClub: true
+    }
+  })
+
+  const statsMap = new Map(seasonalStats.map(s => [s.basePlayerId, s]))
 
   // Get tournament standings
   const standings = seasonTeam ? await prisma.standings.findMany({
@@ -104,7 +123,8 @@ async function getTeamData(teamId: string, seasonId: string) {
 
   // Calculate squad composition
   const squadByPosition = transfers.reduce((acc, transfer) => {
-    const position = transfer.basePlayer.seasonalPlayerStats[0]?.position || 'N/A'
+    const stats = statsMap.get(transfer.basePlayerId)
+    const position = stats?.position || 'N/A'
     if (!acc[position]) {
       acc[position] = []
     }
@@ -112,11 +132,11 @@ async function getTeamData(teamId: string, seasonId: string) {
       id: transfer.basePlayer.id,
       playerId: transfer.basePlayer.player_id || transfer.basePlayer.id,
       name: transfer.basePlayer.name,
-      photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
+      photoUrl: getPlayerPhotoUrl(transfer.basePlayer.photoUrl),
       position,
-      position_group: transfer.basePlayer.seasonalPlayerStats[0]?.position_group || null,
-      overallRating: transfer.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
-      realWorldClub: transfer.basePlayer.seasonalPlayerStats[0]?.realWorldClub || 'N/A',
+      position_group: stats?.position_group || null,
+      overallRating: stats?.overallRating || 0,
+      realWorldClub: stats?.realWorldClub || 'N/A',
       soldPrice: transfer.soldPrice
     })
     return acc
@@ -125,7 +145,7 @@ async function getTeamData(teamId: string, seasonId: string) {
   // Calculate team stats
   const totalSpent = transfers.reduce((sum, t) => sum + t.soldPrice, 0)
   const averageRating = transfers.length > 0 
-    ? Math.round(transfers.reduce((sum, t) => sum + (t.basePlayer.seasonalPlayerStats[0]?.overallRating || 0), 0) / transfers.length)
+    ? Math.round(seasonalStats.reduce((sum, s) => sum + (s.overallRating || 0), 0) / seasonalStats.length)
     : 0
 
   const positionCounts = Object.entries(squadByPosition).reduce((acc, [position, players]) => {

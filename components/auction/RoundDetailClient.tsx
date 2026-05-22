@@ -1373,19 +1373,57 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         </div>
       )}
 
-      {/* Auction Results - Show for completed rounds */}
-      {round.status === 'completed' && auctionResults && auctionResults.length > 0 && (
+      {/* Auction Results - Player-wise with all bids */}
+      {round.status === 'completed' && auctionResults && auctionResults.length > 0 && teamBidsWithDetails && (
         <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-8">
-          <h2 className="text-xl font-black text-white mb-4">Auction Results</h2>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+              <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white">Auction Results</h2>
+              <p className="text-sm text-[#D4CCBB]">{auctionResults.length} players sold • Click to see all bids</p>
+            </div>
+          </div>
           <div className="space-y-3">
             {auctionResults.map((result) => {
               const playerStats = result.basePlayer.seasonalPlayerStats[0]
+              const isExpanded = expandedTeams.has(`player-${result.basePlayer.id}`)
+              
+              // Get all bids made on this player from all teams
+              const allBidsOnPlayer = teamBidsWithDetails
+                .flatMap(teamBid => 
+                  teamBid.bids
+                    .filter(bid => bid.playerId === result.basePlayer.id)
+                    .map(bid => ({
+                      ...bid,
+                      teamId: teamBid.teamId,
+                      teamName: teamBid.teamName,
+                      teamLogo: teamBid.teamLogo
+                    }))
+                )
+                .sort((a, b) => b.amount - a.amount) // Sort by bid amount descending
+              
               return (
-                <div key={result.id} className="rounded-lg bg-black/30 border border-white/10 p-3 sm:p-4">
-                  {/* Mobile: Vertical Stack, Desktop: Horizontal */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div key={result.id} className="rounded-lg bg-black/30 border border-white/10 overflow-hidden">
+                  {/* Player Header - Clickable to expand/collapse */}
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedTeams)
+                      const key = `player-${result.basePlayer.id}`
+                      if (isExpanded) {
+                        newExpanded.delete(key)
+                      } else {
+                        newExpanded.add(key)
+                      }
+                      setExpandedTeams(newExpanded)
+                    }}
+                    className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 hover:bg-white/5 transition-colors gap-3"
+                  >
                     {/* Player Info */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
                       {result.basePlayer.photoUrl && (
                         <img 
                           src={result.basePlayer.photoUrl} 
@@ -1457,8 +1495,67 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                           £{result.soldPrice.toLocaleString()}
                         </div>
                       </div>
+
+                      {/* Expand/Collapse Icon */}
+                      {allBidsOnPlayer.length > 0 && (
+                        <svg 
+                          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
                     </div>
-                  </div>
+                  </button>
+
+                  {/* Expanded Bids List - Show all bids made on this player */}
+                  {isExpanded && allBidsOnPlayer.length > 0 && (
+                    <div className="border-t border-white/10 p-4 space-y-2 bg-black/20">
+                      <div className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wide">
+                        All Bids on {result.basePlayer.name} ({allBidsOnPlayer.length})
+                      </div>
+                      {allBidsOnPlayer.map((bid, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border gap-3 ${
+                            bid.won 
+                              ? 'bg-emerald-500/10 border-emerald-500/30' 
+                              : 'bg-white/5 border-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {bid.teamLogo && (
+                              <img 
+                                src={bid.teamLogo} 
+                                alt={bid.teamName} 
+                                className="w-8 h-8 rounded flex-shrink-0"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-bold truncate ${bid.won ? 'text-emerald-300' : 'text-white'}`}>
+                                {bid.teamName}
+                              </div>
+                              {bid.won && (
+                                <div className="text-xs text-emerald-300 mt-0.5">
+                                  ✓ Won • {formatAcquisitionType(bid.acquisitionType || 'bid_won')}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-left sm:text-right flex-shrink-0">
+                            <div className={`text-lg font-bold ${bid.won ? 'text-emerald-400' : 'text-gray-400'}`}>
+                              £{bid.amount.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}

@@ -91,9 +91,11 @@ export default function NormalRoundBiddingClient({
 
   // Load starred players
   useEffect(() => {
+    console.log('[Client] Loading starred players for season:', round.season.id)
     fetch(`/api/team/starred-players?seasonId=${round.season.id}`)
       .then(res => res.json())
       .then(data => {
+        console.log('[Client] Received starred players:', data.starredPlayerIds)
         if (data.starredPlayerIds) {
           setStarredPlayerIds(new Set(data.starredPlayerIds))
         }
@@ -106,10 +108,14 @@ export default function NormalRoundBiddingClient({
     e.preventDefault()
     e.stopPropagation()
     
+    console.log('[Client] Toggling star for player:', playerId)
+    
     if (starringInProgress.has(playerId)) return
     
     setStarringInProgress(prev => new Set(prev).add(playerId))
     const isCurrentlyStarred = starredPlayerIds.has(playerId)
+    
+    console.log('[Client] Player currently starred:', isCurrentlyStarred)
     
     try {
       if (isCurrentlyStarred) {
@@ -117,6 +123,7 @@ export default function NormalRoundBiddingClient({
           method: 'DELETE',
         })
         if (res.ok) {
+          console.log('[Client] Successfully unstarred player')
           setStarredPlayerIds(prev => {
             const newSet = new Set(prev)
             newSet.delete(playerId)
@@ -130,6 +137,7 @@ export default function NormalRoundBiddingClient({
           body: JSON.stringify({ playerId, seasonId: round.season.id }),
         })
         if (res.ok) {
+          console.log('[Client] Successfully starred player')
           setStarredPlayerIds(prev => new Set(prev).add(playerId))
         }
       }

@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
+    console.log('[Starred Players GET] Session teamId:', session.user.teamId)
+    console.log('[Starred Players GET] Season team ID:', seasonTeam.id)
+    console.log('[Starred Players GET] Season ID:', seasonId)
+
     // Get starred players
     const starredPlayers = await prisma.starred_players.findMany({
       where: {
@@ -41,6 +45,8 @@ export async function GET(request: NextRequest) {
         playerId: true,
       },
     })
+
+    console.log('[Starred Players GET] Found', starredPlayers.length, 'starred players')
 
     return NextResponse.json({
       starredPlayerIds: starredPlayers.map(sp => sp.playerId),
@@ -78,7 +84,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
+    console.log('[Starred Players POST] Session teamId:', session.user.teamId)
+    console.log('[Starred Players POST] Season team ID:', seasonTeam.id)
+    console.log('[Starred Players POST] Season ID:', seasonId)
+
     const idsToStar = playerIds || [playerId]
+    console.log('[Starred Players POST] Starring player IDs:', idsToStar)
 
     // Star the players (upsert to handle duplicates)
     // Run in a transaction for bulk operations
@@ -101,6 +112,8 @@ export async function POST(request: NextRequest) {
         })
       )
     )
+
+    console.log('[Starred Players POST] Starred', results.length, 'players')
 
     return NextResponse.json({ success: true, count: results.length })
   } catch (error) {
@@ -137,6 +150,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
+    console.log('[Starred Players DELETE] Session teamId:', session.user.teamId)
+    console.log('[Starred Players DELETE] Season team ID:', seasonTeam.id)
+    console.log('[Starred Players DELETE] Unstarring player ID:', playerId)
+
     // Unstar the player
     await prisma.starred_players.deleteMany({
       where: {
@@ -145,6 +162,8 @@ export async function DELETE(request: NextRequest) {
         seasonId: seasonId,
       },
     })
+
+    console.log('[Starred Players DELETE] Successfully unstarred player')
 
     return NextResponse.json({ success: true })
   } catch (error) {

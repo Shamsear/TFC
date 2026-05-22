@@ -35,8 +35,46 @@ export async function createTiebreakers(
   const createdTiebreakers: TiebreakerInfo[] = [];
 
   for (const tie of ties) {
+    // Check if tiebreaker already exists for this player in this round
+    const existingTiebreaker = await prisma.tiebreakers.findFirst({
+      where: {
+        roundId,
+        basePlayerId: tie.basePlayerId,
+        status: 'active'
+      },
+      select: {
+        id: true,
+        basePlayerId: true,
+        originalAmount: true,
+        teamTiebreakerBids: {
+          select: { teamId: true }
+        }
+      }
+    });
+
+    if (existingTiebreaker) {
+      console.log(`⚠️  Tiebreaker already exists for player ${tie.playerName} (${tie.basePlayerId})`);
+      console.log(`   Existing tiebreaker ID: ${existingTiebreaker.id}`);
+      console.log(`   Skipping duplicate creation\n`);
+      
+      // Return existing tiebreaker info
+      createdTiebreakers.push({
+        id: existingTiebreaker.id,
+        roundId,
+        basePlayerId: existingTiebreaker.basePlayerId,
+        playerName: tie.playerName,
+        originalAmount: existingTiebreaker.originalAmount,
+        tiedTeams: existingTiebreaker.teamTiebreakerBids.map(b => b.teamId)
+      });
+      continue;
+    }
+
     // Generate tiebreaker ID using centralized ID generator
     const tiebreakerId = await generateTiebreakerId();
+
+    console.log(`✨ Creating new tiebreaker for player ${tie.playerName} (${tie.basePlayerId})`);
+    console.log(`   Tiebreaker ID: ${tiebreakerId}`);
+    console.log(`   Tied teams: ${tie.tiedTeams.join(', ')}\n`);
 
     // Create tiebreaker
     await prisma.tiebreakers.create({
@@ -73,7 +111,7 @@ export async function createTiebreakers(
     });
   }
 
-  console.log(`✅ Successfully created ${createdTiebreakers.length} tiebreakers`);
+  console.log(`✅ Successfully created/found ${createdTiebreakers.length} tiebreakers`);
   console.log('='.repeat(80) + '\n');
 
   return createdTiebreakers;

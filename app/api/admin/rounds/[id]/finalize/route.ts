@@ -242,6 +242,23 @@ export async function POST(
         console.log(`\n🎯 Auto-creating ${result.conflicts.length} bulk tiebreakers...`);
         
         for (const conflict of result.conflicts) {
+          // Check if bulk tiebreaker already exists for this player
+          const existingTiebreaker = await prisma.bulk_tiebreakers.findFirst({
+            where: {
+              roundId,
+              basePlayerId: conflict.basePlayerId,
+              status: {
+                in: ['pending', 'active']
+              }
+            }
+          });
+
+          if (existingTiebreaker) {
+            console.log(`   ⚠️  Bulk tiebreaker already exists for ${conflict.playerName} (ID: ${existingTiebreaker.id})`);
+            console.log(`      Skipping duplicate creation`);
+            continue;
+          }
+
           const startTime = new Date();
           const maxEndTime = new Date(startTime.getTime() + (24 * 60 * 60 * 1000));
           
@@ -266,7 +283,7 @@ export async function POST(
           console.log(`   ✓ Created tiebreaker for ${conflict.playerName} (${conflict.teamIds.length} teams)`);
         }
         
-        console.log(`   ✅ All bulk tiebreakers created with status='pending'`);
+        console.log(`   ✅ All bulk tiebreakers created/verified with status='pending'`);
       }
 
       return NextResponse.json({

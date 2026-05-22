@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('getClubs') === 'true') {
       const clubs = await prisma.seasonal_player_stats.findMany({
         where: {
-          realWorldClub: { not: null }
+          realWorldClub: { 
+            not: ''
+          }
         },
         select: {
           realWorldClub: true
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
       })
       
       return NextResponse.json({
-        clubs: clubs.map(c => c.realWorldClub).filter(Boolean)
+        clubs: clubs.map(c => c.realWorldClub).filter(c => c && c.trim() !== '')
       })
     }
 

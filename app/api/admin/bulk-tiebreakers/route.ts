@@ -57,6 +57,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
 
+    // Check if bulk tiebreaker already exists for this player in this round
+    const existingTiebreaker = await prisma.bulk_tiebreakers.findFirst({
+      where: {
+        roundId,
+        basePlayerId,
+        status: {
+          in: ['pending', 'active']
+        }
+      },
+      select: {
+        id: true,
+        status: true
+      }
+    });
+
+    if (existingTiebreaker) {
+      return NextResponse.json(
+        { 
+          error: 'Bulk tiebreaker already exists for this player in this round',
+          existingTiebreakerId: existingTiebreaker.id,
+          status: existingTiebreaker.status
+        },
+        { status: 409 }
+      );
+    }
+
     // Calculate max end time (24 hours from now)
     const startTime = new Date();
     const maxEndTime = new Date(startTime.getTime() + (24 * 60 * 60 * 1000));

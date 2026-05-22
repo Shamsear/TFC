@@ -19,6 +19,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Season ID required' }, { status: 400 })
     }
 
+    console.log('[Starred Players GET] Session teamId:', session.user.teamId)
+    console.log('[Starred Players GET] Season ID:', seasonId)
+
     // Get the season team
     const seasonTeam = await prisma.season_teams.findFirst({
       where: {
@@ -28,13 +31,12 @@ export async function GET(request: NextRequest) {
     })
 
     if (!seasonTeam) {
+      console.log('[Starred Players GET] ERROR: Team not found in season')
       return NextResponse.json({ error: 'Team not found in season' }, { status: 404 })
     }
 
-    console.log('[Starred Players GET] Session teamId:', session.user.teamId)
     console.log('[Starred Players GET] Season team ID:', seasonTeam.id)
-    console.log('[Starred Players GET] Season ID:', seasonId)
-    console.log('[Starred Players GET] Query will be: seasonTeamId =', seasonTeam.id, 'AND seasonId =', seasonId)
+    console.log('[Starred Players GET] Querying starred_players WHERE seasonTeamId =', seasonTeam.id, 'AND seasonId =', seasonId)
 
     // Get starred players
     const starredPlayers = await prisma.starred_players.findMany({

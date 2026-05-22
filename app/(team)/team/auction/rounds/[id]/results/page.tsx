@@ -110,6 +110,7 @@ export default async function RoundResultsPage({
 
   // Decrypt and organize bids by player
   const bidsByPlayer: Record<string, Array<{ teamId: string; teamName: string; amount: number }>> = {}
+  const allBidPlayerIds = new Set<string>()
   
   for (const teamBid of teamBids) {
     try {
@@ -117,10 +118,13 @@ export default async function RoundResultsPage({
       const parsed = JSON.parse(decrypted)
       
       parsed.bids.forEach((bid: any) => {
-        if (!bidsByPlayer[bid.base_player_id]) {
-          bidsByPlayer[bid.base_player_id] = []
+        const playerId = bid.base_player_id
+        allBidPlayerIds.add(playerId)
+        
+        if (!bidsByPlayer[playerId]) {
+          bidsByPlayer[playerId] = []
         }
-        bidsByPlayer[bid.base_player_id].push({
+        bidsByPlayer[playerId].push({
           teamId: teamBid.teamId,
           teamName: teamMap.get(teamBid.teamId) || 'Unknown Team',
           amount: bid.amount
@@ -130,6 +134,18 @@ export default async function RoundResultsPage({
       console.error(`Failed to decrypt bids for team ${teamBid.teamId}:`, error)
     }
   }
+
+  // Fetch player names for all players that were bid on
+  const bidPlayers = await prisma.base_players.findMany({
+    where: {
+      id: { in: Array.from(allBidPlayerIds) }
+    },
+    select: {
+      id: true,
+      name: true
+    }
+  })
+  const playerNameMap = new Map(bidPlayers.map(p => [p.id, p.name]))
 
   // Sort bids for each player by amount (highest first)
   Object.keys(bidsByPlayer).forEach(playerId => {
@@ -193,6 +209,7 @@ export default async function RoundResultsPage({
       tiebreakers={transformedTiebreakers}
       teamId={teamId}
       bidsByPlayer={bidsByPlayer}
+      playerNameMap={playerNameMap}
     />
   )
 }

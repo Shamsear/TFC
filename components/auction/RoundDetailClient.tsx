@@ -84,6 +84,7 @@ interface TeamBidDetails {
   teamLogo: string | null
   submitted: boolean
   bidCount: number
+  totalSpent: number
   bids: Array<{
     playerId: string
     playerName: string

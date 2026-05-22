@@ -8,9 +8,11 @@ Updated the auction results display on the admin round detail page to show playe
 ### File: `components/auction/RoundDetailClient.tsx`
 
 **What Changed:**
-- Replaced the static auction results display with an interactive expand/collapse view
-- Now shows all bids made on each player by different teams
-- Only displays players who were won in that round (as per existing `auctionResults` data)
+1. Replaced the static auction results display with an interactive expand/collapse view
+2. Now shows all bids made on each player by different teams
+3. Only displays players who were won in that round (as per existing `auctionResults` data)
+4. Fixed nested button issue in Team Bids Status section
+5. Added `totalSpent` property to `TeamBidDetails` interface
 
 **New Features:**
 
@@ -38,6 +40,18 @@ Updated the auction results display on the admin round detail page to show playe
    - Works seamlessly on mobile and desktop
    - Proper text truncation and flex layouts
    - Touch-friendly click targets
+
+**Bug Fixes:**
+
+1. **Nested Button Issue**
+   - Changed Team Bids Status header from `<button>` to `<div>` structure
+   - Team name area is clickable with `onClick` handler
+   - Copy button and chevron button are now separate, non-nested buttons
+   - Fixes React hydration error
+
+2. **TypeScript Interface**
+   - Added `totalSpent: number` to `TeamBidDetails` interface
+   - Fixes build error when accessing `teamBid.totalSpent`
 
 ## Technical Implementation
 
@@ -74,12 +88,14 @@ const allBidsOnPlayer = teamBidsWithDetails
 - Static list of players sold
 - No visibility into competing bids
 - No interaction possible
+- Nested button causing hydration errors
 
 ### After
 - Interactive player cards
 - Click to see all bids made on each player
 - Clear visual distinction between winning and losing bids
 - Better understanding of auction competition
+- No hydration errors
 
 ## Testing Recommendations
 
@@ -98,6 +114,18 @@ const allBidsOnPlayer = teamBidsWithDetails
    - Multiple players expanded simultaneously
    - Rapid clicking
    - Scroll behavior when expanded
+
+4. Test Team Bids Status section:
+   - Copy button functionality
+   - Expand/collapse functionality
+   - No console errors or hydration warnings
+
+## Build Status
+
+✅ **Build Successful** - All TypeScript errors resolved
+- Fixed `totalSpent` property missing from interface
+- Fixed nested button hydration error
+- All routes compiled successfully
 
 ## Notes
 

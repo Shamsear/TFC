@@ -1592,19 +1592,19 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               return (
                 <div key={teamBid.teamId} className="rounded-lg bg-black/30 border border-white/10 overflow-hidden">
                   {/* Team Header - Clickable to expand/collapse */}
-                  <button
-                    onClick={() => {
-                      const newExpanded = new Set(expandedTeams)
-                      if (isExpanded) {
-                        newExpanded.delete(teamBid.teamId)
-                      } else {
-                        newExpanded.add(teamBid.teamId)
-                      }
-                      setExpandedTeams(newExpanded)
-                    }}
-                    className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/5 transition-colors gap-3"
-                  >
-                    <div className="flex items-center gap-3 w-full sm:w-auto text-left">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/5 transition-colors gap-3">
+                    <div 
+                      onClick={() => {
+                        const newExpanded = new Set(expandedTeams)
+                        if (isExpanded) {
+                          newExpanded.delete(teamBid.teamId)
+                        } else {
+                          newExpanded.add(teamBid.teamId)
+                        }
+                        setExpandedTeams(newExpanded)
+                      }}
+                      className="flex items-center gap-3 w-full sm:w-auto text-left cursor-pointer flex-1"
+                    >
                       {teamBid.teamLogo && (
                         <img src={teamBid.teamLogo} alt={teamBid.teamName} className="w-8 h-8 rounded" />
                       )}
@@ -1642,16 +1642,30 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                           </svg>
                         </button>
                       </div>
-                      <svg 
-                        className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
+                      <button
+                        onClick={() => {
+                          const newExpanded = new Set(expandedTeams)
+                          if (isExpanded) {
+                            newExpanded.delete(teamBid.teamId)
+                          } else {
+                            newExpanded.add(teamBid.teamId)
+                          }
+                          setExpandedTeams(newExpanded)
+                        }}
+                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        aria-label={isExpanded ? 'Collapse' : 'Expand'}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                        <svg 
+                          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
                     </div>
-                  </button>
+                  </div>
 
                   {/* Expanded Bids List */}
                   {isExpanded && (

@@ -156,13 +156,19 @@ export default function TiebreakerBiddingClient({
       }
 
       const data = await response.json()
-      setMessage({ type: 'success', text: data.message || 'Bid submitted successfully!' })
-
-      if (data.roundComplete || data.tiebreakerResolved) {
-        // Tiebreaker resolved right away — start redirect
+      
+      // Check if resolution is in progress (async)
+      if (data.resolutionInProgress) {
+        setMessage({ type: 'success', text: 'Bid submitted! Resolution in progress, please wait...' })
+        // Start polling to check status
+        router.refresh()
+      } else if (data.roundComplete || data.tiebreakerResolved) {
+        // Tiebreaker resolved right away (shouldn't happen with async, but keep for backwards compatibility)
+        setMessage({ type: 'success', text: data.message || 'Bid submitted successfully!' })
         setTiebreakerStatus('completed')
       } else {
         // Wait for others — start polling
+        setMessage({ type: 'success', text: data.message || 'Bid submitted successfully!' })
         router.refresh()
       }
     } catch (error: any) {

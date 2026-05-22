@@ -156,81 +156,60 @@ export async function POST(
     console.log(`\n📊 [TIEBREAKER DEBUG] tiebreakerId=${tiebreakerId} | allSubmitted=${allSubmitted}`);
 
     if (allSubmitted) {
-      console.log(`🎯 [TIEBREAKER DEBUG] All teams submitted - starting auto-resolve...`);
+      console.log(`🎯 [TIEBREAKER DEBUG] All teams submitted - triggering async auto-resolve...`);
       
-      // Resolve tiebreaker
-      const resolveResult = await resolveTiebreaker(tiebreakerId);
-      console.log(`🔍 [TIEBREAKER DEBUG] resolveTiebreaker result:`, JSON.stringify(resolveResult));
+      // Trigger async resolution without waiting
+      // This allows the last team to get an immediate response
+      (async () => {
+        try {
+          // Resolve tiebreaker
+          const resolveResult = await resolveTiebreaker(tiebreakerId);
+          console.log(`🔍 [TIEBREAKER DEBUG] resolveTiebreaker result:`, JSON.stringify(resolveResult));
 
-      if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
-        console.log(`✅ [TIEBREAKER DEBUG] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
-        
-        // Auto-resume finalization
-        const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
-        console.log(`🔍 [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
+          if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
+            console.log(`✅ [TIEBREAKER DEBUG] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
+            
+            // Auto-resume finalization
+            const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
+            console.log(`🔍 [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
 
-        if (resumeResult.success) {
-          if (resumeResult.finalizationComplete) {
-            console.log('✅ [TIEBREAKER DEBUG] Round finalization COMPLETE');
-            return NextResponse.json({
-              success: true,
-              newBidAmount,
-              message: 'Tiebreaker bid submitted and round finalized successfully',
-              tiebreakerResolved: true,
-              roundComplete: true
-            });
-          } else if (resumeResult.nextTiebreakerCreated) {
-            console.log('⏸️  [TIEBREAKER DEBUG] Next tiebreaker created - round still pending');
-            return NextResponse.json({
-              success: true,
-              newBidAmount,
-              message: 'Tiebreaker bid submitted. Another tiebreaker created.',
-              tiebreakerResolved: true,
-              nextTiebreakerCreated: true
-            });
+            if (resumeResult.success) {
+              if (resumeResult.finalizationComplete) {
+                console.log('✅ [TIEBREAKER DEBUG] Round finalization COMPLETE');
+              } else if (resumeResult.nextTiebreakerCreated) {
+                console.log('⏸️  [TIEBREAKER DEBUG] Next tiebreaker created - round still pending');
+              } else {
+                console.log('⏸️  [TIEBREAKER DEBUG] Other active tiebreakers still pending - waiting');
+              }
+            } else {
+              console.error('❌ [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
+            }
           } else {
-            // success=true but no complete, no nextTiebreaker => other active tiebreakers exist
-            console.log('⏸️  [TIEBREAKER DEBUG] Other active tiebreakers still pending - waiting');
+            // resolveTiebreaker failed (e.g. another tie detected)
+            console.error('❌ [TIEBREAKER DEBUG] resolveTiebreaker FAILED:', resolveResult.error);
+
+            if (resolveResult.error?.includes('Another tie detected')) {
+              console.log('🔄 [TIEBREAKER DEBUG] Re-tie detected - marking tiebreaker completed so admin can Force Re-finalize');
+              // Mark the old tiebreaker completed (all bids are in, but tied)
+              await prisma.tiebreakers.update({
+                where: { id: tiebreakerId },
+                data: { status: 'completed' }
+              });
+            }
           }
-        } else {
-          console.error('❌ [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
-          return NextResponse.json({
-            success: true,
-            newBidAmount,
-            message: 'Bid submitted but auto-resume failed. Admin may need to manually finalize.',
-            tiebreakerResolved: true,
-            resumeError: resumeResult.error
-          });
+        } catch (error) {
+          console.error('❌ [TIEBREAKER DEBUG] Async resolution error:', error);
         }
-      } else {
-        // resolveTiebreaker failed (e.g. another tie detected)
-        console.error('❌ [TIEBREAKER DEBUG] resolveTiebreaker FAILED:', resolveResult.error);
+      })();
 
-        if (resolveResult.error?.includes('Another tie detected')) {
-          console.log('🔄 [TIEBREAKER DEBUG] Re-tie detected - marking tiebreaker completed so admin can Force Re-finalize');
-          // Mark the old tiebreaker completed (all bids are in, but tied)
-          // The sub-admin must click "Force Re-finalize" which will resume and create the next tiebreaker cleanly
-          await prisma.tiebreakers.update({
-            where: { id: tiebreakerId },
-            data: { status: 'completed' }
-          });
-          return NextResponse.json({
-            success: true,
-            newBidAmount,
-            message: 'Re-tie detected! All bids are tied again. The sub-admin must click "Force Re-finalize" to create the next tiebreaker.',
-            tiebreakerResolved: false,
-            reTieDetected: true
-          });
-        }
-
-        return NextResponse.json({
-          success: true,
-          newBidAmount,
-          message: `Bid submitted but tiebreaker could not be auto-resolved: ${resolveResult.error}. Admin intervention required.`,
-          tiebreakerResolved: false,
-          resolveError: resolveResult.error
-        });
-      }
+      // Return immediately to the user
+      return NextResponse.json({
+        success: true,
+        newBidAmount,
+        message: 'Tiebreaker bid submitted successfully. Resolution in progress...',
+        tiebreakerResolved: false,
+        resolutionInProgress: true
+      });
     }
 
     console.log(`ℹ️  [TIEBREAKER DEBUG] Not all teams submitted yet for ${tiebreakerId} - waiting`);

@@ -889,9 +889,34 @@ export async function applyFinalizationResults(
     // 1. Insert transfer history records
     console.log('📝 Step 1: Creating transfer history records...');
     
-    // Generate transfer IDs for all allocations
+    // Validate all basePlayerIds exist before creating transfer records
+    const playerIds = allocations.map(a => a.basePlayerId);
+    const existingPlayers = await tx.base_players.findMany({
+      where: { id: { in: playerIds } },
+      select: { id: true }
+    });
+    const existingPlayerIds = new Set(existingPlayers.map(p => p.id));
+    
+    // Filter out allocations with invalid player IDs
+    const validAllocations = allocations.filter(alloc => {
+      const isValid = existingPlayerIds.has(alloc.basePlayerId);
+      if (!isValid) {
+        console.error(`   ❌ Invalid basePlayerId: ${alloc.basePlayerId} for player ${alloc.playerName}`);
+      }
+      return isValid;
+    });
+    
+    if (validAllocations.length === 0) {
+      throw new Error('No valid allocations found - all basePlayerIds are invalid');
+    }
+    
+    if (validAllocations.length < allocations.length) {
+      console.warn(`   ⚠️  Filtered out ${allocations.length - validAllocations.length} invalid allocation(s)`);
+    }
+    
+    // Generate transfer IDs for all valid allocations
     const transferRecords = await Promise.all(
-      allocations.map(async (alloc) => ({
+      validAllocations.map(async (alloc) => ({
         id: await generateTransferId(),
         basePlayerId: alloc.basePlayerId,
         seasonId: round.seasonId,
@@ -907,7 +932,7 @@ export async function applyFinalizationResults(
       data: transferRecords
     });
 
-    for (const alloc of allocations) {
+    for (const alloc of validAllocations) {
       console.log(`   ✓ ${alloc.playerName} → Team ${alloc.teamId} (£${alloc.amount.toLocaleString()})`);
     }
     console.log('');

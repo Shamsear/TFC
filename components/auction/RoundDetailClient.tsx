@@ -273,14 +273,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           
           // Trigger finalization based on mode
           if (round.finalizationMode === 'auto') {
-            // Auto mode: trigger finalization
+            // Auto mode: trigger finalization with force=true to bypass timing checks
             console.log('Timer expired - triggering auto finalization')
             
-            // Call finalization API directly
+            // Call finalization API directly with force=true
             fetch(`/api/admin/rounds/${round.id}/finalize`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({})
+              body: JSON.stringify({ force: true })
             }).then(async response => {
               if (response.ok) {
                 console.log('Auto-finalization successful')
@@ -960,6 +960,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-8">
         <h2 className="text-xl font-black text-white mb-4">Round Actions</h2>
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
+          {/* View Team Bids - Available for all statuses */}
+          <Link
+            href={`/sub-admin/${round.season.id}/auction/rounds/${round.id}/bids`}
+            className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#E8A800]/50 text-white font-bold transition-all"
+          >
+            👁️ View Team Bids
+          </Link>
+          
           {round.status === 'draft' && (
             <button
               onClick={handleStartRound}

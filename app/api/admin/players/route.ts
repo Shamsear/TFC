@@ -14,6 +14,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl
     const query = searchParams.get('query') || ''
     const duplicatesMode = searchParams.get('duplicates') === 'true'
+    const positionFilter = searchParams.get('position') || 'all'
+    
+    // Handle multiple sort fields
+    const sortConfigs: Array<{ field: string; direction: string }> = []
+    const sortField1 = searchParams.get('sortField') || 'name'
+    const sortDirection1 = searchParams.get('sortDirection') || 'asc'
+    sortConfigs.push({ field: sortField1, direction: sortDirection1 })
+    
+    // Check for additional sort fields (sortField2, sortField3, etc.)
+    for (let i = 2; i <= 5; i++) {
+      const field = searchParams.get(`sortField${i}`)
+      const direction = searchParams.get(`sortDirection${i}`)
+      if (field && direction) {
+        sortConfigs.push({ field, direction })
+      }
+    }
+    
     const page = parseInt(searchParams.get('page') || '1')
     const limit = 50
     const skip = (page - 1) * limit
@@ -31,6 +48,7 @@ export async function GET(request: NextRequest) {
               position: true,
               overallRating: true,
               realWorldClub: true,
+              playing_style: true,
             }
           }
         }
@@ -59,9 +77,50 @@ export async function GET(request: NextRequest) {
         )
       }
 
+      // If there's a position filter, only keep groups where at least one player matches the position
+      if (positionFilter !== 'all') {
+        duplicateGroups = duplicateGroups.filter(group => 
+          group.some(player => player.seasonalPlayerStats[0]?.position === positionFilter)
+        )
+      }
+
       const duplicatePlayers = duplicateGroups
         .flat()
-        .sort((a, b) => a.name.localeCompare(b.name))
+
+      // Multi-level sort for duplicate players
+      duplicatePlayers.sort((a, b) => {
+        for (const sortConfig of sortConfigs) {
+          const statsA = a.seasonalPlayerStats[0]
+          const statsB = b.seasonalPlayerStats[0]
+          let compareValue = 0
+
+          switch (sortConfig.field) {
+            case 'name':
+              compareValue = a.name.localeCompare(b.name)
+              break
+            case 'nationality':
+              compareValue = (statsA?.nationality || '').localeCompare(statsB?.nationality || '')
+              break
+            case 'club':
+              compareValue = (statsA?.realWorldClub || '').localeCompare(statsB?.realWorldClub || '')
+              break
+            case 'position':
+              compareValue = (statsA?.position || '').localeCompare(statsB?.position || '')
+              break
+            case 'rating':
+              compareValue = (statsA?.overallRating || 0) - (statsB?.overallRating || 0)
+              break
+            case 'playingStyle':
+              compareValue = (statsA?.playing_style || '').localeCompare(statsB?.playing_style || '')
+              break
+          }
+
+          if (compareValue !== 0) {
+            return sortConfig.direction === 'asc' ? compareValue : -compareValue
+          }
+        }
+        return 0
+      })
 
       // Paginate
       const paginatedDuplicates = duplicatePlayers.slice(skip, skip + limit)
@@ -74,19 +133,38 @@ export async function GET(request: NextRequest) {
     }
 
     // Normal mode (paginated search)
-    const whereClause: any = query ? {
-      OR: [
-        { name: { contains: query, mode: 'insensitive' as const } },
-        { seasonalPlayerStats: { some: { realWorldClub: { contains: query, mode: 'insensitive' as const } } } }
-      ]
-    } : {}
+    const whereClause: any = {
+      AND: []
+    }
 
-    const [players, totalCount] = await Promise.all([
+    if (query) {
+      whereClause.AND.push({
+        OR: [
+          { name: { contains: query, mode: 'insensitive' as const } },
+          { seasonalPlayerStats: { some: { realWorldClub: { contains: query, mode: 'insensitive' as const } } } }
+        ]
+      })
+    }
+
+    if (positionFilter !== 'all') {
+      whereClause.AND.push({
+        seasonalPlayerStats: { some: { position: positionFilter } }
+      })
+    }
+
+    // If no filters, remove the AND clause
+    const finalWhereClause = whereClause.AND.length > 0 ? whereClause : {}
+
+    // Build orderBy clause based on primary sortField (only name can be sorted in DB)
+    const primarySort = sortConfigs[0]
+    let orderByClause: any = primarySort.field === 'name' 
+      ? { name: primarySort.direction } 
+      : { name: 'asc' } // Fallback to name for other fields
+
+    const [allPlayers, totalCount] = await Promise.all([
       prisma.base_players.findMany({
-        where: whereClause,
-        orderBy: { name: 'asc' },
-        skip,
-        take: limit,
+        where: finalWhereClause,
+        orderBy: orderByClause,
         include: {
           seasonalPlayerStats: {
             orderBy: { seasonId: 'desc' },
@@ -96,12 +174,51 @@ export async function GET(request: NextRequest) {
               position: true,
               overallRating: true,
               realWorldClub: true,
+              playing_style: true,
             }
           }
         }
       }),
-      prisma.base_players.count({ where: whereClause })
+      prisma.base_players.count({ where: finalWhereClause })
     ])
+
+    // Multi-level sort in memory for all fields
+    allPlayers.sort((a, b) => {
+      for (const sortConfig of sortConfigs) {
+        const statsA = a.seasonalPlayerStats[0]
+        const statsB = b.seasonalPlayerStats[0]
+        let compareValue = 0
+
+        switch (sortConfig.field) {
+          case 'name':
+            compareValue = a.name.localeCompare(b.name)
+            break
+          case 'nationality':
+            compareValue = (statsA?.nationality || '').localeCompare(statsB?.nationality || '')
+            break
+          case 'club':
+            compareValue = (statsA?.realWorldClub || '').localeCompare(statsB?.realWorldClub || '')
+            break
+          case 'position':
+            compareValue = (statsA?.position || '').localeCompare(statsB?.position || '')
+            break
+          case 'rating':
+            compareValue = (statsA?.overallRating || 0) - (statsB?.overallRating || 0)
+            break
+          case 'playingStyle':
+            compareValue = (statsA?.playing_style || '').localeCompare(statsB?.playing_style || '')
+            break
+        }
+
+        if (compareValue !== 0) {
+          return sortConfig.direction === 'asc' ? compareValue : -compareValue
+        }
+      }
+      return 0
+    })
+
+    // Paginate after sorting
+    const players = allPlayers.slice(skip, skip + limit)
 
     return NextResponse.json({
       players,

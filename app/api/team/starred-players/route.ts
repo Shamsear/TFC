@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     console.log('[Starred Players GET] Session teamId:', session.user.teamId)
     console.log('[Starred Players GET] Season team ID:', seasonTeam.id)
     console.log('[Starred Players GET] Season ID:', seasonId)
+    console.log('[Starred Players GET] Query will be: seasonTeamId =', seasonTeam.id, 'AND seasonId =', seasonId)
 
     // Get starred players
     const starredPlayers = await prisma.starred_players.findMany({
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
     })
 
     console.log('[Starred Players GET] Found', starredPlayers.length, 'starred players')
+    console.log('[Starred Players GET] First 5 player IDs:', starredPlayers.slice(0, 5).map(p => p.playerId))
 
     return NextResponse.json({
       starredPlayerIds: starredPlayers.map(sp => sp.playerId),

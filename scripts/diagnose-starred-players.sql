@@ -5,15 +5,28 @@
 -- might be showing up for a user
 
 -- ============================================
--- 1. Check for duplicate seasonTeamIds
+-- 1. Check for duplicate season_teams.id values
 -- ============================================
 SELECT 
-  "seasonTeamId",
-  COUNT(*) as team_count,
-  STRING_AGG("teamId", ', ') as team_ids
+  id,
+  COUNT(*) as duplicate_count
 FROM season_teams
-GROUP BY "seasonTeamId"
+GROUP BY id
 HAVING COUNT(*) > 1;
+
+-- ============================================
+-- 1b. View season_teams structure
+-- ============================================
+SELECT 
+  st.id as season_team_id,
+  st."teamId",
+  t.name as team_name,
+  st."seasonId",
+  s.name as season_name
+FROM season_teams st
+JOIN teams t ON st."teamId" = t.id
+JOIN seasons s ON st."seasonId" = s.id
+ORDER BY s.name, t.name;
 
 -- ============================================
 -- 2. View all starred players with team info

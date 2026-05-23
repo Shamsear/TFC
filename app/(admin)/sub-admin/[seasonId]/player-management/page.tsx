@@ -1,0 +1,55 @@
+import { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import PlayerManagementClient from '@/components/admin/PlayerManagementClient';
+
+export const metadata: Metadata = {
+  title: 'Player Management',
+  description: 'Transfer and release players'
+};
+
+export default async function PlayerManagementPage({
+  params
+}: {
+  params: { seasonId: string };
+}) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
+    redirect('/');
+  }
+
+  // Get all teams in the season
+  const teams = await prisma.season_teams.findMany({
+    where: {
+      seasonId: params.seasonId
+    },
+    include: {
+      team: {
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true
+        }
+      }
+    },
+    orderBy: {
+      team: {
+        name: 'asc'
+      }
+    }
+  });
+
+  return (
+    <PlayerManagementClient
+      seasonId={params.seasonId}
+      teams={teams.map(st => ({
+        id: st.team.id,
+        name: st.team.name,
+        logoUrl: st.team.logoUrl
+      }))}
+    />
+  );
+}

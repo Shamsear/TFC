@@ -223,6 +223,7 @@ async function handleNonSubmittedTeams(
   seasonId: string,
   roundNumber: number,
   position: string | undefined,
+  positionGroup: string | undefined,
   submittedAllocations: Allocation[]
 ): Promise<Allocation[]> {
   const allocations: Allocation[] = [];
@@ -333,21 +334,30 @@ async function handleNonSubmittedTeams(
     let availablePlayer: { id: string; name: string } | null = null;
 
     if (position) {
-      console.log(`      🔍 Searching for available ${position} players...`);
+      console.log(`      🔍 Searching for available ${position} players${positionGroup ? ` in ${positionGroup} group` : ''}...`);
+      
+      // Build where clause with position and optional position_group filter
+      const whereClause: any = {
+        seasonId,
+        position,
+        basePlayerId: {
+          notIn: Array.from(allocatedPlayerIds)
+        },
+        basePlayer: {
+          transferHistory: {
+            none: { seasonId }
+          }
+        }
+      };
+
+      // Add position_group filter if specified and not 'ALL'
+      if (positionGroup && positionGroup.toUpperCase() !== 'ALL') {
+        whereClause.position_group = positionGroup;
+      }
+
       // Get random available player from position pool
       const availablePlayers = await prisma.seasonal_player_stats.findMany({
-        where: {
-          seasonId,
-          position,
-          basePlayerId: {
-            notIn: Array.from(allocatedPlayerIds)
-          },
-          basePlayer: {
-            transferHistory: {
-              none: { seasonId }
-            }
-          }
-        },
+        where: whereClause,
         select: {
           basePlayerId: true,
           basePlayer: {
@@ -373,20 +383,29 @@ async function handleNonSubmittedTeams(
         };
       }
     } else {
-      console.log(`      🔍 Searching for available players (all positions)...`);
-      // No position filter - get any available player
-      const availablePlayers = await prisma.seasonal_player_stats.findMany({
-        where: {
-          seasonId,
-          basePlayerId: {
-            notIn: Array.from(allocatedPlayerIds)
-          },
-          basePlayer: {
-            transferHistory: {
-              none: { seasonId }
-            }
-          }
+      console.log(`      🔍 Searching for available players${positionGroup && positionGroup.toUpperCase() !== 'ALL' ? ` in ${positionGroup} group` : ' (all positions)'}...`);
+      
+      // Build where clause with optional position_group filter
+      const whereClause: any = {
+        seasonId,
+        basePlayerId: {
+          notIn: Array.from(allocatedPlayerIds)
         },
+        basePlayer: {
+          transferHistory: {
+            none: { seasonId }
+          }
+        }
+      };
+
+      // Add position_group filter if specified and not 'ALL'
+      if (positionGroup && positionGroup.toUpperCase() !== 'ALL') {
+        whereClause.position_group = positionGroup;
+      }
+
+      // No position filter - get any available player (optionally filtered by position_group)
+      const availablePlayers = await prisma.seasonal_player_stats.findMany({
+        where: whereClause,
         select: {
           basePlayerId: true,
           basePlayer: {
@@ -452,6 +471,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
         seasonId: true,
         roundNumber: true,
         position: true,
+        position_group: true,
         status: true,
         finalizationState: true
       }
@@ -470,6 +490,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
     console.log(`   ✓ Round ${round.roundNumber} found`);
     console.log(`   ✓ Season: ${round.seasonId}`);
     console.log(`   ✓ Position: ${round.position || 'All positions'}`);
+    console.log(`   ✓ Position Group: ${round.position_group || 'All groups'}`);
     console.log(`   ✓ Status: ${round.status}`);
 
     if (round.status === 'completed') {
@@ -692,6 +713,7 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
       round.seasonId,
       round.roundNumber,
       round.position || undefined,
+      round.position_group || undefined,
       existingAllocations
     );
 

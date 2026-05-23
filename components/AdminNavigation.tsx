@@ -86,41 +86,57 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                 >
                   Dashboard
                 </Link>
+                {activeSeasonId && (
+                  <>
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/all-teams`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    >
+                      Teams
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/all-players`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    >
+                      Players
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/auction`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    >
+                      Auction
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/transfers`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    >
+                      Transfers
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/tournaments`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    >
+                      Tournaments
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/calendar`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    >
+                      Calendar
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${activeSeasonId}/tools`}
+                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    >
+                      Tools
+                    </Link>
+                  </>
+                )}
                 <Link
                   href="/sub-admin/import"
                   className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
                 >
                   Import
-                </Link>
-                {activeSeasonId && (
-                  <Link
-                    href="/sub-admin/${activeSeasonId}/all-teams"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                  >
-                  Teams
-                </Link>
-                )}
-                {activeSeasonId && (
-                  <Link
-                    href={`/sub-admin/${activeSeasonId}/all-players`}
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                  >
-                    Players
-                  </Link>
-                )}
-                {activeSeasonId && (
-                  <Link
-                    href={`/sub-admin/${activeSeasonId}/calendar`}
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                  >
-                    Calendar
-                  </Link>
-                )}
-                <Link
-                  href="/tournaments"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                >
-                  Tournaments
                 </Link>
               </>
             )}
@@ -198,44 +214,65 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                   >
                     Dashboard
                   </Link>
+                  {activeSeasonId && (
+                    <>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/all-teams`}
+                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Teams
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/all-players`}
+                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Players
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/auction`}
+                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Auction
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/transfers`}
+                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Transfers
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/tournaments`}
+                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Tournaments
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/calendar`}
+                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Calendar
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/tools`}
+                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Tools
+                      </Link>
+                    </>
+                  )}
                   <Link
                     href="/sub-admin/import"
                     className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Import
-                  </Link>
-                  <Link
-                    href="/teams"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Teams
-                  </Link>
-                  {activeSeasonId && (
-                    <Link
-                      href={`/sub-admin/${activeSeasonId}/all-players`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Players
-                    </Link>
-                  )}
-                  {activeSeasonId && (
-                    <Link
-                      href={`/sub-admin/${activeSeasonId}/calendar`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Calendar
-                    </Link>
-                  )}
-                  <Link
-                    href="/tournaments"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Tournaments
                   </Link>
                 </>
               )}

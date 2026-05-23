@@ -45,14 +45,14 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
   const activeSeasonNavigation = [
     { name: "Dashboard", href: "/team" },
     { name: "Squad", href: "/team/squad" },
+    { name: "Auction", href: "/team/auction" },
     { name: "Players", href: "/team/players" },
+    { name: "Starred", href: "/team/starred" },
     { name: "Teams", href: "/team/teams" },
     { name: "Matches", href: "/team/matches" },
     { name: "Tournaments", href: "/team/tournaments" },
     { name: "Calendar", href: "/team/calendar" },
-    { name: "Auctions", href: "/team/auction" },
     { name: "Finances", href: "/team/finances" },
-    { name: "Profile", href: "/team/profile" },
   ]
 
   const inactiveSeasonNavigation = [

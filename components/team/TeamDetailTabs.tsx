@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 import ReadonlySquadFormation from '@/components/team/ReadonlySquadFormation'
@@ -242,11 +241,10 @@ export default function TeamDetailTabs({
                         >
                           <div className="flex items-center gap-3">
                             <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-                              <Image
+                              <img
                                 src={player.photoUrl}
                                 alt={player.name}
-                                fill
-                                className="object-cover"
+                                className="w-full h-full object-cover"
                               />
                             </div>
                             <div className="flex-1 min-w-0">

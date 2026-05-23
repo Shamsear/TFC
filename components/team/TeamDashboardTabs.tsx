@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
@@ -111,11 +110,10 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDash
                       className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 hover:border-[#E8A800]/50 transition-all"
                     >
                       <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
-                        <Image
+                        <img
                           src={getPlayerPhotoUrl(`${bid.basePlayer.player_id || bid.basePlayer.id}.webp`)}
                           alt={bid.basePlayer.name}
-                          fill
-                          className="object-cover"
+                          className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -169,11 +167,10 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDash
                       className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10"
                     >
                       <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
-                        <Image
+                        <img
                           src={getPlayerPhotoUrl(`${player.basePlayer.player_id || player.basePlayer.id}.webp`)}
                           alt={player.basePlayer.name}
-                          fill
-                          className="object-cover"
+                          className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1 min-w-0">

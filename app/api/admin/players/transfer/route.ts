@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
               basePlayerId: playerId,
               seasonId: seasonId,
               teamId: fromTeamId
+            },
+            include: {
+              round: {
+                select: { id: true }
+              }
             }
           });
 
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Get season teams
+          // Get both season teams
           const fromSeasonTeam = await tx.season_teams.findUnique({
             where: {
               seasonId_teamId: { seasonId, teamId: fromTeamId }
@@ -83,7 +88,7 @@ export async function POST(request: NextRequest) {
             data: { currentBudget: fromNewBudget }
           });
 
-          // Create refund ledger entry
+          // Create refund ledger entry for source team
           const refundLedgerId = await generateFinancialId();
           await tx.financial_ledger.create({
             data: {
@@ -94,12 +99,12 @@ export async function POST(request: NextRequest) {
               amount: transferPrice,
               previousBalance: fromSeasonTeam.currentBudget,
               newBalance: fromNewBudget,
-              description: `Transfer out: ${player.name} to another team`,
+              description: notes || `Player transferred out: ${player.name}`,
               playerName: player.name
             }
           });
 
-          // Create new transfer to destination team (free transfer - £0)
+          // Create new transfer for destination team (free transfer - £0)
           const newTransferId = await generateTransferId();
           await tx.transfer_history.create({
             data: {
@@ -107,21 +112,36 @@ export async function POST(request: NextRequest) {
               basePlayerId: playerId,
               seasonId: seasonId,
               teamId: toTeamId,
-              roundId: null,
-              soldPrice: 0,
+              roundId: existingTransfer.roundId,
+              soldPrice: 0, // Free transfer
               acquisitionType: 'free_transfer',
-              acquisitionNotes: notes || `Free transfer from another team. ${existingTransfer.acquisitionNotes || ''}`
+              acquisitionNotes: notes || `Free transfer from another team. Original price: £${transferPrice}`
             }
           });
 
-          // No charge to destination team (free transfer)
-          // No ledger entry needed for destination as it's free
+          // No budget deduction for destination team (free transfer)
+          // But create a ledger entry for tracking
+          const transferLedgerId = await generateFinancialId();
+          await tx.financial_ledger.create({
+            data: {
+              id: transferLedgerId,
+              seasonTeamId: toSeasonTeam.id,
+              seasonId: seasonId,
+              transactionType: 'PLAYER_PURCHASE',
+              amount: 0, // Free transfer
+              previousBalance: toSeasonTeam.currentBudget,
+              newBalance: toSeasonTeam.currentBudget,
+              description: notes || `Free transfer in: ${player.name}`,
+              playerName: player.name
+            }
+          });
 
           successfulTransfers.push({
             playerId,
             playerName: player.name,
             fromTeamId,
-            toTeamId
+            toTeamId,
+            originalPrice: transferPrice
           });
         } catch (error) {
           errors.push({

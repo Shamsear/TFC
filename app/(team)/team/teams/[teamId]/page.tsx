@@ -266,6 +266,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           currentSeason={currentSeason}
           historicalSeasons={historicalSeasons}
           seasonId={seasonId}
+          viewerRole="team"
         />
       </div>
     </div>

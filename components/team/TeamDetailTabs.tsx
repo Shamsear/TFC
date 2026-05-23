@@ -50,6 +50,7 @@ interface TeamDetailTabsProps {
   currentSeason: CurrentSeason
   historicalSeasons: HistoricalSeason[]
   seasonId: string
+  viewerRole?: 'team' | 'admin' // Determines which routes to use for player links
 }
 
 type Tab = 'season' | 'overall'
@@ -59,13 +60,22 @@ export default function TeamDetailTabs({
   team,
   currentSeason,
   historicalSeasons,
-  seasonId
+  seasonId,
+  viewerRole = 'admin' // Default to admin for backward compatibility
 }: TeamDetailTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('season')
   const [seasonSubTab, setSeasonSubTab] = useState<SeasonSubTab>('stats')
 
   const formatCurrency = (amount: number) => {
     return `£${amount.toLocaleString()}`
+  }
+
+  // Generate player detail URL based on viewer role
+  const getPlayerUrl = (playerId: string) => {
+    if (viewerRole === 'team') {
+      return `/team/players/${playerId}`
+    }
+    return `/sub-admin/${seasonId}/all-players/${playerId}`
   }
 
   const getPositionColor = (position: string) => {
@@ -236,7 +246,7 @@ export default function TeamDetailTabs({
                         .map((player) => (
                         <Link
                           key={player.id}
-                          href={`/sub-admin/${seasonId}/all-players/${player.id}`}
+                          href={getPlayerUrl(player.id)}
                           className="rounded-xl bg-black/30 border border-white/5 hover:border-[#E8A800]/30 hover:bg-black/50 transition-all p-4 group"
                         >
                           <div className="flex items-center gap-3">

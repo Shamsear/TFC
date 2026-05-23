@@ -53,11 +53,22 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   const addAuctionDate = () => {
     // Copy date from the last entry for convenience in bulk creation
     const lastEntry = auctionDates[auctionDates.length - 1]
+    
+    // Calculate default end date/time (+3 hours from last entry's start)
+    let defaultEndDate = ''
+    let defaultEndTime = ''
+    if (lastEntry?.auctionDate && lastEntry?.auctionTime) {
+      const startDateTime = new Date(`${lastEntry.auctionDate}T${lastEntry.auctionTime}`)
+      const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
+      defaultEndDate = endDateTime.toISOString().split('T')[0]
+      defaultEndTime = endDateTime.toTimeString().slice(0, 5)
+    }
+    
     const newEntry = {
       auctionDate: lastEntry?.auctionDate || '',
       auctionTime: '',
-      endDate: lastEntry?.endDate || '',
-      endTime: '',
+      endDate: defaultEndDate,
+      endTime: defaultEndTime,
       description: '',
       positionSlots: []
     }
@@ -73,6 +84,17 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   const updateAuctionDate = (index: number, field: string, value: any) => {
     const updated = [...auctionDates]
     updated[index] = { ...updated[index], [field]: value }
+    
+    // Auto-populate endDate/endTime when auctionDate or auctionTime changes (if endDate is empty)
+    if ((field === 'auctionDate' || field === 'auctionTime') && updated[index].auctionDate && updated[index].auctionTime) {
+      if (!updated[index].endDate || !updated[index].endTime) {
+        const startDateTime = new Date(`${updated[index].auctionDate}T${updated[index].auctionTime}`)
+        const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
+        updated[index].endDate = endDateTime.toISOString().split('T')[0]
+        updated[index].endTime = endDateTime.toTimeString().slice(0, 5)
+      }
+    }
+    
     setAuctionDates(updated)
   }
 

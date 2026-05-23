@@ -93,6 +93,17 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
             
             setEndDate(`${endYear}-${endMonth}-${endDay}`)
             setEndTime(`${endHours}:${endMinutes}`)
+          } else {
+            // If no endDate, default to +3 hours from auctionDate
+            const defaultEndDate = new Date(dateObj.getTime() + 3 * 60 * 60 * 1000)
+            const endYear = defaultEndDate.getFullYear()
+            const endMonth = String(defaultEndDate.getMonth() + 1).padStart(2, '0')
+            const endDay = String(defaultEndDate.getDate()).padStart(2, '0')
+            const endHours = String(defaultEndDate.getHours()).padStart(2, '0')
+            const endMinutes = String(defaultEndDate.getMinutes()).padStart(2, '0')
+            
+            setEndDate(`${endYear}-${endMonth}-${endDay}`)
+            setEndTime(`${endHours}:${endMinutes}`)
           }
           
           setDescription(data.description || '')

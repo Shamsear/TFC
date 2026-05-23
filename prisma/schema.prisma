@@ -398,6 +398,7 @@ model auction_calendar {
   id           String          @id
   seasonId     String
   auctionDate  DateTime
+  endDate      DateTime?
   description  String?
   updated_by   String?         @map("updated_by")
   createdAt    DateTime        @default(now())

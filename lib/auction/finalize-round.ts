@@ -919,13 +919,43 @@ export async function applyFinalizationResults(
     });
     const existingPlayerIds = new Set(existingPlayers.map(p => p.id));
     
-    // Filter out allocations with invalid player IDs
-    const validAllocations = allocations.filter(alloc => {
-      const isValid = existingPlayerIds.has(alloc.basePlayerId);
-      if (!isValid) {
-        console.error(`   ❌ Invalid basePlayerId: ${alloc.basePlayerId} for player ${alloc.playerName}`);
+    // Check for existing transfers in this round to prevent duplicates
+    console.log('🔍 Checking for existing transfers in this round...');
+    const existingTransfers = await tx.transfer_history.findMany({
+      where: {
+        roundId: roundId,
+        seasonId: round.seasonId
+      },
+      select: {
+        basePlayerId: true,
+        teamId: true
       }
-      return isValid;
+    });
+    
+    const existingTransferKeys = new Set(
+      existingTransfers.map(t => `${t.basePlayerId}-${t.teamId}`)
+    );
+    
+    if (existingTransfers.length > 0) {
+      console.log(`   ⚠️  Found ${existingTransfers.length} existing transfer(s) in this round`);
+    }
+    
+    // Filter out allocations with invalid player IDs or duplicates
+    const validAllocations = allocations.filter(alloc => {
+      const isValidPlayer = existingPlayerIds.has(alloc.basePlayerId);
+      if (!isValidPlayer) {
+        console.error(`   ❌ Invalid basePlayerId: ${alloc.basePlayerId} for player ${alloc.playerName}`);
+        return false;
+      }
+      
+      const transferKey = `${alloc.basePlayerId}-${alloc.teamId}`;
+      const isDuplicate = existingTransferKeys.has(transferKey);
+      if (isDuplicate) {
+        console.warn(`   ⚠️  Skipping duplicate transfer: ${alloc.playerName} → Team ${alloc.teamId} (already exists)`);
+        return false;
+      }
+      
+      return true;
     });
     
     if (validAllocations.length === 0) {
@@ -980,22 +1010,36 @@ export async function applyFinalizationResults(
 
         console.log(`   ✓ Team ${teamId}: £${seasonTeam.currentBudget.toLocaleString()} → £${newBudget.toLocaleString()} (-£${totalSpent.toLocaleString()})`);
 
-        // 3. Insert financial ledger entry
-        const ledgerId = await generateFinancialId();
-        const playerNames = teamPlayerNames.get(teamId) || [];
-        await tx.financial_ledger.create({
-          data: {
-            id: ledgerId,
+        // 3. Check for existing ledger entry to prevent duplicates
+        const existingLedger = await tx.financial_ledger.findFirst({
+          where: {
             seasonTeamId: seasonTeam.id,
-            seasonId: round.seasonId,
             transactionType: 'PLAYER_PURCHASE',
             amount: -totalSpent,
-            previousBalance: seasonTeam.currentBudget,
-            newBalance: newBudget,
-            description: `Round ${roundId} player purchases`,
-            playerName: playerNames.join(', ')
+            description: `Round ${roundId} player purchases`
           }
         });
+        
+        if (existingLedger) {
+          console.warn(`   ⚠️  Ledger entry already exists for team ${teamId} in round ${roundId}, skipping`);
+        } else {
+          // Insert financial ledger entry
+          const ledgerId = await generateFinancialId();
+          const playerNames = teamPlayerNames.get(teamId) || [];
+          await tx.financial_ledger.create({
+            data: {
+              id: ledgerId,
+              seasonTeamId: seasonTeam.id,
+              seasonId: round.seasonId,
+              transactionType: 'PLAYER_PURCHASE',
+              amount: -totalSpent,
+              previousBalance: seasonTeam.currentBudget,
+              newBalance: newBudget,
+              description: `Round ${roundId} player purchases`,
+              playerName: playerNames.join(', ')
+            }
+          });
+        }
       }
     }
     console.log('');

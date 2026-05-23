@@ -305,19 +305,33 @@ export async function applyBulkTiebreakerResult(
   console.log(`\n💾 STARTING DATABASE TRANSACTION...`);
   
   await prisma.$transaction(async (tx) => {
-    // 1. Create transfer history
-    console.log(`   1️⃣ Creating transfer history record...`);
-    await tx.transfer_history.create({
-      data: {
-        id: transferId,
+    // Check if transfer already exists
+    console.log(`   🔍 Checking for existing transfer...`);
+    const existingTransfer = await tx.transfer_history.findFirst({
+      where: {
         basePlayerId: tiebreaker.basePlayerId,
         seasonId: round.seasonId,
-        teamId: winnerId,
-        soldPrice: winningBid,
-        roundId: tiebreaker.roundId
+        teamId: winnerId
       }
     });
-    console.log(`      ✅ Transfer history created`);
+    
+    if (existingTransfer) {
+      console.warn(`      ⚠️  Transfer already exists for player ${tiebreaker.basePlayerId} to team ${winnerId}, skipping creation`);
+    } else {
+      // 1. Create transfer history
+      console.log(`   1️⃣ Creating transfer history record...`);
+      await tx.transfer_history.create({
+        data: {
+          id: transferId,
+          basePlayerId: tiebreaker.basePlayerId,
+          seasonId: round.seasonId,
+          teamId: winnerId,
+          soldPrice: winningBid,
+          roundId: tiebreaker.roundId
+        }
+      });
+      console.log(`      ✅ Transfer history created`);
+    }
 
     // 2. Update team budget
     console.log(`   2️⃣ Fetching team budget...`);
@@ -350,22 +364,37 @@ export async function applyBulkTiebreakerResult(
       });
       console.log(`      ✅ Budget updated`);
 
-      // 3. Insert financial ledger entry
-      console.log(`   4️⃣ Creating financial ledger entry...`);
-      await tx.financial_ledger.create({
-        data: {
-          id: ledgerId,
+      // 3. Check for existing ledger entry to prevent duplicates
+      console.log(`   🔍 Checking for existing ledger entry...`);
+      const existingLedger = await tx.financial_ledger.findFirst({
+        where: {
           seasonTeamId: seasonTeam.id,
-          seasonId: round.seasonId,
           transactionType: 'PLAYER_PURCHASE',
           amount: -winningBid,
-          previousBalance: seasonTeam.currentBudget,
-          newBalance: newBudget,
-          description: `Bulk tiebreaker ${tiebreakerId} - Player purchase`,
-          playerName: tiebreaker.basePlayer.name
+          description: `Bulk tiebreaker ${tiebreakerId} - Player purchase`
         }
       });
-      console.log(`      ✅ Ledger entry created`);
+      
+      if (existingLedger) {
+        console.warn(`      ⚠️  Ledger entry already exists for tiebreaker ${tiebreakerId}, skipping`);
+      } else {
+        // Insert financial ledger entry
+        console.log(`   4️⃣ Creating financial ledger entry...`);
+        await tx.financial_ledger.create({
+          data: {
+            id: ledgerId,
+            seasonTeamId: seasonTeam.id,
+            seasonId: round.seasonId,
+            transactionType: 'PLAYER_PURCHASE',
+            amount: -winningBid,
+            previousBalance: seasonTeam.currentBudget,
+            newBalance: newBudget,
+            description: `Bulk tiebreaker ${tiebreakerId} - Player purchase`,
+            playerName: tiebreaker.basePlayer.name
+          }
+        });
+        console.log(`      ✅ Ledger entry created`);
+      }
     } else {
       console.log(`      ⚠️ WARNING: Season team not found for ${winnerId}`);
     }

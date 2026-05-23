@@ -367,12 +367,47 @@ export async function applyBulkFinalizationResults(
   console.log(`\n💾 Starting database transaction...`);
   
   await prisma.$transaction(async (tx) => {
+    // Check for existing transfers in this round to prevent duplicates
+    console.log('   🔍 Checking for existing transfers in this round...');
+    const existingTransfers = await tx.transfer_history.findMany({
+      where: {
+        roundId: roundId,
+        seasonId: round.seasonId
+      },
+      select: {
+        basePlayerId: true,
+        teamId: true
+      }
+    });
+    
+    const existingTransferKeys = new Set(
+      existingTransfers.map(t => `${t.basePlayerId}-${t.teamId}`)
+    );
+    
+    if (existingTransfers.length > 0) {
+      console.log(`      ⚠️  Found ${existingTransfers.length} existing transfer(s) in this round`);
+    }
+    
+    // Filter out duplicate allocations
+    const newAllocations = allocations.filter((alloc, index) => {
+      const transferKey = `${alloc.basePlayerId}-${alloc.teamId}`;
+      const isDuplicate = existingTransferKeys.has(transferKey);
+      if (isDuplicate) {
+        console.warn(`      ⚠️  Skipping duplicate: Player ${alloc.basePlayerId} → Team ${alloc.teamId}`);
+        return false;
+      }
+      return true;
+    });
+    
+    // Adjust transfer IDs array to match filtered allocations
+    const newTransferIds = transferIds.slice(0, newAllocations.length);
+    
     // 1. Batch insert transfer history records
-    if (allocations.length > 0) {
-      console.log(`   📝 Inserting ${allocations.length} transfer history records...`);
+    if (newAllocations.length > 0) {
+      console.log(`   📝 Inserting ${newAllocations.length} transfer history records...`);
       await tx.transfer_history.createMany({
-        data: allocations.map((alloc, index) => ({
-          id: transferIds[index],
+        data: newAllocations.map((alloc, index) => ({
+          id: newTransferIds[index],
           basePlayerId: alloc.basePlayerId,
           seasonId: round.seasonId,
           teamId: alloc.teamId,
@@ -381,6 +416,8 @@ export async function applyBulkFinalizationResults(
         }))
       });
       console.log(`      ✓ Transfer history records created`);
+    } else {
+      console.log(`      ℹ️  No new transfers to create (all were duplicates)`);
     }
 
     // 2. Update team budgets and create financial ledger entries
@@ -413,20 +450,34 @@ export async function applyBulkFinalizationResults(
           data: { currentBudget: newBudget }
         });
 
-        // Insert financial ledger entry
-        await tx.financial_ledger.create({
-          data: {
-            id: financialIdMap.get(teamId)!,
+        // Check for existing ledger entry to prevent duplicates
+        const existingLedger = await tx.financial_ledger.findFirst({
+          where: {
             seasonTeamId: seasonTeam.id,
-            seasonId: round.seasonId,
             transactionType: 'PLAYER_PURCHASE',
             amount: -totalSpent,
-            previousBalance: seasonTeam.currentBudget,
-            newBalance: newBudget,
-            description: `Bulk round ${roundId} player purchases`,
-            playerName: playerNames.join(', ')
+            description: `Bulk round ${roundId} player purchases`
           }
         });
+        
+        if (existingLedger) {
+          console.warn(`      ⚠️  Ledger entry already exists for team ${teamId}, skipping`);
+        } else {
+          // Insert financial ledger entry
+          await tx.financial_ledger.create({
+            data: {
+              id: financialIdMap.get(teamId)!,
+              seasonTeamId: seasonTeam.id,
+              seasonId: round.seasonId,
+              transactionType: 'PLAYER_PURCHASE',
+              amount: -totalSpent,
+              previousBalance: seasonTeam.currentBudget,
+              newBalance: newBudget,
+              description: `Bulk round ${roundId} player purchases`,
+              playerName: playerNames.join(', ')
+            }
+          });
+        }
         
         console.log(`      ✓ [${teamCount}/${teamAllocations.size}] ${teamId}: £${totalSpent} spent, ${teamAllocs.length} players`);
       }

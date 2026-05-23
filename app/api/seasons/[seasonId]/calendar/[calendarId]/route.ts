@@ -59,9 +59,16 @@ export async function PATCH(
       include: { auctionSlots: true }
     })
 
-    // Generate all slot IDs upfront (outside transaction)
-    const slotIds = positionSlots && positionSlots.length > 0 
-      ? await Promise.all(positionSlots.map(() => generateAuctionSlotId()))
+    // Get existing slots
+    const existingSlots = await prisma.auction_slots.findMany({
+      where: { auctionCalendarId: calendarId },
+      orderBy: { slotOrder: 'asc' }
+    })
+
+    // Generate IDs only for new slots that need to be created
+    const newSlotsCount = Math.max(0, (positionSlots?.length || 0) - existingSlots.length)
+    const newSlotIds = newSlotsCount > 0 
+      ? await Promise.all(Array(newSlotsCount).fill(0).map(() => generateAuctionSlotId()))
       : []
 
     // Update calendar and slots in a transaction
@@ -85,24 +92,52 @@ export async function PATCH(
         }
       })
 
-      // Delete existing slots
-      await tx.auction_slots.deleteMany({
-        where: { auctionCalendarId: calendarId }
-      })
-
-      // Create new slots using pre-generated IDs
       if (positionSlots && positionSlots.length > 0) {
-        await tx.auction_slots.createMany({
-          data: positionSlots.map((slot: any, index: number) => ({
-            id: slotIds[index],
-            auctionCalendarId: calendarId,
-            position: slot.position,
-            position_group: slot.group || 'ALL',
-            roundType: slot.roundType || 'normal',
-            positionHidden: slot.positionHidden || false,
-            slotOrder: index,
-            updatedAt: new Date()
-          }))
+        // Update existing slots and create new ones
+        for (let index = 0; index < positionSlots.length; index++) {
+          const slot = positionSlots[index]
+          
+          if (index < existingSlots.length) {
+            // Update existing slot
+            await tx.auction_slots.update({
+              where: { id: existingSlots[index].id },
+              data: {
+                position: slot.position,
+                position_group: slot.group || 'ALL',
+                roundType: slot.roundType || 'normal',
+                positionHidden: slot.positionHidden || false,
+                slotOrder: index,
+                updatedAt: new Date()
+              }
+            })
+          } else {
+            // Create new slot
+            await tx.auction_slots.create({
+              data: {
+                id: newSlotIds[index - existingSlots.length],
+                auctionCalendarId: calendarId,
+                position: slot.position,
+                position_group: slot.group || 'ALL',
+                roundType: slot.roundType || 'normal',
+                positionHidden: slot.positionHidden || false,
+                slotOrder: index,
+                updatedAt: new Date()
+              }
+            })
+          }
+        }
+
+        // Delete extra slots if the new list is shorter
+        if (existingSlots.length > positionSlots.length) {
+          const slotsToDelete = existingSlots.slice(positionSlots.length).map(s => s.id)
+          await tx.auction_slots.deleteMany({
+            where: { id: { in: slotsToDelete } }
+          })
+        }
+      } else {
+        // Delete all slots if none provided
+        await tx.auction_slots.deleteMany({
+          where: { auctionCalendarId: calendarId }
         })
       }
 

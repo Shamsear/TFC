@@ -68,11 +68,10 @@ export default function PlayerDetailTabs({
             <div className="rounded-2xl bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/10 border-2 border-[#E8A800]/30 p-6">
               <div className="flex items-center gap-4">
                 <div className="relative w-16 h-16 lg:w-20 lg:h-20 rounded-xl overflow-hidden bg-gray-800 flex-shrink-0 border-2 border-[#E8A800]/50">
-                  <Image
+                  <img
                     src={currentTeam.logoUrl}
                     alt={currentTeam.name}
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-contain p-2"
                   />
                 </div>
                 <div className="flex-1">
@@ -133,11 +132,10 @@ export default function PlayerDetailTabs({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-                          <Image
+                          <img
                             src={transfer.teamLogo}
                             alt={transfer.teamName}
-                            fill
-                            className="object-cover"
+                            className="w-full h-full object-contain p-1"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -173,11 +171,10 @@ export default function PlayerDetailTabs({
 
                     {/* Team Logo */}
                     <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-                      <Image
+                      <img
                         src={transfer.teamLogo}
                         alt={transfer.teamName}
-                        fill
-                        className="object-cover"
+                        className="w-full h-full object-contain p-2"
                       />
                     </div>
 

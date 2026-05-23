@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import PlayerCardImage from '@/components/player/PlayerCardImage'
 import PlayerDetailTabs from '@/components/player/PlayerDetailTabs'
@@ -562,11 +561,10 @@ export default function PlayerDetailContent({
                 <div className="rounded-xl bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/10 border-2 border-[#E8A800]/30 p-6 mb-8">
                   <div className="flex items-center gap-4">
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-800 flex-shrink-0 border-2 border-[#E8A800]/50">
-                      <Image
+                      <img
                         src={currentTeam.logoUrl}
                         alt={currentTeam.name}
-                        fill
-                        className="object-contain p-2"
+                        className="w-full h-full object-contain p-2"
                       />
                     </div>
                     <div className="flex-1">
@@ -989,11 +987,10 @@ export default function PlayerDetailContent({
               <div className="rounded-xl bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/10 border-2 border-[#E8A800]/30 p-4 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 border-2 border-[#E8A800]/50">
-                    <Image
+                    <img
                       src={currentTeam.logoUrl}
                       alt={currentTeam.name}
-                      fill
-                      className="object-contain p-1.5"
+                      className="w-full h-full object-contain p-1.5"
                     />
                   </div>
                   <div className="flex-1 min-w-0">

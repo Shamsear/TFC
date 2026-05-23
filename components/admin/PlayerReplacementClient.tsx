@@ -43,6 +43,7 @@ export default function PlayerReplacementClient({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [highlightedRoundId, setHighlightedRoundId] = useState<string | null>(null);
 
   const loadTeamData = async (teamId: string) => {
     try {
@@ -66,6 +67,7 @@ export default function PlayerReplacementClient({
     setSelectedNewBid(null);
     setNewAmount('');
     setSearchTerm('');
+    setHighlightedRoundId(null);
     if (teamId) {
       loadTeamData(teamId);
     } else {
@@ -79,6 +81,19 @@ export default function PlayerReplacementClient({
     const player = currentPlayers.find(p => p.id === playerId);
     if (player) {
       setNewAmount((player.soldPrice || 0).toString());
+      
+      // Find which round this player was acquired in
+      const playerBid = allBids.find(bid => bid.playerId === playerId && bid.isSold);
+      if (playerBid) {
+        setHighlightedRoundId(playerBid.roundId);
+        // Scroll to that round after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          const element = document.getElementById(`round-${playerBid.roundId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 100);
+      }
     }
     setSelectedNewBid(null);
   };
@@ -130,6 +145,7 @@ export default function PlayerReplacementClient({
       setSelectedNewBid(null);
       setNewAmount('');
       setSearchTerm('');
+      setHighlightedRoundId(null);
 
       // Reload team data
       loadTeamData(selectedTeam);
@@ -145,17 +161,39 @@ export default function PlayerReplacementClient({
     bid.playerName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Separate sold and unsold bids
-  const soldBids = filteredBids.filter(b => b.isSold);
-  const unsoldAvailable = filteredBids.filter(b => !b.isSold && !b.soldToOther);
-  const soldToOthers = filteredBids.filter(b => b.soldToOther);
+  // If a player is selected to replace, only show the round where they were acquired
+  const bidsToShow = selectedOldPlayer && highlightedRoundId
+    ? filteredBids.filter(bid => bid.roundId === highlightedRoundId)
+    : filteredBids;
+
+  // Group bids by round
+  const bidsByRound = bidsToShow.reduce((acc, bid) => {
+    if (!acc[bid.roundId]) {
+      acc[bid.roundId] = {
+        roundId: bid.roundId,
+        roundNumber: bid.roundNumber,
+        roundName: bid.roundName,
+        bids: []
+      };
+    }
+    acc[bid.roundId].bids.push(bid);
+    return acc;
+  }, {} as Record<string, { roundId: string; roundNumber: number; roundName: string; bids: AllBid[] }>);
+
+  // Convert to array, sort by round number, and sort bids within each round by amount (high to low)
+  const roundGroups = Object.values(bidsByRound)
+    .sort((a, b) => a.roundNumber - b.roundNumber)
+    .map(round => ({
+      ...round,
+      bids: round.bids.sort((a, b) => b.bidAmount - a.bidAmount) // Sort bids high to low
+    }));
 
   return (
     <div className="space-y-6">
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
         <p className="text-[#D4CCBB] mb-6">
           Replace a player that was incorrectly allocated with another player from the team's complete bid history. 
-          Select a team to see all their bids across all rounds, then choose which player to replace.
+          Select a team to see all their bids grouped by round, then choose which player to replace.
         </p>
 
         {message && (
@@ -215,12 +253,12 @@ export default function PlayerReplacementClient({
             </div>
           )}
 
-          {/* All Bids Display */}
+          {/* All Bids Display - Grouped by Round */}
           {selectedOldPlayer && allBids.length > 0 && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
-                  3. Select Replacement Player from Team's Bid History ({allBids.length} total bids)
+                  3. Select Replacement Player from {highlightedRoundId ? 'Acquisition Round' : 'Team\'s Bid History'} ({bidsToShow.length} {highlightedRoundId ? 'bids in this round' : 'total bids across ' + roundGroups.length + ' rounds'})
                 </label>
                 
                 {/* Search */}
@@ -232,97 +270,113 @@ export default function PlayerReplacementClient({
                   className="w-full px-4 py-2 mb-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] transition-colors"
                 />
 
-                {/* Sold to This Team */}
-                {soldBids.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-bold text-green-400 mb-2 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                      Already Owned by This Team ({soldBids.length})
-                    </h4>
-                    <div className="max-h-60 overflow-y-auto bg-white/5 rounded-lg border border-white/10">
-                      {soldBids.map(bid => (
-                        <div
-                          key={`${bid.playerId}-${bid.roundId}`}
-                          className="p-3 border-b border-white/10 last:border-b-0 opacity-60"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="font-medium text-white italic">{bid.playerName}</div>
-                              <div className="text-xs text-green-400 mt-1">
-                                ✓ Owned • Bid: £{bid.bidAmount.toLocaleString()} • Sold: £{(bid.soldPrice || 0).toLocaleString()}
-                              </div>
-                              <div className="text-xs text-white/60 mt-1">{bid.roundName}</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Rounds */}
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {roundGroups.map(round => {
+                    const soldCount = round.bids.filter(b => b.isSold).length;
+                    const unsoldAvailableCount = round.bids.filter(b => !b.isSold && !b.soldToOther).length;
+                    const soldToOthersCount = round.bids.filter(b => b.soldToOther).length;
+                    const isHighlighted = highlightedRoundId === round.roundId;
 
-                {/* Available (Unsold) */}
-                {unsoldAvailable.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-bold text-blue-400 mb-2 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                      Available for Replacement ({unsoldAvailable.length})
-                    </h4>
-                    <div className="max-h-60 overflow-y-auto bg-white/5 rounded-lg border border-white/10">
-                      {unsoldAvailable.map(bid => (
-                        <div
-                          key={`${bid.playerId}-${bid.roundId}`}
-                          onClick={() => {
-                            setSelectedNewBid(bid);
-                            setNewAmount(bid.bidAmount.toString());
-                          }}
-                          className={`p-3 cursor-pointer hover:bg-white/10 border-b border-white/10 last:border-b-0 transition-colors ${
-                            selectedNewBid?.playerId === bid.playerId && selectedNewBid?.roundId === bid.roundId
-                              ? 'bg-[#E8A800]/10 border-l-4 border-l-[#E8A800]'
-                              : ''
-                          }`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="font-medium text-white">{bid.playerName}</div>
-                              <div className="text-xs text-blue-400 mt-1">
-                                ✓ Available • Bid: £{bid.bidAmount.toLocaleString()}
-                              </div>
-                              <div className="text-xs text-white/60 mt-1">{bid.roundName}</div>
+                    return (
+                      <div 
+                        key={round.roundId} 
+                        id={`round-${round.roundId}`}
+                        className={`bg-white/5 rounded-lg border overflow-hidden transition-all ${
+                          isHighlighted 
+                            ? 'border-[#E8A800] shadow-lg shadow-[#E8A800]/20' 
+                            : 'border-white/10'
+                        }`}
+                      >
+                        {/* Round Header */}
+                        <div className={`border-b px-4 py-3 ${
+                          isHighlighted 
+                            ? 'bg-[#E8A800]/20 border-[#E8A800]/30' 
+                            : 'bg-[#E8A800]/10 border-white/10'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <h4 className={`font-bold ${
+                              isHighlighted ? 'text-[#E8A800] text-base' : 'text-[#E8A800]'
+                            }`}>
+                              {round.roundName}
+                              {isHighlighted && <span className="ml-2 text-xs text-white/80">(Player acquired here)</span>}
+                            </h4>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="text-green-400">✓ {soldCount} Owned</span>
+                              <span className="text-blue-400">◯ {unsoldAvailableCount} Available</span>
+                              <span className="text-red-400">✗ {soldToOthersCount} Lost</span>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Sold to Other Teams */}
-                {soldToOthers.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-bold text-red-400 mb-2 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-red-400"></span>
-                      Sold to Other Teams ({soldToOthers.length})
-                    </h4>
-                    <div className="max-h-40 overflow-y-auto bg-white/5 rounded-lg border border-white/10 opacity-60">
-                      {soldToOthers.map(bid => (
-                        <div
-                          key={`${bid.playerId}-${bid.roundId}`}
-                          className="p-3 border-b border-white/10 last:border-b-0"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="font-medium text-white italic">{bid.playerName}</div>
-                              <div className="text-xs text-red-400 mt-1">
-                                ✗ Owned by {bid.ownedByTeam} • Bid: £{bid.bidAmount.toLocaleString()}
+                        {/* Bids List */}
+                        <div className="divide-y divide-white/10">
+                          {round.bids.map(bid => {
+                            const isOwned = bid.isSold;
+                            const isLost = bid.soldToOther;
+                            const isAvailable = !isOwned && !isLost;
+                            const isSelected = selectedNewBid?.playerId === bid.playerId && selectedNewBid?.roundId === bid.roundId;
+                            const isReplacingThisPlayer = selectedOldPlayer === bid.playerId && isOwned;
+
+                            return (
+                              <div
+                                key={`${bid.playerId}-${bid.roundId}`}
+                                onClick={() => {
+                                  if (isAvailable) {
+                                    setSelectedNewBid(bid);
+                                    setNewAmount(bid.bidAmount.toString());
+                                  }
+                                }}
+                                className={`p-3 transition-colors ${
+                                  isAvailable 
+                                    ? 'cursor-pointer hover:bg-white/10' 
+                                    : 'opacity-60 cursor-not-allowed'
+                                } ${
+                                  isSelected ? 'bg-[#E8A800]/10 border-l-4 border-l-[#E8A800]' : ''
+                                } ${
+                                  isReplacingThisPlayer ? 'bg-red-500/10 border-l-4 border-l-red-500' : ''
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className={`font-medium ${isOwned || isLost ? 'italic text-white/80' : 'text-white'} ${
+                                      isReplacingThisPlayer ? 'text-red-400 font-bold' : ''
+                                    }`}>
+                                      {bid.playerName}
+                                      {isReplacingThisPlayer && <span className="ml-2 text-xs">(TO BE REPLACED)</span>}
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1 text-xs">
+                                      {isOwned && (
+                                        <>
+                                          <span className="text-green-400 font-semibold">✓ OWNED</span>
+                                          <span className="text-white/60">Bid: £{bid.bidAmount.toLocaleString()}</span>
+                                          <span className="text-green-400">Sold: £{(bid.soldPrice || 0).toLocaleString()}</span>
+                                        </>
+                                      )}
+                                      {isAvailable && (
+                                        <>
+                                          <span className="text-blue-400 font-semibold">◯ AVAILABLE</span>
+                                          <span className="text-white/60">Bid: £{bid.bidAmount.toLocaleString()}</span>
+                                        </>
+                                      )}
+                                      {isLost && (
+                                        <>
+                                          <span className="text-red-400 font-semibold">✗ LOST</span>
+                                          <span className="text-white/60">Bid: £{bid.bidAmount.toLocaleString()}</span>
+                                          <span className="text-red-400">to {bid.ownedByTeam}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-xs text-white/60 mt-1">{bid.roundName}</div>
-                            </div>
-                          </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -356,4 +410,4 @@ export default function PlayerReplacementClient({
       </div>
     </div>
   );
-}layers, setCurrentP
+}

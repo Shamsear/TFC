@@ -108,9 +108,9 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
 
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h2 className="text-xl font-bold text-white mb-4">Financial Ledger Flow Fix</h2>
-        <p className="text-gray-300 mb-4">
+        <p className="text-[#D4CCBB] mb-4">
           This tool recalculates all financial ledger entries to ensure the previousBalance and newBalance 
           flow correctly from one entry to the next. It will also update team current budgets to match 
           the final ledger balance.
@@ -120,7 +120,7 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
           <button
             onClick={handlePreview}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-[#E8A800] text-black font-bold rounded-lg hover:bg-[#E8A800]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading && !data ? 'Loading...' : 'Preview Changes'}
           </button>
@@ -129,7 +129,7 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
             <button
               onClick={handleApply}
               disabled={loading}
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {loading ? 'Applying...' : 'Apply Fixes'}
             </button>
@@ -138,22 +138,22 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
       </div>
 
       {data && (
-        <div className="bg-gray-800 rounded-lg p-6">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-white mb-3">
               {data.summary.mode === 'apply' ? '✅ Fixes Applied' : '📋 Preview Results'}
             </h3>
             <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="bg-gray-700 rounded p-3">
-                <div className="text-gray-400">Teams Processed</div>
+              <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3">
+                <div className="text-[#7A7367]">Teams Processed</div>
                 <div className="text-2xl font-bold text-white">{data.summary.teamsProcessed}</div>
               </div>
-              <div className="bg-gray-700 rounded p-3">
-                <div className="text-gray-400">Teams Needing Fix</div>
+              <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3">
+                <div className="text-[#7A7367]">Teams Needing Fix</div>
                 <div className="text-2xl font-bold text-orange-400">{data.summary.teamsNeedingFix}</div>
               </div>
-              <div className="bg-gray-700 rounded p-3">
-                <div className="text-gray-400">Teams Fixed</div>
+              <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3">
+                <div className="text-[#7A7367]">Teams Fixed</div>
                 <div className="text-2xl font-bold text-green-400">{data.summary.teamsFixed}</div>
               </div>
             </div>
@@ -163,12 +163,12 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
             {data.results.map((result) => (
               <div
                 key={result.teamName}
-                className={`rounded-lg p-4 ${
+                className={`rounded-lg p-4 border ${
                   result.status === 'correct'
-                    ? 'bg-green-900/20 border border-green-700'
+                    ? 'bg-green-500/10 border-green-500/30'
                     : result.status === 'needs_fix'
-                    ? 'bg-orange-900/20 border border-orange-700'
-                    : 'bg-gray-700'
+                    ? 'bg-orange-500/10 border-orange-500/30'
+                    : 'bg-white/5 border-white/10'
                 }`}
               >
                 <div
@@ -187,10 +187,10 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    <div className="text-gray-400">
+                    <div className="text-[#7A7367]">
                       Entries: <span className="text-white">{result.entriesChecked}</span>
                     </div>
-                    <div className="text-gray-400">
+                    <div className="text-[#7A7367]">
                       Final Balance: <span className="text-white">{formatCurrency(result.finalBalance)}</span>
                     </div>
                     {result.finalBalance !== result.currentBudget && (
@@ -199,7 +199,7 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
                       </div>
                     )}
                     {result.updates && (
-                      <span className="text-gray-400">
+                      <span className="text-[#7A7367]">
                         {expandedTeams.has(result.teamName) ? '▼' : '▶'}
                       </span>
                     )}
@@ -209,17 +209,17 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
                 {result.updates && expandedTeams.has(result.teamName) && (
                   <div className="mt-4 space-y-2">
                     {result.updates.map((update, idx) => (
-                      <div key={update.id} className="bg-gray-900 rounded p-3 text-sm">
+                      <div key={update.id} className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-sm">
                         <div className="font-medium text-white mb-2">
                           {idx + 1}. {update.description}
                         </div>
                         <div className="grid grid-cols-3 gap-4 text-xs">
                           <div>
-                            <div className="text-gray-400">Amount</div>
+                            <div className="text-[#7A7367]">Amount</div>
                             <div className="text-white">{formatCurrency(update.amount)}</div>
                           </div>
                           <div>
-                            <div className="text-gray-400">Current Values</div>
+                            <div className="text-[#7A7367]">Current Values</div>
                             <div className="text-red-400">
                               Prev: {formatCurrency(update.current.previousBalance)}
                             </div>
@@ -228,7 +228,7 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
                             </div>
                           </div>
                           <div>
-                            <div className="text-gray-400">Expected Values</div>
+                            <div className="text-[#7A7367]">Expected Values</div>
                             <div className="text-green-400">
                               Prev: {formatCurrency(update.expected.previousBalance)}
                             </div>

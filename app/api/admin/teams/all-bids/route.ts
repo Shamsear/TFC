@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { decryptBids } from '@/lib/auction/encryption';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Season ID and Team ID required' }, { status: 400 });
     }
 
-    // Get all team round bids for this team in this season
+    // Get all rounds with bids from this team
     const teamBids = await prisma.team_round_bids.findMany({
       where: {
         teamId,
@@ -52,12 +51,17 @@ export async function GET(request: NextRequest) {
       select: {
         basePlayerId: true,
         soldPrice: true,
-        roundId: true
+        roundId: true,
+        team: {
+          select: {
+            name: true
+          }
+        }
       }
     });
 
     const ownedPlayerMap = new Map(
-      ownedPlayers.map(p => [p.basePlayerId, { soldPrice: p.soldPrice, roundId: p.roundId }])
+      ownedPlayers.map(p => [p.basePlayerId, { soldPrice: p.soldPrice, roundId: p.roundId, teamName: p.team.name }])
     );
 
     // Get all players owned by other teams
@@ -75,11 +79,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const allOwnedPlayerMap = new Map(
+    const allOwnedMap = new Map(
       allOwnedPlayers.map(p => [p.basePlayerId, p.team.name])
     );
 
     // Decrypt and collect all bids
+    const { decryptBids } = await import('@/lib/auction/encryption');
     const allBids: any[] = [];
 
     for (const teamBid of teamBids) {
@@ -90,27 +95,36 @@ export async function GET(request: NextRequest) {
         if (bidData.bids && Array.isArray(bidData.bids)) {
           for (const bid of bidData.bids) {
             const isOwnedByThisTeam = ownedPlayerMap.has(bid.base_player_id);
-            const ownedByOther = !isOwnedByThisTeam && allOwnedPlayerMap.has(bid.base_player_id);
-            
+            const ownedByOther = !isOwnedByThisTeam && allOwnedMap.has(bid.base_player_id);
+            const ownerInfo = ownedPlayerMap.get(bid.base_player_id);
+
             allBids.push({
               playerId: bid.base_player_id,
-              playerName: bid.player_name || 'Unknown',
+              playerName: bid.player_name || 'Unknown Player',
               bidAmount: bid.amount,
               roundId: teamBid.round.id,
               roundNumber: teamBid.round.roundNumber,
               roundName: `Round ${teamBid.round.roundNumber}${teamBid.round.position ? ` - ${teamBid.round.position}` : ''}${teamBid.round.position_group && teamBid.round.position_group !== 'ALL' ? ` (${teamBid.round.position_group})` : ''}`,
               isSold: isOwnedByThisTeam,
               soldToOther: ownedByOther,
-              ownedByTeam: ownedByOther ? allOwnedPlayerMap.get(bid.base_player_id) : undefined,
-              soldPrice: isOwnedByThisTeam ? ownedPlayerMap.get(bid.base_player_id)?.soldPrice : undefined,
-              acquiredInRound: isOwnedByThisTeam ? ownedPlayerMap.get(bid.base_player_id)?.roundId : undefined
+              ownedByTeam: isOwnedByThisTeam ? ownerInfo?.teamName : (ownedByOther ? allOwnedMap.get(bid.base_player_id) : undefined),
+              soldPrice: ownerInfo?.soldPrice,
+              acquiredInRound: ownerInfo?.roundId
             });
           }
         }
       } catch (error) {
-        console.error(`Failed to decrypt bids for round ${teamBid.round.roundNumber}:`, error);
+        console.error(`Failed to decrypt bids for round ${teamBid.round.id}:`, error);
       }
     }
+
+    // Sort by round number, then by player name
+    allBids.sort((a, b) => {
+      if (a.roundNumber !== b.roundNumber) {
+        return a.roundNumber - b.roundNumber;
+      }
+      return a.playerName.localeCompare(b.playerName);
+    });
 
     return NextResponse.json({ bids: allBids });
   } catch (error) {

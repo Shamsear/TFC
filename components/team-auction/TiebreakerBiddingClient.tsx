@@ -115,7 +115,13 @@ export default function TiebreakerBiddingClient({
   useEffect(() => {
     async function fetchReserveInfo() {
       try {
-        const response = await fetch(`/api/team/reserve-info?season_id=${tiebreaker.round.season.id}&round_id=${tiebreaker.round.id}`)
+        const timestamp = Date.now();
+        const response = await fetch(`/api/team/reserve-info?season_id=${tiebreaker.round.season.id}&round_id=${tiebreaker.round.id}&_t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
         if (response.ok) {
           const data = await response.json()
           setReserveInfo(data)

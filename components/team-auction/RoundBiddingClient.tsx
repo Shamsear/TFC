@@ -89,7 +89,13 @@ export default function RoundBiddingClient({
   useEffect(() => {
     async function fetchReserveInfo() {
       try {
-        const response = await fetch(`/api/team/reserve-info?season_id=${season.id}&round_id=${round.id}`)
+        const timestamp = Date.now();
+        const response = await fetch(`/api/team/reserve-info?season_id=${season.id}&round_id=${round.id}&_t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
         if (response.ok) {
           const data = await response.json()
           setReserveInfo(data)

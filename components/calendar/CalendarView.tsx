@@ -460,12 +460,20 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                               key={auction.id}
                               href={`${basePath}/auctions?auctionId=${auction.id}&from=calendar`}
                               className="block p-1.5 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/20 transition-all"
-                              title={`Auction: ${auction.description || 'Auction Round'} - ${auction.auctionSlots.length} positions`}
+                              title={`Auction: ${auction.description || 'Auction Round'} - ${auction.auctionSlots.length} positions${auction.endDate ? ` - Deadline: ${formatDate(new Date(auction.endDate), 'h:mm a')}` : ''}`}
                             >
                               <div className="font-bold truncate text-xs leading-tight">{auction.description || 'Auction'}</div>
                               <div className="text-[10px] opacity-70 truncate">
                                 {formatDate(new Date(auction.auctionDate), 'h:mm a')}
                               </div>
+                              {auction.endDate && (
+                                <div className="text-[10px] text-red-400 opacity-90 truncate flex items-center gap-0.5">
+                                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>{formatDate(new Date(auction.endDate), 'h:mm a')}</span>
+                                </div>
+                              )}
                               <div className="text-[10px] opacity-70 truncate">
                                 {auction.auctionSlots.map(s => {
                                   const displayPosition = s.positionHidden ? '???' : s.position;
@@ -532,6 +540,14 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                         <div className="text-sm text-[#D4CCBB] mb-2">
                           {formatDate(event.date, 'h:mm a')}
                         </div>
+                        {event.data.endDate && (
+                          <div className="text-sm text-red-400 mb-2 flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Deadline: {formatDate(new Date(event.data.endDate), 'h:mm a')}</span>
+                          </div>
+                        )}
                         <div className="flex flex-wrap gap-2">
                           {event.data.auctionSlots.map((slot: any, idx: number) => {
                             const isBulk = slot.roundType === 'bulk';

@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
     // Calculate reserve
     const reserveInfo = await calculateReserve(teamId, roundId, seasonId);
 
-    return NextResponse.json(reserveInfo);
+    return NextResponse.json(reserveInfo, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error('Get reserve info error:', error);
     return NextResponse.json(

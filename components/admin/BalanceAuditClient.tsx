@@ -154,15 +154,13 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
                       {team.transferCount} transfers • {team.ledgerEntryCount} ledger entries
                     </div>
                   </div>
-                  {isSuperAdmin && (
-                    <button
-                      onClick={() => fixBalance(team.teamId, team.calculatedBalance, team.teamName)}
-                      disabled={fixing === team.teamId}
-                      className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 font-bold text-sm transition-all disabled:opacity-50"
-                    >
-                      {fixing === team.teamId ? 'Fixing...' : 'Fix Balance'}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => fixBalance(team.teamId, team.calculatedBalance, team.teamName)}
+                    disabled={fixing === team.teamId}
+                    className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 font-bold text-sm transition-all disabled:opacity-50"
+                  >
+                    {fixing === team.teamId ? 'Fixing...' : 'Fix Balance'}
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">

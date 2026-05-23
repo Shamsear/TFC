@@ -66,8 +66,7 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
       color: 'from-orange-500 to-amber-500',
       bgColor: 'bg-orange-500/10',
       borderColor: 'border-orange-500/20',
-      textColor: 'text-orange-400',
-      superAdminOnly: true
+      textColor: 'text-orange-400'
     }
   ]
 

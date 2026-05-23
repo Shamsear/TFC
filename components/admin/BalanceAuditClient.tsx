@@ -38,6 +38,7 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AuditResult | null>(null)
   const [fixing, setFixing] = useState<string | null>(null)
+  const [fixingAll, setFixingAll] = useState(false)
   const [fixResults, setFixResults] = useState<Record<string, any>>({})
 
   const runAudit = async () => {
@@ -86,6 +87,61 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
     } finally {
       setFixing(null)
     }
+  }
+
+  const fixAllBalances = async () => {
+    if (!result || result.audits.errors.length === 0) return
+
+    const confirmFix = confirm(
+      `Are you sure you want to fix all ${result.audits.errors.length} team balance(s)? This will create adjustment transactions for each team.`
+    )
+
+    if (!confirmFix) return
+
+    setFixingAll(true)
+    setFixResults({})
+
+    const errors = result.audits.errors
+    let successCount = 0
+    let failCount = 0
+
+    for (const team of errors) {
+      try {
+        const response = await fetch('/api/admin/balances/fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seasonId,
+            teamId: team.teamId,
+            correctBalance: team.calculatedBalance,
+            reason: `Bulk auto-fix: Balance audit correction`
+          })
+        })
+
+        const data = await response.json()
+        setFixResults((prev) => ({ ...prev, [team.teamId]: data }))
+
+        if (data.success) {
+          successCount++
+        } else {
+          failCount++
+        }
+      } catch (error) {
+        setFixResults((prev) => ({
+          ...prev,
+          [team.teamId]: { success: false, error: 'Failed to fix balance' }
+        }))
+        failCount++
+      }
+    }
+
+    setFixingAll(false)
+
+    // Re-run audit after all fixes
+    setTimeout(() => {
+      runAudit()
+      alert(`Fixed ${successCount} team(s) successfully. ${failCount > 0 ? `${failCount} failed.` : ''}`)
+    }, 1000)
   }
 
   useEffect(() => {
@@ -137,12 +193,36 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
       {/* Teams with Errors */}
       {result && result.audits.errors.length > 0 && (
         <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-6">
-          <h3 className="text-xl font-black text-red-400 mb-4 flex items-center gap-2">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            Teams with Balance Errors
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-black text-red-400 flex items-center gap-2">
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              Teams with Balance Errors
+            </h3>
+            <button
+              onClick={fixAllBalances}
+              disabled={fixingAll || fixing !== null}
+              className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {fixingAll ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Fixing All...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Fix All Balances
+                </>
+              )}
+            </button>
+          </div>
 
           <div className="space-y-4">
             {result.audits.errors.map((team) => (

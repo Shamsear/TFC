@@ -47,6 +47,13 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const ToolsIcon = () => (
+  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
 const UploadIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -286,8 +293,21 @@ export default async function SubAdminDashboard() {
                   </Link>
 
                   <Link
-                    href="/sub-admin/import"
+                    href={`/sub-admin/${activeSeason.id}/tools`}
                     className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFC93A]/50"
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
+                        <ToolsIcon />
+                      </div>
+                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Admin Tools</div>
+                    </div>
+                    <div className="text-xs sm:text-sm text-white/80">Balance audit & management</div>
+                  </Link>
+
+                  <Link
+                    href="/sub-admin/import"
+                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800] to-[#D49700] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#E8A800]/50"
                   >
                     <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
@@ -408,6 +428,13 @@ export default async function SubAdminDashboard() {
                         className="flex items-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
                       >
                         Position Groups
+                        <ArrowRightIcon />
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${season.id}/tools`}
+                        className="flex items-center gap-2 text-xs sm:text-sm text-[#FFC93A] hover:text-[#FFB347] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFC93A]/30 hover:border-[#FFC93A]/50 hover:bg-[#FFC93A]/10 transition-all font-medium"
+                      >
+                        Tools
                         <ArrowRightIcon />
                       </Link>
                     </div>

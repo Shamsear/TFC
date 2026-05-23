@@ -11,8 +11,8 @@ import { auth } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized - Super Admin only' }, { status: 401 });
+    if (!session?.user || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -42,9 +42,8 @@ export async function POST(request: NextRequest) {
       }
 
       const oldBalance = seasonTeam.currentBudget;
-      const adjustment = correctBalance - oldBalance;
 
-      if (adjustment === 0) {
+      if (oldBalance === correctBalance) {
         return {
           message: 'No adjustment needed',
           teamName: seasonTeam.team.name,
@@ -52,26 +51,10 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      // Update balance
+      // Update balance directly without creating ledger entry
       await tx.season_teams.update({
         where: { id: seasonTeam.id },
         data: { currentBudget: correctBalance }
-      });
-
-      // Create adjustment ledger entry
-      const ledgerId = await generateFinancialId();
-      await tx.financial_ledger.create({
-        data: {
-          id: ledgerId,
-          seasonTeamId: seasonTeam.id,
-          seasonId: seasonId,
-          transactionType: 'ADJUSTMENT',
-          amount: adjustment,
-          previousBalance: oldBalance,
-          newBalance: correctBalance,
-          description: reason || `Balance correction: ${adjustment > 0 ? '+' : ''}£${adjustment}`,
-          playerName: null
-        }
       });
 
       return {
@@ -79,7 +62,7 @@ export async function POST(request: NextRequest) {
         teamName: seasonTeam.team.name,
         oldBalance,
         newBalance: correctBalance,
-        adjustment
+        adjustment: correctBalance - oldBalance
       };
     });
 

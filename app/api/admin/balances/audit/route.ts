@@ -43,18 +43,7 @@ export async function GET(request: NextRequest) {
     const audits = [];
 
     for (const seasonTeam of seasonTeams) {
-      // Get all transfers for this team
-      const transfers = await prisma.transfer_history.findMany({
-        where: {
-          seasonId: seasonId,
-          teamId: seasonTeam.teamId
-        },
-        select: {
-          soldPrice: true
-        }
-      });
-
-      // Get all financial ledger entries
+      // Get all financial ledger entries in chronological order
       const ledgerEntries = await prisma.financial_ledger.findMany({
         where: {
           seasonId: seasonId,
@@ -65,23 +54,52 @@ export async function GET(request: NextRequest) {
         },
         select: {
           transactionType: true,
-          amount: true
+          amount: true,
+          newBalance: true
         }
       });
 
-      // Calculate totals
+      if (ledgerEntries.length === 0) {
+        // No ledger entries - team hasn't been initialized
+        audits.push({
+          teamId: seasonTeam.teamId,
+          teamName: seasonTeam.team.name,
+          currentBalance: seasonTeam.currentBudget,
+          initialPurse: 0,
+          totalSpent: 0,
+          totalAdjustments: 0,
+          calculatedBalance: 0,
+          difference: seasonTeam.currentBudget,
+          hasError: seasonTeam.currentBudget !== 0,
+          transferCount: 0,
+          ledgerEntryCount: 0
+        });
+        continue;
+      }
+
+      // Get the last ledger entry - this should match currentBudget
+      const lastLedgerEntry = ledgerEntries[ledgerEntries.length - 1];
+      const expectedBalance = lastLedgerEntry.newBalance;
+
+      // Calculate summary stats
       const initialPurse = ledgerEntries.find(e => e.transactionType === 'INITIAL_PURSE')?.amount || 0;
-      const totalSpent = transfers.reduce((sum, t) => sum + t.soldPrice, 0);
-      
-      // Sum adjustments (positive adjustments only, excluding initial purse)
+      const totalSpent = ledgerEntries
+        .filter(e => e.transactionType === 'PLAYER_PURCHASE')
+        .reduce((sum, e) => sum + Math.abs(e.amount), 0);
       const totalAdjustments = ledgerEntries
-        .filter(e => e.transactionType === 'ADJUSTMENT' && e.amount > 0)
+        .filter(e => e.transactionType === 'ADJUSTMENT' || e.transactionType === 'PLAYER_SALE')
         .reduce((sum, e) => sum + e.amount, 0);
 
-      // Calculate expected balance
-      const calculatedBalance = initialPurse - totalSpent + totalAdjustments;
-      const difference = seasonTeam.currentBudget - calculatedBalance;
-      const hasError = Math.abs(difference) > 0;
+      // Get transfer count
+      const transfers = await prisma.transfer_history.findMany({
+        where: {
+          seasonId: seasonId,
+          teamId: seasonTeam.teamId
+        }
+      });
+
+      const difference = seasonTeam.currentBudget - expectedBalance;
+      const hasError = Math.abs(difference) > 0.01; // Allow for tiny floating point differences
 
       audits.push({
         teamId: seasonTeam.teamId,
@@ -90,7 +108,7 @@ export async function GET(request: NextRequest) {
         initialPurse,
         totalSpent,
         totalAdjustments,
-        calculatedBalance,
+        calculatedBalance: expectedBalance,
         difference,
         hasError,
         transferCount: transfers.length,

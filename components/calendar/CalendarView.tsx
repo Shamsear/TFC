@@ -6,6 +6,7 @@ import Link from 'next/link'
 interface Auction {
   id: string
   auctionDate: Date | string
+  endDate?: Date | string | null
   description: string | null
   auctionSlots: Array<{
     position: string
@@ -332,9 +333,17 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                         <div className="text-[#F5F0E8] font-bold text-sm mb-1">
                           {auction.description || 'Auction Round'}
                         </div>
-                        <div className="text-xs text-[#D4CCBB] mb-1.5">
+                        <div className="text-xs text-[#D4CCBB] mb-1">
                           {formatDate(new Date(auction.auctionDate), 'h:mm a')}
                         </div>
+                        {auction.endDate && (
+                          <div className="text-[10px] text-red-400 mb-1.5 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Deadline: {formatDate(new Date(auction.endDate), 'h:mm a')}</span>
+                          </div>
+                        )}
                         <div className="flex flex-wrap gap-1">
                           {auction.auctionSlots.map((slot, idx) => {
                             const isBulk = slot.roundType === 'bulk';

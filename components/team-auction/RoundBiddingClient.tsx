@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { normalizeForSearch } from '@/lib/search-utils'
 
 interface Player {
   id: string
@@ -246,7 +247,7 @@ export default function RoundBiddingClient({
   }
 
   const filteredPlayers = players.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = normalizeForSearch(player.name).includes(normalizeForSearch(searchQuery))
     const matchesPosition = positionFilter === 'all' || player.position === positionFilter
     return matchesSearch && matchesPosition
   })

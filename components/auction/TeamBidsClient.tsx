@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { normalizeForSearch } from '@/lib/search-utils'
 
 interface Team {
   id: string
@@ -159,7 +160,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
 
   // Filter teams
   const filteredTeams = teams.filter(team => {
-    const matchesSearch = team.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = normalizeForSearch(team.name).includes(normalizeForSearch(searchQuery))
     const teamBids = getTeamBids(team.id)
     
     if (filterStatus === 'submitted' && !teamBids.submitted) return false

@@ -5,6 +5,7 @@ import { PreviewResponse } from '@/app/api/import/preview/route'
 import PlayerCard from './PlayerCard'
 import ChangeComparisonCard from './ChangeComparisonCard'
 import DuplicateResolver from './DuplicateResolver'
+import { normalizeForSearch } from '@/lib/search-utils'
 
 interface PlayerPreviewListProps {
   preview: PreviewResponse
@@ -353,8 +354,8 @@ export default function PlayerPreviewList({
 
   // Filter players
   const filteredPlayers = getTabPlayers().filter(player => {
-    const matchesSearch = player.playerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         player.teamName.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = normalizeForSearch(player.playerName).includes(normalizeForSearch(searchQuery)) ||
+                         normalizeForSearch(player.teamName).includes(normalizeForSearch(searchQuery))
     const matchesPosition = positionFilter === 'all' || player.position === positionFilter
     return matchesSearch && matchesPosition
   })

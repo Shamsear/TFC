@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
+import { normalizeForSearch } from '@/lib/search-utils'
+
 interface Player {
   id: string
   name: string

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import { normalizeForSearch } from "@/lib/search-utils"
 
 interface Team {
   id: string
@@ -33,10 +34,10 @@ export default function TeamSelectionForm({
   const filteredTeams = useMemo(() => {
     if (!searchQuery.trim()) return allTeams
     
-    const query = searchQuery.toLowerCase()
+    const query = normalizeForSearch(searchQuery)
     return allTeams.filter(team => 
-      team.name.toLowerCase().includes(query) ||
-      team.managerName.toLowerCase().includes(query)
+      normalizeForSearch(team.name).includes(query) ||
+      normalizeForSearch(team.managerName).includes(query)
     )
   }, [allTeams, searchQuery])
 

@@ -211,10 +211,10 @@ export default function PositionGroupsPage() {
   // Filter players by search query
   const filterPlayers = (players: Player[]) => {
     if (!searchQuery.trim()) return players
-    const query = searchQuery.toLowerCase()
+    const query = normalizeForSearch(searchQuery)
     return players.filter(p => 
-      p.basePlayer.name.toLowerCase().includes(query) ||
-      p.realWorldClub.toLowerCase().includes(query)
+      normalizeForSearch(p.basePlayer.name).includes(query) ||
+      normalizeForSearch(p.realWorldClub).includes(query)
     )
   }
 

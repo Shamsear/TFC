@@ -147,9 +147,9 @@ export default function PlayersSearchClient({
     let filtered = players.filter(player => {
       // Search filter
       const matchesSearch = searchQuery === '' || 
-        player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        player.realWorldClub.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        player.nationality.toLowerCase().includes(searchQuery.toLowerCase())
+        normalizeForSearch(player.name).includes(normalizeForSearch(searchQuery)) ||
+        normalizeForSearch(player.realWorldClub).includes(normalizeForSearch(searchQuery)) ||
+        normalizeForSearch(player.nationality).includes(normalizeForSearch(searchQuery))
 
       // Position filter
       const matchesPosition = selectedPosition === 'ALL' || player.position === selectedPosition

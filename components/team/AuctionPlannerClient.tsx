@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
+import { normalizeForSearch } from "@/lib/search-utils"
 
 interface Player {
   id: string
@@ -174,10 +175,10 @@ export default function AuctionPlannerClient({
     
     // Filter by search query
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
+      const query = normalizeForSearch(searchQuery)
       result = result.filter(p => 
-        p.name.toLowerCase().includes(query) ||
-        p.realWorldClub.toLowerCase().includes(query)
+        normalizeForSearch(p.name).includes(query) ||
+        normalizeForSearch(p.realWorldClub).includes(query)
       )
     }
     

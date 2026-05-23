@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/components/ui/ToastProvider";
+import { normalizeForSearch } from "@/lib/search-utils";
 
 interface User {
   id: string;
@@ -79,9 +80,9 @@ export default function PasswordRequestsPage() {
   };
 
   const filteredRequests = requests.filter(req =>
-    req.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    req.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (req.user.name && req.user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    normalizeForSearch(req.teamName).includes(normalizeForSearch(searchQuery)) ||
+    normalizeForSearch(req.user.email).includes(normalizeForSearch(searchQuery)) ||
+    (req.user.name && normalizeForSearch(req.user.name).includes(normalizeForSearch(searchQuery)))
   );
 
   return (

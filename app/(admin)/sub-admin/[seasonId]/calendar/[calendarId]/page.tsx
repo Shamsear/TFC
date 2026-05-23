@@ -173,8 +173,8 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
   }
 
   const filteredPlayers = players.filter(player =>
-    player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    player.realWorldClub.toLowerCase().includes(searchQuery.toLowerCase())
+    normalizeForSearch(player.name).includes(normalizeForSearch(searchQuery)) ||
+    normalizeForSearch(player.realWorldClub).includes(normalizeForSearch(searchQuery))
   )
 
   if (isLoading) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { normalizeForSearch } from '@/lib/search-utils'
 
 interface Player {
   basePlayerId: string
@@ -624,7 +625,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
 
   const filteredPlayers = players
     .filter(p =>
-      p.basePlayer.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      normalizeForSearch(p.basePlayer.name).includes(normalizeForSearch(searchQuery)) &&
       (playingStyleFilter === 'all' || p.playing_style === playingStyleFilter) &&
       (!showStarredOnly || starredPlayerIds.has(p.basePlayer.id))
     )

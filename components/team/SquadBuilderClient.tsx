@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { getPhotoUrlFromDb } from "@/lib/image-cdn"
 import PlayerCardImage from "@/components/player/PlayerCardImage"
+import { normalizeForSearch } from "@/lib/search-utils"
 
 interface Player {
   id: string
@@ -329,8 +330,8 @@ export default function SquadBuilderClient({
   const filteredPlayers = availablePlayers
     .filter(player => {
       const matchesSearch =
-        player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        player.position.toLowerCase().includes(searchQuery.toLowerCase())
+        normalizeForSearch(player.name).includes(normalizeForSearch(searchQuery)) ||
+        normalizeForSearch(player.position).includes(normalizeForSearch(searchQuery))
       if (!matchesSearch) return false
       if (showPlayerModal && modalPositionLabel && !showAllPlayers) {
         return isPositionCompatible(player.position, modalPositionLabel)
@@ -602,7 +603,7 @@ export default function SquadBuilderClient({
                   <p className="text-[#7A7367] text-sm text-center py-8">All players assigned</p>
                 ) : (
                   availablePlayers
-                    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.position.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(p => normalizeForSearch(p.name).includes(normalizeForSearch(searchQuery)) || normalizeForSearch(p.position).includes(normalizeForSearch(searchQuery)))
                     .map((player) => {
                     const isPending = pendingPlayer?.id === player.id
                     return (

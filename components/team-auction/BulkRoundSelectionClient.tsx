@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { normalizeForSearch } from '@/lib/search-utils'
 
 interface Player {
   id: string
@@ -396,7 +397,7 @@ export default function BulkRoundSelectionClient({
 
   const filteredPlayers = players
     .filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSearch = normalizeForSearch(p.name).includes(normalizeForSearch(searchQuery))
       const matchesPosition = positionFilter === 'all' || p.position === positionFilter
       const matchesStyle = playingStyleFilter === 'all' || p.playing_style === playingStyleFilter
       const matchesStarred = !showStarredOnly || starredPlayerIds.has(p.id)

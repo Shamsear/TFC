@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { getPlayerCardById, getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface Player {
@@ -548,12 +547,11 @@ function PlayerCard({
       onDragStart={onDragStart}
       className="flex items-center gap-3 bg-black/30 rounded-lg p-3 cursor-move hover:bg-black/50 transition-all"
     >
-      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-        <Image
+      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
+        <img
           src={getPhotoUrlFromDb(player.basePlayer.photoUrl)}
           alt={player.basePlayer.name}
-          fill
-          className="object-cover"
+          className="w-full h-full object-cover"
         />
       </div>
       <div className="flex-1 min-w-0">

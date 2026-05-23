@@ -178,6 +178,7 @@ export function validateBudget(
 
 /**
  * Validate bids against reserve requirements
+ * OPTIMIZED: Reduced database queries
  */
 export async function validateBidsAgainstReserves(
   bids: BidData[],
@@ -190,51 +191,31 @@ export async function validateBidsAgainstReserves(
     const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
     const { prisma } = await import('@/lib/prisma');
     
-    // Get team balance from season_teams
-    const seasonTeam = await prisma.season_teams.findUnique({
-      where: {
-        seasonId_teamId: { seasonId: context.seasonId, teamId: context.teamId }
-      },
-      select: { currentBudget: true }
-    });
+    // OPTIMIZATION: Get all data in a single parallel query
+    const [round, settingsResult, currentSquadSize] = await Promise.all([
+      prisma.rounds.findUnique({
+        where: { id: context.roundId },
+        select: { roundNumber: true }
+      }),
+      prisma.$queryRaw<any[]>`
+        SELECT 
+          phase_1_end_round,
+          phase_1_min_balance,
+          phase_2_end_round,
+          phase_2_min_balance,
+          phase_3_min_balance,
+          min_squad_size,
+          max_squad_size
+        FROM auction_settings
+        WHERE "seasonId" = ${context.seasonId}
+      `,
+      prisma.transfer_history.count({
+        where: { teamId: context.teamId, seasonId: context.seasonId }
+      })
+    ]);
     
-    if (!seasonTeam) {
-      return { valid: true, errors: [] };
-    }
-    
-    const teamBalance = seasonTeam.currentBudget;
-    
-    // Get current squad size by counting transfer history records for this team & season
-    const currentSquadSize = await prisma.transfer_history.count({
-      where: { teamId: context.teamId, seasonId: context.seasonId }
-    });
-    
-    // Get round number
-    const round = await prisma.rounds.findUnique({
-      where: { id: context.roundId },
-      select: { roundNumber: true }
-    });
-    
-    if (!round) {
-      return { valid: true, errors: [] };
-    }
-    
-    // Get auction settings
-    const settingsResult = await prisma.$queryRaw<any[]>`
-      SELECT 
-        phase_1_end_round,
-        phase_1_min_balance,
-        phase_2_end_round,
-        phase_2_min_balance,
-        phase_3_min_balance,
-        min_squad_size,
-        max_squad_size
-      FROM auction_settings
-      WHERE "seasonId" = ${context.seasonId}
-    `;
-    
-    if (!settingsResult || settingsResult.length === 0) {
-      // No auction settings, skip reserve check
+    if (!round || !settingsResult || settingsResult.length === 0) {
+      // No auction settings or round, skip reserve check
       return { valid: true, errors: [] };
     }
     
@@ -249,10 +230,10 @@ export async function validateBidsAgainstReserves(
       max_squad_size: parseInt(settings.max_squad_size) || 30
     };
     
-    // Calculate reserve
+    // Calculate reserve using context.currentBudget (already provided)
     const reserveInfo = calculateReserveCore(
       round.roundNumber,
-      teamBalance,
+      context.currentBudget, // Use provided budget instead of querying again
       currentSquadSize,
       config
     );
@@ -382,6 +363,7 @@ export async function validatePlayersAvailable(
 
 /**
  * Comprehensive bid validation
+ * OPTIMIZED: Run async validations in parallel
  */
 export async function validateBids(
   bids: BidData[],
@@ -389,7 +371,7 @@ export async function validateBids(
 ): Promise<ValidationResult> {
   const allErrors: string[] = [];
   
-  // 1. Structure validation
+  // 1. Structure validation (sync)
   const structureResult = validateBidStructure(bids);
   allErrors.push(...structureResult.errors);
   
@@ -397,36 +379,35 @@ export async function validateBids(
     return { valid: false, errors: allErrors };
   }
   
-  // 2. Bid count validation
+  // 2. Bid count validation (sync)
   const countResult = validateBidCount(bids, context.maxBidsPerTeam);
   allErrors.push(...countResult.errors);
   
-  // 3. Bid amount validation
+  // 3. Bid amount validation (sync)
   const amountResult = validateBidAmounts(bids, context.basePrice);
   allErrors.push(...amountResult.errors);
   
-  // 4. Duplicate validation
+  // 4. Duplicate validation (sync)
   const duplicateResult = validateNoDuplicates(bids);
   allErrors.push(...duplicateResult.errors);
   
-  // 4b. Duplicate amount validation
+  // 4b. Duplicate amount validation (sync)
   const duplicateAmountResult = validateNoDuplicateAmounts(bids);
   allErrors.push(...duplicateAmountResult.errors);
   
-  // 5. Budget validation (rough check)
+  // 5. Budget validation (sync - rough check)
   const budgetResult = validateBudget(bids, context.currentBudget);
   allErrors.push(...budgetResult.errors);
   
-  // 6. Player existence validation (async)
-  const existenceResult = await validatePlayersExist(bids, context.seasonId);
+  // OPTIMIZATION: Run all async validations in parallel
+  const [existenceResult, availabilityResult, reserveResult] = await Promise.all([
+    validatePlayersExist(bids, context.seasonId),
+    validatePlayersAvailable(bids, context.seasonId),
+    validateBidsAgainstReserves(bids, context)
+  ]);
+  
   allErrors.push(...existenceResult.errors);
-  
-  // 7. Player availability validation (async)
-  const availabilityResult = await validatePlayersAvailable(bids, context.seasonId);
   allErrors.push(...availabilityResult.errors);
-  
-  // 8. Reserve validation (async) - NEW
-  const reserveResult = await validateBidsAgainstReserves(bids, context);
   allErrors.push(...reserveResult.errors);
   
   return {

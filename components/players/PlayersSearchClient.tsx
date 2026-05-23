@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { normalizeForSearch } from "@/lib/search-utils"
 
 interface PlayerData {
   id: string
@@ -64,14 +65,27 @@ export default function PlayersSearchClient({
   // Load starred players on mount
   useEffect(() => {
     if (enableStarring && seasonId) {
-      fetch(`/api/team/starred-players?seasonId=${seasonId}`)
+      // Clear starred players immediately to prevent showing stale data
+      setStarredPlayerIds(new Set())
+      
+      const timestamp = Date.now()
+      fetch(`/api/team/starred-players?seasonId=${seasonId}&t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
         .then(res => res.json())
         .then(data => {
           if (data.starredPlayerIds) {
             setStarredPlayerIds(new Set(data.starredPlayerIds))
           }
         })
-        .catch(err => console.error('Error loading starred players:', err))
+        .catch(err => {
+          console.error('Error loading starred players:', err)
+          setStarredPlayerIds(new Set())
+        })
     }
   }, [enableStarring, seasonId])
 

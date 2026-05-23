@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getPlayerCardById, getPhotoUrlFromDb } from '@/lib/image-cdn'
+import { normalizeForSearch } from '@/lib/search-utils'
 
 interface Player {
   id: string

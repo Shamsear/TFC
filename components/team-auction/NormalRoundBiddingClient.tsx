@@ -93,16 +93,42 @@ export default function NormalRoundBiddingClient({
   // Load starred players
   useEffect(() => {
     console.log('[Client] Loading starred players for season:', round.season.id)
-    fetch(`/api/team/starred-players?seasonId=${round.season.id}`)
+    console.log('[Client] Current team:', teamName, 'Team ID:', teamId)
+    
+    // Clear starred players immediately to prevent showing stale data
+    setStarredPlayerIds(new Set())
+    
+    // Add cache-busting timestamp and teamId to URL
+    const timestamp = Date.now()
+    fetch(`/api/team/starred-players?seasonId=${round.season.id}&t=${timestamp}&teamId=${teamId}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
       .then(res => res.json())
       .then(data => {
-        console.log('[Client] Received starred players:', data.starredPlayerIds)
+        console.log('[Client] Received starred players count:', data.starredPlayerIds?.length || 0)
+        console.log('[Client] API returned teamId:', data.teamId, 'Expected:', teamId)
+        console.log('[Client] First 5 starred player IDs:', data.starredPlayerIds?.slice(0, 5))
+        
+        // Verify the data is for the correct team
+        if (data.teamId !== teamId) {
+          console.error('[Client] ERROR: Received starred players for wrong team!', data.teamId, 'vs', teamId)
+          setStarredPlayerIds(new Set())
+          return
+        }
+        
         if (data.starredPlayerIds) {
           setStarredPlayerIds(new Set(data.starredPlayerIds))
         }
       })
-      .catch(err => console.error('Error loading starred players:', err))
-  }, [round.season.id])
+      .catch(err => {
+        console.error('Error loading starred players:', err)
+        setStarredPlayerIds(new Set())
+      })
+  }, [round.season.id, teamName, teamId])
 
   // Toggle star for a player
   const toggleStar = async (playerId: string, e: React.MouseEvent) => {

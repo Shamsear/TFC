@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import PageLoader from "@/components/ui/PageLoader"
+import { normalizeForSearch } from "@/lib/search-utils"
 
 interface CalendarAuctionPageProps {
   params: Promise<{

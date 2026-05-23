@@ -117,15 +117,35 @@ export default function BulkRoundSelectionClient({
 
   // Load starred players
   useEffect(() => {
-    fetch(`/api/team/starred-players?seasonId=${season.id}`)
+    // Clear starred players immediately to prevent showing stale data
+    setStarredPlayerIds(new Set())
+    
+    const timestamp = Date.now()
+    fetch(`/api/team/starred-players?seasonId=${season.id}&t=${timestamp}&teamId=${team.id}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
       .then(res => res.json())
       .then(data => {
+        // Verify the data is for the correct team
+        if (data.teamId !== team.id) {
+          console.error('[BulkRound] ERROR: Received starred players for wrong team!', data.teamId, 'vs', team.id)
+          setStarredPlayerIds(new Set())
+          return
+        }
+        
         if (data.starredPlayerIds) {
           setStarredPlayerIds(new Set(data.starredPlayerIds))
         }
       })
-      .catch(err => console.error('Error loading starred players:', err))
-  }, [season.id])
+      .catch(err => {
+        console.error('Error loading starred players:', err)
+        setStarredPlayerIds(new Set())
+      })
+  }, [season.id, team.id])
 
   // Toggle star for a player
   const toggleStar = async (playerId: string, e: React.MouseEvent) => {

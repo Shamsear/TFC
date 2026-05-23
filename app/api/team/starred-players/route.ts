@@ -52,9 +52,21 @@ export async function GET(request: NextRequest) {
     console.log('[Starred Players GET] Found', starredPlayers.length, 'starred players')
     console.log('[Starred Players GET] First 5 player IDs:', starredPlayers.slice(0, 5).map(p => p.playerId))
 
-    return NextResponse.json({
-      starredPlayerIds: starredPlayers.map(sp => sp.playerId),
-    })
+    // Return with strict no-cache headers to prevent stale data
+    return NextResponse.json(
+      {
+        starredPlayerIds: starredPlayers.map(sp => sp.playerId),
+        teamId: session.user.teamId, // Include teamId for verification
+        seasonTeamId: seasonTeam.id,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    )
   } catch (error) {
     console.error('Error fetching starred players:', error)
     return NextResponse.json({ error: 'Failed to fetch starred players' }, { status: 500 })

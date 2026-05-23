@@ -8,6 +8,7 @@ interface TeamAudit {
   currentBalance: number
   initialPurse: number
   totalSpent: number
+  totalSales: number
   totalAdjustments: number
   calculatedBalance: number
   difference: number
@@ -243,7 +244,19 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-500 mb-1">Starting Purse</div>
+                    <div className="font-bold text-blue-400">£{team.initialPurse.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 mb-1">Total Spent</div>
+                    <div className="font-bold text-red-400">-£{team.totalSpent.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 mb-1">Total Sales</div>
+                    <div className="font-bold text-emerald-400">+£{team.totalSales.toLocaleString()}</div>
+                  </div>
                   <div>
                     <div className="text-gray-500 mb-1">Current</div>
                     <div className="font-bold text-white">£{team.currentBalance.toLocaleString()}</div>
@@ -252,15 +265,17 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
                     <div className="text-gray-500 mb-1">Expected</div>
                     <div className="font-bold text-emerald-400">£{team.calculatedBalance.toLocaleString()}</div>
                   </div>
-                  <div>
-                    <div className="text-gray-500 mb-1">Difference</div>
-                    <div className="font-bold text-red-400">
-                      {team.difference > 0 ? '+' : ''}£{team.difference.toLocaleString()}
-                    </div>
+                </div>
+                
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="text-xs text-gray-500">
+                    {team.transferCount} transfers • {team.ledgerEntryCount} ledger entries
+                    {team.totalAdjustments !== 0 && (
+                      <span className="ml-2">• Adjustments: £{team.totalAdjustments.toLocaleString()}</span>
+                    )}
                   </div>
-                  <div>
-                    <div className="text-gray-500 mb-1">Total Spent</div>
-                    <div className="font-bold text-gray-300">£{team.totalSpent.toLocaleString()}</div>
+                  <div className="text-sm font-bold text-red-400 mt-1">
+                    Difference: {team.difference > 0 ? '+' : ''}£{team.difference.toLocaleString()}
                   </div>
                 </div>
 
@@ -308,6 +323,7 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
                   {team.transferCount} transfers • £{team.totalSpent.toLocaleString()} spent
+                  {team.totalSales > 0 && ` • £${team.totalSales.toLocaleString()} sales`}
                 </div>
               </div>
             ))}

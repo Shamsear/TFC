@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 
 interface AdminNavigationProps {
@@ -17,6 +18,14 @@ interface AdminNavigationProps {
 
 export default function AdminNavigationClient({ user, isSuperAdmin, activeSeasonId }: AdminNavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+
+  const isActive = (href: string) => {
+    if (href === "/super-admin" || href === "/sub-admin") {
+      return pathname === href
+    }
+    return pathname.startsWith(href)
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl">
@@ -49,40 +58,76 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
               <>
                 <Link
                   href="/super-admin"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/super-admin/teams"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/teams") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
                 >
                   Teams
                 </Link>
                 <Link
+                  href="/super-admin/team-managers"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/team-managers") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
+                >
+                  Managers
+                </Link>
+                <Link
+                  href="/super-admin/players"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/players") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
+                >
+                  Players
+                </Link>
+                <Link
                   href="/super-admin/seasons"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/seasons") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
                 >
                   Seasons
                 </Link>
                 <Link
                   href="/super-admin/sub-admins"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/sub-admins") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
                 >
                   Sub Admins
                 </Link>
                 <Link
                   href="/super-admin/password-requests"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/password-requests") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
                 >
-                  Reset Requests
+                  Passwords
+                </Link>
+                <Link
+                  href="/super-admin/audit-logs"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/audit-logs") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
+                >
+                  Audit Logs
                 </Link>
               </>
             ) : (
               <>
                 <Link
                   href="/sub-admin"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/sub-admin") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
                 >
                   Dashboard
                 </Link>
@@ -90,43 +135,57 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                   <>
                     <Link
                       href={`/sub-admin/${activeSeasonId}/all-teams`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/all-teams`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
                     >
                       Teams
                     </Link>
                     <Link
                       href={`/sub-admin/${activeSeasonId}/all-players`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/all-players`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
                     >
                       Players
                     </Link>
                     <Link
                       href={`/sub-admin/${activeSeasonId}/auction`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/auction`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
                     >
                       Auction
                     </Link>
                     <Link
                       href={`/sub-admin/${activeSeasonId}/transfers`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/transfers`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
                     >
                       Transfers
                     </Link>
                     <Link
                       href={`/sub-admin/${activeSeasonId}/tournaments`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/tournaments`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
                     >
                       Tournaments
                     </Link>
                     <Link
                       href={`/sub-admin/${activeSeasonId}/calendar`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/calendar`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
                     >
                       Calendar
                     </Link>
                     <Link
                       href={`/sub-admin/${activeSeasonId}/tools`}
-                      className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/tools`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
                     >
                       Tools
                     </Link>
@@ -134,7 +193,9 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                 )}
                 <Link
                   href="/sub-admin/import"
-                  className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/sub-admin/import") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
                 >
                   Import
                 </Link>
@@ -171,45 +232,84 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                 <>
                   <Link
                     href="/super-admin"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Dashboard
                   </Link>
                   <Link
                     href="/super-admin/teams"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/teams") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Teams
                   </Link>
                   <Link
+                    href="/super-admin/team-managers"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/team-managers") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Managers
+                  </Link>
+                  <Link
+                    href="/super-admin/players"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/players") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Players
+                  </Link>
+                  <Link
                     href="/super-admin/seasons"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/seasons") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Seasons
                   </Link>
                   <Link
                     href="/super-admin/sub-admins"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/sub-admins") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Sub Admins
                   </Link>
                   <Link
                     href="/super-admin/password-requests"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/password-requests") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Reset Requests
+                    Passwords
+                  </Link>
+                  <Link
+                    href="/super-admin/audit-logs"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/audit-logs") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Audit Logs
                   </Link>
                 </>
               ) : (
                 <>
                   <Link
                     href="/sub-admin"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/sub-admin") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Dashboard
@@ -218,49 +318,63 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                     <>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/all-teams`}
-                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/all-teams`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Teams
                       </Link>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/all-players`}
-                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/all-players`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Players
                       </Link>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/auction`}
-                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/auction`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Auction
                       </Link>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/transfers`}
-                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/transfers`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Transfers
                       </Link>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/tournaments`}
-                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/tournaments`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Tournaments
                       </Link>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/calendar`}
-                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/calendar`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Calendar
                       </Link>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/tools`}
-                        className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/tools`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Tools
@@ -269,7 +383,9 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                   )}
                   <Link
                     href="/sub-admin/import"
-                    className="text-sm font-bold text-[#7A7367] hover:text-[#F5F0E8] transition-colors"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/sub-admin/import") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Import

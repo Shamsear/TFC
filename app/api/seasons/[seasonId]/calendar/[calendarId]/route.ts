@@ -59,6 +59,11 @@ export async function PATCH(
       include: { auctionSlots: true }
     })
 
+    // Generate all slot IDs upfront (outside transaction)
+    const slotIds = positionSlots && positionSlots.length > 0 
+      ? await Promise.all(positionSlots.map(() => generateAuctionSlotId()))
+      : []
+
     // Update calendar and slots in a transaction
     const updatedCalendar = await prisma.$transaction(async (tx) => {
       // Calculate endDate if not provided (default to +3 hours from auctionDate)
@@ -85,24 +90,20 @@ export async function PATCH(
         where: { auctionCalendarId: calendarId }
       })
 
-      // Create new slots
+      // Create new slots using pre-generated IDs
       if (positionSlots && positionSlots.length > 0) {
-        for (let index = 0; index < positionSlots.length; index++) {
-          const slot = positionSlots[index]
-          const slotId = await generateAuctionSlotId()
-          await tx.auction_slots.create({
-            data: {
-              id: slotId,
-              auctionCalendarId: calendarId,
-              position: slot.position,
-              position_group: slot.group || 'ALL',
-              roundType: slot.roundType || 'normal',
-              positionHidden: slot.positionHidden || false,
-              slotOrder: index,
-              updatedAt: new Date()
-            }
-          })
-        }
+        await tx.auction_slots.createMany({
+          data: positionSlots.map((slot: any, index: number) => ({
+            id: slotIds[index],
+            auctionCalendarId: calendarId,
+            position: slot.position,
+            position_group: slot.group || 'ALL',
+            roundType: slot.roundType || 'normal',
+            positionHidden: slot.positionHidden || false,
+            slotOrder: index,
+            updatedAt: new Date()
+          }))
+        })
       }
 
       return calendar

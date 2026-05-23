@@ -12,7 +12,7 @@ interface TransferFixPageProps {
 export default async function TransferFixPage({ params }: TransferFixPageProps) {
   const session = await auth()
   
-  if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+  if (!session?.user || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
     redirect('/auth/signin')
   }
 

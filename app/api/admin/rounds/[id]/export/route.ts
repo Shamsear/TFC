@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 /**
- * GET /api/admin/rounds/[id]/export - Export round results to Excel
+ * GET /api/admin/rounds/[id]/export - Export round results to Excel with styling
  */
 export async function GET(
   request: NextRequest,
@@ -221,26 +221,145 @@ export async function GET(
       );
     }
 
-    // Create workbook and worksheet
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Round Results');
+    // Create workbook and worksheet with ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Turf Cats';
+    workbook.created = new Date();
+    
+    const worksheet = workbook.addWorksheet('Round Results', {
+      properties: { tabColor: { argb: 'FFE8A800' } }
+    });
 
-    // Set column widths
-    worksheet['!cols'] = [
-      { wch: 25 }, // Player Name
-      { wch: 12 }, // Position
-      { wch: 15 }, // Overall Rating
-      { wch: 20 }, // Team Name
-      { wch: 18 }, // Final Bid Amount
-      { wch: 15 }, // Status
-      { wch: 18 }, // Phase
-      { wch: 20 }, // Original Bid Amount
-      { wch: 30 }  // Notes
+    // Define columns with proper styling
+    worksheet.columns = [
+      { header: 'Player Name', key: 'playerName', width: 25 },
+      { header: 'Position', key: 'position', width: 12 },
+      { header: 'Overall Rating', key: 'overallRating', width: 15 },
+      { header: 'Team Name', key: 'teamName', width: 22 },
+      { header: 'Final Bid Amount', key: 'finalBid', width: 18 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Phase', key: 'phase', width: 18 },
+      { header: 'Original Bid Amount', key: 'originalBid', width: 20 },
+      { header: 'Notes', key: 'notes', width: 35 }
+    ];
+
+    // Add title row
+    worksheet.insertRow(1, [`Round ${round.roundNumber} - ${round.season.name} - ${round.position || 'All Positions'}`]);
+    worksheet.mergeCells('A1:I1');
+    const titleRow = worksheet.getRow(1);
+    titleRow.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF0A0A0A' }
+    };
+    titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    titleRow.height = 30;
+
+    // Style header row (now row 2)
+    const headerRow = worksheet.getRow(2);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE8A800' }
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 25;
+    headerRow.border = {
+      top: { style: 'thin', color: { argb: 'FF000000' } },
+      bottom: { style: 'thin', color: { argb: 'FF000000' } }
+    };
+
+    // Add data rows
+    exportData.forEach((data, index) => {
+      const row = worksheet.addRow({
+        playerName: data['Player Name'],
+        position: data['Position'],
+        overallRating: data['Overall Rating'],
+        teamName: data['Team Name'],
+        finalBid: data['Final Bid Amount'],
+        status: data['Status'],
+        phase: data['Phase'],
+        originalBid: data['Original Bid Amount'],
+        notes: data['Notes']
+      });
+
+      // Alternate row colors
+      if (index % 2 === 0) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF5F5F5' }
+        };
+      }
+
+      // Center align specific columns
+      row.getCell('position').alignment = { horizontal: 'center', vertical: 'middle' };
+      row.getCell('overallRating').alignment = { horizontal: 'center', vertical: 'middle' };
+      row.getCell('finalBid').alignment = { horizontal: 'right', vertical: 'middle' };
+      row.getCell('originalBid').alignment = { horizontal: 'right', vertical: 'middle' };
+      row.getCell('status').alignment = { horizontal: 'center', vertical: 'middle' };
+      row.getCell('phase').alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // Format currency
+      row.getCell('finalBid').numFmt = '£#,##0';
+      row.getCell('originalBid').numFmt = '£#,##0';
+
+      // Color code by phase
+      const phaseCell = row.getCell('phase');
+      if (data['Phase'] === 'Tiebreaker') {
+        phaseCell.font = { color: { argb: 'FFFF6B35' }, bold: true };
+      } else if (data['Phase'] === 'Auto-assigned') {
+        phaseCell.font = { color: { argb: 'FF9B59B6' }, bold: true };
+      } else {
+        phaseCell.font = { color: { argb: 'FF27AE60' }, bold: true };
+      }
+
+      // Add borders to all cells
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+        };
+      });
+    });
+
+    // Add summary row
+    const summaryRowNum = worksheet.rowCount + 2;
+    worksheet.getRow(summaryRowNum).values = [
+      'Total Players:', 
+      exportData.length,
+      '',
+      '',
+      exportData.reduce((sum, d) => sum + (d['Final Bid Amount'] || 0), 0),
+      '',
+      '',
+      exportData.reduce((sum, d) => sum + (d['Original Bid Amount'] || 0), 0),
+      ''
+    ];
+    
+    const summaryRow = worksheet.getRow(summaryRowNum);
+    summaryRow.font = { bold: true, size: 11 };
+    summaryRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFFD700' }
+    };
+    summaryRow.getCell(5).numFmt = '£#,##0';
+    summaryRow.getCell(8).numFmt = '£#,##0';
+    summaryRow.alignment = { vertical: 'middle' };
+    summaryRow.height = 25;
+
+    // Freeze header rows
+    worksheet.views = [
+      { state: 'frozen', xSplit: 0, ySplit: 2 }
     ];
 
     // Generate Excel file buffer
-    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const excelBuffer = await workbook.xlsx.writeBuffer();
 
     // Create filename
     const filename = `Round_${round.roundNumber}_${round.season.name.replace(/\s+/g, '_')}_Results.xlsx`;

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
+/**
+ * Transfer players between teams (free transfer)
+ * POST /api/admin/players/transfer
+ * Body: { seasonId, transfers: [{ playerId, fromTeamId, toTeamId, notes }] }
+ */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -26,6 +30,11 @@ export async function POST(request: NextRequest) {
         try {
           const { playerId, fromTeamId, toTeamId, notes } = transfer;
 
+          if (fromTeamId === toTeamId) {
+            errors.push({ playerId, error: 'Cannot transfer to same team' });
+            continue;
+          }
+
           // Validate player exists
           const player = await tx.base_players.findUnique({
             where: { id: playerId },
@@ -43,11 +52,6 @@ export async function POST(request: NextRequest) {
               basePlayerId: playerId,
               seasonId: seasonId,
               teamId: fromTeamId
-            },
-            include: {
-              round: {
-                select: { id: true }
-              }
             }
           });
 
@@ -99,12 +103,12 @@ export async function POST(request: NextRequest) {
               amount: transferPrice,
               previousBalance: fromSeasonTeam.currentBudget,
               newBalance: fromNewBudget,
-              description: notes || `Player transferred out: ${player.name}`,
+              description: notes || `Free transfer out: ${player.name}`,
               playerName: player.name
             }
           });
 
-          // Create new transfer for destination team (free transfer - £0)
+          // Create new transfer to destination team (free - £0)
           const newTransferId = await generateTransferId();
           await tx.transfer_history.create({
             data: {
@@ -112,15 +116,14 @@ export async function POST(request: NextRequest) {
               basePlayerId: playerId,
               seasonId: seasonId,
               teamId: toTeamId,
-              roundId: existingTransfer.roundId,
               soldPrice: 0, // Free transfer
               acquisitionType: 'free_transfer',
-              acquisitionNotes: notes || `Free transfer from another team. Original price: £${transferPrice}`
+              acquisitionNotes: notes || `Free transfer from another team`
             }
           });
 
-          // No budget deduction for destination team (free transfer)
-          // But create a ledger entry for tracking
+          // No budget change for destination team (free transfer)
+          // But create ledger entry for tracking
           const transferLedgerId = await generateFinancialId();
           await tx.financial_ledger.create({
             data: {
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
               seasonTeamId: toSeasonTeam.id,
               seasonId: seasonId,
               transactionType: 'PLAYER_PURCHASE',
-              amount: 0, // Free transfer
+              amount: 0,
               previousBalance: toSeasonTeam.currentBudget,
               newBalance: toSeasonTeam.currentBudget,
               description: notes || `Free transfer in: ${player.name}`,
@@ -141,7 +144,7 @@ export async function POST(request: NextRequest) {
             playerName: player.name,
             fromTeamId,
             toTeamId,
-            originalPrice: transferPrice
+            refundAmount: transferPrice
           });
         } catch (error) {
           errors.push({

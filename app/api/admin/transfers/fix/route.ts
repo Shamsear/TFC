@@ -1,150 +1,187 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
+/**
+ * Fix incorrect player allocations (like Rafael Márquez case)
+ * POST /api/admin/transfers/fix
+ * Body: { 
+ *   seasonId, 
+ *   teamId, 
+ *   wrongPlayerId, 
+ *   correctPlayerId, 
+ *   reason 
+ * }
+ */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await auth();
+    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized - Super Admin only' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { action, transferId, newPlayerId } = body;
+    const { seasonId, teamId, wrongPlayerId, correctPlayerId, reason } = body;
 
-    if (action === 'swap') {
-      // Swap a player in an existing transfer
-      const transfer = await prisma.transfer_history.findUnique({
-        where: { id: transferId },
-        include: {
-          team: { select: { id: true, name: true } },
-          round: { select: { id: true, roundNumber: true, position_group: true } },
-          basePlayer: { select: { id: true, name: true } }
-        }
-      });
+    if (!seasonId || !teamId || !wrongPlayerId || !correctPlayerId) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+    }
 
-      if (!transfer) {
-        return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
-      }
+    if (wrongPlayerId === correctPlayerId) {
+      return NextResponse.json({ error: 'Players must be different' }, { status: 400 });
+    }
 
-      // Get new player details
-      const newPlayer = await prisma.base_players.findUnique({
-        where: { id: newPlayerId },
+    const result = await prisma.$transaction(async (tx) => {
+      // Get both players
+      const wrongPlayer = await tx.base_players.findUnique({
+        where: { id: wrongPlayerId },
         select: { id: true, name: true }
       });
 
-      if (!newPlayer) {
-        return NextResponse.json({ error: 'New player not found' }, { status: 404 });
+      const correctPlayer = await tx.base_players.findUnique({
+        where: { id: correctPlayerId },
+        select: { id: true, name: true }
+      });
+
+      if (!wrongPlayer || !correctPlayer) {
+        throw new Error('Player not found');
       }
 
-      // Check if new player is already sold
-      const existingTransfer = await prisma.transfer_history.findFirst({
+      // Check if correct player is already allocated
+      const existingCorrectTransfer = await tx.transfer_history.findFirst({
         where: {
-          basePlayerId: newPlayerId,
-          seasonId: transfer.seasonId
+          basePlayerId: correctPlayerId,
+          seasonId: seasonId
         }
       });
 
-      if (existingTransfer) {
-        return NextResponse.json({ error: 'New player is already sold in this season' }, { status: 400 });
+      if (existingCorrectTransfer) {
+        throw new Error(`${correctPlayer.name} is already allocated to a team`);
       }
 
-      // Execute swap in transaction
-      await prisma.$transaction(async (tx) => {
-        // Get season team for ledger
-        const seasonTeam = await tx.season_teams.findUnique({
-          where: {
-            seasonId_teamId: {
-              seasonId: transfer.seasonId,
-              teamId: transfer.teamId
+      // Find wrong player's transfer
+      const wrongTransfer = await tx.transfer_history.findFirst({
+        where: {
+          basePlayerId: wrongPlayerId,
+          seasonId: seasonId,
+          teamId: teamId
+        },
+        include: {
+          round: {
+            select: {
+              id: true,
+              roundNumber: true,
+              position_group: true
             }
           }
-        });
-
-        if (!seasonTeam) {
-          throw new Error('Season team not found');
         }
+      });
 
-        const currentBudget = seasonTeam.currentBudget;
+      if (!wrongTransfer) {
+        throw new Error(`${wrongPlayer.name} not found in team`);
+      }
 
-        // Delete old transfer
-        await tx.transfer_history.delete({
-          where: { id: transferId }
-        });
-
-        // Refund old price
-        const refundedBudget = currentBudget + transfer.soldPrice;
-
-        // Create new transfer
-        const newTransferId = await generateTransferId();
-        await tx.transfer_history.create({
-          data: {
-            id: newTransferId,
-            basePlayerId: newPlayerId,
-            seasonId: transfer.seasonId,
-            teamId: transfer.teamId,
-            roundId: transfer.roundId,
-            soldPrice: transfer.soldPrice,
-            acquisitionType: transfer.acquisitionType,
-            acquisitionNotes: `Admin swap: ${transfer.basePlayer.name} → ${newPlayer.name} (same price). Original: ${transfer.acquisitionNotes || ''}`
-          }
-        });
-
-        // Charge new price (same as old)
-        const finalBudget = refundedBudget - transfer.soldPrice;
-
-        // Update budget
-        await tx.season_teams.update({
-          where: {
-            seasonId_teamId: {
-              seasonId: transfer.seasonId,
-              teamId: transfer.teamId
+      // Get season team
+      const seasonTeam = await tx.season_teams.findUnique({
+        where: {
+          seasonId_teamId: { seasonId, teamId }
+        },
+        include: {
+          team: {
+            select: {
+              name: true
             }
-          },
-          data: { currentBudget: finalBudget }
-        });
-
-        // Add ledger entries
-        const ledgerId1 = await generateFinancialId();
-        await tx.financial_ledger.create({
-          data: {
-            id: ledgerId1,
-            seasonTeamId: seasonTeam.id,
-            seasonId: transfer.seasonId,
-            transactionType: 'ADJUSTMENT',
-            amount: transfer.soldPrice,
-            previousBalance: currentBudget,
-            newBalance: refundedBudget,
-            description: `Refund for ${transfer.basePlayer.name} (admin swap)`,
-            playerName: transfer.basePlayer.name
           }
-        });
-
-        const ledgerId2 = await generateFinancialId();
-        await tx.financial_ledger.create({
-          data: {
-            id: ledgerId2,
-            seasonTeamId: seasonTeam.id,
-            seasonId: transfer.seasonId,
-            transactionType: 'PLAYER_PURCHASE',
-            amount: -transfer.soldPrice,
-            previousBalance: refundedBudget,
-            newBalance: finalBudget,
-            description: `Admin swap: ${newPlayer.name}`,
-            playerName: newPlayer.name
-          }
-        });
+        }
       });
 
-      return NextResponse.json({
-        success: true,
-        message: `Successfully swapped ${transfer.basePlayer.name} with ${newPlayer.name}`
-      });
-    }
+      if (!seasonTeam) {
+        throw new Error('Season team not found');
+      }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+      const transferPrice = wrongTransfer.soldPrice;
+      const oldBudget = seasonTeam.currentBudget;
+
+      // Delete wrong transfer
+      await tx.transfer_history.delete({
+        where: { id: wrongTransfer.id }
+      });
+
+      // Refund
+      const refundedBudget = oldBudget + transferPrice;
+
+      // Create new transfer with correct player (same price)
+      const newTransferId = await generateTransferId();
+      await tx.transfer_history.create({
+        data: {
+          id: newTransferId,
+          basePlayerId: correctPlayerId,
+          seasonId: seasonId,
+          teamId: teamId,
+          roundId: wrongTransfer.roundId,
+          soldPrice: transferPrice,
+          acquisitionType: wrongTransfer.acquisitionType,
+          acquisitionNotes: reason || `Corrected allocation: Replaced ${wrongPlayer.name} with ${correctPlayer.name}`
+        }
+      });
+
+      // Charge for new player
+      const finalBudget = refundedBudget - transferPrice;
+
+      // Update budget
+      await tx.season_teams.update({
+        where: { id: seasonTeam.id },
+        data: { currentBudget: finalBudget }
+      });
+
+      // Create refund ledger entry
+      const refundLedgerId = await generateFinancialId();
+      await tx.financial_ledger.create({
+        data: {
+          id: refundLedgerId,
+          seasonTeamId: seasonTeam.id,
+          seasonId: seasonId,
+          transactionType: 'ADJUSTMENT',
+          amount: transferPrice,
+          previousBalance: oldBudget,
+          newBalance: refundedBudget,
+          description: `Refund for ${wrongPlayer.name} (incorrect allocation)`,
+          playerName: wrongPlayer.name
+        }
+      });
+
+      // Create purchase ledger entry
+      const purchaseLedgerId = await generateFinancialId();
+      await tx.financial_ledger.create({
+        data: {
+          id: purchaseLedgerId,
+          seasonTeamId: seasonTeam.id,
+          seasonId: seasonId,
+          transactionType: 'PLAYER_PURCHASE',
+          amount: -transferPrice,
+          previousBalance: refundedBudget,
+          newBalance: finalBudget,
+          description: `Corrected allocation: ${correctPlayer.name}`,
+          playerName: correctPlayer.name
+        }
+      });
+
+      return {
+        teamName: seasonTeam.team.name,
+        removedPlayer: wrongPlayer.name,
+        addedPlayer: correctPlayer.name,
+        price: transferPrice,
+        roundNumber: wrongTransfer.round?.roundNumber,
+        positionGroup: wrongTransfer.round?.position_group
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Transfer fixed successfully',
+      ...result
+    });
   } catch (error) {
     console.error('Transfer fix error:', error);
     return NextResponse.json(

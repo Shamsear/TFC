@@ -863,8 +863,6 @@ export default function PlayerDetailContent({
                     )}
                   </div>
                 }
-                currentTeam={currentTeam}
-                season={season}
               />
             </div>
           </div>
@@ -1160,8 +1158,6 @@ export default function PlayerDetailContent({
                   )}
                 </div>
               }
-              currentTeam={currentTeam}
-              season={season}
             />
           </div>
         </div>

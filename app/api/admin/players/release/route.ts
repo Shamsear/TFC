@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateFinancialId } from '@/lib/id-generator';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -101,6 +101,22 @@ export async function POST(
       );
     }
 
+    // Check if this is an edit (bids already exist) or new submission
+    const existingBids = await prisma.team_round_bids.findUnique({
+      where: {
+        roundId_teamId: {
+          roundId,
+          teamId
+        }
+      },
+      select: {
+        id: true,
+        submitted: true
+      }
+    });
+
+    const isEdit = !!existingBids;
+
     // Get current squad size
     const squadSize = await prisma.transfer_history.count({
       where: {
@@ -110,13 +126,15 @@ export async function POST(
     });
 
     // Validate bids
+    // For edits, skip balance/reserve validation since balance may have changed due to parallel rounds
     const validation = await validateBids(bids as BidData[], {
       roundId,
       teamId,
       seasonId: round.seasonId,
       maxBidsPerTeam: round.maxBidsPerTeam || undefined,
       basePrice: round.basePrice || undefined,
-      currentBudget: seasonTeam.currentBudget
+      currentBudget: seasonTeam.currentBudget,
+      skipBalanceCheck: isEdit // Skip balance validation for edits
     });
 
     if (!validation.valid) {

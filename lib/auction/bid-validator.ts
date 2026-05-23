@@ -23,6 +23,7 @@ export interface ValidationContext {
   maxBidsPerTeam?: number;
   basePrice?: number;
   currentBudget: number;
+  skipBalanceCheck?: boolean; // Skip balance/reserve validation for edits
 }
 
 /**
@@ -395,20 +396,29 @@ export async function validateBids(
   const duplicateAmountResult = validateNoDuplicateAmounts(bids);
   allErrors.push(...duplicateAmountResult.errors);
   
-  // 5. Budget validation (sync - rough check)
-  const budgetResult = validateBudget(bids, context.currentBudget);
-  allErrors.push(...budgetResult.errors);
+  // 5. Budget validation (sync - rough check) - SKIP FOR EDITS
+  if (!context.skipBalanceCheck) {
+    const budgetResult = validateBudget(bids, context.currentBudget);
+    allErrors.push(...budgetResult.errors);
+  }
   
-  // OPTIMIZATION: Run all async validations in parallel
-  const [existenceResult, availabilityResult, reserveResult] = await Promise.all([
+  // OPTIMIZATION: Run async validations in parallel
+  // For edits, skip reserve validation but still check existence and availability
+  const asyncValidations = [
     validatePlayersExist(bids, context.seasonId),
-    validatePlayersAvailable(bids, context.seasonId),
-    validateBidsAgainstReserves(bids, context)
-  ]);
+    validatePlayersAvailable(bids, context.seasonId)
+  ];
   
-  allErrors.push(...existenceResult.errors);
-  allErrors.push(...availabilityResult.errors);
-  allErrors.push(...reserveResult.errors);
+  // Only validate reserves for new submissions, not edits
+  if (!context.skipBalanceCheck) {
+    asyncValidations.push(validateBidsAgainstReserves(bids, context));
+  }
+  
+  const results = await Promise.all(asyncValidations);
+  
+  results.forEach(result => {
+    allErrors.push(...result.errors);
+  });
   
   return {
     valid: allErrors.length === 0,

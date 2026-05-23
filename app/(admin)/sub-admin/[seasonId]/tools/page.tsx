@@ -70,8 +70,6 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
     }
   ]
 
-  const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
@@ -92,52 +90,27 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {tools.map((tool) => {
-            const isDisabled = tool.superAdminOnly && !isSuperAdmin
-
-            if (isDisabled) {
-              return (
-                <div
-                  key={tool.title}
-                  className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 opacity-50 cursor-not-allowed"
-                >
-                  <div className={`w-16 h-16 rounded-xl ${tool.bgColor} border ${tool.borderColor} flex items-center justify-center ${tool.textColor} mb-4`}>
-                    {tool.icon}
-                  </div>
-                  <h3 className="text-xl font-black text-white mb-2">{tool.title}</h3>
-                  <p className="text-[#7A7367] text-sm mb-4">{tool.description}</p>
-                  <div className="flex items-center gap-2 text-xs text-red-400">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Super Admin Only
-                  </div>
-                </div>
-              )
-            }
-
-            return (
-              <Link
-                key={tool.title}
-                href={tool.href}
-                className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-6 group"
-              >
-                <div className={`w-16 h-16 rounded-xl ${tool.bgColor} border ${tool.borderColor} flex items-center justify-center ${tool.textColor} mb-4 group-hover:scale-110 transition-transform`}>
-                  {tool.icon}
-                </div>
-                <h3 className="text-xl font-black text-white mb-2 group-hover:text-[#E8A800] transition-colors">
-                  {tool.title}
-                </h3>
-                <p className="text-[#7A7367] text-sm mb-4">{tool.description}</p>
-                <div className="flex items-center gap-2 text-[#E8A800] text-sm font-bold">
-                  Open Tool
-                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-            )
-          })}
+          {tools.map((tool) => (
+            <Link
+              key={tool.title}
+              href={tool.href}
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-6 group"
+            >
+              <div className={`w-16 h-16 rounded-xl ${tool.bgColor} border ${tool.borderColor} flex items-center justify-center ${tool.textColor} mb-4 group-hover:scale-110 transition-transform`}>
+                {tool.icon}
+              </div>
+              <h3 className="text-xl font-black text-white mb-2 group-hover:text-[#E8A800] transition-colors">
+                {tool.title}
+              </h3>
+              <p className="text-[#7A7367] text-sm mb-4">{tool.description}</p>
+              <div className="flex items-center gap-2 text-[#E8A800] text-sm font-bold">
+                Open Tool
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

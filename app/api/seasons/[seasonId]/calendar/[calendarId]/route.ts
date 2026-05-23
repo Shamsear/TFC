@@ -65,6 +65,23 @@ export async function PATCH(
       orderBy: { slotOrder: 'asc' }
     })
 
+    // Check if the new auctionDate conflicts with another calendar entry
+    const startDate = new Date(auctionDate)
+    const conflictingCalendar = await prisma.auction_calendar.findFirst({
+      where: {
+        seasonId,
+        auctionDate: startDate,
+        id: { not: calendarId } // Exclude current calendar
+      }
+    })
+
+    if (conflictingCalendar) {
+      return NextResponse.json(
+        { error: 'Another auction is already scheduled for this date and time' },
+        { status: 400 }
+      )
+    }
+
     // Generate IDs only for new slots that need to be created
     const newSlotsCount = Math.max(0, (positionSlots?.length || 0) - existingSlots.length)
     const newSlotIds = newSlotsCount > 0 
@@ -74,7 +91,6 @@ export async function PATCH(
     // Update calendar and slots in a transaction
     const updatedCalendar = await prisma.$transaction(async (tx) => {
       // Calculate endDate if not provided (default to +3 hours from auctionDate)
-      const startDate = new Date(auctionDate)
       const calculatedEndDate = endDate ? new Date(endDate) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000)
 
       // Update calendar

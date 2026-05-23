@@ -53,6 +53,23 @@ export async function POST(
       return NextResponse.json({ error: 'Round not found' }, { status: 404 });
     }
 
+    // Early exit if already finalizing or completed
+    if (round.status === 'finalizing') {
+      console.log('⏸️  Round is already being finalized by another process');
+      return NextResponse.json(
+        { error: 'Round is already being finalized. Please wait.' },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
+    if (round.status === 'completed' || round.status === 'preview_finalized') {
+      console.log(`✅ Round already finalized (status: ${round.status})`);
+      return NextResponse.json(
+        { error: `Round is already ${round.status}` },
+        { status: 400 }
+      );
+    }
+
     // Check if round can be finalized
     const now = new Date();
     const endTime = round.endTime ? new Date(round.endTime) : null;

@@ -135,6 +135,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [liveTiebreakers, setLiveTiebreakers] = useState<any[]>(round.tiebreakers || [])
   const [liveTeamBids, setLiveTeamBids] = useState<any[]>(round.teamRoundBids || [])
   const [liveBulkSelections, setLiveBulkSelections] = useState<any[]>(round.bulkRoundSelections || [])
+  const [showSubmitBidModal, setShowSubmitBidModal] = useState(false)
+  const [selectedTiebreaker, setSelectedTiebreaker] = useState<any>(null)
+  const [selectedTeamForBid, setSelectedTeamForBid] = useState<any>(null)
+  const [adminBidAmount, setAdminBidAmount] = useState(0)
+  const [submittingAdminBid, setSubmittingAdminBid] = useState(false)
+  const [spinningTiebreaker, setSpinningTiebreaker] = useState<string | null>(null)
+  const [showSpinModal, setShowSpinModal] = useState(false)
+  const [spinResult, setSpinResult] = useState<any>(null)
 
   const submittedTeamsList = teams.filter(t => {
     if (round.roundType === 'bulk') {
@@ -635,6 +643,93 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         return 'Tiebreaker Won'
       default:
         return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+    }
+  }
+
+  const handleAdminSubmitBid = async () => {
+    if (!selectedTiebreaker || !selectedTeamForBid) return
+
+    if (!confirm(`Submit bid of £${adminBidAmount.toLocaleString()} for ${selectedTeamForBid.name}? This cannot be changed.`)) {
+      return
+    }
+
+    setSubmittingAdminBid(true)
+    setError('')
+
+    try {
+      if (adminBidAmount <= selectedTiebreaker.originalAmount) {
+        throw new Error(`Bid must be higher than £${selectedTiebreaker.originalAmount.toLocaleString()}`)
+      }
+
+      const response = await fetch(`/api/admin/tiebreakers/${selectedTiebreaker.id}/submit-bid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          teamId: selectedTeamForBid.id,
+          newBidAmount: adminBidAmount 
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to submit bid')
+      }
+
+      const data = await response.json()
+      
+      setShowSubmitBidModal(false)
+      setSelectedTiebreaker(null)
+      setSelectedTeamForBid(null)
+      setAdminBidAmount(0)
+      
+      // Refresh the page to show updated status
+      window.location.reload()
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setSubmittingAdminBid(false)
+    }
+  }
+
+  const openSubmitBidModal = (tiebreaker: any, teamBid: any, team: any) => {
+    setSelectedTiebreaker(tiebreaker)
+    setSelectedTeamForBid(team)
+    setAdminBidAmount(tiebreaker.originalAmount + 1)
+    setShowSubmitBidModal(true)
+  }
+
+  const handleSpinResolve = async (tiebreaker: any) => {
+    if (!confirm(`Spin and resolve this tiebreaker randomly?\n\n• Winner will pay £${tiebreaker.originalAmount + 2}\n• Loser(s) will pay £${tiebreaker.originalAmount + 1}\n\nThis action cannot be undone!`)) {
+      return
+    }
+
+    setSpinningTiebreaker(tiebreaker.id)
+    setError('')
+
+    try {
+      const response = await fetch(`/api/admin/tiebreakers/${tiebreaker.id}/spin-resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to spin and resolve')
+      }
+
+      const data = await response.json()
+      
+      // Show result modal
+      setSpinResult(data)
+      setShowSpinModal(true)
+      
+      // Refresh after a delay to show the result
+      setTimeout(() => {
+        window.location.reload()
+      }, 3000)
+    } catch (error: any) {
+      setError(error.message)
+      setSpinningTiebreaker(null)
     }
   }
 
@@ -1150,7 +1245,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                           </div>
                         </div>
                       </div>
-                      <div className="text-left sm:text-right w-full sm:w-auto">
+                      <div className="text-left sm:text-right w-full sm:w-auto flex flex-col gap-2">
                         <div className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
                           submittedBids === totalBids 
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
@@ -1158,6 +1253,25 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                         }`}>
                           {submittedBids}/{totalBids} Submitted
                         </div>
+                        <button
+                          onClick={() => handleSpinResolve(tiebreaker)}
+                          disabled={spinningTiebreaker === tiebreaker.id}
+                          className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {spinningTiebreaker === tiebreaker.id ? (
+                            <>
+                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Spinning...
+                            </>
+                          ) : (
+                            <>
+                              🎰 Spin & Resolve
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                     
@@ -1183,9 +1297,17 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                                   ✓ Submitted
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30 flex-shrink-0">
-                                  Pending
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30 flex-shrink-0">
+                                    Pending
+                                  </span>
+                                  <button
+                                    onClick={() => openSubmitBidModal(tiebreaker, bid, team)}
+                                    className="px-3 py-1 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black text-xs font-bold transition-all"
+                                  >
+                                    Submit Bid
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -2039,6 +2161,148 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-bold transition-all disabled:opacity-50"
               >
                 {loading ? 'Finalizing...' : 'Finalize & Make Public'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Spin Result Modal */}
+      {showSpinModal && spinResult && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-purple-900/90 to-pink-900/90 border-2 border-purple-500/50 rounded-2xl max-w-lg w-full p-8 text-center">
+            <div className="mb-6">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center animate-bounce">
+                <span className="text-4xl">🎰</span>
+              </div>
+              <h2 className="text-3xl font-black text-white mb-2">Tiebreaker Resolved!</h2>
+              <p className="text-purple-200 text-sm">The wheel has spoken...</p>
+            </div>
+
+            <div className="mb-6 p-6 rounded-xl bg-black/40 border border-purple-500/30">
+              <div className="mb-4">
+                <div className="text-sm text-purple-300 mb-1">Winner</div>
+                <div className="text-2xl font-black text-yellow-400 mb-2">
+                  🏆 {spinResult.winnerName}
+                </div>
+                <div className="text-lg text-white">
+                  {spinResult.playerName}
+                </div>
+              </div>
+              <div className="pt-4 border-t border-purple-500/30">
+                <div className="text-sm text-purple-300 mb-1">Winning Bid</div>
+                <div className="text-3xl font-black text-emerald-400">
+                  £{spinResult.winningBid.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            <div className="text-sm text-purple-200 mb-4">
+              {spinResult.message}
+            </div>
+
+            <div className="text-xs text-purple-300">
+              Refreshing page in 3 seconds...
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Bid Modal */}
+      {showSubmitBidModal && selectedTiebreaker && selectedTeamForBid && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white">Submit Bid for {selectedTeamForBid.name}</h3>
+              <button
+                onClick={() => {
+                  setShowSubmitBidModal(false)
+                  setSelectedTiebreaker(null)
+                  setSelectedTeamForBid(null)
+                  setAdminBidAmount(0)
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-4 p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+              <div className="text-sm text-purple-200 mb-2">
+                <strong>Player:</strong> {selectedTiebreaker.basePlayer?.name || 'Unknown'}
+              </div>
+              <div className="text-sm text-purple-200">
+                <strong>Original Bid:</strong> £{selectedTiebreaker.originalAmount.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                New Bid Amount (must be higher than £{selectedTiebreaker.originalAmount.toLocaleString()})
+              </label>
+              <input
+                type="number"
+                value={adminBidAmount}
+                onChange={(e) => setAdminBidAmount(parseInt(e.target.value) || 0)}
+                min={selectedTiebreaker.originalAmount + 1}
+                step={1}
+                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white text-xl font-bold focus:outline-none focus:border-[#E8A800]"
+              />
+              
+              {/* Quick Increment Buttons */}
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => setAdminBidAmount(prev => prev + 5)}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all font-medium text-sm"
+                >
+                  +£5
+                </button>
+                <button
+                  onClick={() => setAdminBidAmount(prev => prev + 10)}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all font-medium text-sm"
+                >
+                  +£10
+                </button>
+                <button
+                  onClick={() => setAdminBidAmount(prev => prev + 50)}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all font-medium text-sm"
+                >
+                  +£50
+                </button>
+              </div>
+              
+              <p className="text-xs text-[#7A7367] mt-2">
+                Minimum: £{(selectedTiebreaker.originalAmount + 1).toLocaleString()}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowSubmitBidModal(false)
+                  setSelectedTiebreaker(null)
+                  setSelectedTeamForBid(null)
+                  setAdminBidAmount(0)
+                }}
+                disabled={submittingAdminBid}
+                className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAdminSubmitBid}
+                disabled={submittingAdminBid || adminBidAmount <= selectedTiebreaker.originalAmount}
+                className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+              >
+                {submittingAdminBid ? 'Submitting...' : `Submit £${adminBidAmount.toLocaleString()}`}
               </button>
             </div>
           </div>

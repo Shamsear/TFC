@@ -401,6 +401,7 @@ export async function resolveAllTiebreakers(roundId: string): Promise<{
 /**
  * Auto-resume finalization after tiebreaker resolution
  * This is called when a tiebreaker is resolved to continue the finalization process
+ * Uses database locking to prevent concurrent finalization attempts
  */
 export async function resumeFinalizationAfterTiebreaker(
   tiebreakerId: string
@@ -427,7 +428,8 @@ export async function resumeFinalizationAfterTiebreaker(
         winningBid: true,
         round: {
           select: {
-            finalizationState: true
+            finalizationState: true,
+            status: true
           }
         }
       }
@@ -448,6 +450,31 @@ export async function resumeFinalizationAfterTiebreaker(
         finalizationComplete: false,
         nextTiebreakerCreated: false,
         error: 'Tiebreaker not resolved yet'
+      };
+    }
+
+    // Check if finalization is already in progress or completed
+    const roundStatus = tiebreaker.round.status;
+    if (roundStatus === 'finalizing') {
+      console.log(`   ⏸️  Finalization already in progress for this round`);
+      console.log(`   ℹ️  Skipping duplicate finalization attempt\n`);
+      console.log('='.repeat(80) + '\n');
+      return {
+        success: true,
+        finalizationComplete: false,
+        nextTiebreakerCreated: false,
+        error: 'Finalization already in progress'
+      };
+    }
+
+    if (roundStatus === 'completed' || roundStatus === 'preview_finalized') {
+      console.log(`   ✅ Round already finalized (status: ${roundStatus})`);
+      console.log('='.repeat(80) + '\n');
+      return {
+        success: true,
+        finalizationComplete: true,
+        nextTiebreakerCreated: false,
+        previewMode: roundStatus === 'preview_finalized'
       };
     }
 
@@ -472,6 +499,7 @@ export async function resumeFinalizationAfterTiebreaker(
     if (otherActiveTiebreakers > 0) {
       console.log(`   ⏸️  Other active tiebreakers exist (${otherActiveTiebreakers})`);
       console.log(`   ℹ️  Waiting for all tiebreakers to resolve before resuming\n`);
+      console.log('='.repeat(80) + '\n');
       return {
         success: true,
         finalizationComplete: false,
@@ -480,7 +508,33 @@ export async function resumeFinalizationAfterTiebreaker(
       };
     }
 
-    console.log('   ✓ No other active tiebreakers - resuming finalization...\n');
+    console.log('   ✓ No other active tiebreakers - attempting to acquire lock...\n');
+
+    // Try to acquire lock by setting round status to 'finalizing'
+    // This uses optimistic locking - only succeeds if status is still 'tiebreaker_pending'
+    const lockAcquired = await prisma.rounds.updateMany({
+      where: {
+        id: tiebreaker.roundId,
+        status: 'tiebreaker_pending' // Only update if still in tiebreaker_pending state
+      },
+      data: {
+        status: 'finalizing'
+      }
+    });
+
+    if (lockAcquired.count === 0) {
+      console.log(`   ⏸️  Could not acquire lock - another process is already finalizing`);
+      console.log(`   ℹ️  Skipping duplicate finalization attempt\n`);
+      console.log('='.repeat(80) + '\n');
+      return {
+        success: true,
+        finalizationComplete: false,
+        nextTiebreakerCreated: false,
+        error: 'Lock not acquired - finalization already in progress'
+      };
+    }
+
+    console.log('   ✅ Lock acquired - proceeding with finalization\n');
 
     // Get player name for the allocation
     const tiebreakerWithPlayer = await prisma.tiebreakers.findUnique({
@@ -539,6 +593,13 @@ export async function resumeFinalizationAfterTiebreaker(
       
       console.log(`   ✓ Created ${nextTiebreakers.length} tiebreaker(s)`);
       console.log('   ⏸️  Finalization paused again\n');
+      
+      // Set status back to tiebreaker_pending
+      await prisma.rounds.update({
+        where: { id: tiebreaker.roundId },
+        data: { status: 'tiebreaker_pending' }
+      });
+      
       console.log('='.repeat(80) + '\n');
 
       return {
@@ -620,6 +681,13 @@ export async function resumeFinalizationAfterTiebreaker(
       }
     } else {
       console.log('   ❌ Finalization failed:', result.error);
+      
+      // Release lock by setting status back to tiebreaker_pending
+      await prisma.rounds.update({
+        where: { id: tiebreaker.roundId },
+        data: { status: 'tiebreaker_pending' }
+      });
+      
       console.log('='.repeat(80) + '\n');
 
       return {
@@ -631,6 +699,24 @@ export async function resumeFinalizationAfterTiebreaker(
     }
   } catch (error) {
     console.error('Resume finalization error:', error);
+    
+    // Try to release lock on error
+    try {
+      const tiebreaker = await prisma.tiebreakers.findUnique({
+        where: { id: tiebreakerId },
+        select: { roundId: true }
+      });
+      
+      if (tiebreaker) {
+        await prisma.rounds.update({
+          where: { id: tiebreaker.roundId },
+          data: { status: 'tiebreaker_pending' }
+        });
+      }
+    } catch (releaseError) {
+      console.error('Failed to release lock:', releaseError);
+    }
+    
     return {
       success: false,
       finalizationComplete: false,

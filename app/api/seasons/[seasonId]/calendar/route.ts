@@ -16,7 +16,7 @@ export async function POST(
 
     const { seasonId } = await params
     const body = await request.json()
-    const { auctionDate, description, positions } = body
+    const { auctionDate, endDate, description, positions } = body
 
     if (!auctionDate || !positions || positions.length === 0) {
       return NextResponse.json(
@@ -35,16 +35,21 @@ export async function POST(
     }
 
     const calendarId = await generateAuctionId()
+    
+    // Calculate endDate if not provided (default to +3 hours)
+    const startDate = new Date(auctionDate)
+    const calculatedEndDate = endDate ? new Date(endDate) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000)
 
     // Create auction calendar with slots
     const calendar = await prisma.$executeRaw`
       INSERT INTO auction_calendar (
-        id, season_id, auction_date, description, 
+        id, season_id, auction_date, end_date, description, 
         created_by, created_at, updated_at
       ) VALUES (
         ${calendarId},
         ${seasonId},
-        ${new Date(auctionDate)},
+        ${startDate},
+        ${calculatedEndDate},
         ${description || null},
         ${session.user.id},
         NOW(),
@@ -87,6 +92,7 @@ export async function POST(
       seasonId,
       details: {
         auctionDate,
+        endDate: calculatedEndDate.toISOString(),
         positions,
         slotCount: positions.length
       },

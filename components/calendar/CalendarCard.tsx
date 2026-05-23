@@ -8,6 +8,7 @@ interface CalendarCardProps {
   calendar: {
     id: string
     auctionDate: Date
+    endDate?: Date | null
     description: string | null
     formattedDate: string
     auctionSlots: Array<{
@@ -130,6 +131,14 @@ export default function CalendarCard({ calendar, seasonId }: CalendarCardProps) 
               <div className="text-sm text-[#E8A800] font-bold mt-0.5">
                 {formatTime(calendar.auctionDate)}
               </div>
+              {calendar.endDate && (
+                <div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Deadline: {formatTime(calendar.endDate)}</span>
+                </div>
+              )}
               {calendar.description && (
                 <div className="text-xs sm:text-sm text-[#7A7367] mt-1 line-clamp-2">{calendar.description}</div>
               )}

@@ -39,7 +39,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   const router = useRouter()
   const [seasonId, setSeasonId] = useState<string>('')
   const [auctionDates, setAuctionDates] = useState([
-    { auctionDate: '', auctionTime: '', description: '', positionSlots: [] as PositionSlot[] }
+    { auctionDate: '', auctionTime: '', endDate: '', endTime: '', description: '', positionSlots: [] as PositionSlot[] }
   ])
   const [builderStates, setBuilderStates] = useState<Record<number, { roundType: 'normal' | 'bulk'; selectedPositions: string[]; selectedGroup: 'A' | 'B' | 'ALL'; positionHidden: boolean }>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -56,6 +56,8 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     const newEntry = {
       auctionDate: lastEntry?.auctionDate || '',
       auctionTime: '',
+      endDate: lastEntry?.endDate || '',
+      endTime: '',
       description: '',
       positionSlots: []
     }
@@ -151,11 +153,11 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     // Validate all dates
     for (let i = 0; i < auctionDates.length; i++) {
       if (!auctionDates[i].auctionDate) {
-        setError(`Please select a date for auction ${i + 1}`)
+        setError(`Please select a start date for auction ${i + 1}`)
         return
       }
       if (!auctionDates[i].auctionTime) {
-        setError(`Please select a time for auction ${i + 1}`)
+        setError(`Please select a start time for auction ${i + 1}`)
         return
       }
       if (auctionDates[i].positionSlots.length === 0) {
@@ -169,9 +171,20 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     try {
       // Combine date and time for each auction in the local timezone and convert to ISO string
       const formattedAuctionDates = auctionDates.map(auction => {
-        const localDate = new Date(`${auction.auctionDate}T${auction.auctionTime}:00`)
+        const localStartDate = new Date(`${auction.auctionDate}T${auction.auctionTime}:00`)
+        
+        // Calculate end date/time
+        let localEndDate
+        if (auction.endDate && auction.endTime) {
+          localEndDate = new Date(`${auction.endDate}T${auction.endTime}:00`)
+        } else {
+          // Default to +3 hours if not specified
+          localEndDate = new Date(localStartDate.getTime() + 3 * 60 * 60 * 1000)
+        }
+        
         return {
-          auctionDate: localDate.toISOString(),
+          auctionDate: localStartDate.toISOString(),
+          endDate: localEndDate.toISOString(),
           description: auction.description,
           positionSlots: auction.positionSlots
         }
@@ -254,11 +267,11 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
               </div>
 
               {/* Date, Time and Description Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                {/* Date */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {/* Start Date */}
                 <div>
                   <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
-                    Date <span className="text-red-400">*</span>
+                    Start Date <span className="text-red-400">*</span>
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -282,10 +295,10 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                   </div>
                 </div>
 
-                {/* Time */}
+                {/* Start Time */}
                 <div>
                   <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
-                    Time <span className="text-red-400">*</span>
+                    Start Time <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="time"
@@ -296,8 +309,51 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                   />
                 </div>
 
-                {/* Description */}
+                {/* End Date */}
                 <div>
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                    End Date (Deadline)
+                  </label>
+                  <input
+                    type="date"
+                    value={auction.endDate}
+                    onChange={(e) => updateAuctionDate(index, 'endDate', e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                  />
+                </div>
+
+                {/* End Time */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                    End Time (Deadline)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="time"
+                      value={auction.endTime}
+                      onChange={(e) => updateAuctionDate(index, 'endTime', e.target.value)}
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (auction.auctionDate && auction.auctionTime) {
+                          const startDateTime = new Date(`${auction.auctionDate}T${auction.auctionTime}`)
+                          const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
+                          updateAuctionDate(index, 'endDate', endDateTime.toISOString().split('T')[0])
+                          updateAuctionDate(index, 'endTime', endDateTime.toTimeString().slice(0, 5))
+                        }
+                      }}
+                      className="px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/20 transition-all whitespace-nowrap"
+                      title="Set to +3 hours from start time"
+                    >
+                      +3h
+                    </button>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="md:col-span-2">
                   <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
                     Description (Optional)
                   </label>
@@ -799,6 +855,17 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                       )}
                     </div>
                   </div>
+                  {(auction.endDate || auction.endTime) && (
+                    <div className="text-xs sm:text-sm text-red-400 mb-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>
+                        Deadline: {auction.endDate && new Date(auction.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {auction.endTime && ` @ ${auction.endTime}`}
+                      </span>
+                    </div>
+                  )}
                   {auction.description && (
                     <div className="text-xs sm:text-sm text-gray-400 mb-3">{auction.description}</div>
                   )}

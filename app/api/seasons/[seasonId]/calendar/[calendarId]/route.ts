@@ -51,7 +51,7 @@ export async function PATCH(
 
     const { seasonId, calendarId } = await params
     const body = await request.json()
-    const { auctionDate, description, positionSlots } = body
+    const { auctionDate, endDate, description, positionSlots } = body
 
     // Get old calendar data for audit
     const oldCalendar = await prisma.auction_calendar.findUnique({
@@ -61,6 +61,10 @@ export async function PATCH(
 
     // Update calendar and slots in a transaction
     const updatedCalendar = await prisma.$transaction(async (tx) => {
+      // Calculate endDate if not provided (default to +3 hours from auctionDate)
+      const startDate = new Date(auctionDate)
+      const calculatedEndDate = endDate ? new Date(endDate) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000)
+
       // Update calendar
       const calendar = await tx.auction_calendar.update({
         where: {
@@ -68,7 +72,8 @@ export async function PATCH(
           seasonId
         },
         data: {
-          auctionDate: new Date(auctionDate),
+          auctionDate: startDate,
+          endDate: calculatedEndDate,
           description,
           updated_by: session.user.id!,
           updatedAt: new Date()
@@ -116,6 +121,7 @@ export async function PATCH(
       details: {
         changes: {
           auctionDate: { from: oldCalendar?.auctionDate, to: auctionDate },
+          endDate: { from: oldCalendar?.endDate, to: endDate },
           description: { from: oldCalendar?.description, to: description },
           positionSlots: { 
             from: oldCalendar?.auctionSlots.map(s => ({ position: s.position, group: s.position_group })), 

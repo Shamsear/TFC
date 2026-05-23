@@ -43,18 +43,23 @@ export async function POST(
       for (let idx = 0; idx < auctionDates.length; idx++) {
         const auction = auctionDates[idx]
         const ids = idsToGenerate[idx]
-        const { auctionDate, description, positionSlots } = auction
+        const { auctionDate, endDate, description, positionSlots } = auction
 
         if (!auctionDate || !positionSlots || positionSlots.length === 0) {
           throw new Error('Each auction must have a date and at least one position slot')
         }
+
+        // Calculate endDate if not provided (default to +3 hours)
+        const startDate = new Date(auctionDate)
+        const calculatedEndDate = endDate ? new Date(endDate) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000)
 
         // Create auction calendar entry
         const calendar = await tx.auction_calendar.create({
           data: {
             id: ids.calendarId,
             seasonId,
-            auctionDate: new Date(auctionDate),
+            auctionDate: startDate,
+            endDate: calculatedEndDate,
             description: description || null,
             updatedAt: new Date()
           }

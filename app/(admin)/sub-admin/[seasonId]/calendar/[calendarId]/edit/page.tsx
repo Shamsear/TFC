@@ -48,6 +48,8 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
   const [calendarId, setCalendarId] = useState<string>('')
   const [auctionDate, setAuctionDate] = useState('')
   const [auctionTime, setAuctionTime] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [description, setDescription] = useState('')
   const [positionSlots, setPositionSlots] = useState<PositionSlot[]>([])
   const [builderState, setBuilderState] = useState<{ roundType: 'normal' | 'bulk'; selectedPositions: string[]; selectedGroup: 'A' | 'B' | 'ALL'; positionHidden: boolean }>({
@@ -79,6 +81,20 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
           
           setAuctionDate(`${year}-${month}-${day}`)
           setAuctionTime(`${hours}:${minutes}`)
+          
+          // Handle endDate if it exists
+          if (data.endDate) {
+            const endDateObj = new Date(data.endDate)
+            const endYear = endDateObj.getFullYear()
+            const endMonth = String(endDateObj.getMonth() + 1).padStart(2, '0')
+            const endDay = String(endDateObj.getDate()).padStart(2, '0')
+            const endHours = String(endDateObj.getHours()).padStart(2, '0')
+            const endMinutes = String(endDateObj.getMinutes()).padStart(2, '0')
+            
+            setEndDate(`${endYear}-${endMonth}-${endDay}`)
+            setEndTime(`${endHours}:${endMinutes}`)
+          }
+          
           setDescription(data.description || '')
           setPositionSlots(data.auctionSlots.map((slot: any) => ({
             position: slot.position,
@@ -147,11 +163,22 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
       const localDateObj = new Date(`${auctionDate}T${auctionTime || '00:00'}:00`)
       const combinedDateTime = localDateObj.toISOString()
       
+      // Calculate end date/time
+      let combinedEndDateTime
+      if (endDate && endTime) {
+        const localEndDateObj = new Date(`${endDate}T${endTime}:00`)
+        combinedEndDateTime = localEndDateObj.toISOString()
+      } else {
+        // Default to +3 hours if not specified
+        combinedEndDateTime = new Date(localDateObj.getTime() + 3 * 60 * 60 * 1000).toISOString()
+      }
+      
       const response = await fetch(`/api/seasons/${seasonId}/calendar/${calendarId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           auctionDate: combinedDateTime,
+          endDate: combinedEndDateTime,
           description,
           positionSlots
         })
@@ -210,11 +237,11 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
 
           <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Date, Time and Description Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              {/* Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {/* Start Date */}
               <div>
                 <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
-                  Date <span className="text-red-400">*</span>
+                  Start Date <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="date"
@@ -225,10 +252,10 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                 />
               </div>
 
-              {/* Time */}
+              {/* Start Time */}
               <div>
                 <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
-                  Time <span className="text-red-400">*</span>
+                  Start Time <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="time"
@@ -239,8 +266,51 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                 />
               </div>
 
-              {/* Description */}
+              {/* End Date */}
               <div>
+                <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                  End Date (Deadline)
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                />
+              </div>
+
+              {/* End Time */}
+              <div>
+                <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                  End Time (Deadline)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="flex-1 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (auctionDate && auctionTime) {
+                        const startDateTime = new Date(`${auctionDate}T${auctionTime}`)
+                        const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
+                        setEndDate(endDateTime.toISOString().split('T')[0])
+                        setEndTime(endDateTime.toTimeString().slice(0, 5))
+                      }
+                    }}
+                    className="px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/20 transition-all whitespace-nowrap"
+                    title="Set to +3 hours from start time"
+                  >
+                    +3h
+                  </button>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="md:col-span-2">
                 <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
                   Description (Optional)
                 </label>
@@ -690,6 +760,17 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                     )}
                   </div>
                 </div>
+                {(endDate || endTime) && (
+                  <div className="text-xs sm:text-sm text-red-400 mb-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      Deadline: {endDate && new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {endTime && ` @ ${endTime}`}
+                    </span>
+                  </div>
+                )}
                 {description && (
                   <div className="text-xs sm:text-sm text-gray-400 mb-3">{description}</div>
                 )}

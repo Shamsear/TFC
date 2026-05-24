@@ -13,6 +13,7 @@ model base_players {
   id                   String                  @id
   player_id            String?                 @unique @map("player_id")
   name                 String
+  normalized_name      String?                 @map("normalized_name")
   photoUrl             String
   createdAt            DateTime                @default(now())
   updatedAt            DateTime

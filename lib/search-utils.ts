@@ -1,21 +1,18 @@
 /**
- * Normalizes a string for search by removing diacritics and converting to lowercase
- * Examples: 
- * - "Müller" -> "muller"
- * - "José" -> "jose"
- * - "Özil" -> "ozil"
+ * Normalize a string by removing accents/diacritics
+ * Converts: "Vinícius Júnior" → "Vinicius Junior"
  */
-export function normalizeForSearch(text: string): string {
-  return text
-    .toLowerCase()
+export function normalizeString(str: string): string {
+  return str
     .normalize('NFD') // Decompose combined characters
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+    .toLowerCase()
+    .trim();
 }
 
 /**
- * Checks if a text matches a search query (case-insensitive, diacritic-insensitive)
+ * Check if a normalized search query matches a normalized target string
  */
-export function matchesSearch(text: string, query: string): boolean {
-  if (!query.trim()) return true
-  return normalizeForSearch(text).includes(normalizeForSearch(query))
+export function matchesSearch(target: string, query: string): boolean {
+  return normalizeString(target).includes(normalizeString(query));
 }

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { EFootballPlayer } from '@/lib/sqlite-parser';
 import { generatePlayerId, generatePlayerStatsId } from '@/lib/id-generator';
+import { normalizeString } from '@/lib/search-utils';
 
 export interface ConfirmRequest {
   seasonId: string;
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
               id: newPlayerId,
               player_id: player.playerId,
               name: player.playerName,
+              normalized_name: normalizeString(player.playerName),
               photoUrl: `/players/${player.playerId}.webp`,
               updatedAt: new Date()
             }
@@ -93,6 +95,7 @@ export async function POST(request: NextRequest) {
               id: newPlayerId,
               player_id: player.playerId,
               name: player.playerName,
+              normalized_name: normalizeString(player.playerName),
               photoUrl: `/players/${player.playerId}.webp`,
               updatedAt: new Date()
             }

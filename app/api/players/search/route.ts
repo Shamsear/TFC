@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import { normalizeString } from '@/lib/search-utils'
 
 const ITEMS_PER_PAGE = 24
 
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
 
   // ── Build shared filter helpers ─────────────────────────────────────────────
   const q = searchQuery.trim()
+  const normalizedQuery = normalizeString(q)
 
   // Filter conditions expressed as constraints on base_players
   // Used when querying from base_players (name sort)
@@ -39,6 +41,7 @@ export async function GET(request: NextRequest) {
   if (q) {
     basePLayerWhere.OR = [
       { name: { contains: q, mode: 'insensitive' as const } },
+      { normalized_name: { contains: normalizedQuery, mode: 'insensitive' as const } },
       { seasonalPlayerStats: { some: { seasonId, OR: [
         { realWorldClub: { contains: q, mode: 'insensitive' as const } },
         { position: { contains: q, mode: 'insensitive' as const } }
@@ -111,6 +114,7 @@ export async function GET(request: NextRequest) {
         { realWorldClub: { contains: q, mode: 'insensitive' as const } },
         { position: { contains: q, mode: 'insensitive' as const } },
         { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },
+        { basePlayer: { normalized_name: { contains: normalizedQuery, mode: 'insensitive' as const } } },
         { basePlayer: { transferHistory: { some: { seasonId, team: { name: { contains: q, mode: 'insensitive' as const } } } } } }
       ]
     }
@@ -213,6 +217,7 @@ export async function GET(request: NextRequest) {
     if (q) {
       transferWhere.OR = [
         { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },
+        { basePlayer: { normalized_name: { contains: normalizedQuery, mode: 'insensitive' as const } } },
         { basePlayer: { seasonalPlayerStats: { some: { seasonId, OR: [
           { realWorldClub: { contains: q, mode: 'insensitive' as const } },
           { position: { contains: q, mode: 'insensitive' as const } }

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { normalizeString } from '../lib/search-utils'
 
 const prisma = new PrismaClient()
 
@@ -21,6 +22,7 @@ async function addSSPlayers() {
       create: {
         id: 'BP_SS_001',
         name: 'Marco Rossi',
+        normalized_name: normalizeString('Marco Rossi'),
         player_id: 'dummy_ss_001',
         photoUrl: 'https://cdn.sofifa.net/players/default.png',
         createdAt: new Date(),
@@ -59,6 +61,7 @@ async function addSSPlayers() {
       create: {
         id: 'BP_SS_002',
         name: 'Lucas Silva',
+        normalized_name: normalizeString('Lucas Silva'),
         player_id: 'dummy_ss_002',
         photoUrl: 'https://cdn.sofifa.net/players/default.png',
         createdAt: new Date(),
@@ -96,6 +99,8 @@ async function addSSPlayers() {
       where: { id: 'BP_SS_003' },
       create: {
         id: 'BP_SS_003',
+        name: 'Ahmed Hassan',
+        normalized_name: normalizeString('Ahmed Hassan'),
         name: 'Ahmed Hassan',
         player_id: 'dummy_ss_003',
         photoUrl: 'https://cdn.sofifa.net/players/default.png',

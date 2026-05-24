@@ -6,6 +6,7 @@
 import { prisma } from './prisma';
 import { parseDBFile, DBPlayerRecord } from './db-parser';
 import { generatePlayerId, generatePlayerStatsId } from './id-generator';
+import { normalizeString } from './search-utils';
 
 export interface ImportSummary {
   newPlayers: number;
@@ -100,6 +101,7 @@ export async function importSeasonData(
           data: {
             id: playerId,
             name: record.name,
+            normalized_name: normalizeString(record.name),
             photoUrl: record.photoUrl || '/default-player.png',
             updatedAt: new Date()
           }

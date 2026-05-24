@@ -24,11 +24,25 @@ interface Request {
   rejectionReason: string | null
 }
 
+interface TeamStats {
+  teamId: string
+  teamName: string
+  teamLogo: string
+  currentBudget: number
+  totalRequests: number
+  approvedReleases: number
+  pendingRequests: number
+  rejectedRequests: number
+  remainingRequests: number
+  remainingApprovals: number
+}
+
 interface Props {
   seasonId: string
   seasonName: string
   releaseWindowOpen: boolean
   requests: Request[]
+  teamStats: TeamStats[]
 }
 
 export default function ReleaseRequestsAdminClient({
@@ -36,15 +50,21 @@ export default function ReleaseRequestsAdminClient({
   seasonName,
   releaseWindowOpen: initialWindowOpen,
   requests: initialRequests,
+  teamStats: initialTeamStats,
 }: Props) {
   const router = useRouter()
   const [requests, setRequests] = useState(initialRequests)
+  const [teamStats] = useState(initialTeamStats)
   const [releaseWindowOpen, setReleaseWindowOpen] = useState(initialWindowOpen)
   const [isTogglingWindow, setIsTogglingWindow] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectingRequest, setRejectingRequest] = useState<Request | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [approvedRequest, setApprovedRequest] = useState<Request | null>(null)
+  const [whatsappMessage, setWhatsappMessage] = useState('')
+  const [showTeamStats, setShowTeamStats] = useState(false)
 
   const pendingRequests = requests.filter(r => r.status === 'pending')
   const processedRequests = requests.filter(r => r.status !== 'pending')
@@ -114,13 +134,36 @@ export default function ReleaseRequestsAdminClient({
           : r
       ))
 
-      alert('Release approved successfully!')
+      // Generate WhatsApp message
+      const message = generateWhatsAppMessage(request)
+      setWhatsappMessage(message)
+      setApprovedRequest(request)
+      setShowSuccessModal(true)
+
       router.refresh()
     } catch (error: any) {
       alert(error.message || 'Failed to approve request')
     } finally {
       setProcessingId(null)
     }
+  }
+
+  const generateWhatsAppMessage = (request: Request) => {
+    return `✅ *Release Approved - ${request.teamName}*
+
+*Player Released:* ${request.playerName}
+
+*Financial Details:*
+Refund: £${request.refundAmount.toLocaleString()}
+Previous Budget: £${request.currentBudget.toLocaleString()}
+New Budget: £${request.newBudget.toLocaleString()}
+
+_Release processed by admin_`
+  }
+
+  const copyToWhatsApp = () => {
+    navigator.clipboard.writeText(whatsappMessage)
+    alert('Copied to clipboard! You can now paste it in WhatsApp')
   }
 
   const openRejectModal = (request: Request) => {
@@ -236,6 +279,113 @@ export default function ReleaseRequestsAdminClient({
             {requests.filter(r => r.status === 'rejected').length}
           </div>
         </div>
+      </div>
+
+      {/* Team Release Statistics - Expandable */}
+      <div className="mb-8">
+        <button
+          onClick={() => setShowTeamStats(!showTeamStats)}
+          className="w-full rounded-xl bg-white/5 border border-white/10 p-4 hover:bg-white/10 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <div className="text-left">
+                <h2 className="text-lg font-black text-white">Team Release Statistics</h2>
+                <p className="text-sm text-gray-400">View release usage for all {teamStats.length} teams</p>
+              </div>
+            </div>
+            <svg
+              className={`w-6 h-6 text-gray-400 transition-transform duration-200 ${showTeamStats ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        {showTeamStats && (
+          <div className="mt-4 rounded-xl bg-white/5 border border-white/10 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {teamStats.map(team => (
+                <div key={team.teamId} className="rounded-lg bg-[#111111] border border-white/10 p-4">
+                  {/* Team Header */}
+                  <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/10">
+                    {team.teamLogo && (
+                      <div className="w-10 h-10 rounded overflow-hidden bg-white/5 flex-shrink-0">
+                        <img src={team.teamLogo} alt={team.teamName} className="w-full h-full object-contain" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-black text-white truncate">{team.teamName}</h3>
+                      <p className="text-xs text-gray-400">Budget: {formatCurrency(team.currentBudget)}</p>
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Total Requests</span>
+                      <span className={`text-sm font-bold ${
+                        team.totalRequests >= 3 ? 'text-red-400' : 'text-white'
+                      }`}>
+                        {team.totalRequests}/3
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Approved</span>
+                      <span className={`text-sm font-bold ${
+                        team.approvedReleases >= 3 ? 'text-red-400' : 'text-emerald-400'
+                      }`}>
+                        {team.approvedReleases}/3
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Pending</span>
+                      <span className="text-sm font-bold text-yellow-400">{team.pendingRequests}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Rejected</span>
+                      <span className="text-sm font-bold text-red-400">{team.rejectedRequests}</span>
+                    </div>
+                  </div>
+
+                  {/* Remaining Slots */}
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Remaining Slots</span>
+                      <span className={`text-sm font-bold ${
+                        team.remainingRequests === 0 ? 'text-red-400' : 'text-blue-400'
+                      }`}>
+                        {team.remainingRequests}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  {team.totalRequests >= 3 && (
+                    <div className="mt-3">
+                      <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                        LIMIT REACHED
+                      </span>
+                    </div>
+                  )}
+                  {team.totalRequests === 0 && (
+                    <div className="mt-3">
+                      <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                        NO REQUESTS
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pending Requests - Grouped by Team */}
@@ -424,6 +574,50 @@ export default function ReleaseRequestsAdminClient({
                 className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-colors"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal with WhatsApp Copy */}
+      {showSuccessModal && approvedRequest && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111111] border border-emerald-500/30 rounded-xl p-6 max-w-md w-full">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black text-white mb-2">Release Approved!</h3>
+              <p className="text-gray-400 text-sm">
+                {approvedRequest.playerName} has been released from {approvedRequest.teamName}
+              </p>
+            </div>
+
+            <div className="bg-[#0a0a0a] rounded-lg p-4 mb-4 border border-white/10">
+              <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">{whatsappMessage}</pre>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={copyToWhatsApp}
+                className="flex-1 px-4 py-3 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Copy for WhatsApp
+              </button>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false)
+                  setApprovedRequest(null)
+                }}
+                className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

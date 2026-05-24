@@ -63,7 +63,50 @@ export default async function ReleaseRequestsAdminPage({
     ],
   })
 
-  // Get team budgets
+  // Get ALL teams in this season
+  const allSeasonTeams = await prisma.season_teams.findMany({
+    where: {
+      seasonId,
+    },
+    include: {
+      team: {
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true,
+        },
+      },
+    },
+    orderBy: {
+      team: {
+        name: 'asc',
+      },
+    },
+  })
+
+  // Calculate release stats for each team
+  const teamStats = allSeasonTeams.map(st => {
+    const teamRequests = requests.filter(r => r.teamId === st.teamId)
+    const totalRequests = teamRequests.length
+    const approvedReleases = teamRequests.filter(r => r.status === 'approved').length
+    const pendingRequests = teamRequests.filter(r => r.status === 'pending').length
+    const rejectedRequests = teamRequests.filter(r => r.status === 'rejected').length
+
+    return {
+      teamId: st.teamId,
+      teamName: st.team.name,
+      teamLogo: st.team.logoUrl,
+      currentBudget: st.currentBudget,
+      totalRequests,
+      approvedReleases,
+      pendingRequests,
+      rejectedRequests,
+      remainingRequests: 3 - totalRequests,
+      remainingApprovals: 3 - approvedReleases,
+    }
+  })
+
+  // Get team budgets for existing requests
   const teamIds = [...new Set(requests.map(r => r.teamId))]
   const seasonTeams = await prisma.season_teams.findMany({
     where: {
@@ -108,6 +151,7 @@ export default async function ReleaseRequestsAdminPage({
           seasonName={season.name}
           releaseWindowOpen={season.releaseWindowOpen}
           requests={transformedRequests}
+          teamStats={teamStats}
         />
       </div>
     </div>

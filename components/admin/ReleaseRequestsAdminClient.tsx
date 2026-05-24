@@ -65,6 +65,7 @@ export default function ReleaseRequestsAdminClient({
   const [approvedRequest, setApprovedRequest] = useState<Request | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState('')
   const [showTeamStats, setShowTeamStats] = useState(false)
+  const [bulkProcessingTeamId, setBulkProcessingTeamId] = useState<string | null>(null)
 
   const pendingRequests = requests.filter(r => r.status === 'pending')
   const processedRequests = requests.filter(r => r.status !== 'pending')
@@ -171,6 +172,82 @@ Previous Budget: £${request.currentBudget.toLocaleString()}
 New Budget: £${request.newBudget.toLocaleString()}
 
 _Release processed by admin_`
+  }
+
+  const generateBulkWhatsAppMessage = (teamName: string, approvedRequests: Request[], finalBudget: number, initialBudget: number) => {
+    const playersList = approvedRequests
+      .map((req, index) => `${index + 1}. ${req.playerName} (£${req.refundAmount.toLocaleString()})`)
+      .join('\n')
+    
+    const totalRefund = approvedRequests.reduce((sum, req) => sum + req.refundAmount, 0)
+    
+    return `✅ *Releases Approved - ${teamName}*
+
+*Players Released:*
+${playersList}
+
+*Financial Summary:*
+Total Refund: £${totalRefund.toLocaleString()}
+Previous Budget: £${initialBudget.toLocaleString()}
+New Budget: £${finalBudget.toLocaleString()}
+
+*${approvedRequests.length} player${approvedRequests.length !== 1 ? 's' : ''} released*
+
+_All releases processed by admin_`
+  }
+
+  const handleApproveAllForTeam = async (teamId: string, teamName: string, teamRequests: Request[]) => {
+    if (!confirm(`Approve ALL ${teamRequests.length} release requests for ${teamName}?`)) {
+      return
+    }
+
+    setBulkProcessingTeamId(teamId)
+    const approvedRequests: Request[] = []
+    let currentBudget = teamRequests[0].currentBudget
+    
+    try {
+      // Process each request sequentially
+      for (const request of teamRequests) {
+        const response = await fetch(`/api/admin/release-requests/${request.id}/approve`, {
+          method: 'POST',
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(`Failed to approve ${request.playerName}: ${error.error}`)
+        }
+
+        // Update budget for next iteration
+        currentBudget += request.refundAmount
+        approvedRequests.push(request)
+
+        // Update local state for this request
+        setRequests(prev => prev.map(r =>
+          r.id === request.id
+            ? { ...r, status: 'approved', processedAt: new Date().toISOString() }
+            : r
+        ))
+      }
+
+      // Generate combined WhatsApp message
+      const message = generateBulkWhatsAppMessage(
+        teamName,
+        approvedRequests,
+        currentBudget,
+        teamRequests[0].currentBudget
+      )
+      setWhatsappMessage(message)
+      setApprovedRequest(null) // Use null to indicate bulk approval
+      setShowSuccessModal(true)
+
+      router.refresh()
+    } catch (error: any) {
+      alert(error.message || 'Failed to approve all requests')
+      // Refresh to get accurate state
+      router.refresh()
+    } finally {
+      setBulkProcessingTeamId(null)
+    }
   }
 
   const copyToWhatsApp = () => {

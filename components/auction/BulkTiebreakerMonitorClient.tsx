@@ -34,8 +34,9 @@ interface BulkTiebreakerMonitorClientProps {
       id: number
       teamId: string
       status: string
-      currentBid: number | null
-      lastBidTime: Date | null
+      newBidAmount: number | null
+      submitted: boolean
+      submittedAt: Date | null
       team: {
         id: string
         name: string
@@ -207,9 +208,9 @@ export default function BulkTiebreakerMonitorClient({
               <div className="text-xl font-bold text-white">£{liveData.basePrice.toLocaleString()}</div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Current Highest</div>
+              <div className="text-xs text-[#7A7367] mb-1">Submissions</div>
               <div className="text-xl font-bold text-[#E8A800]">
-                £{(liveData.currentHighestBid || liveData.basePrice).toLocaleString()}
+                {liveData.participants.filter(p => p.submitted).length} / {liveData.participants.filter(p => p.status === 'active').length}
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
@@ -227,9 +228,11 @@ export default function BulkTiebreakerMonitorClient({
               </div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Last Update</div>
-              <div className="text-sm font-medium text-white">
-                Manual refresh only
+              <div className="text-xs text-[#7A7367] mb-1">Winning Bid</div>
+              <div className="text-xl font-bold text-[#E8A800]">
+                {liveData.status === 'completed' && liveData.currentHighestBid 
+                  ? `£${liveData.currentHighestBid.toLocaleString()}`
+                  : 'Sealed'}
               </div>
             </div>
           </div>
@@ -252,10 +255,10 @@ export default function BulkTiebreakerMonitorClient({
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Bid History */}
+          {/* Sealed Bids Display (Admin View) */}
           <div className="lg:col-span-2">
-            {/* Current Leader */}
-            {highestBidder && liveData.status !== 'pending' && (
+            {/* Current Leader (only show if completed) */}
+            {highestBidder && liveData.status === 'completed' && (
               <div className="rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/30 p-6 mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 border border-white/10">
@@ -269,11 +272,11 @@ export default function BulkTiebreakerMonitorClient({
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="text-xs text-emerald-400 mb-1">Current Leader</div>
+                    <div className="text-xs text-emerald-400 mb-1">Winner</div>
                     <div className="text-xl font-bold text-white">{highestBidder.team.name}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-emerald-400 mb-1">Highest Bid</div>
+                    <div className="text-xs text-emerald-400 mb-1">Winning Bid</div>
                     <div className="text-2xl font-black text-[#E8A800]">
                       £{liveData.currentHighestBid?.toLocaleString()}
                     </div>
@@ -282,52 +285,81 @@ export default function BulkTiebreakerMonitorClient({
               </div>
             )}
 
-            {/* Bid History */}
+            {/* Sealed Bids Table */}
             <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Bid History</h2>
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {liveData.bidHistory.length === 0 ? (
-                  <p className="text-[#7A7367] text-center py-8">No bids yet</p>
+              <h2 className="text-xl font-bold text-white mb-4">
+                {liveData.status === 'completed' ? 'Final Bids' : 'Sealed Bids (Admin View)'}
+              </h2>
+              {liveData.status === 'active' && (
+                <p className="text-sm text-amber-400 mb-4">
+                  ⚠️ Bids are sealed and hidden from teams until all submit or admin resolves manually.
+                </p>
+              )}
+              <div className="space-y-2">
+                {liveData.participants.length === 0 ? (
+                  <p className="text-[#7A7367] text-center py-8">No participants</p>
                 ) : (
-                  liveData.bidHistory.map((bid, index) => (
-                    <div
-                      key={bid.id ? `bid-${bid.id}` : `bid-fallback-${index}`}
-                      className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
-                        index === 0
-                          ? 'bg-[#E8A800]/10 border-[#E8A800]/30'
-                          : 'bg-white/5 border-white/10'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                          <Image
-                            src={bid.team.logoUrl}
-                            alt={bid.team.name}
-                            width={40}
-                            height={40}
-                            unoptimized={true}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <div className="font-medium text-white">{bid.team.name}</div>
-                          <div className="text-xs text-[#7A7367]" suppressHydrationWarning>
-                            {new Date(bid.bidTime).toLocaleString()}
+                  liveData.participants
+                    .sort((a, b) => (b.newBidAmount || 0) - (a.newBidAmount || 0))
+                    .map((participant, index) => (
+                      <div
+                        key={participant.id ? `participant-${participant.id}` : `participant-fallback-${index}`}
+                        className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                          liveData.status === 'completed' && participant.teamId === liveData.currentHighestTeamId
+                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                            : participant.status === 'active'
+                            ? 'bg-white/5 border-white/10'
+                            : 'bg-red-500/5 border-red-500/20 opacity-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                            <Image
+                              src={participant.team.logoUrl}
+                              alt={participant.team.name}
+                              width={40}
+                              height={40}
+                              unoptimized={true}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <div className="font-medium text-white flex items-center gap-2">
+                              {participant.team.name}
+                              {liveData.status === 'completed' && participant.teamId === liveData.currentHighestTeamId && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">
+                                  Winner
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-[#7A7367]">
+                              {participant.submitted ? (
+                                <span className="text-emerald-400">✓ Submitted</span>
+                              ) : participant.status === 'active' ? (
+                                <span className="text-amber-400">Pending</span>
+                              ) : (
+                                <span className="text-red-400">Withdrawn</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-xl font-bold ${
-                          index === 0 ? 'text-[#E8A800]' : 'text-white'
-                        }`}>
-                          £{bid.bidAmount.toLocaleString()}
+                        <div className="text-right">
+                          {participant.newBidAmount ? (
+                            <div className={`text-xl font-bold ${
+                              liveData.status === 'completed' && participant.teamId === liveData.currentHighestTeamId
+                                ? 'text-[#E8A800]'
+                                : 'text-white'
+                            }`}>
+                              £{participant.newBidAmount.toLocaleString()}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-[#7A7367]">
+                              {participant.status === 'active' ? 'Not submitted' : 'Withdrawn'}
+                            </div>
+                          )}
                         </div>
-                        {index === 0 && (
-                          <div className="text-xs text-[#E8A800]">Latest</div>
-                        )}
                       </div>
-                    </div>
-                  ))
+                    ))
                 )}
               </div>
             </div>
@@ -336,12 +368,23 @@ export default function BulkTiebreakerMonitorClient({
           {/* Participants Panel */}
           <div className="lg:col-span-1">
             <div className="rounded-xl bg-white/5 border border-white/10 p-6 sticky top-6">
-              <h2 className="text-xl font-bold text-white mb-4">Participants</h2>
+              <h2 className="text-xl font-bold text-white mb-4">Submission Status</h2>
+              <div className="mb-4 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                <div className="text-xs text-purple-400 mb-1">Progress</div>
+                <div className="text-2xl font-bold text-white">
+                  {liveData.participants.filter(p => p.submitted).length} / {liveData.participants.filter(p => p.status === 'active').length}
+                </div>
+                <div className="text-xs text-purple-300 mt-1">teams submitted</div>
+              </div>
               <div className="space-y-3">
                 {liveData.participants
-                  .sort((a, b) => (b.currentBid || 0) - (a.currentBid || 0))
+                  .sort((a, b) => {
+                    // Sort by submission status first, then by bid amount
+                    if (a.submitted !== b.submitted) return a.submitted ? -1 : 1
+                    return (b.newBidAmount || 0) - (a.newBidAmount || 0)
+                  })
                   .map((participant, index) => {
-                    const isLeading = participant.teamId === liveData.currentHighestTeamId;
+                    const isLeading = liveData.status === 'completed' && participant.teamId === liveData.currentHighestTeamId
                     return (
                       <div
                         key={participant.id ? `participant-${participant.id}` : `participant-fallback-${index}`}
@@ -369,29 +412,33 @@ export default function BulkTiebreakerMonitorClient({
                               {participant.team.name}
                             </div>
                             {isLeading && participant.status === 'active' && (
-                              <div className="text-xs text-emerald-400">Leading</div>
+                              <div className="text-xs text-emerald-400">Winner</div>
                             )}
                           </div>
                         </div>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-medium ${
-                          participant.status === 'active' ? 'text-emerald-400' : 'text-red-400'
-                        }`}>
-                          {participant.status === 'active' ? 'Active' : 'Withdrawn'}
-                        </span>
-                        {participant.currentBid && (
-                          <span className="text-sm font-bold text-[#E8A800]">
-                            £{participant.currentBid.toLocaleString()}
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-medium ${
+                            participant.submitted
+                              ? 'text-emerald-400'
+                              : participant.status === 'active'
+                              ? 'text-amber-400'
+                              : 'text-red-400'
+                          }`}>
+                            {participant.submitted ? '✓ Submitted' : participant.status === 'active' ? 'Pending' : 'Withdrawn'}
                           </span>
+                          {participant.newBidAmount && liveData.status === 'completed' && (
+                            <span className="text-sm font-bold text-[#E8A800]">
+                              £{participant.newBidAmount.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        {participant.submittedAt && (
+                          <div className="text-xs text-[#7A7367] mt-2" suppressHydrationWarning>
+                            Submitted: {new Date(participant.submittedAt).toLocaleTimeString()}
+                          </div>
                         )}
                       </div>
-                      {participant.lastBidTime && (
-                        <div className="text-xs text-[#7A7367] mt-2" suppressHydrationWarning>
-                          Last bid: {new Date(participant.lastBidTime).toLocaleTimeString()}
-                        </div>
-                      )}
-                      </div>
-                    );
+                    )
                   })}
               </div>
             </div>

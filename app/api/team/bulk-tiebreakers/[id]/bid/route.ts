@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { placeBulkTiebreakerBid } from '@/lib/auction/finalize-bulk-tiebreaker';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * POST /api/team/bulk-tiebreakers/[id]/bid - Place bid in bulk tiebreaker
+ * POST /api/team/bulk-tiebreakers/[id]/bid - Submit sealed bid in bulk tiebreaker
+ * Changed to sealed bid model (like normal tiebreakers) - submit once, highest wins
  */
 export async function POST(
   request: NextRequest,
@@ -32,28 +32,86 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { bidAmount } = body;
+    const { newBidAmount } = body;
 
     // Validate bid amount
-    if (typeof bidAmount !== 'number' || bidAmount <= 0) {
+    if (typeof newBidAmount !== 'number' || newBidAmount <= 0) {
       return NextResponse.json(
         { error: 'Invalid bid amount' },
         { status: 400 }
       );
     }
 
-    // Place bid using utility function
-    const result = await placeBulkTiebreakerBid(tiebreakerId, teamId, bidAmount);
+    // Get tiebreaker details
+    const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
+      where: { id: tiebreakerId },
+      include: {
+        participants: {
+          where: { teamId }
+        }
+      }
+    });
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to place bid' },
-        { status: 400 }
-      );
+    if (!tiebreaker) {
+      return NextResponse.json({ error: 'Tiebreaker not found' }, { status: 404 });
     }
 
-    // Fetch the updated tiebreaker details to return immediately, matching GET route structure
-    const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
+    if (tiebreaker.status !== 'active') {
+      return NextResponse.json({ error: 'Tiebreaker is not active' }, { status: 400 });
+    }
+
+    const myParticipation = tiebreaker.participants[0];
+    if (!myParticipation) {
+      return NextResponse.json({ error: 'You are not a participant in this tiebreaker' }, { status: 400 });
+    }
+
+    if (myParticipation.status === 'withdrawn') {
+      return NextResponse.json({ error: 'You have withdrawn from this tiebreaker' }, { status: 400 });
+    }
+
+    if (myParticipation.submitted) {
+      return NextResponse.json({ error: 'You have already submitted your bid' }, { status: 400 });
+    }
+
+    // Validate bid is higher than base price
+    if (newBidAmount <= tiebreaker.basePrice) {
+      return NextResponse.json({
+        error: `Bid must be higher than base price of £${tiebreaker.basePrice.toLocaleString()}`
+      }, { status: 400 });
+    }
+
+    // Submit sealed bid
+    await prisma.bulk_tiebreaker_participants.update({
+      where: { id: myParticipation.id },
+      data: {
+        newBidAmount,
+        submitted: true,
+        submittedAt: new Date()
+      }
+    });
+
+    // Check if all active participants have submitted
+    const allParticipants = await prisma.bulk_tiebreaker_participants.findMany({
+      where: {
+        tiebreakerId,
+        status: 'active'
+      }
+    });
+
+    const allSubmitted = allParticipants.every(p => p.submitted);
+
+    // If all submitted, trigger resolution asynchronously
+    if (allSubmitted) {
+      // Import and call resolution function asynchronously
+      import('@/lib/auction/resolve-bulk-tiebreaker').then(({ resolveBulkTiebreaker }) => {
+        resolveBulkTiebreaker(tiebreakerId).catch(err => {
+          console.error(`Failed to auto-resolve bulk tiebreaker ${tiebreakerId}:`, err);
+        });
+      });
+    }
+
+    // Fetch updated tiebreaker (without revealing other bids)
+    const updatedTiebreaker = await prisma.bulk_tiebreakers.findUnique({
       where: { id: tiebreakerId },
       select: {
         id: true,
@@ -78,37 +136,29 @@ export async function POST(
             teamId: true,
             status: true,
             currentBid: true,
-            lastBidTime: true
-          }
-        },
-        bidHistory: {
-          orderBy: {
-            bidTime: 'desc'
-          },
-          take: 20,
-          select: {
-            id: true,
-            teamId: true,
-            bidAmount: true,
-            bidTime: true
+            submitted: true,
+            submittedAt: true,
+            // Don't include newBidAmount - keep it sealed!
           }
         }
       }
     });
 
-    const myParticipation = tiebreaker?.participants.find(p => p.teamId === teamId);
+    const myUpdatedParticipation = updatedTiebreaker?.participants.find(p => p.teamId === teamId);
 
     return NextResponse.json({
       success: true,
-      bidAmount,
-      message: 'Bid placed successfully',
-      tiebreaker,
-      myParticipation: myParticipation || null
+      message: allSubmitted 
+        ? 'Bid submitted! All teams have submitted. Resolution in progress...'
+        : 'Bid submitted successfully! Waiting for other teams...',
+      resolutionInProgress: allSubmitted,
+      tiebreaker: updatedTiebreaker,
+      myParticipation: myUpdatedParticipation || null
     });
   } catch (error) {
-    console.error('Place bulk tiebreaker bid error:', error);
+    console.error('Submit bulk tiebreaker bid error:', error);
     return NextResponse.json(
-      { error: 'Failed to place bid' },
+      { error: 'Failed to submit bid' },
       { status: 500 }
     );
   }

@@ -6,7 +6,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/team/bulk-tiebreakers/[id] - Get bulk tiebreaker info
+ * GET /api/team/bulk-tiebreakers/[id]/status - Poll tiebreaker status and submission progress
+ * Used for sealed bid model to check if all teams have submitted
  */
 export async function GET(
   request: NextRequest,
@@ -30,32 +31,18 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid tiebreaker ID' }, { status: 400 });
     }
 
-    // Get tiebreaker details
+    // Get tiebreaker status and submission progress
     const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
       where: { id: tiebreakerId },
       select: {
         id: true,
-        roundId: true,
-        basePlayerId: true,
-        basePrice: true,
         status: true,
         currentHighestBid: true,
         currentHighestTeamId: true,
-        teamsRemaining: true,
-        startTime: true,
-        maxEndTime: true,
-        createdAt: true,
-        basePlayer: {
-          select: {
-            name: true,
-            photoUrl: true
-          }
-        },
         participants: {
           select: {
             teamId: true,
             status: true,
-            newBidAmount: true,
             submitted: true,
             submittedAt: true
           }
@@ -67,9 +54,8 @@ export async function GET(
       return NextResponse.json({ error: 'Tiebreaker not found' }, { status: 404 });
     }
 
-    // Get team's participation status
+    // Check if team is participant
     const myParticipation = tiebreaker.participants.find(p => p.teamId === teamId);
-
     if (!myParticipation) {
       return NextResponse.json(
         { error: 'Team is not part of this tiebreaker' },
@@ -77,48 +63,30 @@ export async function GET(
       );
     }
 
-    // For sealed bid model: hide other teams' bid amounts (keep sealed)
-    // Only show submission status for all teams, and own bid amount
-    const participantsWithHiddenBids = tiebreaker.participants.map(p => ({
-      teamId: p.teamId,
-      status: p.status,
-      submitted: p.submitted,
-      submittedAt: p.submittedAt,
-      // Only reveal own bid amount
-      newBidAmount: p.teamId === teamId ? p.newBidAmount : null
-    }));
-
-    // Calculate time remaining
-    let timeRemaining = null;
-    if (tiebreaker.maxEndTime && tiebreaker.status === 'active') {
-      const now = new Date();
-      const endTime = new Date(tiebreaker.maxEndTime);
-      const diffMs = endTime.getTime() - now.getTime();
-      
-      if (diffMs > 0) {
-        timeRemaining = {
-          milliseconds: diffMs,
-          seconds: Math.floor(diffMs / 1000),
-          minutes: Math.floor(diffMs / (1000 * 60)),
-          hours: Math.floor(diffMs / (1000 * 60 * 60))
-        };
-      }
-    }
+    // Count submissions
+    const activeParticipants = tiebreaker.participants.filter(p => p.status === 'active');
+    const submittedCount = activeParticipants.filter(p => p.submitted).length;
+    const totalCount = activeParticipants.length;
 
     return NextResponse.json({
       success: true,
-      tiebreaker: {
-        ...tiebreaker,
-        participants: participantsWithHiddenBids,
-        timeRemaining
+      status: tiebreaker.status,
+      submissionProgress: {
+        submitted: submittedCount,
+        total: totalCount,
+        allSubmitted: submittedCount === totalCount
       },
-      myParticipation: {
-        teamId: myParticipation.teamId,
-        status: myParticipation.status,
-        newBidAmount: myParticipation.newBidAmount,
-        submitted: myParticipation.submitted,
-        submittedAt: myParticipation.submittedAt
-      }
+      participants: tiebreaker.participants.map(p => ({
+        teamId: p.teamId,
+        status: p.status,
+        submitted: p.submitted,
+        submittedAt: p.submittedAt
+      })),
+      // Only reveal winner info if completed
+      winner: tiebreaker.status === 'completed' ? {
+        teamId: tiebreaker.currentHighestTeamId,
+        bidAmount: tiebreaker.currentHighestBid
+      } : null
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -127,9 +95,9 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('Get bulk tiebreaker info error:', error);
+    console.error('Get bulk tiebreaker status error:', error);
     return NextResponse.json(
-      { error: 'Failed to get tiebreaker info' },
+      { error: 'Failed to get tiebreaker status' },
       { status: 500 }
     );
   }

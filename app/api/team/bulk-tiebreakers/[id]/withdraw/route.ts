@@ -31,6 +31,21 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid tiebreaker ID' }, { status: 400 });
     }
 
+    // Check if team has already submitted (sealed bid model)
+    const participant = await prisma.bulk_tiebreaker_participants.findFirst({
+      where: {
+        tiebreakerId,
+        teamId
+      }
+    });
+
+    if (participant?.submitted) {
+      return NextResponse.json(
+        { error: 'Cannot withdraw after submitting your bid' },
+        { status: 400 }
+      );
+    }
+
     // Withdraw using utility function
     const result = await withdrawFromBulkTiebreaker(tiebreakerId, teamId);
 
@@ -66,20 +81,9 @@ export async function POST(
           select: {
             teamId: true,
             status: true,
-            currentBid: true,
-            lastBidTime: true
-          }
-        },
-        bidHistory: {
-          orderBy: {
-            bidTime: 'desc'
-          },
-          take: 20,
-          select: {
-            id: true,
-            teamId: true,
-            bidAmount: true,
-            bidTime: true
+            newBidAmount: true,
+            submitted: true,
+            submittedAt: true
           }
         }
       }

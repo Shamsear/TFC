@@ -763,8 +763,11 @@ model bulk_tiebreaker_participants {
   tiebreakerId    Int               @map("tiebreaker_id")
   teamId          String            @map("team_id")
   status          String            @default("active") // 'active' | 'withdrawn'
-  currentBid      Int?              @map("current_bid")
+  currentBid      Int?              @map("current_bid") // Original/base bid amount
   lastBidTime     DateTime?         @map("last_bid_time")
+  newBidAmount    Int?              @map("new_bid_amount") // Sealed bid (hidden until all submit)
+  submitted       Boolean           @default(false) // Whether sealed bid submitted
+  submittedAt     DateTime?         @map("submitted_at") // When sealed bid submitted
   tiebreaker      bulk_tiebreakers  @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
   team            teams             @relation("BulkTiebreakerParticipants", fields: [teamId], references: [id], onDelete: Cascade)
 

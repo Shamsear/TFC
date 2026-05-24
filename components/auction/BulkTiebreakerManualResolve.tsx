@@ -7,7 +7,9 @@ import { useRouter } from 'next/navigation'
 interface Participant {
   id: number
   teamId: string
-  currentBid: number | null
+  newBidAmount: number | null
+  submitted: boolean
+  submittedAt: Date | null
   team: {
     id: string
     name: string
@@ -38,7 +40,7 @@ export default function BulkTiebreakerManualResolve({
   const [teamBids, setTeamBids] = useState<Record<string, number>>(
     participants.reduce((acc, p) => ({
       ...acc,
-      [p.teamId]: p.currentBid || basePrice
+      [p.teamId]: p.newBidAmount || basePrice
     }), {})
   )
   const [selectedWinner, setSelectedWinner] = useState<string>('')
@@ -174,7 +176,10 @@ export default function BulkTiebreakerManualResolve({
 
       {/* Team Bids */}
       <div className="space-y-4 mb-6">
-        <h3 className="text-lg font-semibold text-white">Team Bids</h3>
+        <h3 className="text-lg font-semibold text-white">Team Sealed Bids</h3>
+        <p className="text-sm text-[#7A7367]">
+          Admin can see all sealed bids. Teams marked as "Not Submitted" haven't submitted yet.
+        </p>
         {participants.map((participant) => {
           const currentBudget = participant.team.currentBudget || 0
           const bidAmount = teamBids[participant.teamId] || basePrice
@@ -211,7 +216,19 @@ export default function BulkTiebreakerManualResolve({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <div className="font-medium text-white mb-1">{participant.team.name}</div>
+                      <div className="font-medium text-white mb-1 flex items-center gap-2">
+                        {participant.team.name}
+                        {!participant.submitted && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30">
+                            Not Submitted
+                          </span>
+                        )}
+                        {participant.submitted && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                            ✓ Submitted
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 text-xs text-[#7A7367]">
                         <span>Budget: £{currentBudget.toLocaleString()}</span>
                         <span>•</span>

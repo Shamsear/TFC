@@ -78,11 +78,12 @@ export default async function BulkRoundPage({
     redirect("/team/auction")
   }
 
-  // Get current squad size
+  // Get current squad size (only ACTIVE players)
   const squadSize = await prisma.transfer_history.count({
     where: {
       teamId: teamId,
-      seasonId: round.seasonId
+      seasonId: round.seasonId,
+      status: 'ACTIVE'
     }
   })
 
@@ -97,11 +98,12 @@ export default async function BulkRoundPage({
       } : {}),
       // Filter by position_group if specified (and not 'ALL')
       ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
-      // Exclude already owned players
+      // Exclude only ACTIVE players (released players are available)
       basePlayer: {
         transferHistory: {
           none: {
-            seasonId: round.seasonId
+            seasonId: round.seasonId,
+            status: 'ACTIVE'
           }
         }
       }

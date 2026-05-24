@@ -195,7 +195,18 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
     if (sorted.length > 1 && sorted[0].newBidAmount === sorted[1].newBidAmount) {
       console.log('🔄 Another tie detected - creating new tiebreaker');
       
-      // Mark current tiebreaker as completed (tie)
+      // Get all teams that tied at the highest bid
+      const highestBid = sorted[0].newBidAmount!;
+      const tiedTeams = sorted.filter(b => b.newBidAmount === highestBid);
+      
+      // Generate proper IDs using centralized ID generator
+      const newTiebreakerId = await generateTiebreakerId();
+      
+      console.log(`   Creating new tiebreaker: ${newTiebreakerId}`);
+      console.log(`   Tied teams: ${tiedTeams.map(t => t.teamId).join(', ')}`);
+      console.log(`   Tied amount: £${highestBid}`);
+      
+      // Mark current tiebreaker as completed (no winner - another tie)
       await prisma.tiebreakers.update({
         where: { id: tiebreakerId },
         data: {
@@ -205,14 +216,10 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
         }
       });
       
-      // Get all teams that tied at the highest bid
-      const highestBid = sorted[0].newBidAmount!;
-      const tiedTeams = sorted.filter(b => b.newBidAmount === highestBid);
-      
       // Create new tiebreaker for the tied teams
-      const newTiebreaker = await prisma.tiebreakers.create({
+      await prisma.tiebreakers.create({
         data: {
-          id: `TB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: newTiebreakerId,
           roundId: tiebreaker.roundId,
           basePlayerId: tiebreaker.basePlayerId,
           originalAmount: highestBid,
@@ -221,12 +228,12 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
         }
       });
       
-      // Create bid entries for tied teams
+      // Create bid entries for tied teams with proper IDs
       for (const team of tiedTeams) {
         await prisma.team_tiebreaker_bids.create({
           data: {
-            id: `TTB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            tiebreakerId: newTiebreaker.id,
+            id: `${newTiebreakerId}_${team.teamId}`,
+            tiebreakerId: newTiebreakerId,
             teamId: team.teamId,
             oldBidAmount: highestBid,
             newBidAmount: null,
@@ -235,12 +242,13 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
         });
       }
       
-      console.log(`✅ New tiebreaker created: ${newTiebreaker.id} with ${tiedTeams.length} teams`);
+      console.log(`✅ New tiebreaker created: ${newTiebreakerId} with ${tiedTeams.length} teams`);
+      console.log('='.repeat(80) + '\n');
       
       return { 
         success: false, 
         error: `Another tie detected at £${highestBid}. New tiebreaker created.`,
-        newTiebreakerId: newTiebreaker.id
+        newTiebreakerId: newTiebreakerId
       };
     }
 
@@ -272,6 +280,8 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
 
 /**
  * Apply tiebreaker result to database
+ * NOTE: This only marks the tiebreaker as resolved with a winner.
+ * The actual player allocation (transfer_history, budget, ledger) is done by finalization.
  */
 export async function applyTiebreakerResult(
   tiebreakerId: string,
@@ -279,7 +289,7 @@ export async function applyTiebreakerResult(
   winningBid: number
 ): Promise<void> {
   console.log('\n' + '='.repeat(80));
-  console.log('💾 APPLYING TIEBREAKER RESULT');
+  console.log('💾 MARKING TIEBREAKER WINNER');
   console.log('='.repeat(80));
   console.log(`Tiebreaker ID: ${tiebreakerId} | Winner ID: ${winnerId} | Bid: £${winningBid.toLocaleString()}\n`);
 
@@ -288,9 +298,7 @@ export async function applyTiebreakerResult(
     select: {
       basePlayerId: true,
       roundId: true,
-      round: {
-        select: { seasonId: true }
-      },
+      status: true,
       basePlayer: {
         select: { name: true }
       }
@@ -301,87 +309,26 @@ export async function applyTiebreakerResult(
     throw new Error('Tiebreaker not found');
   }
 
-  await prisma.$transaction(async (tx) => {
-    // Check if transfer already exists for this player in this season
-    const existingTransfer = await tx.transfer_history.findFirst({
-      where: {
-        basePlayerId: tiebreaker.basePlayerId,
-        seasonId: tiebreaker.round.seasonId,
-        teamId: winnerId
-      }
-    });
-    
-    if (existingTransfer) {
-      console.warn(`⚠️  Transfer already exists for player ${tiebreaker.basePlayerId} to team ${winnerId}, skipping creation`);
-      // Still update budget and mark tiebreaker as resolved
-    } else {
-      // 1. Create transfer history
-      const transferId = await generateTransferId();
-      await tx.transfer_history.create({
-        data: {
-          id: transferId,
-          basePlayerId: tiebreaker.basePlayerId,
-          seasonId: tiebreaker.round.seasonId,
-          teamId: winnerId,
-          soldPrice: winningBid
-        }
-      });
-    }
+  if (tiebreaker.status === 'completed') {
+    console.log(`⚠️  Tiebreaker already completed, skipping`);
+    console.log('='.repeat(80) + '\n');
+    return;
+  }
 
-    // 2. Update team budget
-    const seasonTeam = await tx.season_teams.findUnique({
-      where: {
-        seasonId_teamId: {
-          seasonId: tiebreaker.round.seasonId,
-          teamId: winnerId
-        }
-      }
-    });
-
-    if (seasonTeam) {
-      const newBudget = seasonTeam.currentBudget - winningBid;
-
-      await tx.season_teams.update({
-        where: {
-          seasonId_teamId: {
-            seasonId: tiebreaker.round.seasonId,
-            teamId: winnerId
-          }
-        },
-        data: { currentBudget: newBudget }
-      });
-
-      // 3. Check for existing ledger entry to prevent duplicates
-      const existingLedger = await tx.financial_ledger.findFirst({
-        where: {
-          seasonTeamId: seasonTeam.id,
-          transactionType: 'PLAYER_PURCHASE',
-          amount: -winningBid,
-          description: `Tiebreaker ${tiebreakerId} - Player purchase`
-        }
-      });
-      
-      if (existingLedger) {
-        console.warn(`⚠️  Ledger entry already exists for tiebreaker ${tiebreakerId}, skipping`);
-      } else {
-        // Insert financial ledger entry
-        const ledgerId = await generateFinancialId();
-        await tx.financial_ledger.create({
-          data: {
-            id: ledgerId,
-            seasonTeamId: seasonTeam.id,
-            seasonId: tiebreaker.round.seasonId,
-            transactionType: 'PLAYER_PURCHASE',
-            amount: -winningBid,
-            previousBalance: seasonTeam.currentBudget,
-            newBalance: newBudget,
-            description: `Tiebreaker ${tiebreakerId} - Player purchase`,
-            playerName: tiebreaker.basePlayer.name
-          }
-        });
-      }
+  // Only update the tiebreaker to mark the winner
+  // The finalization process will handle the actual allocation
+  await prisma.tiebreakers.update({
+    where: { id: tiebreakerId },
+    data: {
+      status: 'completed',
+      winningTeamId: winnerId,
+      winningBid: winningBid
     }
   });
+
+  console.log(`✅ Tiebreaker winner marked: ${tiebreaker.basePlayer.name} → Team ${winnerId}`);
+  console.log(`   ℹ️  Player allocation will be done by finalization process`);
+  console.log('='.repeat(80) + '\n');
 }
 
 /**

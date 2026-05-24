@@ -503,7 +503,29 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
       };
     }
 
-    // 2. Check if resuming from previous tiebreaker
+    // 2. Check for completed tiebreakers first
+    console.log('🔍 Step 1.5: Checking for completed tiebreakers...');
+    const completedTiebreakers = await prisma.tiebreakers.findMany({
+      where: {
+        roundId,
+        status: 'completed',
+        winningTeamId: { not: null },
+        winningBid: { not: null }
+      },
+      select: {
+        id: true,
+        basePlayerId: true,
+        winningTeamId: true,
+        winningBid: true,
+        basePlayer: {
+          select: { name: true }
+        }
+      }
+    });
+
+    console.log(`   ✓ Found ${completedTiebreakers.length} completed tiebreakers\n`);
+
+    // 3. Check if resuming from previous tiebreaker
     let allocatedTeams = new Set<string>();
     let allocatedPlayers = new Set<string>();
     let existingAllocations: Allocation[] = [];
@@ -524,7 +546,34 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
       console.log('   ✓ Starting fresh finalization\n');
     }
 
-    // 3. Fetch all team bids
+    // 4. Add completed tiebreakers to allocations (if not already allocated)
+    if (completedTiebreakers.length > 0) {
+      console.log('🏆 Adding completed tiebreaker winners to allocations...');
+      for (const tb of completedTiebreakers) {
+        // Check if already allocated
+        if (allocatedPlayers.has(tb.basePlayerId)) {
+          console.log(`   ⚠️  Player ${tb.basePlayer.name} already allocated, skipping`);
+          continue;
+        }
+
+        console.log(`   ✓ ${tb.basePlayer.name} → Team ${tb.winningTeamId} (£${tb.winningBid!.toLocaleString()}) [Tiebreaker]`);
+        
+        existingAllocations.push({
+          teamId: tb.winningTeamId!,
+          basePlayerId: tb.basePlayerId,
+          playerName: tb.basePlayer.name,
+          amount: tb.winningBid!,
+          acquisitionType: 'tiebreaker_won',
+          acquisitionNotes: `Won tiebreaker ${tb.id}`
+        });
+
+        allocatedTeams.add(tb.winningTeamId!);
+        allocatedPlayers.add(tb.basePlayerId);
+      }
+      console.log('');
+    }
+
+    // 5. Fetch all team bids
     console.log('📦 Step 2: Fetching and decrypting team bids...');
     const teamBids = await fetchAllBids(roundId);
     const submittedCount = teamBids.filter(tb => tb.submitted).length;

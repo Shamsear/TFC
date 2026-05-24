@@ -70,24 +70,34 @@ export function calculateReserveCore(
     const phase1Remaining = config.phase_1_end_round - currentRoundNumber;
     const phase2Full = config.phase_2_end_round - config.phase_1_end_round;
     
-    // Calculate players after Phase 1 and Phase 2
+    // Calculate players after Phase 1 (if we win this round + remaining Phase 1)
     const playersAfterPhase1 = teamSquadSize + 1 + phase1Remaining;
-    const playersAfterPhase2 = playersAfterPhase1 + phase2Full;
     
-    // Calculate Phase 3 slots needed to reach minimum squad
-    const phase3Slots = Math.max(0, config.min_squad_size - playersAfterPhase2);
+    // Calculate Phase 3 slots needed if team SKIPS all Phase 2
+    // This is the floor reserve - worst case scenario
+    const phase3SlotsIfSkipPhase2 = Math.max(0, config.min_squad_size - playersAfterPhase1);
+    
+    // Calculate Phase 3 slots needed if team PARTICIPATES in all Phase 2
+    // This is for the recommended reserve
+    const playersAfterPhase2 = playersAfterPhase1 + phase2Full;
+    const phase3SlotsIfDoPhase2 = Math.max(0, config.min_squad_size - playersAfterPhase2);
     
     // Calculate reserves
     const phase1Reserve = phase1Remaining * config.phase_1_min_balance;
     const phase2Reserve = phase2Full * config.phase_2_min_balance;
-    const phase3Reserve = phase3Slots * config.phase_3_min_balance;
+    const phase3ReserveIfSkip = phase3SlotsIfSkipPhase2 * config.phase_3_min_balance;
+    const phase3ReserveIfDo = phase3SlotsIfDoPhase2 * config.phase_3_min_balance;
     
     breakdown.phase1Reserve = phase1Reserve;
     breakdown.phase2Reserve = phase2Reserve;
-    breakdown.phase3Reserve = phase3Reserve;
+    breakdown.phase3Reserve = phase3ReserveIfDo;
     
-    const totalReserve = phase1Reserve + phase2Reserve + phase3Reserve;
-    const floorReserve = phase1Reserve + phase3Reserve;
+    // Floor reserve: Phase 1 + Phase 3 (if skip all Phase 2)
+    const floorReserve = phase1Reserve + phase3ReserveIfSkip;
+    
+    // Recommended reserve: Phase 1 + Phase 2 + Phase 3 (if do all Phase 2)
+    const totalReserve = phase1Reserve + phase2Reserve + phase3ReserveIfDo;
+    
     const maxBid = Math.max(0, teamBalance - floorReserve);
     const maxRecommendedBid = Math.max(0, teamBalance - totalReserve);
     
@@ -100,7 +110,7 @@ export function calculateReserveCore(
       enforceStrict: true,
       allowSkip: true,
       minimumToParticipate: config.phase_1_min_balance,
-      calculation: `Phase 1 Strict: ${phase1Remaining}×£${config.phase_1_min_balance} + Phase 3 Strict: ${phase3Slots}×£${config.phase_3_min_balance} = £${floorReserve} (to reach min squad ${config.min_squad_size}). Keep Phase 2 reserve (£${phase2Reserve}) to participate in all Phase 2 rounds.`,
+      calculation: `Phase 1 Strict: ${phase1Remaining}×£${config.phase_1_min_balance} + Phase 3 Strict: ${phase3SlotsIfSkipPhase2}×£${config.phase_3_min_balance} = £${floorReserve} (to reach min squad ${config.min_squad_size} if skip Phase 2). Keep Phase 2 reserve (£${phase2Reserve}) to participate in all Phase 2 rounds.`,
       breakdown,
       phase2MinBalance: config.phase_2_min_balance,
       phase2Rounds: phase2Full

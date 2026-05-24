@@ -58,6 +58,8 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
   const [isLoading, setIsLoading] = useState(true)
   const [isSelling, setIsSelling] = useState(false)
   const [error, setError] = useState('')
+  const [roundResults, setRoundResults] = useState<any[]>([])
+  const [showResults, setShowResults] = useState(false)
 
   // Unwrap params
   useEffect(() => {
@@ -119,6 +121,43 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
 
     fetchPlayers()
   }, [seasonId, selectedPosition])
+
+  // Fetch round results when position changes
+  useEffect(() => {
+    if (!seasonId || !selectedPosition || !calendar) return
+
+    const fetchRoundResults = async () => {
+      try {
+        // Find the round for this position
+        const slot = calendar.auction_slots?.find((s: any) => s.position === selectedPosition)
+        if (!slot?.roundId) {
+          setRoundResults([])
+          setShowResults(false)
+          return
+        }
+
+        // Fetch round details
+        const res = await fetch(`/api/admin/rounds/${slot.roundId}`)
+        if (!res.ok) throw new Error('Failed to fetch round')
+        const data = await res.json()
+
+        // Only show results if round is completed
+        if (data.round?.status === 'completed' && data.auctionResults) {
+          setRoundResults(data.auctionResults)
+          setShowResults(true)
+        } else {
+          setRoundResults([])
+          setShowResults(false)
+        }
+      } catch (err) {
+        console.error('Error fetching round results:', err)
+        setRoundResults([])
+        setShowResults(false)
+      }
+    }
+
+    fetchRoundResults()
+  }, [seasonId, selectedPosition, calendar])
 
   const handleSellPlayer = async () => {
     if (!selectedPlayer || !selectedTeam || !soldPrice) {
@@ -278,6 +317,83 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
               </div>
             </div>
 
+            {/* Round Results */}
+            {showResults && roundResults.length > 0 && (
+              <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">Round Completed</h3>
+                    <p className="text-sm text-emerald-300">{roundResults.length} players sold</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {roundResults.map((result: any) => {
+                    const playerStats = result.basePlayer.seasonalPlayerStats[0]
+                    return (
+                      <div key={result.id} className="flex items-center justify-between p-4 rounded-xl bg-black/30 border border-emerald-500/20">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
+                            {result.basePlayer.photoUrl && (
+                              <Image
+                                src={result.basePlayer.photoUrl}
+                                alt={result.basePlayer.name}
+                                fill
+                                className="object-cover"
+                              />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-white truncate">{result.basePlayer.name}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {playerStats && (
+                                <>
+                                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                                    {playerStats.position}
+                                  </span>
+                                  <span className="text-emerald-400 font-bold text-sm">
+                                    OVR {playerStats.overallRating}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="text-right">
+                            <div className="text-xs text-gray-400">Sold to</div>
+                            <div className="flex items-center gap-2">
+                              {result.team.logoUrl && (
+                                <div className="relative w-6 h-6 rounded overflow-hidden bg-gray-800">
+                                  <Image
+                                    src={result.team.logoUrl}
+                                    alt={result.team.name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              )}
+                              <span className="font-bold text-white text-sm">{result.team.name}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-400">Price</div>
+                            <div className="text-xl font-black text-emerald-400">
+                              £{result.soldPrice.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Players Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredPlayers.length === 0 ? (
@@ -410,14 +526,14 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                   <div key={team.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-                        <Image
-                          src={team.logoUrl}
-                          alt={team.name}
-                          width={32}
-                          height={32}
-                          className="object-cover"
-                          loading="lazy"
-                        />
+                        {team.logoUrl && (
+                          <Image
+                            src={team.logoUrl}
+                            alt={team.name}
+                            fill
+                            className="object-cover"
+                          />
+                        )}
                       </div>
                       <span className="text-sm font-medium text-white">{team.name}</span>
                     </div>

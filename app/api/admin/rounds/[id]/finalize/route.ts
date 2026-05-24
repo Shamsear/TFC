@@ -189,51 +189,6 @@ export async function POST(
       );
     }
 
-    // If Force Re-finalizing a tiebreaker_pending round, apply any completed-but-unapplied tiebreakers
-    // This prevents finalizeRound from re-detecting the same tie and creating duplicate tiebreakers
-    if (round.status === 'tiebreaker_pending') {
-      console.log('\n🔄 Force Re-finalize: checking for completed-but-unapplied tiebreakers...');
-      const completedTiebreakers = await prisma.tiebreakers.findMany({
-        where: { roundId, status: 'completed', winningTeamId: { not: null } },
-        select: {
-          id: true, winningTeamId: true, winningBid: true,
-          basePlayerId: true, basePlayer: { select: { name: true } },
-          round: { select: { seasonId: true, finalizationState: true } }
-        }
-      });
-
-      for (const tb of completedTiebreakers) {
-        // Check if this winner is already in the finalizationState allocations
-        const state = tb.round.finalizationState as any;
-        const alreadyApplied = state?.allocatedPlayers?.includes(tb.basePlayerId);
-        if (!alreadyApplied && tb.winningTeamId && tb.winningBid) {
-          console.log(`   ✓ Applying completed tiebreaker: ${tb.basePlayer.name} → Team ${tb.winningTeamId}`);
-          const { applyTiebreakerResult } = await import('@/lib/auction/tiebreaker');
-          await applyTiebreakerResult(tb.id, tb.winningTeamId, tb.winningBid);
-          // Update finalization state
-          const updatedState = {
-            ...(state || {}),
-            allocatedTeams: [...(state?.allocatedTeams || []), tb.winningTeamId],
-            allocatedPlayers: [...(state?.allocatedPlayers || []), tb.basePlayerId],
-            processedAllocations: [...(state?.processedAllocations || []), {
-              teamId: tb.winningTeamId,
-              basePlayerId: tb.basePlayerId,
-              playerName: tb.basePlayer.name,
-              amount: tb.winningBid,
-              acquisitionType: 'tiebreaker_won'
-            }]
-          };
-          await prisma.rounds.update({
-            where: { id: roundId },
-            data: { finalizationState: JSON.parse(JSON.stringify(updatedState)) }
-          });
-        } else {
-          console.log(`   ℹ️  Tiebreaker ${tb.id} already applied or no winner, skipping`);
-        }
-      }
-      console.log('   ✓ Completed tiebreaker cleanup done\n');
-    }
-
     // Finalize based on round type
     if (round.roundType === 'bulk') {
       const result = await finalizeBulkRound(roundId);

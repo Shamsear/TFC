@@ -117,6 +117,10 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [extendHours, setExtendHours] = useState(0)
   const [extendMinutes, setExtendMinutes] = useState(30)
   const [extending, setExtending] = useState(false)
+  const [showReduceModal, setShowReduceModal] = useState(false)
+  const [reduceHours, setReduceHours] = useState(0)
+  const [reduceMinutes, setReduceMinutes] = useState(30)
+  const [reducing, setReducing] = useState(false)
   const [previewResults, setPreviewResults] = useState<any>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [isPolling, setIsPolling] = useState(true)
@@ -143,6 +147,9 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [spinningTiebreaker, setSpinningTiebreaker] = useState<string | null>(null)
   const [showSpinModal, setShowSpinModal] = useState(false)
   const [spinResult, setSpinResult] = useState<any>(null)
+  const [showLogModal, setShowLogModal] = useState(false)
+  const [finalizationLogs, setFinalizationLogs] = useState<string[]>([])
+  const [isStreamingLogs, setIsStreamingLogs] = useState(false)
 
   const submittedTeamsList = teams.filter(t => {
     if (round.roundType === 'bulk') {
@@ -377,9 +384,12 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
     setLoading(true)
     setError('')
+    setShowLogModal(true)
+    setFinalizationLogs([])
+    setIsStreamingLogs(true)
 
     try {
-      const response = await fetch(`/api/admin/rounds/${round.id}/finalize`, {
+      const response = await fetch(`/api/admin/rounds/${round.id}/finalize-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -392,9 +402,48 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         throw new Error(data.error || 'Failed to finalize round')
       }
 
-      window.location.reload()
+      // Read the SSE stream
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+                
+                if (data.type === 'log') {
+                  setFinalizationLogs(prev => [...prev, `[${data.level.toUpperCase()}] ${data.message}`])
+                } else if (data.type === 'complete') {
+                  setIsStreamingLogs(false)
+                  if (data.success) {
+                    setFinalizationLogs(prev => [...prev, '\n✅ Finalization completed successfully!'])
+                    setTimeout(() => {
+                      window.location.reload()
+                    }, 2000)
+                  } else {
+                    setFinalizationLogs(prev => [...prev, `\n❌ Finalization failed: ${data.error}`])
+                    setError(data.error)
+                  }
+                }
+              } catch (e) {
+                console.error('Failed to parse SSE data:', e)
+              }
+            }
+          }
+        }
+      }
     } catch (err: any) {
       setError(err.message)
+      setFinalizationLogs(prev => [...prev, `\n❌ Error: ${err.message}`])
+      setIsStreamingLogs(false)
     } finally {
       setLoading(false)
     }
@@ -595,6 +644,65 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       setError(err.message)
     } finally {
       setExtending(false)
+    }
+  }
+
+  const handleReduceTime = async () => {
+    if (reduceHours === 0 && reduceMinutes === 0) {
+      setError('Please reduce at least 1 minute')
+      return
+    }
+
+    // Calculate total minutes to reduce
+    const totalMinutesToReduce = (reduceHours * 60) + reduceMinutes
+
+    // Check if we have enough time remaining
+    if (timeRemaining !== null) {
+      const remainingMinutes = Math.floor(timeRemaining / 60000)
+      if (totalMinutesToReduce >= remainingMinutes) {
+        setError(`Cannot reduce by ${totalMinutesToReduce} minutes. Only ${remainingMinutes} minutes remaining.`)
+        return
+      }
+    }
+
+    setReducing(true)
+    setError('')
+
+    try {
+      const response = await fetch(`/api/admin/rounds/${round.id}/reduce`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          hours: reduceHours,
+          minutes: reduceMinutes
+        })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to reduce round time')
+      }
+
+      setShowReduceModal(false)
+      setReduceHours(0)
+      setReduceMinutes(30)
+      
+      // Update local state immediately
+      const getRes = await fetch(`/api/admin/rounds/${round.id}`)
+      if (getRes.ok) {
+        const data = await getRes.json()
+        if (data.success && data.round) {
+          setLocalEndTime(data.round.endTime ? new Date(data.round.endTime).toISOString() : null)
+          setLocalStatus(data.round.status)
+        }
+      }
+      router.refresh()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setReducing(false)
     }
   }
 
@@ -809,12 +917,20 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 </div>
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-[#E8A800]/20 pt-3 sm:border-t-0 sm:pt-0">
-                <button
-                  onClick={() => setShowExtendModal(true)}
-                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#E8A800]/50 text-white font-bold text-sm transition-all"
-                >
-                  + Add Time
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowExtendModal(true)}
+                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 font-bold text-sm transition-all"
+                  >
+                    + Add Time
+                  </button>
+                  <button
+                    onClick={() => setShowReduceModal(true)}
+                    className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 font-bold text-sm transition-all"
+                  >
+                    − Reduce Time
+                  </button>
+                </div>
                 <div className="text-right">
                   <div className="text-xs text-[#D4CCBB] mb-1">Ends At</div>
                   <div className="text-sm font-bold text-white">
@@ -1107,13 +1223,23 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   {loading ? 'Starting...' : 'Preview Results'}
                 </button>
               ) : (
-                <button
-                  onClick={handleFinalizeRound}
-                  disabled={loading}
-                  className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Finalizing...' : 'Finalize Round'}
-                </button>
+                <>
+                  <button
+                    onClick={handleFinalizeRound}
+                    disabled={loading}
+                    className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50"
+                  >
+                    {loading ? 'Finalizing...' : 'Finalize Round'}
+                  </button>
+                  {finalizationLogs.length > 0 && (
+                    <button
+                      onClick={() => setShowLogModal(true)}
+                      className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-blue-500/50 text-white font-bold transition-all"
+                    >
+                      📋 View Logs
+                    </button>
+                  )}
+                </>
               )}
             </>
           )}
@@ -2006,6 +2132,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       </div>
 
       {/* Extend Time Modal */}
+      {/* Extend Time Modal */}
       {showExtendModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-md w-full">
@@ -2062,6 +2189,77 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-bold transition-all disabled:opacity-50"
               >
                 {extending ? 'Extending...' : 'Extend Time'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reduce Time Modal */}
+      {showReduceModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-2xl font-black text-white mb-4">Reduce Round Time</h3>
+            <p className="text-[#D4CCBB] text-sm mb-6">
+              Reduce the remaining time of this round. The end time will be updated immediately.
+            </p>
+
+            {timeRemaining !== null && (
+              <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                <div className="text-sm text-blue-300">
+                  <strong>Current time remaining:</strong> {formatTimeRemaining(timeRemaining)}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Hours</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="24"
+                  value={reduceHours}
+                  onChange={(e) => setReduceHours(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg focus:outline-none focus:border-red-500/50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Minutes</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={reduceMinutes}
+                  onChange={(e) => setReduceMinutes(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg focus:outline-none focus:border-red-500/50"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowReduceModal(false)
+                  setError('')
+                }}
+                disabled={reducing}
+                className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReduceTime}
+                disabled={reducing || (reduceHours === 0 && reduceMinutes === 0)}
+                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold transition-all disabled:opacity-50"
+              >
+                {reducing ? 'Reducing...' : 'Reduce Time'}
               </button>
             </div>
           </div>
@@ -2309,6 +2507,110 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               >
                 {submittingAdminBid ? 'Submitting...' : `Submit £${adminBidAmount.toLocaleString()}`}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Finalization Log Modal */}
+      {showLogModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  isStreamingLogs 
+                    ? 'bg-blue-500/20 border border-blue-500/30' 
+                    : 'bg-emerald-500/20 border border-emerald-500/30'
+                }`}>
+                  {isStreamingLogs ? (
+                    <svg className="w-5 h-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Finalization Log</h3>
+                  <p className="text-sm text-gray-400">
+                    {isStreamingLogs ? 'Processing...' : 'Completed'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!isStreamingLogs) {
+                    setShowLogModal(false)
+                    setFinalizationLogs([])
+                  }
+                }}
+                disabled={isStreamingLogs}
+                className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isStreamingLogs ? 'Please wait for finalization to complete' : 'Close'}
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Log Content */}
+            <div className="flex-1 overflow-y-auto p-6 font-mono text-sm">
+              <div className="bg-black/50 rounded-lg p-4 border border-white/10">
+                {finalizationLogs.length === 0 ? (
+                  <div className="text-gray-400 text-center py-8">
+                    Waiting for logs...
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {finalizationLogs.map((log, idx) => {
+                      const isError = log.includes('[ERROR]') || log.includes('❌')
+                      const isSuccess = log.includes('[SUCCESS]') || log.includes('✅')
+                      const isWarning = log.includes('[WARNING]') || log.includes('⚠️')
+                      
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`${
+                            isError ? 'text-red-400' :
+                            isSuccess ? 'text-emerald-400' :
+                            isWarning ? 'text-yellow-400' :
+                            'text-gray-300'
+                          }`}
+                        >
+                          {log}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-400">
+                  {finalizationLogs.length} log entries
+                </div>
+                <button
+                  onClick={() => {
+                    if (!isStreamingLogs) {
+                      setShowLogModal(false)
+                      setFinalizationLogs([])
+                    }
+                  }}
+                  disabled={isStreamingLogs}
+                  className="px-6 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isStreamingLogs ? 'Processing...' : 'Close'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

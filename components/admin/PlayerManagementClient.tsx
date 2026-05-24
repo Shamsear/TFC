@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Team {
   team: {

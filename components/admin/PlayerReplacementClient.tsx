@@ -205,53 +205,32 @@ export default function PlayerReplacementClient({
 
         <div className="space-y-4">
           {/* Team Selection */}
-          <div>
-            <label className="block text-sm font-medium text-[#D4CCBB] mb-2">1. Select Team</label>
-            <select
-              value={selectedTeam}
-              onChange={(e) => handleTeamChange(e.target.value)}
-              className="w-full px-4 py-2 bg-[#1a1a1a] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800] transition-colors appearance-none cursor-pointer"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23D4CCBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: 'right 0.5rem center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '1.5em 1.5em',
-                paddingRight: '2.5rem'
-              }}
-            >
-              <option value="" className="bg-[#1a1a1a]">-- Select Team --</option>
-              {teams.map(team => (
-                <option key={team.id} value={team.id} className="bg-[#1a1a1a]">{team.name}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="1. Select Team"
+            value={selectedTeam}
+            options={[
+              { value: '', label: '-- Select Team --' },
+              ...teams.map(team => ({ value: team.id, label: team.name }))
+            ]}
+            onChange={handleTeamChange}
+            enableSearch={true}
+          />
 
           {/* Old Player Selection */}
           {selectedTeam && currentPlayers.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
-                2. Select Player to Replace ({currentPlayers.length} players in squad)
-              </label>
-              <select
-                value={selectedOldPlayer}
-                onChange={(e) => handleOldPlayerChange(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1a1a1a] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800] transition-colors appearance-none cursor-pointer"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23D4CCBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.5rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1.5em 1.5em',
-                  paddingRight: '2.5rem'
-                }}
-              >
-                <option value="" className="bg-[#1a1a1a]">-- Select Player to Replace --</option>
-                {currentPlayers.map(player => (
-                  <option key={player.id} value={player.id} className="bg-[#1a1a1a]">
-                    {player.name} - £{(player.soldPrice || 0).toLocaleString()}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              label={`2. Select Player to Replace (${currentPlayers.length} players in squad)`}
+              value={selectedOldPlayer}
+              options={[
+                { value: '', label: '-- Select Player to Replace --' },
+                ...currentPlayers.map(player => ({
+                  value: player.id,
+                  label: `${player.name} - £${(player.soldPrice || 0).toLocaleString()}`
+                }))
+              ]}
+              onChange={handleOldPlayerChange}
+              enableSearch={true}
+            />
           )}
 
           {/* All Bids Display - Grouped by Round */}

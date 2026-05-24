@@ -31,7 +31,7 @@ export async function POST(
       return NextResponse.json({ error: 'Request already processed' }, { status: 400 })
     }
 
-    // Perform the release in a transaction
+    // Perform the release in a transaction with increased timeout
     await prisma.$transaction(async (tx) => {
       // 1. Update transfer_history status to RELEASED
       await tx.transfer_history.updateMany({
@@ -93,6 +93,9 @@ export async function POST(
           processedBy: session.user.id,
         },
       })
+    }, {
+      maxWait: 10000, // 10 seconds max wait to acquire a connection
+      timeout: 30000, // 30 seconds transaction timeout
     })
 
     return NextResponse.json({ success: true })

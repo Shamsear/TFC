@@ -243,7 +243,15 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             
             // If the status changed drastically, force a full page reload to fetch new completed results/tiebreakers
             if (data.round.status !== localStatus) {
-              if (['tiebreaker_pending', 'completed', 'finalizing', 'preview_finalized'].includes(data.round.status)) {
+              // Don't reload when transitioning TO tiebreaker_pending (let polling handle updates)
+              // But DO reload when transitioning FROM tiebreaker_pending to completed/finalized
+              if (data.round.status === 'tiebreaker_pending') {
+                // Just update local status, don't reload
+                setLocalStatus(data.round.status)
+                return
+              }
+              
+              if (['completed', 'finalizing', 'preview_finalized'].includes(data.round.status)) {
                 window.location.reload()
                 return
               }
@@ -255,17 +263,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       } catch (error) {
         console.error('Failed to fetch live round data:', error)
       }
-      try {
-        router.refresh()
-      } catch (error) {
-        console.error('Failed to refresh data:', error)
-      }
+      // Don't call router.refresh() during polling - it causes full page reloads
+      // The state updates above are sufficient for live updates
     }
 
     // Poll every 3 seconds for real-time updates
     const interval = setInterval(fetchLiveData, 3000)
     return () => clearInterval(interval)
-  }, [isPolling, localStatus, round.id, round.status, router])
+  }, [isPolling, localStatus, round.id, round.status])
 
   // Calculate time remaining for active rounds
   useEffect(() => {

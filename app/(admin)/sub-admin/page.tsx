@@ -337,7 +337,7 @@ export default async function SubAdminDashboard() {
 
         {/* All Seasons */}
         <div>
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <h2 className="text-2xl sm:text-3xl font-black text-white">All Seasons</h2>
           </div>
           
@@ -352,92 +352,93 @@ export default async function SubAdminDashboard() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-5 sm:space-y-6">
               {allSeasons.map((season) => (
                 <div
                   key={season.id}
-                  className="group rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-4 sm:p-6"
+                  className="group rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-5 sm:p-7"
                 >
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                    <div className="flex-1 w-full lg:w-auto">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                        <div className="text-xl sm:text-2xl font-black text-white">{season.name}</div>
-                        {season.isActive && (
-                          <span className="flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2 sm:px-3 py-1 rounded-full border border-emerald-500/30 text-xs font-bold">
-                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                            ACTIVE
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4"><DollarIcon /></div>
-                          <span>Starting Purse: <span className="text-[#E8A800] font-bold">${season.startingPurse.toLocaleString()}</span></span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4"><TrophyIcon /></div>
-                          <span><span className="text-[#FFB347] font-bold">{season.seasonTeams.length}</span> teams</span>
-                        </div>
-                      </div>
+                  {/* Season Header */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-5">
+                    <div className="text-xl sm:text-2xl font-black text-white">{season.name}</div>
+                    {season.isActive && (
+                      <span className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30 text-xs font-bold">
+                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                        ACTIVE
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Season Stats */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-sm text-gray-400 mb-5 sm:mb-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4"><DollarIcon /></div>
+                      <span>Starting Purse: <span className="text-[#E8A800] font-bold">${season.startingPurse.toLocaleString()}</span></span>
                     </div>
-                    <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-                      <Link
-                        href={`/sub-admin/${season.id}/teams`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
-                      >
-                        Teams
-                        <ArrowRightIcon />
-                      </Link>
-                      <Link
-                        href={`/sub-admin/${season.id}/retention`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
-                      >
-                        Retention
-                        <ArrowRightIcon />
-                      </Link>
-                      <Link
-                        href={`/sub-admin/${season.id}/tournaments`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#FFC93A] hover:text-[#FFB347] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFC93A]/30 hover:border-[#FFC93A]/50 hover:bg-[#FFC93A]/10 transition-all font-medium"
-                      >
-                        Tournaments
-                        <ArrowRightIcon />
-                      </Link>
-                      <Link
-                        href={`/sub-admin/${season.id}/calendar`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFB347] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
-                      >
-                        Calendar
-                        <ArrowRightIcon />
-                      </Link>
-                      <Link
-                        href={`/sub-admin/${season.id}/auction`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
-                      >
-                        Auction
-                        <ArrowRightIcon />
-                      </Link>
-                      <Link
-                        href={`/sub-admin/${season.id}/auction-settings`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
-                      >
-                        Settings
-                        <ArrowRightIcon />
-                      </Link>
-                      <Link
-                        href={`/sub-admin/${season.id}/position-groups`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
-                      >
-                        Position Groups
-                        <ArrowRightIcon />
-                      </Link>
-                      <Link
-                        href={`/sub-admin/${season.id}/tools`}
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#FFC93A] hover:text-[#FFB347] px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-[#FFC93A]/30 hover:border-[#FFC93A]/50 hover:bg-[#FFC93A]/10 transition-all font-medium"
-                      >
-                        Tools
-                        <ArrowRightIcon />
-                      </Link>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4"><TrophyIcon /></div>
+                      <span><span className="text-[#FFB347] font-bold">{season.seasonTeams.length}</span> teams</span>
                     </div>
+                  </div>
+
+                  {/* Action Buttons - Grid Layout */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3">
+                    <Link
+                      href={`/sub-admin/${season.id}/teams`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
+                    >
+                      Teams
+                      <ArrowRightIcon />
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${season.id}/retention`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
+                    >
+                      Retention
+                      <ArrowRightIcon />
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${season.id}/tournaments`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFC93A] hover:text-[#FFB347] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFC93A]/30 hover:border-[#FFC93A]/50 hover:bg-[#FFC93A]/10 transition-all font-medium"
+                    >
+                      Tournaments
+                      <ArrowRightIcon />
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${season.id}/calendar`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFB347] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
+                    >
+                      Calendar
+                      <ArrowRightIcon />
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${season.id}/auction`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
+                    >
+                      Auction
+                      <ArrowRightIcon />
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${season.id}/auction-settings`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
+                    >
+                      Settings
+                      <ArrowRightIcon />
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${season.id}/position-groups`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
+                    >
+                      Position Groups
+                      <ArrowRightIcon />
+                    </Link>
+                    <Link
+                      href={`/sub-admin/${season.id}/tools`}
+                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFC93A] hover:text-[#FFB347] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFC93A]/30 hover:border-[#FFC93A]/50 hover:bg-[#FFC93A]/10 transition-all font-medium"
+                    >
+                      Tools
+                      <ArrowRightIcon />
+                    </Link>
                   </div>
                 </div>
               ))}

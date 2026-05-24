@@ -60,26 +60,49 @@ function CustomSelect({
   value, 
   options, 
   onChange, 
-  displayValue 
+  displayValue,
+  enableSearch = false
 }: {
   label: string
   value: string
   options: string[]
   onChange: (val: string) => void
   displayValue?: (val: string) => string
+  enableSearch?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setSearchQuery('')
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && enableSearch && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50)
+    }
+  }, [isOpen, enableSearch])
+
+  // Filter options based on search query
+  const filteredOptions = enableSearch && searchQuery
+    ? options.filter(option => {
+        if (option.includes('───')) return true // Keep separators
+        const searchLower = searchQuery.toLowerCase()
+        const optionLower = option.toLowerCase()
+        const displayLower = displayValue ? displayValue(option).toLowerCase() : optionLower
+        return optionLower.includes(searchLower) || displayLower.includes(searchLower)
+      })
+    : options
 
   return (
     <div className="relative" ref={containerRef}>
@@ -103,43 +126,78 @@ function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-20 mt-2 w-full max-h-60 overflow-y-auto rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          {options.map((option) => {
-            const isSeparator = option.includes('───')
-            const isSelected = option === value
-            
-            if (isSeparator) {
-              return (
-                <div
-                  key={option}
-                  className="px-4 py-2 text-xs font-black text-gray-500 bg-white/5 select-none"
+        <div className="absolute z-20 mt-2 w-full rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] focus:outline-none">
+          {/* Search Input */}
+          {enableSearch && (
+            <div className="p-2 border-b border-white/10">
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full px-3 py-2 pl-9 rounded-lg bg-black/50 border border-white/10 text-white placeholder-gray-500 focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800]/20 text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <svg 
+                  className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
                 >
-                  {option}
-                </div>
-              )
-            }
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+          )}
 
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  onChange(option)
-                  setIsOpen(false)
-                }}
-                className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
-                  isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
-                }`}
-              >
-                <span className="truncate">{displayValue ? displayValue(option) : option}</span>
-                {isSelected && (
-                  <svg className="w-4 h-4 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            )
-          })}
+          {/* Options List */}
+          <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                No results found
+              </div>
+            ) : (
+              filteredOptions.map((option) => {
+                const isSeparator = option.includes('───')
+                const isSelected = option === value
+                
+                if (isSeparator) {
+                  return (
+                    <div
+                      key={option}
+                      className="px-4 py-2 text-xs font-black text-gray-500 bg-white/5 select-none"
+                    >
+                      {option}
+                    </div>
+                  )
+                }
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      onChange(option)
+                      setIsOpen(false)
+                      setSearchQuery('')
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                      isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
+                    }`}
+                  >
+                    <span className="truncate">{displayValue ? displayValue(option) : option}</span>
+                    {isSelected && (
+                      <svg className="w-4 h-4 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                )
+              })
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1075,6 +1133,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             value={positionFilter}
             options={enhancedPositions}
             onChange={handlePositionChange}
+            enableSearch={true}
           />
 
           {/* Team Filter */}
@@ -1084,6 +1143,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             options={teams}
             onChange={handleTeamChange}
             displayValue={(val) => val === 'ALL' ? 'All Teams' : val}
+            enableSearch={true}
           />
 
           {/* Starred Filter - Only show when starring is enabled */}

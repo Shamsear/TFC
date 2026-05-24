@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 interface Team {
   id: string;

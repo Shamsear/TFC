@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import SearchableSelect from '@/components/ui/SearchableSelect'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 interface Team {
   team: {
@@ -208,16 +209,13 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
                       : 'bg-black/30 border border-white/10 hover:border-white/20'
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-                    {player.photoUrl && (
-                      <Image
-                        src={player.photoUrl}
-                        alt={player.name}
-                        width={48}
-                        height={48}
-                        className="object-cover"
-                      />
-                    )}
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 relative">
+                    <Image
+                      src={getPlayerPhotoUrl(player.photoUrl)}
+                      alt={player.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="font-bold text-white">{player.name}</div>

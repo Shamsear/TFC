@@ -887,8 +887,21 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount}`).join
                         </p>
                       </div>
                     )}
-                    {reserveInfo.phase === 'phase_2' && reserveInfo.maxRecommendedBid < reserveInfo.maxBid && (
-                      <p className="text-amber-300"><strong>Recommended Max:</strong> £{reserveInfo.maxRecommendedBid.toLocaleString()}</p>
+                    {reserveInfo.phase === 'phase_2' && (
+                      <>
+                        <p className="text-amber-300"><strong>Recommended Max:</strong> £{reserveInfo.maxRecommendedBid.toLocaleString()}</p>
+                        {reserveInfo.breakdown.phase2Reserve !== undefined && reserveInfo.breakdown.phase3Reserve !== undefined && (
+                          <div className="mt-2 pt-2 border-t border-white/10 space-y-1">
+                            <p className="text-white/60 font-semibold mb-1">Breakdown:</p>
+                            <p className="text-emerald-400">
+                              • Participate in this + remaining Phase 2: Reserve £{reserveInfo.reserve.toLocaleString()} = {reserveInfo.breakdown.phase2Reserve > 0 ? `Phase 2 (£${reserveInfo.breakdown.phase2Reserve.toLocaleString()})` : ''}{reserveInfo.breakdown.phase2Reserve > 0 && reserveInfo.breakdown.phase3Reserve > 0 ? ' + ' : ''}{reserveInfo.breakdown.phase3Reserve > 0 ? `Phase 3 (£${reserveInfo.breakdown.phase3Reserve.toLocaleString()})` : ''}
+                            </p>
+                            <p className="text-red-400">
+                              • Skip this + remaining Phase 2: Reserve £{reserveInfo.floorReserve.toLocaleString()} (Phase 3 only)
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                     <p className="text-white/60 text-xs mt-1">{reserveInfo.calculation}</p>
                   </div>

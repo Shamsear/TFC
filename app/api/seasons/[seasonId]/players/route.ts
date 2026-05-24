@@ -13,9 +13,13 @@ export async function GET(
     const available = searchParams.get('available') === 'true'
 
     // Get players who haven't been sold yet (if available filter is true)
+    // Only count ACTIVE transfers (not released or transferred out)
     const transferredPlayerIds = available
       ? await prisma.transfer_history.findMany({
-          where: { seasonId },
+          where: { 
+            seasonId,
+            status: 'ACTIVE'
+          },
           select: { basePlayerId: true }
         }).then(results => results.map(t => t.basePlayerId))
       : []

@@ -282,7 +282,8 @@ async function handleNonSubmittedTeams(
     const squadSize = await prisma.transfer_history.count({
       where: {
         teamId: teamId,
-        seasonId
+        seasonId,
+        status: 'ACTIVE'
       }
     });
 
@@ -867,7 +868,11 @@ async function validateAllocations(
     }
 
     const squadSize = await prisma.transfer_history.count({
-      where: { teamId, seasonId }
+      where: { 
+        teamId, 
+        seasonId,
+        status: 'ACTIVE'
+      }
     });
 
     console.log(`      Current budget: £${seasonTeam.currentBudget.toLocaleString()}`);
@@ -1025,7 +1030,8 @@ export async function applyFinalizationResults(
         roundId: roundId,
         soldPrice: alloc.amount,
         acquisitionType: alloc.acquisitionType,
-        acquisitionNotes: alloc.acquisitionNotes || null
+        acquisitionNotes: alloc.acquisitionNotes || null,
+        status: 'ACTIVE' as const
       }))
     );
 

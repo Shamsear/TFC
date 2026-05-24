@@ -225,11 +225,12 @@ export async function calculateReserve(
   
   const teamBalance = seasonTeam.currentBudget;
   
-  // Get squad size by counting transfer history
+  // Get squad size by counting ACTIVE transfer history only
   const teamSquadSize = await prisma.transfer_history.count({
     where: {
       teamId,
-      seasonId
+      seasonId,
+      status: 'ACTIVE'
     }
   });
   

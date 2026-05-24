@@ -170,7 +170,8 @@ async function revertAndFixAllocation() {
           roundId: zlatanTransfer.roundId,
           soldPrice: zlatanTransfer.soldPrice,
           acquisitionType: zlatanTransfer.acquisitionType,
-          acquisitionNotes: `Fixed allocation: Replaced Rafael Márquez (CB-B) → Zlatan (CF-A, wrong) → ${replacementPlayer.basePlayer.name} (CB-${roundPositionGroup}, correct). Original notes: ${zlatanTransfer.acquisitionNotes || ''}`
+          acquisitionNotes: `Fixed allocation: Replaced Rafael Márquez (CB-B) → Zlatan (CF-A, wrong) → ${replacementPlayer.basePlayer.name} (CB-${roundPositionGroup}, correct). Original notes: ${zlatanTransfer.acquisitionNotes || ''}`,
+          status: 'ACTIVE'
         }
       });
       console.log(`   ✅ Created transfer for ${replacementPlayer.basePlayer.name}`);

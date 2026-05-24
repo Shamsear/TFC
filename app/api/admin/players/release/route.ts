@@ -36,12 +36,13 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Check if player is currently with team
+          // Check if player is currently with team (ACTIVE status)
           const existingTransfer = await tx.transfer_history.findFirst({
             where: {
               basePlayerId: playerId,
               seasonId: seasonId,
-              teamId: teamId
+              teamId: teamId,
+              status: 'ACTIVE'
             }
           });
 
@@ -64,9 +65,14 @@ export async function POST(request: NextRequest) {
 
           const transferPrice = existingTransfer.soldPrice;
 
-          // Delete transfer (release player)
-          await tx.transfer_history.delete({
-            where: { id: existingTransfer.id }
+          // Mark transfer as RELEASED instead of deleting
+          await tx.transfer_history.update({
+            where: { id: existingTransfer.id },
+            data: {
+              status: 'RELEASED',
+              releasedAt: new Date(),
+              releaseNotes: notes || `Player released: ${player.name}`
+            }
           });
 
           // Refund to team

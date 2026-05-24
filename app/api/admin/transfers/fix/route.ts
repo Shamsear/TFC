@@ -122,7 +122,8 @@ export async function POST(request: NextRequest) {
           roundId: wrongTransfer.roundId,
           soldPrice: transferPrice,
           acquisitionType: wrongTransfer.acquisitionType,
-          acquisitionNotes: reason || `Corrected allocation: Replaced ${wrongPlayer.name} with ${correctPlayer.name}`
+          acquisitionNotes: reason || `Corrected allocation: Replaced ${wrongPlayer.name} with ${correctPlayer.name}`,
+          status: 'ACTIVE'
         }
       });
 

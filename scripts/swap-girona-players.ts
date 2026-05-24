@@ -148,7 +148,8 @@ async function swapGironaPlayers() {
           roundId: pierreTransfer.roundId,
           soldPrice: pierreTransfer.soldPrice,
           acquisitionType: pierreTransfer.acquisitionType,
-          acquisitionNotes: `Swapped: Pierre Will Delibes → Yankuba Minteh (same price, no budget change). Original notes: ${pierreTransfer.acquisitionNotes || ''}`
+          acquisitionNotes: `Swapped: Pierre Will Delibes → Yankuba Minteh (same price, no budget change). Original notes: ${pierreTransfer.acquisitionNotes || ''}`,
+          status: 'ACTIVE'
         }
       });
       console.log(`   ✅ Created Yankuba Minteh transfer`);

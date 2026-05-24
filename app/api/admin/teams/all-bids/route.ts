@@ -42,11 +42,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Get all players owned by this team
+    // Get all ACTIVE players owned by this team
     const ownedPlayers = await prisma.transfer_history.findMany({
       where: {
         teamId,
-        seasonId
+        seasonId,
+        status: 'ACTIVE'
       },
       select: {
         basePlayerId: true,
@@ -64,10 +65,11 @@ export async function GET(request: NextRequest) {
       ownedPlayers.map(p => [p.basePlayerId, { soldPrice: p.soldPrice, roundId: p.roundId, teamName: p.team.name }])
     );
 
-    // Get all players owned by other teams
+    // Get all ACTIVE players owned by other teams
     const allOwnedPlayers = await prisma.transfer_history.findMany({
       where: {
-        seasonId
+        seasonId,
+        status: 'ACTIVE'
       },
       select: {
         basePlayerId: true,

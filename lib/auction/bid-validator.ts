@@ -211,7 +211,11 @@ export async function validateBidsAgainstReserves(
         WHERE "seasonId" = ${context.seasonId}
       `,
       prisma.transfer_history.count({
-        where: { teamId: context.teamId, seasonId: context.seasonId }
+        where: { 
+          teamId: context.teamId, 
+          seasonId: context.seasonId,
+          status: 'ACTIVE'
+        }
       })
     ]);
     
@@ -327,7 +331,8 @@ export async function validatePlayersAvailable(
     const ownedPlayers = await prisma.transfer_history.findMany({
       where: {
         basePlayerId: { in: playerIds },
-        seasonId: seasonId
+        seasonId: seasonId,
+        status: 'ACTIVE'
       },
       select: {
         basePlayerId: true,

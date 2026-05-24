@@ -114,11 +114,12 @@ export async function POST(
       );
     }
 
-    // Get squad size
+    // Get squad size (ACTIVE players only)
     const squadSize = await prisma.transfer_history.count({
       where: {
         teamId,
-        seasonId: tiebreaker.round.seasonId
+        seasonId: tiebreaker.round.seasonId,
+        status: 'ACTIVE'
       }
     });
 

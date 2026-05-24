@@ -43,11 +43,12 @@ export async function GET(
     // Get all player IDs from bids
     const playerIds = parsed.bids.map((bid: any) => bid.base_player_id);
 
-    // Check which players are already owned
+    // Check which players are already owned (ACTIVE transfers)
     const ownedPlayers = await prisma.transfer_history.findMany({
       where: {
         basePlayerId: { in: playerIds },
-        seasonId
+        seasonId,
+        status: 'ACTIVE'
       },
       include: {
         team: {

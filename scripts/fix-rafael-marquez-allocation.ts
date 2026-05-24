@@ -213,7 +213,8 @@ async function fixRafaelMarquezAllocation() {
           roundId: transfer.roundId,
           soldPrice: transfer.soldPrice,
           acquisitionType: transfer.acquisitionType,
-          acquisitionNotes: `Fixed allocation: Replaced Rafael Márquez (CB-B, wrong group) with ${replacementPlayer.basePlayer.name} (CB-${roundPositionGroup}, correct group). ${transfer.acquisitionNotes || ''}`
+          acquisitionNotes: `Fixed allocation: Replaced Rafael Márquez (CB-B, wrong group) with ${replacementPlayer.basePlayer.name} (CB-${roundPositionGroup}, correct group). ${transfer.acquisitionNotes || ''}`,
+          status: 'ACTIVE'
         }
       });
       console.log(`   ✅ Created new transfer for ${replacementPlayer.basePlayer.name}`);

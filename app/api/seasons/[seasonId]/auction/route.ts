@@ -111,11 +111,12 @@ export async function POST(
         throw new Error("Player not found. Please verify the player ID.")
       }
 
-      // 4. Check if player is already sold in this season
+      // 4. Check if player is already sold in this season (has ACTIVE transfer)
       const existingTransfer = await tx.transfer_history.findFirst({
         where: {
           basePlayerId,
-          seasonId
+          seasonId,
+          status: 'ACTIVE'
         }
       })
 
@@ -148,7 +149,8 @@ export async function POST(
           basePlayerId,
           seasonId,
           teamId,
-          soldPrice: amount
+          soldPrice: amount,
+          status: 'ACTIVE'
         }
       })
 

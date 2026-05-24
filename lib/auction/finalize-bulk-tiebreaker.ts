@@ -305,13 +305,14 @@ export async function applyBulkTiebreakerResult(
   console.log(`\n💾 STARTING DATABASE TRANSACTION...`);
   
   await prisma.$transaction(async (tx) => {
-    // Check if transfer already exists
+    // Check if ACTIVE transfer already exists
     console.log(`   🔍 Checking for existing transfer...`);
     const existingTransfer = await tx.transfer_history.findFirst({
       where: {
         basePlayerId: tiebreaker.basePlayerId,
         seasonId: round.seasonId,
-        teamId: winnerId
+        teamId: winnerId,
+        status: 'ACTIVE'
       }
     });
     
@@ -327,7 +328,8 @@ export async function applyBulkTiebreakerResult(
           seasonId: round.seasonId,
           teamId: winnerId,
           soldPrice: winningBid,
-          roundId: tiebreaker.roundId
+          roundId: tiebreaker.roundId,
+          status: 'ACTIVE'
         }
       });
       console.log(`      ✅ Transfer history created`);
@@ -659,9 +661,13 @@ export async function placeBulkTiebreakerBid(
     
     const teamBalance = seasonTeamObj.currentBudget;
     
-    // Get current squad size by counting transfer history records for this team & season
+    // Get current squad size by counting ACTIVE transfer history records for this team & season
     const currentSquadSize = await prisma.transfer_history.count({
-      where: { teamId, seasonId: round.seasonId }
+      where: { 
+        teamId, 
+        seasonId: round.seasonId,
+        status: 'ACTIVE'
+      }
     });
     
     // Get auction settings

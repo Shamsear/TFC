@@ -186,6 +186,7 @@ export async function createTestTransfer(
       seasonId,
       teamId,
       soldPrice,
+      status: 'ACTIVE',
     },
   })
 }

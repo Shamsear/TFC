@@ -9,10 +9,11 @@ export async function GET(
   try {
     const { seasonId } = await params
 
-    // Fetch sold players with limit and minimal data
+    // Fetch sold players with limit and minimal data (ACTIVE transfers only)
     const soldPlayers = await prisma.transfer_history.findMany({
       where: {
-        seasonId: seasonId
+        seasonId: seasonId,
+        status: 'ACTIVE'
       },
       select: {
         id: true,

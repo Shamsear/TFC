@@ -25,11 +25,12 @@ export async function POST(
       )
     }
 
-    // Check if player already sold
+    // Check if player already sold (has ACTIVE transfer)
     const existingTransfer = await prisma.transfer_history.findFirst({
       where: {
         basePlayerId: playerId,
-        seasonId
+        seasonId,
+        status: 'ACTIVE'
       }
     })
 
@@ -84,7 +85,8 @@ export async function POST(
           basePlayerId: playerId,
           seasonId,
           teamId,
-          soldPrice
+          soldPrice,
+          status: 'ACTIVE'
         }
       })
 

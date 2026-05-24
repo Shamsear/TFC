@@ -213,7 +213,10 @@ export async function GET(request: NextRequest) {
 
   // ── Sort by PRICE — query from transfer_history for correct DB-level ordering ──
   if (sortBy === 'price') {
-    const transferWhere: any = { seasonId }
+    const transferWhere: any = { 
+      seasonId,
+      status: 'ACTIVE'  // Only show active transfers
+    }
     if (q) {
       transferWhere.OR = [
         { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },

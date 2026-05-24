@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     const transfers = await prisma.transfer_history.findMany({
       where: {
         seasonId,
-        teamId
+        teamId,
+        status: 'ACTIVE'  // Only get active players
       },
       include: {
         basePlayer: {

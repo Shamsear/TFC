@@ -228,7 +228,8 @@ export async function POST(
             seasonId,
             basePlayerId: retention.basePlayerId,
             teamId: retention.teamId,
-            soldPrice: previousTransfer?.soldPrice || 0
+            soldPrice: previousTransfer?.soldPrice || 0,
+            status: 'ACTIVE'
           }
         })
       }

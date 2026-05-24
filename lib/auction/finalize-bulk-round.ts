@@ -130,11 +130,12 @@ async function allocateSingleBidders(
   const playerNames = new Map(players.map(p => [p.id, p.name]));
 
   for (const [playerId, teamId] of singleBidders.entries()) {
-    // Check if player is available
+    // Check if player is available (not ACTIVE with any team)
     const owned = await prisma.transfer_history.findFirst({
       where: {
         basePlayerId: playerId,
-        seasonId
+        seasonId,
+        status: 'ACTIVE'
       }
     });
 
@@ -157,7 +158,11 @@ async function allocateSingleBidders(
     }
 
     const squadSize = await prisma.transfer_history.count({
-      where: { teamId, seasonId }
+      where: { 
+        teamId, 
+        seasonId,
+        status: 'ACTIVE'
+      }
     });
 
     // Check budget with reserves using v2
@@ -412,7 +417,8 @@ export async function applyBulkFinalizationResults(
           seasonId: round.seasonId,
           teamId: alloc.teamId,
           soldPrice: alloc.amount,
-          roundId: roundId
+          roundId: roundId,
+          status: 'ACTIVE'
         }))
       });
       console.log(`      ✓ Transfer history records created`);

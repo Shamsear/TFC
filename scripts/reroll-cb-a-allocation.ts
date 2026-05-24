@@ -172,7 +172,8 @@ async function rerollCBAAllocation() {
           roundId: currentTransfer.roundId,
           soldPrice: currentTransfer.soldPrice,
           acquisitionType: currentTransfer.acquisitionType,
-          acquisitionNotes: `Re-rolled CB-A allocation: ${currentTransfer.basePlayer.name} → ${replacementPlayer.basePlayer.name}`
+          acquisitionNotes: `Re-rolled CB-A allocation: ${currentTransfer.basePlayer.name} → ${replacementPlayer.basePlayer.name}`,
+          status: 'ACTIVE'
         }
       });
       console.log(`   ✅ Created transfer for ${replacementPlayer.basePlayer.name}`);

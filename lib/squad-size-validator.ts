@@ -48,9 +48,13 @@ export async function validateSquadSizeForRound(
     throw new Error(`Team not found: ${teamId} in season ${seasonId}`);
   }
   
-  // Get current squad size by counting transfer history records for this team & season
+  // Get current squad size by counting ACTIVE transfer history records for this team & season
   const currentSquadSize = await prisma.transfer_history.count({
-    where: { teamId, seasonId }
+    where: { 
+      teamId, 
+      seasonId,
+      status: 'ACTIVE'
+    }
   });
   
   // Get season's default min/max squad settings (fallback)

@@ -64,7 +64,8 @@ async function fixRetainedPlayers() {
           seasonId: retention.seasonId,
           basePlayerId: retention.basePlayerId,
           teamId: previousTransfer.teamId,
-          soldPrice: previousTransfer.soldPrice
+          soldPrice: previousTransfer.soldPrice,
+          status: 'ACTIVE'
         }
       })
 

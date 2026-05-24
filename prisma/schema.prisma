@@ -318,22 +318,33 @@ model team_squads {
 }
 
 model transfer_history {
-  id               String       @id
+  id               String          @id
   basePlayerId     String
   seasonId         String
   teamId           String
-  roundId          String?      @map("round_id")
+  roundId          String?         @map("round_id")
   soldPrice        Int
-  acquisitionType  String       @default("bid_won") @map("acquisition_type") // 'bid_won' | 'auto_assigned' | 'tiebreaker_won'
-  acquisitionNotes String?      @map("acquisition_notes") @db.Text
-  createdAt        DateTime     @default(now())
-  basePlayer       base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
-  season           seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  team             teams        @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  round            rounds?      @relation("TransferHistoryRound", fields: [roundId], references: [id], onDelete: SetNull)
+  acquisitionType  String          @default("bid_won") @map("acquisition_type") // 'bid_won' | 'auto_assigned' | 'tiebreaker_won'
+  acquisitionNotes String?         @map("acquisition_notes") @db.Text
+  status           TransferStatus  @default(ACTIVE)
+  releasedAt       DateTime?       @map("released_at")
+  releaseNotes     String?         @map("release_notes") @db.Text
+  createdAt        DateTime        @default(now())
+  basePlayer       base_players    @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  season           seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team             teams           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round            rounds?         @relation("TransferHistoryRound", fields: [roundId], references: [id], onDelete: SetNull)
 
   @@index([roundId])
   @@index([acquisitionType], map: "idx_transfer_history_acquisition_type")
+  @@index([status], map: "transfer_history_status_idx")
+  @@index([seasonId, teamId, status], map: "transfer_history_season_team_status_idx")
+}
+
+enum TransferStatus {
+  ACTIVE
+  RELEASED
+  SWAPPED_OUT
 }
 
 model users {

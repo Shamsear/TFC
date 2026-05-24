@@ -46,12 +46,13 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Check if player is currently with fromTeam
+          // Check if player is currently with fromTeam (ACTIVE status)
           const existingTransfer = await tx.transfer_history.findFirst({
             where: {
               basePlayerId: playerId,
               seasonId: seasonId,
-              teamId: fromTeamId
+              teamId: fromTeamId,
+              status: 'ACTIVE'
             }
           });
 
@@ -80,9 +81,14 @@ export async function POST(request: NextRequest) {
 
           const transferPrice = existingTransfer.soldPrice;
 
-          // Delete old transfer
-          await tx.transfer_history.delete({
-            where: { id: existingTransfer.id }
+          // Mark old transfer as SWAPPED_OUT instead of deleting
+          await tx.transfer_history.update({
+            where: { id: existingTransfer.id },
+            data: {
+              status: 'SWAPPED_OUT',
+              releasedAt: new Date(),
+              releaseNotes: notes || `Swapped to another team: ${player.name}`
+            }
           });
 
           // Refund to source team
@@ -118,7 +124,8 @@ export async function POST(request: NextRequest) {
               teamId: toTeamId,
               soldPrice: 0, // Free transfer
               acquisitionType: 'free_transfer',
-              acquisitionNotes: notes || `Free transfer from another team`
+              acquisitionNotes: notes || `Free transfer from another team`,
+              status: 'ACTIVE'
             }
           });
 

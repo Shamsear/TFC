@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
   }
   if (teamFilter !== 'ALL') {
     const teamCond = teamFilter === 'Free Agent'
-      ? { transferHistory: { none: { seasonId } } }
-      : { transferHistory: { some: { seasonId, team: { name: teamFilter } } } }
+      ? { transferHistory: { none: { seasonId, status: 'ACTIVE' } } }
+      : { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: teamFilter } } } }
     if (basePLayerWhere.AND) {
       basePLayerWhere.AND.push(teamCond)
     } else if (basePLayerWhere.OR) {
@@ -153,8 +153,8 @@ export async function GET(request: NextRequest) {
     }
     if (teamFilter !== 'ALL') {
       const teamCond = teamFilter === 'Free Agent'
-        ? { basePlayer: { transferHistory: { none: { seasonId } } } }
-        : { basePlayer: { transferHistory: { some: { seasonId, team: { name: teamFilter } } } } }
+        ? { basePlayer: { transferHistory: { none: { seasonId, status: 'ACTIVE' } } } }
+        : { basePlayer: { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: teamFilter } } } } }
       if (statsWhere.AND) {
         statsWhere.AND.push(teamCond)
       } else if (statsWhere.OR) {
@@ -312,7 +312,7 @@ export async function GET(request: NextRequest) {
       include: {
         seasonalPlayerStats: { where: { seasonId } },
         transferHistory: {
-          where: { seasonId },
+          where: { seasonId, status: 'ACTIVE' },
           include: { team: { select: { id: true, name: true, logoUrl: true } } }
         }
       },

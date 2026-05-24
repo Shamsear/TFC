@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getPhotoUrlFromDb } from '@/lib/image-cdn'
+import BulkTiebreakerManualResolve from './BulkTiebreakerManualResolve'
 
 interface BulkTiebreakerMonitorClientProps {
   initialData: {
@@ -39,6 +40,8 @@ interface BulkTiebreakerMonitorClientProps {
         id: string
         name: string
         logoUrl: string
+        currentBudget?: number
+        squadSize?: number
       }
     }>
     bidHistory: Array<{
@@ -53,180 +56,35 @@ interface BulkTiebreakerMonitorClientProps {
     }>
   }
   seasonId: string
+  maxSquadSize?: number
 }
 
 export default function BulkTiebreakerMonitorClient({
   initialData,
-  seasonId
+  seasonId,
+  maxSquadSize = 25
 }: BulkTiebreakerMonitorClientProps) {
   const [liveData, setLiveData] = useState(initialData)
-
-  const liveDataRef = useRef(liveData)
-  useEffect(() => {
-    liveDataRef.current = liveData
-  }, [liveData])
-
   const [timeRemaining, setTimeRemaining] = useState('')
-  const [isPolling, setIsPolling] = useState(true)
-  const [lastUpdate, setLastUpdate] = useState(new Date())
-  const [syncTrigger, setSyncTrigger] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
+  const [showManualResolve, setShowManualResolve] = useState(false)
 
   const handleManualRefresh = async () => {
     setRefreshing(true)
     try {
-      console.log('🔄 Admin Monitor: Manually triggering data sync and stream reboot...')
       const response = await fetch(`/api/admin/bulk-tiebreakers/${initialData.id}?t=${Date.now()}`, { cache: 'no-store' })
       if (response.ok) {
         const result = await response.json()
         if (result.success && result.tiebreaker) {
           setLiveData(result.tiebreaker)
-          setLastUpdate(new Date())
-          
-          if (result.tiebreaker.status !== 'completed') {
-            setIsPolling(true)
-          }
-
-          // Instantly reboot the SSE connection
-          setSyncTrigger(prev => prev + 1)
         }
       }
     } catch (err) {
-      console.error('Failed to manually sync admin monitor data:', err)
+      console.error('Failed to refresh data:', err)
     } finally {
       setRefreshing(false)
     }
   }
-
-  // Live update real-time SSE stream connection with resilient visibility-change restore & auto-reconnect
-  useEffect(() => {
-    if (liveData.status === 'completed') return
-
-    let eventSource: EventSource | null = null
-
-    const connectStream = () => {
-      if (eventSource) {
-        eventSource.close()
-      }
-
-      console.log('🔌 Connecting admin monitor to bulk tiebreaker SSE stream...')
-      eventSource = new EventSource(
-        `/api/admin/bulk-tiebreakers/${initialData.id}/stream?t=${Date.now()}`,
-        { withCredentials: true }
-      )
-
-      eventSource.onmessage = (event) => {
-        try {
-          const result = JSON.parse(event.data)
-          if (result) {
-            setLiveData(result)
-            setLastUpdate(new Date())
-          }
-        } catch (error) {
-          console.error('Error parsing SSE event in admin monitor:', error)
-        }
-      }
-
-      eventSource.onerror = (err) => {
-        console.error('🔌 Admin SSE Connection error:', err)
-        if (eventSource) {
-          eventSource.close()
-        }
-        // Attempt automatic reconnection after 3 seconds
-        setTimeout(() => {
-          if (document.visibilityState === 'visible' && liveDataRef.current.status !== 'completed') {
-            connectStream()
-          }
-        }, 3000)
-      }
-    }
-
-    // Connect initially
-    connectStream()
-
-    // 500ms Hybrid Polling fallback safety net
-    const pollInterval = setInterval(async () => {
-      if (document.visibilityState !== 'visible' || liveDataRef.current.status === 'completed') {
-        return
-      }
-
-      try {
-        const response = await fetch(`/api/admin/bulk-tiebreakers/${initialData.id}?t=${Date.now()}`, { cache: 'no-store' })
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.tiebreaker) {
-            const newTiebreaker = result.tiebreaker
-            const current = liveDataRef.current
-
-            // Check if anything meaningful has changed to avoid redundant state updates
-            const hasHighestBidChanged = current.currentHighestBid !== newTiebreaker.currentHighestBid
-            const hasHighestTeamChanged = current.currentHighestTeamId !== newTiebreaker.currentHighestTeamId
-            const hasStatusChanged = current.status !== newTiebreaker.status
-            const hasRemainingChanged = current.teamsRemaining !== newTiebreaker.teamsRemaining
-            const hasHistoryLenChanged = current.bidHistory.length !== newTiebreaker.bidHistory.length
-            
-            // Compare participants list
-            const hasParticipantsChanged = JSON.stringify(current.participants.map(p => ({ id: p.id, bid: p.currentBid, status: p.status }))) !== 
-                                           JSON.stringify(newTiebreaker.participants.map((p: any) => ({ id: p.id, bid: p.currentBid, status: p.status })))
-
-            if (hasHighestBidChanged || hasHighestTeamChanged || hasStatusChanged || hasRemainingChanged || hasHistoryLenChanged || hasParticipantsChanged) {
-              console.log('🔄 Admin Hybrid Poller [500ms]: State changed. Synchronizing liveData...')
-              
-              setLiveData(newTiebreaker)
-              setLastUpdate(new Date())
-
-              if (newTiebreaker.status === 'completed') {
-                setIsPolling(false)
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Admin Hybrid Poller: Failed to fetch fallback updates:', err)
-      }
-    }, 500)
-
-    // Handle tab visibility change (e.g. tab minimized, user changed tab, or phone locked)
-    // When returning, we immediately fetch latest state to catch up, then reconnect SSE cleanly
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        console.log('👁️ Admin Monitor Tab became visible. Instantly synchronizing state and reconnecting stream...')
-        
-        // 1. Fetch the absolute latest state from the database immediately to bypass any missed events
-        try {
-          const response = await fetch(`/api/admin/bulk-tiebreakers/${initialData.id}?t=${Date.now()}`, { cache: 'no-store' })
-          if (response.ok) {
-            const result = await response.json()
-            if (result.success && result.tiebreaker) {
-              setLiveData(result.tiebreaker)
-              setLastUpdate(new Date())
-              if (result.tiebreaker.status === 'completed') {
-                setIsPolling(false)
-                if (eventSource) eventSource.close()
-                return
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error synchronizing state on visible restore in admin monitor:', err)
-        }
-
-        // 2. Re-open a fresh stream connection
-        connectStream()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      console.log('🔌 Closing admin bulk tiebreaker SSE stream, removing visibility listener, and clearing 500ms poller.')
-      if (eventSource) {
-        eventSource.close()
-      }
-      clearInterval(pollInterval)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [initialData.id, liveData.status, syncTrigger])
 
   // Timer
   useEffect(() => {
@@ -245,7 +103,6 @@ export default function BulkTiebreakerMonitorClient({
         setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
       } else {
         setTimeRemaining('Expired')
-        setIsPolling(false)
       }
     }
 
@@ -264,13 +121,13 @@ export default function BulkTiebreakerMonitorClient({
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Link
-            href={`/sub-admin/${seasonId}/auction`}
+            href={`/sub-admin/${seasonId}/auction/bulk-tiebreakers`}
             className="inline-flex items-center gap-2 text-[#D4CCBB] hover:text-white mb-4 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Auction
+            Back to Bulk Tiebreakers
           </Link>
 
           <div className="flex items-center justify-between mb-4">
@@ -295,6 +152,19 @@ export default function BulkTiebreakerMonitorClient({
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* Manual Resolve Button */}
+              {liveData.status !== 'completed' && (
+                <button
+                  onClick={() => setShowManualResolve(!showManualResolve)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-sm font-semibold hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all text-emerald-300 hover:text-emerald-200 shadow-lg shadow-black/35"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{showManualResolve ? 'Hide' : 'Manual Resolve'}</span>
+                </button>
+              )}
+
               {/* Sync / Reconnect Button */}
               <button
                 onClick={handleManualRefresh}
@@ -358,8 +228,8 @@ export default function BulkTiebreakerMonitorClient({
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               <div className="text-xs text-[#7A7367] mb-1">Last Update</div>
-              <div className="text-sm font-medium text-white" suppressHydrationWarning>
-                {lastUpdate.toLocaleTimeString()}
+              <div className="text-sm font-medium text-white">
+                Manual refresh only
               </div>
             </div>
           </div>
@@ -367,6 +237,20 @@ export default function BulkTiebreakerMonitorClient({
       </div>
  
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Manual Resolution Section */}
+        {showManualResolve && liveData.status !== 'completed' && (
+          <div className="mb-6">
+            <BulkTiebreakerManualResolve
+              tiebreakerId={liveData.id}
+              basePrice={liveData.basePrice}
+              participants={liveData.participants}
+              playerName={liveData.basePlayer.name}
+              seasonId={seasonId}
+              maxSquadSize={maxSquadSize}
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Bid History */}
           <div className="lg:col-span-2">

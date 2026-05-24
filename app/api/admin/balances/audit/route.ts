@@ -115,7 +115,8 @@ export async function GET(request: NextRequest) {
       const transfers = await prisma.transfer_history.findMany({
         where: {
           seasonId: seasonId,
-          teamId: seasonTeam.teamId
+          teamId: seasonTeam.teamId,
+          status: 'ACTIVE'
         }
       });
 

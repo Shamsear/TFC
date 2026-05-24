@@ -145,6 +145,7 @@ export async function POST(
     const previousSeasonTransfers = await prisma.transfer_history.findMany({
       where: {
         seasonId: previousSeasonId,
+        status: 'ACTIVE',
         basePlayerId: { in: retentions.map(r => r.basePlayerId) }
       },
       include: {
@@ -216,7 +217,8 @@ export async function POST(
           where: {
             seasonId: previousSeasonId,
             basePlayerId: retention.basePlayerId,
-            teamId: retention.teamId
+            teamId: retention.teamId,
+            status: 'ACTIVE'
           }
         })
         

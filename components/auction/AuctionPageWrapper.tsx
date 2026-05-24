@@ -94,16 +94,30 @@ export default function AuctionPageWrapper({
                 {season.name} — Manage auction rounds and bidding
               </p>
             </div>
-            <Link
-              href={`/sub-admin/${seasonId}/auction/create`}
-              onClick={() => handleLinkClick('Opening round creator...')}
-              className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Round
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/sub-admin/${seasonId}/auction/bulk-tiebreakers`}
+                onClick={() => handleLinkClick('Loading bulk tiebreakers...')}
+                className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white rounded-lg sm:rounded-xl font-semibold transition-all text-sm sm:text-base"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span className="hidden sm:inline">Bulk Tiebreakers</span>
+                <span className="sm:hidden">Tiebreakers</span>
+              </Link>
+              <Link
+                href={`/sub-admin/${seasonId}/auction/create`}
+                onClick={() => handleLinkClick('Opening round creator...')}
+                className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">Create Round</span>
+                <span className="sm:hidden">Create</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

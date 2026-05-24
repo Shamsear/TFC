@@ -83,10 +83,61 @@ export default async function BulkTiebreakerMonitorPage({ params }: BulkTiebreak
     notFound()
   }
 
+  // Fetch auction settings for max squad size
+  const auctionSettings = await prisma.auction_settings.findUnique({
+    where: { seasonId: seasonId },
+    select: { max_squad_size: true }
+  })
+
+  // Fetch team budgets and squad sizes for participants
+  const teamIds = tiebreaker.participants.map(p => p.teamId)
+  
+  // Fetch season_teams with budget
+  const seasonTeams = await prisma.season_teams.findMany({
+    where: {
+      seasonId: seasonId,
+      teamId: { in: teamIds }
+    },
+    select: {
+      teamId: true,
+      currentBudget: true
+    }
+  })
+
+  // Get squad sizes (count of ACTIVE transfers only)
+  const squadSizes = await Promise.all(
+    teamIds.map(async (teamId) => {
+      const count = await prisma.transfer_history.count({
+        where: {
+          seasonId: seasonId,
+          teamId: teamId,
+          status: 'ACTIVE'
+        }
+      })
+      return { teamId, squadSize: count }
+    })
+  )
+
+  // Merge budget and squad size data into participants
+  const participantsWithData = tiebreaker.participants.map(p => ({
+    ...p,
+    team: {
+      ...p.team,
+      currentBudget: seasonTeams.find(st => st.teamId === p.teamId)?.currentBudget || 0,
+      squadSize: squadSizes.find(ss => ss.teamId === p.teamId)?.squadSize || 0
+    }
+  }))
+
+  const tiebreakerWithData = {
+    ...tiebreaker,
+    participants: participantsWithData
+  }
+
   return (
     <BulkTiebreakerMonitorClient
-      initialData={tiebreaker}
+      initialData={tiebreakerWithData}
       seasonId={seasonId}
+      maxSquadSize={auctionSettings?.max_squad_size || 25}
     />
   )
 }

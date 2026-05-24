@@ -27,6 +27,34 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
 
   const tools = [
     {
+      title: 'Release Requests',
+      description: 'Manage player release requests from teams',
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+        </svg>
+      ),
+      href: `/sub-admin/${seasonId}/tools/release-requests`,
+      color: 'from-yellow-500 to-orange-500',
+      bgColor: 'bg-yellow-500/10',
+      borderColor: 'border-yellow-500/20',
+      textColor: 'text-yellow-400'
+    },
+    {
+      title: 'Swap Requests',
+      description: 'Manage player swap requests between teams',
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+      ),
+      href: `/sub-admin/${seasonId}/tools/swap-requests`,
+      color: 'from-cyan-500 to-blue-500',
+      bgColor: 'bg-cyan-500/10',
+      borderColor: 'border-cyan-500/20',
+      textColor: 'text-cyan-400'
+    },
+    {
       title: 'Player Management',
       description: 'Transfer players between teams or release players from teams',
       icon: (

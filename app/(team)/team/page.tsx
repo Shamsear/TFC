@@ -713,7 +713,7 @@ export default async function TeamDashboardPage() {
         {/* Quick Actions */}
         <div>
           <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-3 sm:gap-4">
             <Link
               href="/team/auction"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
@@ -735,6 +735,28 @@ export default async function TeamDashboardPage() {
                 </svg>
               </div>
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Planner</div>
+            </Link>
+            <Link
+              href="/team/release-request"
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-yellow-500/50 hover:bg-white/[0.07] transition-all text-center group"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mx-auto mb-2 sm:mb-3 group-hover:bg-yellow-500/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                </svg>
+              </div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-yellow-400 transition-colors">Release</div>
+            </Link>
+            <Link
+              href="/team/swap-request"
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-cyan-500/50 hover:bg-white/[0.07] transition-all text-center group"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto mb-2 sm:mb-3 group-hover:bg-cyan-500/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-cyan-400 transition-colors">Swap</div>
             </Link>
             <Link
               href="/team/starred"

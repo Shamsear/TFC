@@ -30,7 +30,7 @@ async function getRoundData(roundId: string) {
 
     // Get results (transfer history) for this round
     const results = await prisma.transfer_history.findMany({
-      where: { roundId: round.id },
+      where: { roundId: round.id, status: 'ACTIVE' },
       include: {
         basePlayer: {
           include: {

@@ -24,6 +24,7 @@ async function getHomeData() {
       
       // Get recent transfers (reduced from 10 to 5)
       prisma.transfer_history.findMany({
+        where: { status: 'ACTIVE' },
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: {

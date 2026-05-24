@@ -30,7 +30,8 @@ async function getSeasonTeamsData(seasonId: string) {
         const playerCount = await prisma.transfer_history.count({
           where: {
             seasonId,
-            teamId: st.teamId
+            teamId: st.teamId,
+            status: 'ACTIVE'
           }
         })
 
@@ -38,7 +39,8 @@ async function getSeasonTeamsData(seasonId: string) {
         const spentData = await prisma.transfer_history.aggregate({
           where: {
             seasonId,
-            teamId: st.teamId
+            teamId: st.teamId,
+            status: 'ACTIVE'
           },
           _sum: { soldPrice: true }
         })
@@ -70,11 +72,11 @@ async function getSeasonTeamsData(seasonId: string) {
 
     const totalBudget = seasonTeams.reduce((sum, st) => sum + st.currentBudget, 0)
     const totalSpent = await prisma.transfer_history.aggregate({
-      where: { seasonId },
+      where: { seasonId, status: 'ACTIVE' },
       _sum: { soldPrice: true }
     })
     const totalPlayers = await prisma.transfer_history.count({
-      where: { seasonId }
+      where: { seasonId, status: 'ACTIVE' }
     })
 
     return {

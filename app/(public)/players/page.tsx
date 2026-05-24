@@ -30,7 +30,7 @@ export default async function PlayersPage() {
 
   // Fetch static metadata - positions and teams
   const [soldCount, totalCount, allPositions, allTeams] = await Promise.all([
-    prisma.transfer_history.count({ where: { seasonId: activeSeason.id } }),
+    prisma.transfer_history.count({ where: { seasonId: activeSeason.id, status: 'ACTIVE' } }),
     prisma.seasonal_player_stats.count({ where: { seasonId: activeSeason.id } }),
     prisma.seasonal_player_stats.findMany({
       where: { seasonId: activeSeason.id },
@@ -38,7 +38,7 @@ export default async function PlayersPage() {
       distinct: ['position']
     }),
     prisma.teams.findMany({
-      where: { transferHistory: { some: { seasonId: activeSeason.id } } },
+      where: { transferHistory: { some: { seasonId: activeSeason.id, status: 'ACTIVE' } } },
       select: { name: true },
       orderBy: { name: 'asc' }
     })

@@ -198,7 +198,7 @@ export async function createTestLedgerEntry(
   seasonTeamId: string,
   seasonId: string,
   data: {
-    transactionType: 'INITIAL_PURSE' | 'PLAYER_PURCHASE' | 'PLAYER_SALE' | 'ADJUSTMENT'
+    transactionType: 'INITIAL_PURSE' | 'PLAYER_PURCHASE' | 'PLAYER_SALE' | 'ADJUSTMENT' | 'REFUND'
     amount: number
     previousBalance: number
     newBalance: number

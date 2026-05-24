@@ -18,7 +18,7 @@ async function getAuctionResults() {
 
     // Get all auction results (transfer history)
     const results = await prisma.transfer_history.findMany({
-      where: { seasonId: activeSeason.id },
+      where: { seasonId: activeSeason.id, status: 'ACTIVE' },
       include: {
         basePlayer: {
           include: {

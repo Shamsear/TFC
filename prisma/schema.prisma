@@ -24,6 +24,8 @@ model base_players {
   bulkTiebreakers      bulk_tiebreakers[]
   previewAllocations   preview_allocations[]
   starredPlayers       starred_players[]
+  releaseRequests      release_requests[]
+  swapRequestPlayers   swap_request_players[]
 }
 
 model financial_ledger {
@@ -234,6 +236,8 @@ model seasons {
   name                    String                  @unique
   startingPurse           Int
   isActive                Boolean                 @default(false)
+  releaseWindowOpen       Boolean                 @default(false) @map("release_window_open")
+  swapWindowOpen          Boolean                 @default(false) @map("swap_window_open")
   defaultMaxBidsPerTeam   Int?                    @default(10) @map("defaultMaxBidsPerTeam")
   defaultBasePrice        Int?                    @default(100000) @map("defaultBasePrice")
   createdAt               DateTime                @default(now())
@@ -250,6 +254,8 @@ model seasons {
   auctionPlans            auction_plans[]
   teamSquads              team_squads[]
   auctionSettings         auction_settings?
+  releaseRequests         release_requests[]
+  swapRequests            swap_requests[]
 }
 
 model starred_players {
@@ -298,6 +304,11 @@ model teams {
   teamManagers                  users[]                          @relation("TeamManager")
   bulkTiebreakerParticipants    bulk_tiebreaker_participants[]   @relation("BulkTiebreakerParticipants")
   bulkTiebreakerBidHistory      bulk_tiebreaker_bid_history[]    @relation("BulkTiebreakerBidHistory")
+  releaseRequests               release_requests[]
+  requestingSwaps               swap_requests[]                  @relation("RequestingTeam")
+  targetSwaps                   swap_requests[]                  @relation("TargetTeam")
+  swapPlayersFrom               swap_request_players[]           @relation("SwapPlayerFromTeam")
+  swapPlayersTo                 swap_request_players[]           @relation("SwapPlayerToTeam")
   previewAllocations            preview_allocations[]
   auctionPlans                  auction_plans[]
   teamSquads                    team_squads[]
@@ -365,6 +376,8 @@ model users {
   updatedCalendars      auction_calendar[]  @relation("CalendarUpdatedBy")
   passwordResetRequests password_reset_requests[] @relation("UserResetRequests")
   reviewedResetRequests password_reset_requests[] @relation("ReviewedResetRequests")
+  processedReleaseRequests release_requests[] @relation("ReleaseRequestProcessor")
+  processedSwapRequests swap_requests[]     @relation("SwapRequestProcessor")
 }
 
 model password_reset_requests {
@@ -578,6 +591,7 @@ enum TransactionType {
   PLAYER_PURCHASE
   PLAYER_SALE
   ADJUSTMENT
+  REFUND
 }
 
 enum UserRole {
@@ -829,4 +843,84 @@ model auction_settings {
   updated_at            DateTime  @default(now()) @updatedAt @map("updated_at")
 
   season                seasons   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+}
+
+model release_requests {
+  id                String    @id
+  seasonId          String    @map("season_id")
+  teamId            String    @map("team_id")
+  playerId          String    @map("player_id")
+  playerName        String    @map("player_name")
+  refundAmount      Int       @map("refund_amount")
+  notes             String?   @db.Text
+  status            RequestStatus @default(pending)
+  windowOpenedAt    DateTime? @map("window_opened_at")
+  submittedAt       DateTime  @default(now()) @map("submitted_at")
+  processedAt       DateTime? @map("processed_at")
+  processedBy       String?   @map("processed_by")
+  rejectionReason   String?   @map("rejection_reason") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  season            seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team              teams        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  basePlayer        base_players @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  processor         users?       @relation("ReleaseRequestProcessor", fields: [processedBy], references: [id], onDelete: SetNull)
+  
+  @@index([seasonId])
+  @@index([teamId])
+  @@index([status])
+  @@index([windowOpenedAt])
+}
+
+model swap_requests {
+  id                  String    @id
+  seasonId            String    @map("season_id")
+  requestingTeamId    String    @map("requesting_team_id")
+  targetTeamId        String    @map("target_team_id")
+  status              RequestStatus @default(pending)
+  windowOpenedAt      DateTime? @map("window_opened_at")
+  submittedAt         DateTime  @default(now()) @map("submitted_at")
+  processedAt         DateTime? @map("processed_at")
+  processedBy         String?   @map("processed_by")
+  rejectionReason     String?   @map("rejection_reason") @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  season              seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  requestingTeam      teams        @relation("RequestingTeam", fields: [requestingTeamId], references: [id], onDelete: Cascade)
+  targetTeam          teams        @relation("TargetTeam", fields: [targetTeamId], references: [id], onDelete: Cascade)
+  processor           users?       @relation("SwapRequestProcessor", fields: [processedBy], references: [id], onDelete: SetNull)
+  players             swap_request_players[]
+  
+  @@index([seasonId])
+  @@index([requestingTeamId])
+  @@index([targetTeamId])
+  @@index([status])
+  @@index([windowOpenedAt])
+}
+
+model swap_request_players {
+  id              String    @id
+  swapRequestId   String    @map("swap_request_id")
+  playerId        String    @map("player_id")
+  playerName      String    @map("player_name")
+  fromTeamId      String    @map("from_team_id")
+  toTeamId        String    @map("to_team_id")
+  playerValue     Int       @map("player_value")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  swapRequest     swap_requests @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+  basePlayer      base_players  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  fromTeam        teams         @relation("SwapPlayerFromTeam", fields: [fromTeamId], references: [id], onDelete: Cascade)
+  toTeam          teams         @relation("SwapPlayerToTeam", fields: [toTeamId], references: [id], onDelete: Cascade)
+  
+  @@index([swapRequestId])
+  @@index([playerId])
+}
+
+enum RequestStatus {
+  pending
+  approved
+  rejected
 }

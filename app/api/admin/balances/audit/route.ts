@@ -104,6 +104,9 @@ export async function GET(request: NextRequest) {
       const totalSales = ledgerEntries
         .filter(e => e.transactionType === 'PLAYER_SALE')
         .reduce((sum, e) => sum + e.amount, 0);
+      const totalRefunds = ledgerEntries
+        .filter(e => e.transactionType === 'REFUND')
+        .reduce((sum, e) => sum + e.amount, 0);
       const totalAdjustments = ledgerEntries
         .filter(e => e.transactionType === 'ADJUSTMENT')
         .reduce((sum, e) => sum + e.amount, 0);
@@ -126,6 +129,7 @@ export async function GET(request: NextRequest) {
         initialPurse,
         totalSpent,
         totalSales,
+        totalRefunds,
         totalAdjustments,
         calculatedBalance: expectedBalance,
         difference,

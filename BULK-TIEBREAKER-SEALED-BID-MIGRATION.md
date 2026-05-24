@@ -43,58 +43,74 @@ Updated `bulk_tiebreaker_participants` model with new fields.
 - Tiebreaker: earliest submission wins
 - Creates transfer, updates budget, logs audit
 
-### 4. Still TODO
+### 4. API Endpoints ✅
 
-#### Update GET Endpoint
+#### GET Endpoint (Updated)
 **File**: `app/api/team/bulk-tiebreakers/[id]/route.ts`
 
-**Needed**:
-- Don't return `newBidAmount` for other teams
-- Return `submitted` status for all teams
-- Return own `newBidAmount` only
+**Changes**:
+- Returns `newBidAmount`, `submitted`, `submittedAt` for participants
+- Hides other teams' bid amounts (sealed)
+- Returns own `newBidAmount` only
+- Removed `bidHistory` from response
 
-#### Create Status Endpoint
-**File**: `app/api/team/bulk-tiebreakers/[id]/status/route.ts` (NEW)
+#### Status Polling Endpoint (NEW)
+**File**: `app/api/team/bulk-tiebreakers/[id]/status/route.ts`
 
-**Purpose**:
-- Poll for status updates
-- Return submission progress
-- Notify when resolved
+**Features**:
+- Returns tiebreaker status
+- Returns submission progress (count)
+- Returns participant submission status
+- Hides bid amounts until completed
 
-#### Update UI Component
-**File**: `components/team-auction/BulkTiebreakerBiddingClient.tsx`
-
-**Changes Needed**:
-1. Remove live bidding UI
-2. Add sealed bid submission form (like TiebreakerBiddingClient)
-3. Show submission status for all teams
-4. Hide bid amounts until resolved
-5. Remove SSE connection
-6. Add polling for status
-7. Show "Waiting for others" state
-8. Auto-redirect when resolved
-
-#### Update Admin Manual Resolve
-**File**: `components/auction/BulkTiebreakerManualResolve.tsx`
-
-**Changes Needed**:
-- Show sealed bids (admin can see all)
-- Show submission status
-- Allow manual resolution even if not all submitted
-- Show which teams haven't submitted
-
-#### Update Admin Monitor
-**File**: `components/auction/BulkTiebreakerMonitorClient.tsx`
-
-**Changes Needed**:
-- Show submission progress
-- Don't show live bids
-- Show sealed bids after completion
-
-### 5. Withdraw Endpoint
+#### Withdraw Endpoint (Updated)
 **File**: `app/api/team/bulk-tiebreakers/[id]/withdraw/route.ts`
 
-**Check**: Ensure withdraw still works with new model
+**Changes**:
+- Checks if team has submitted
+- Prevents withdrawal after submission
+- Returns updated sealed bid structure
+
+### 5. Team UI ✅
+
+#### Bidding Client (Completely Rewritten)
+**File**: `components/team-auction/BulkTiebreakerBiddingClient.tsx`
+
+**Changes**:
+- Removed all live bidding UI (SSE, bid history, multiple bids)
+- Added sealed bid submission form (single input, submit once)
+- Added "Tied Teams" list with submission status
+- Added submission progress counter
+- Added polling for status updates (3 second interval)
+- Added "Waiting for others" state after submission
+- Added auto-redirect to dashboard when resolved
+- Removed withdraw functionality after submission
+- Matches TiebreakerBiddingClient pattern
+
+### 6. Admin UI ✅
+
+#### Manual Resolve Component (Updated)
+**File**: `components/auction/BulkTiebreakerManualResolve.tsx`
+
+**Changes**:
+- Shows sealed bids (admin can see all `newBidAmount` values)
+- Shows submission status for each team
+- Allows manual resolution even if not all submitted
+- Indicates which teams haven't submitted yet
+- Updated interface to use `newBidAmount` and `submitted` fields
+
+#### Monitor Client (Updated)
+**File**: `components/auction/BulkTiebreakerMonitorClient.tsx`
+
+**Changes**:
+- Shows submission progress counter
+- Displays sealed bids table (admin view)
+- Hides bid amounts during active state
+- Shows sealed bids after completion
+- Updated stats to show submissions instead of current highest
+- Removed bid history display (not used in sealed bid model)
+
+### 7. Testing & Verification (TODO)
 
 ## New Workflow
 
@@ -129,8 +145,8 @@ Updated `bulk_tiebreaker_participants` model with new fields.
 
 ## Testing Checklist
 
-- [ ] Run database migration
-- [ ] Generate Prisma client
+- [x] Run database migration
+- [x] Generate Prisma client
 - [ ] Test bid submission (team side)
 - [ ] Test can't submit twice
 - [ ] Test auto-resolution when all submit
@@ -143,15 +159,32 @@ Updated `bulk_tiebreaker_participants` model with new fields.
 - [ ] Test teams can't see others' bids
 - [ ] Test tiebreaker (equal bids, earliest wins)
 
+## Migration Status
+
+### ✅ COMPLETED
+1. Database migration created and run
+2. Prisma schema updated and generated
+3. Bid API endpoint updated for sealed bids
+4. Auto-resolution function created
+5. GET endpoint updated to hide sealed bids
+6. Status polling endpoint created
+7. Withdraw endpoint updated with submission check
+8. Team bidding UI completely rewritten
+9. Admin manual resolve component updated
+10. Admin monitor component updated
+
+### 🎯 READY FOR TESTING
+All code changes are complete. The sealed bid model is now fully implemented and ready for testing.
+
 ## Migration Steps
 
-1. **Backup database**
-2. **Run SQL migration**: `007-bulk-tiebreaker-sealed-bid.sql`
-3. **Update Prisma**: `npx prisma generate`
-4. **Deploy API changes** (already done)
-5. **Update UI components** (TODO)
-6. **Test thoroughly**
-7. **Deploy to production**
+1. **✅ Backup database**
+2. **✅ Run SQL migration**: `007-bulk-tiebreaker-sealed-bid.sql`
+3. **✅ Update Prisma**: `npx prisma generate`
+4. **✅ Deploy API changes** (completed)
+5. **✅ Update UI components** (completed)
+6. **🎯 Test thoroughly** (next step)
+7. **⏳ Deploy to production** (after testing)
 
 ## Rollback Plan
 

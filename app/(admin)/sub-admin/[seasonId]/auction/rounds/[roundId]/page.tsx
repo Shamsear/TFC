@@ -59,7 +59,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
   // Get position group from round if it exists
   const roundPositionGroup = round.position_group || 'ALL'
 
-  // Fetch teams in this season
+  // Fetch teams in this season with squad sizes
   const seasonTeams = await prisma.season_teams.findMany({
     where: { seasonId },
     include: {
@@ -72,6 +72,25 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
       }
     }
   })
+
+  // Get squad sizes for all teams (only ACTIVE players)
+  const teamSquadSizes = await Promise.all(
+    seasonTeams.map(async (st) => {
+      const squadSize = await prisma.transfer_history.count({
+        where: {
+          teamId: st.team.id,
+          seasonId,
+          status: 'ACTIVE'
+        }
+      })
+      return {
+        teamId: st.team.id,
+        squadSize
+      }
+    })
+  )
+
+  const squadSizeMap = new Map(teamSquadSizes.map(s => [s.teamId, s.squadSize]))
 
   // Fetch auction results (transfer history) for completed rounds
   let auctionResults = null
@@ -390,6 +409,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           previewAllocations={previewAllocations ?? undefined}
           bulkConflicts={bulkConflicts}
           teamBidsWithDetails={teamBidsWithDetails ?? undefined}
+          teamSquadSizes={Object.fromEntries(squadSizeMap)}
         />
       </div>
     </div>

@@ -106,9 +106,10 @@ interface RoundDetailClientProps {
   previewAllocations?: any[] // Preview allocations from finalization state
   bulkConflicts?: BulkConflict[] | null
   teamBidsWithDetails?: TeamBidDetails[]
+  teamSquadSizes?: Record<string, number> // Map of teamId to current squad size
 }
 
-export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts, teamBidsWithDetails }: RoundDetailClientProps) {
+export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts, teamBidsWithDetails, teamSquadSizes }: RoundDetailClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -189,13 +190,72 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   })
 
   const handleCopyWhatsApp = () => {
-    const text = `*TFC Round ${round.roundNumber} - Submission Status*\n\n` +
-      `*Submitted (${submittedTeamsList.length}):*\n` +
-      `${submittedTeamsList.length > 0 ? submittedTeamsList.map(t => `- ${t.name}`).join('\n') : '- None'}\n\n` +
-      `*In Progress (${inProgressTeamsList.length}):*\n` +
-      `${inProgressTeamsList.length > 0 ? inProgressTeamsList.map(item => `- ${item.team.name} (${item.bidCount} ${round.roundType === 'bulk' ? 'players' : 'bids'})`).join('\n') : '- None'}\n\n` +
-      `*Not Started (${notStartedTeamsList.length}):*\n` +
-      `${notStartedTeamsList.length > 0 ? notStartedTeamsList.map(t => `- ${t.name}`).join('\n') : '- None'}`
+    let text = `*TFC Round ${round.roundNumber} - Submission Status*\n\n`
+    
+    if (round.roundType === 'bulk') {
+      // Bulk round format with slot information
+      // Sort submitted teams alphabetically
+      const sortedSubmitted = [...submittedTeamsList].sort((a, b) => a.name.localeCompare(b.name))
+      // Sort non-submitted teams alphabetically
+      const sortedInProgress = [...inProgressTeamsList].sort((a, b) => a.team.name.localeCompare(b.team.name))
+      const sortedNotStarted = [...notStartedTeamsList].sort((a, b) => a.name.localeCompare(b.name))
+      
+      text += `*Submitted (${sortedSubmitted.length}):*\n`
+      if (sortedSubmitted.length > 0) {
+        sortedSubmitted.forEach(t => {
+          const selection = liveBulkSelections?.find((s: any) => s.teamId === t.id)
+          let selectedCount = 0
+          if (selection?.selectedPlayers) {
+            try {
+              const parsed = JSON.parse(selection.selectedPlayers)
+              selectedCount = parsed.players?.length || 0
+            } catch (e) {}
+          }
+          const currentSquadSize = teamSquadSizes?.[t.id] || 0
+          const maxSquadSize = 25
+          const remainingSlots = Math.max(0, maxSquadSize - currentSquadSize)
+          text += `- ${t.name}: ${selectedCount}/${remainingSlots}\n`
+        })
+      } else {
+        text += '- None\n'
+      }
+      
+      text += `\n*Not Submitted (${sortedInProgress.length + sortedNotStarted.length}):*\n`
+      if (sortedInProgress.length > 0 || sortedNotStarted.length > 0) {
+        sortedInProgress.forEach(item => {
+          const currentSquadSize = teamSquadSizes?.[item.team.id] || 0
+          const maxSquadSize = 25
+          const remainingSlots = Math.max(0, maxSquadSize - currentSquadSize)
+          text += `- ${item.team.name}: ${item.bidCount}/${remainingSlots}\n`
+        })
+        sortedNotStarted.forEach(t => {
+          const currentSquadSize = teamSquadSizes?.[t.id] || 0
+          const maxSquadSize = 25
+          const remainingSlots = Math.max(0, maxSquadSize - currentSquadSize)
+          text += `- ${t.name}: 0/${remainingSlots}\n`
+        })
+      } else {
+        text += '- None'
+      }
+    } else {
+      // Normal round format - also sort alphabetically
+      const sortedSubmitted = [...submittedTeamsList].sort((a, b) => a.name.localeCompare(b.name))
+      const sortedInProgress = [...inProgressTeamsList].sort((a, b) => a.team.name.localeCompare(b.team.name))
+      const sortedNotStarted = [...notStartedTeamsList].sort((a, b) => a.name.localeCompare(b.name))
+      
+      text += `*Submitted (${sortedSubmitted.length}):*\n`
+      text += `${sortedSubmitted.length > 0 ? sortedSubmitted.map(t => `- ${t.name}`).join('\n') : '- None'}\n\n`
+      text += `*Not Submitted (${sortedInProgress.length + sortedNotStarted.length}):*\n`
+      if (sortedInProgress.length > 0 || sortedNotStarted.length > 0) {
+        const combined = [
+          ...sortedInProgress.map(item => `- ${item.team.name} (${item.bidCount} bids)`),
+          ...sortedNotStarted.map(t => `- ${t.name}`)
+        ]
+        text += combined.join('\n')
+      } else {
+        text += '- None'
+      }
+    }
     
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
@@ -2172,8 +2232,32 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               )
             })
           ) : (
-            // Simple view for non-completed rounds
-            teams.map(team => {
+            // Simple view for non-completed rounds - Sort teams: submitted first (alphabetically), then non-submitted (alphabetically)
+            (() => {
+              // Create sorted team list
+              const sortedTeams = [...teams].sort((a, b) => {
+                let aSubmitted = false
+                let bSubmitted = false
+                
+                if (round.roundType === 'bulk') {
+                  const aSelection = round.bulkRoundSelections?.find((s: any) => s.teamId === a.id)
+                  const bSelection = round.bulkRoundSelections?.find((s: any) => s.teamId === b.id)
+                  aSubmitted = aSelection?.submitted || false
+                  bSubmitted = bSelection?.submitted || false
+                } else {
+                  const aBid = liveTeamBids.find((bid: any) => bid.teamId === a.id)
+                  const bBid = liveTeamBids.find((bid: any) => bid.teamId === b.id)
+                  aSubmitted = aBid?.submitted || false
+                  bSubmitted = bBid?.submitted || false
+                }
+                
+                // Sort: submitted first, then by name alphabetically
+                if (aSubmitted && !bSubmitted) return -1
+                if (!aSubmitted && bSubmitted) return 1
+                return a.name.localeCompare(b.name)
+              })
+              
+              return sortedTeams.map(team => {
               if (round.roundType === 'bulk') {
                 const selection = round.bulkRoundSelections?.find((s: any) => s.teamId === team.id)
                 let selectedCount = 0
@@ -2183,6 +2267,12 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                     selectedCount = parsed.players?.length || 0
                   } catch (e) {}
                 }
+                
+                // Calculate remaining slots
+                const currentSquadSize = teamSquadSizes?.[team.id] || 0
+                const maxSquadSize = 25 // Default max squad size
+                const remainingSlots = Math.max(0, maxSquadSize - currentSquadSize)
+                
                 return (
                   <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10 gap-3">
                     <div className="flex items-center gap-3 w-full sm:w-auto text-left">
@@ -2194,7 +2284,10 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                       {selection ? (
                         <div className="flex items-center gap-3 w-full justify-between sm:justify-end">
-                          <span className="text-sm text-gray-400">{selectedCount} players</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-cyan-400 font-bold">{selectedCount}/{remainingSlots}</span>
+                            <span className="text-xs text-gray-500">({selectedCount} selected, {remainingSlots} slots)</span>
+                          </div>
                           {selection.submitted ? (
                             <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30 flex-shrink-0">
                               Submitted
@@ -2206,7 +2299,11 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                           )}
                         </div>
                       ) : (
-                        <div className="flex items-center justify-end w-full">
+                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-cyan-400 font-bold">0/{remainingSlots}</span>
+                            <span className="text-xs text-gray-500">({remainingSlots} slots available)</span>
+                          </div>
                           <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-bold border border-gray-500/30 flex-shrink-0">
                             Not Started
                           </span>
@@ -2251,6 +2348,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 </div>
               )
             })
+            })() // Close the sorting IIFE
           )}
         </div>
       </div>

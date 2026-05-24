@@ -9,6 +9,7 @@ interface TeamAudit {
   initialPurse: number
   totalSpent: number
   totalSales: number
+  totalRefunds: number
   totalAdjustments: number
   calculatedBalance: number
   difference: number
@@ -244,7 +245,7 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-sm">
                   <div>
                     <div className="text-gray-500 mb-1">Starting Purse</div>
                     <div className="font-bold text-blue-400">£{team.initialPurse.toLocaleString()}</div>
@@ -256,6 +257,10 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
                   <div>
                     <div className="text-gray-500 mb-1">Total Sales</div>
                     <div className="font-bold text-emerald-400">+£{team.totalSales.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 mb-1">Total Refunds</div>
+                    <div className="font-bold text-cyan-400">+£{team.totalRefunds.toLocaleString()}</div>
                   </div>
                   <div>
                     <div className="text-gray-500 mb-1">Current</div>
@@ -324,6 +329,7 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
                 <div className="text-xs text-gray-500 mt-1">
                   {team.transferCount} transfers • £{team.totalSpent.toLocaleString()} spent
                   {team.totalSales > 0 && ` • £${team.totalSales.toLocaleString()} sales`}
+                  {team.totalRefunds > 0 && ` • £${team.totalRefunds.toLocaleString()} refunds`}
                 </div>
               </div>
             ))}

@@ -244,13 +244,20 @@ export default function SwapRequestClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-white mb-2">Swap Request</h1>
-          <p className="text-gray-400">Select equal number of players from both teams to swap</p>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+      {/* Header */}
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
+            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
+              Swap Request
+            </span>
+          </h1>
+          <p className="text-[#D4CCBB] text-sm sm:text-base">Select equal number of players from both teams to swap</p>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
 
         {/* Success Modal */}
         {showSuccess && (

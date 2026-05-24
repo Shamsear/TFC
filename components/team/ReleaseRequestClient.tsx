@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import Image from 'next/image'
 
@@ -30,8 +30,143 @@ interface Props {
   teamId: string
   teamName: string
   currentBudget: number
+  currentSlots: number
+  maxSlots: number
   players: Player[]
   existingRequests: ExistingRequest[]
+}
+
+// Custom Select Component
+function CustomSelect({ 
+  label, 
+  value, 
+  options, 
+  onChange, 
+  displayValue,
+  enableSearch = false
+}: {
+  label: string
+  value: string
+  options: string[]
+  onChange: (val: string) => void
+  displayValue?: (val: string) => string
+  enableSearch?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        setSearchQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    if (isOpen && enableSearch && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50)
+    }
+  }, [isOpen, enableSearch])
+
+  const filteredOptions = enableSearch && searchQuery
+    ? options.filter(option => {
+        const searchLower = searchQuery.toLowerCase()
+        const optionLower = option.toLowerCase()
+        const displayLower = displayValue ? displayValue(option).toLowerCase() : optionLower
+        return optionLower.includes(searchLower) || displayLower.includes(searchLower)
+      })
+    : options
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">{label}</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base text-left"
+      >
+        <span className="truncate">
+          {displayValue ? displayValue(value) : value}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-20 mt-2 w-full rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)]">
+          {enableSearch && (
+            <div className="p-2 border-b border-white/10">
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full px-3 py-2 pl-9 rounded-lg bg-black/50 border border-white/10 text-white placeholder-gray-500 focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800]/20 text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <svg 
+                  className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                No results found
+              </div>
+            ) : (
+              filteredOptions.map((option) => {
+                const isSelected = option === value
+                
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      onChange(option)
+                      setIsOpen(false)
+                      setSearchQuery('')
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                      isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
+                    }`}
+                  >
+                    <span className="truncate">{displayValue ? displayValue(option) : option}</span>
+                    {isSelected && (
+                      <svg className="w-4 h-4 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function ReleaseRequestClient({
@@ -39,6 +174,8 @@ export default function ReleaseRequestClient({
   teamId,
   teamName,
   currentBudget,
+  currentSlots,
+  maxSlots,
   players,
   existingRequests: initialRequests,
 }: Props) {
@@ -46,13 +183,16 @@ export default function ReleaseRequestClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState('ALL')
   const [styleFilter, setStyleFilter] = useState('ALL')
+  const [positionGroupFilter, setPositionGroupFilter] = useState('ALL')
   const [existingRequests, setExistingRequests] = useState(initialRequests)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [whatsappText, setWhatsappText] = useState('')
+  const [isSelectedListExpanded, setIsSelectedListExpanded] = useState(true)
 
-  // Get unique positions and styles
+  // Get unique positions, groups, and styles
   const positions = ['ALL', ...Array.from(new Set(players.map(p => p.position))).sort()]
+  const positionGroups = ['ALL', ...Array.from(new Set(players.map(p => p.positionGroup).filter(Boolean) as string[])).sort()]
   const styles = ['ALL', ...Array.from(new Set(players.map(p => p.playingStyle).filter(Boolean) as string[])).sort()]
 
   // Filter players
@@ -65,11 +205,12 @@ export default function ReleaseRequestClient({
 
       const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesPosition = positionFilter === 'ALL' || player.position === positionFilter
+      const matchesGroup = positionGroupFilter === 'ALL' || player.positionGroup === positionGroupFilter
       const matchesStyle = styleFilter === 'ALL' || player.playingStyle === styleFilter
       
-      return matchesSearch && matchesPosition && matchesStyle
+      return matchesSearch && matchesPosition && matchesGroup && matchesStyle
     })
-  }, [players, searchQuery, positionFilter, styleFilter, existingRequests])
+  }, [players, searchQuery, positionFilter, positionGroupFilter, styleFilter, existingRequests])
 
   // Calculate totals
   const selectedPlayersList = players.filter(p => selectedPlayers.has(p.id))
@@ -156,10 +297,10 @@ export default function ReleaseRequestClient({
 
   const generateWhatsAppMessage = () => {
     const playerList = selectedPlayersList
-      .map(p => `${p.name} (£${(p.soldPrice / 1000).toFixed(0)}K)`)
+      .map(p => `${p.name} ($${p.soldPrice.toLocaleString()})`)
       .join('\n')
     
-    return `🔴 *Release Request - ${teamName}*\n\n*Players:*\n${playerList}\n\n*Total Refund:* £${(totalRefund / 1000000).toFixed(2)}M\n*Slots Freed:* ${slotsFreed}\n*New Budget:* £${(newBudget / 1000000).toFixed(2)}M`
+    return `🔴 *Release Request - ${teamName}*\n\n*Players:*\n${playerList}\n\n*Total Refund:* $${totalRefund.toLocaleString()}\n*Slots Freed:* ${slotsFreed}\n*New Budget:* $${newBudget.toLocaleString()}\n*New Slots:* ${currentSlots - slotsFreed}/${maxSlots}`
   }
 
   const copyToWhatsApp = () => {
@@ -167,21 +308,21 @@ export default function ReleaseRequestClient({
     alert('Copied to clipboard! You can now paste it in WhatsApp')
   }
 
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `£${(amount / 1000000).toFixed(2)}M`
-    }
-    return `£${(amount / 1000).toFixed(0)}K`
-  }
-
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-white mb-2">Release Request</h1>
-          <p className="text-gray-400">Select players to request for release</p>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+      {/* Header */}
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
+            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
+              Release Request
+            </span>
+          </h1>
+          <p className="text-[#D4CCBB] text-sm sm:text-base">Select players to request for release</p>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
 
         {/* Success Modal */}
         {showSuccess && (
@@ -222,6 +363,22 @@ export default function ReleaseRequestClient({
           </div>
         )}
 
+        {/* Team Stats - Always Visible */}
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Current Budget</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">${currentBudget.toLocaleString()}</div>
+          </div>
+          <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Current Players</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{currentSlots}</div>
+          </div>
+          <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Slots</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">{currentSlots}/{maxSlots}</div>
+          </div>
+        </div>
+
         {/* Existing Requests */}
         {existingRequests.length > 0 && (
           <div className="mb-8 rounded-xl bg-blue-500/10 border border-blue-500/30 p-6">
@@ -231,7 +388,7 @@ export default function ReleaseRequestClient({
                 <div key={req.id} className="flex items-center justify-between bg-[#111111] rounded-lg p-4">
                   <div>
                     <div className="font-bold text-white">{req.playerName}</div>
-                    <div className="text-sm text-gray-400">Refund: {formatCurrency(req.refundAmount)}</div>
+                    <div className="text-sm text-gray-400">Refund: ${req.refundAmount.toLocaleString()}</div>
                   </div>
                   <button
                     onClick={() => handleCancelRequest(req.id)}
@@ -245,65 +402,144 @@ export default function ReleaseRequestClient({
           </div>
         )}
 
-        {/* Filters */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input
-            type="text"
-            placeholder="Search players..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-4 py-3 bg-[#111111] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]"
-          />
-          <select
-            value={positionFilter}
-            onChange={(e) => setPositionFilter(e.target.value)}
-            className="px-4 py-3 bg-[#111111] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]"
-          >
-            {positions.map(pos => (
-              <option key={pos} value={pos}>{pos}</option>
-            ))}
-          </select>
-          <select
-            value={styleFilter}
-            onChange={(e) => setStyleFilter(e.target.value)}
-            className="px-4 py-3 bg-[#111111] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]"
-          >
-            {styles.map(style => (
-              <option key={style} value={style}>{style}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Summary */}
+        {/* Selected Players List - Collapsible */}
         {selectedPlayers.size > 0 && (
-          <div className="mb-6 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/30 p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div>
-                <div className="text-sm text-gray-400 mb-1">Players Selected</div>
-                <div className="text-2xl font-black text-white">{selectedPlayers.size}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-400 mb-1">Total Refund</div>
-                <div className="text-2xl font-black text-[#E8A800]">{formatCurrency(totalRefund)}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-400 mb-1">Slots Freed</div>
-                <div className="text-2xl font-black text-emerald-400">{slotsFreed}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-400 mb-1">New Budget</div>
-                <div className="text-2xl font-black text-white">{formatCurrency(newBudget)}</div>
+          <div className="mb-6 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/30 overflow-hidden">
+            {/* Header - Always Visible */}
+            <div 
+              className="p-4 cursor-pointer hover:bg-[#E8A800]/5 transition-colors"
+              onClick={() => setIsSelectedListExpanded(!isSelectedListExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-black text-white">Selected Players ({selectedPlayers.size})</h2>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="px-2 py-1 bg-[#E8A800]/20 rounded text-[#E8A800] font-bold">
+                      ${totalRefund.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <svg
+                  className={`w-5 h-5 text-[#E8A800] transition-transform duration-200 ${isSelectedListExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="w-full px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Release Request'}
-            </button>
+
+            {/* Expandable Content */}
+            {isSelectedListExpanded && (
+              <div className="px-6 pb-6">
+                {/* Players List */}
+                <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
+                  {selectedPlayersList.map(player => (
+                    <div key={player.id} className="flex items-center justify-between bg-[#111111] rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
+                          <Image
+                            src={getPlayerPhotoUrl(`${player.playerId || player.id}.webp`)}
+                            alt={player.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+                        <div>
+                          <div className="font-bold text-white text-sm">{player.name}</div>
+                          <div className="text-xs text-gray-400">{player.position} • OVR {player.overall}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <div className="text-sm font-bold text-[#E8A800]">${player.soldPrice.toLocaleString()}</div>
+                        </div>
+                        <button
+                          onClick={() => togglePlayer(player.id)}
+                          className="w-8 h-8 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg flex items-center justify-center transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 p-4 bg-[#0a0a0a] rounded-lg">
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">Players</div>
+                    <div className="text-xl font-black text-white">{selectedPlayers.size}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">Total Refund</div>
+                    <div className="text-xl font-black text-[#E8A800]">${totalRefund.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">New Budget</div>
+                    <div className="text-xl font-black text-emerald-400">${newBudget.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">Current Slots</div>
+                    <div className="text-xl font-black text-white">{currentSlots}/{maxSlots}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">After Release</div>
+                    <div className="text-xl font-black text-blue-400">{currentSlots - slotsFreed}/{maxSlots}</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Release Request'}
+                </button>
+              </div>
+            )}
           </div>
         )}
+
+        {/* Filters */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Search</label>
+            <input
+              type="text"
+              placeholder="Search players..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20"
+            />
+          </div>
+          <CustomSelect
+            label="Position"
+            value={positionFilter}
+            options={positions}
+            onChange={setPositionFilter}
+            displayValue={(val) => val === 'ALL' ? 'All Positions' : val}
+          />
+          <CustomSelect
+            label="Position Group"
+            value={positionGroupFilter}
+            options={positionGroups}
+            onChange={setPositionGroupFilter}
+            displayValue={(val) => val === 'ALL' ? 'All Groups' : val}
+          />
+          <CustomSelect
+            label="Playing Style"
+            value={styleFilter}
+            options={styles}
+            onChange={setStyleFilter}
+            displayValue={(val) => val === 'ALL' ? 'All Styles' : val}
+            enableSearch={true}
+          />
+        </div>
 
         {/* Players Grid */}
         {filteredPlayers.length === 0 ? (
@@ -331,6 +567,7 @@ export default function ReleaseRequestClient({
                         alt={player.name}
                         fill
                         className="object-cover"
+                        unoptimized
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -345,7 +582,7 @@ export default function ReleaseRequestClient({
                   <div className="flex items-center justify-between pt-3 border-t border-white/10">
                     <div>
                       <div className="text-xs text-gray-400">Refund</div>
-                      <div className="text-lg font-black text-[#E8A800]">{formatCurrency(player.soldPrice)}</div>
+                      <div className="text-lg font-black text-[#E8A800]">${player.soldPrice.toLocaleString()}</div>
                     </div>
                     {isSelected && (
                       <div className="w-6 h-6 bg-[#E8A800] rounded-full flex items-center justify-center">

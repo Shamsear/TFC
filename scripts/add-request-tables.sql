@@ -1,3 +1,6 @@
+-- Create RequestStatus enum type
+CREATE TYPE "RequestStatus" AS ENUM ('pending', 'approved', 'rejected');
+
 -- Add window control columns to seasons table
 ALTER TABLE seasons
 ADD COLUMN release_window_open BOOLEAN DEFAULT FALSE,
@@ -12,7 +15,7 @@ CREATE TABLE release_requests (
     player_name VARCHAR(255) NOT NULL,
     refund_amount INTEGER NOT NULL,
     notes TEXT,
-    status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
+    status "RequestStatus" DEFAULT 'pending',
     window_opened_at TIMESTAMP,
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMP,
@@ -32,7 +35,7 @@ CREATE TABLE swap_requests (
     season_id VARCHAR(36) NOT NULL,
     requesting_team_id VARCHAR(36) NOT NULL,
     target_team_id VARCHAR(36) NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
+    status "RequestStatus" DEFAULT 'pending',
     window_opened_at TIMESTAMP,
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMP,

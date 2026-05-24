@@ -127,12 +127,24 @@ export default function ReleaseRequestsAdminClient({
         throw new Error(error.error || 'Failed to approve request')
       }
 
-      // Update local state
-      setRequests(requests.map(r =>
-        r.id === request.id
-          ? { ...r, status: 'approved', processedAt: new Date().toISOString() }
-          : r
-      ))
+      // Calculate the new budget after this approval
+      const newTeamBudget = request.newBudget
+
+      // Update local state - mark as approved and update budgets for remaining requests
+      setRequests(requests.map(r => {
+        if (r.id === request.id) {
+          // Mark this request as approved
+          return { ...r, status: 'approved', processedAt: new Date().toISOString() }
+        } else if (r.teamId === request.teamId && r.status === 'pending') {
+          // Update budget for other pending requests from the same team
+          return {
+            ...r,
+            currentBudget: newTeamBudget,
+            newBudget: newTeamBudget + r.refundAmount,
+          }
+        }
+        return r
+      }))
 
       // Generate WhatsApp message
       const message = generateWhatsAppMessage(request)

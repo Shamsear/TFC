@@ -194,7 +194,10 @@ export default function BulkRoundSelectionClient({
   useEffect(() => {
     async function fetchSquadInfo() {
       try {
-        const response = await fetch(`/api/team/squad-info?season_id=${season.id}`)
+        // Add timestamp to prevent caching
+        const response = await fetch(`/api/team/squad-info?season_id=${season.id}&t=${Date.now()}`, {
+          cache: 'no-store'
+        })
         if (response.ok) {
           const data = await response.json()
           setSquadInfo(data)

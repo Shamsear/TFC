@@ -90,12 +90,11 @@ export default async function ReleaseRequestPage() {
     },
   })
 
-  // Get existing pending release requests for this team
-  const existingRequests = await prisma.release_requests.findMany({
+  // Get existing release requests for this team (all statuses)
+  const allRequests = await prisma.release_requests.findMany({
     where: {
       seasonId: activeSeason.id,
       teamId: session.user.teamId,
-      status: 'pending',
     },
     include: {
       basePlayer: {
@@ -106,7 +105,23 @@ export default async function ReleaseRequestPage() {
         },
       },
     },
+    orderBy: {
+      submittedAt: 'desc',
+    },
   })
+
+  // Separate pending requests for the UI
+  const existingRequests = allRequests.filter(req => req.status === 'pending')
+
+  // Count total requests (all statuses)
+  const totalRequestsCount = allRequests.length
+
+  // Count approved releases for this team in this season
+  const approvedReleasesCount = allRequests.filter(req => req.status === 'approved').length
+
+  const MAX_RELEASES_PER_TEAM = 3
+  const remainingRequests = MAX_RELEASES_PER_TEAM - totalRequestsCount
+  const remainingApprovals = MAX_RELEASES_PER_TEAM - approvedReleasesCount
 
   // Transform data for client
   const players = transfers.map(transfer => {
@@ -130,7 +145,21 @@ export default async function ReleaseRequestPage() {
     playerName: req.playerName,
     refundAmount: req.refundAmount,
     notes: req.notes,
+    status: req.status,
     submittedAt: req.submittedAt.toISOString(),
+  }))
+
+  // Also get all requests for display
+  const allRequestsForDisplay = allRequests.map(req => ({
+    id: req.id,
+    playerId: req.playerId,
+    playerName: req.playerName,
+    refundAmount: req.refundAmount,
+    notes: req.notes,
+    status: req.status,
+    submittedAt: req.submittedAt.toISOString(),
+    processedAt: req.processedAt?.toISOString() || null,
+    rejectionReason: req.rejectionReason,
   }))
 
   return (
@@ -143,6 +172,12 @@ export default async function ReleaseRequestPage() {
       maxSlots={seasonTeam.football_max_slots || 30}
       players={players}
       existingRequests={requests}
+      allRequests={allRequestsForDisplay}
+      totalRequestsCount={totalRequestsCount}
+      approvedReleasesCount={approvedReleasesCount}
+      maxReleases={MAX_RELEASES_PER_TEAM}
+      remainingRequests={remainingRequests}
+      remainingApprovals={remainingApprovals}
     />
   )
 }

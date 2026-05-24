@@ -16,6 +16,8 @@ interface Request {
   teamId: string
   teamName: string
   teamLogo: string
+  currentBudget: number
+  newBudget: number
   submittedAt: string
   processedAt: string | null
   processedBy: string | null
@@ -46,6 +48,22 @@ export default function ReleaseRequestsAdminClient({
 
   const pendingRequests = requests.filter(r => r.status === 'pending')
   const processedRequests = requests.filter(r => r.status !== 'pending')
+
+  // Group pending requests by team
+  const pendingByTeam = pendingRequests.reduce((acc, request) => {
+    if (!acc[request.teamId]) {
+      acc[request.teamId] = {
+        teamId: request.teamId,
+        teamName: request.teamName,
+        teamLogo: request.teamLogo,
+        requests: [],
+      }
+    }
+    acc[request.teamId].requests.push(request)
+    return acc
+  }, {} as Record<string, { teamId: string; teamName: string; teamLogo: string; requests: Request[] }>)
+
+  const teamGroups = Object.values(pendingByTeam)
 
   const toggleWindow = async () => {
     if (!confirm(`Are you sure you want to ${releaseWindowOpen ? 'close' : 'open'} the release window?`)) {
@@ -150,10 +168,7 @@ export default function ReleaseRequestsAdminClient({
   }
 
   const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `£${(amount / 1000000).toFixed(2)}M`
-    }
-    return `£${(amount / 1000).toFixed(0)}K`
+    return `£${amount.toLocaleString()}`
   }
 
   const formatDate = (dateStr: string) => {
@@ -223,71 +238,95 @@ export default function ReleaseRequestsAdminClient({
         </div>
       </div>
 
-      {/* Pending Requests */}
-      {pendingRequests.length > 0 && (
+      {/* Pending Requests - Grouped by Team */}
+      {teamGroups.length > 0 && (
         <div className="mb-8">
           <h2 className="text-2xl font-black text-white mb-4">Pending Requests</h2>
-          <div className="space-y-4">
-            {pendingRequests.map(request => (
-              <div key={request.id} className="rounded-xl bg-[#111111] border border-yellow-500/30 p-6">
-                <div className="flex items-start gap-6">
-                  {/* Player Info */}
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
-                    <Image
-                      src={getPlayerPhotoUrl(`${request.playerPhotoId}.webp`)}
-                      alt={request.playerName}
-                      fill
-                      className="object-cover"
-                    />
+          <div className="space-y-6">
+            {teamGroups.map(group => (
+              <div key={group.teamId} className="rounded-xl bg-white/5 border border-white/10 p-6">
+                {/* Team Header */}
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
+                  {group.teamLogo && (
+                    <div className="w-10 h-10 rounded overflow-hidden bg-white/5">
+                      <img src={group.teamLogo} alt={group.teamName} className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-xl font-black text-white">{group.teamName}</h3>
+                    <p className="text-sm text-gray-400">{group.requests.length} request{group.requests.length !== 1 ? 's' : ''}</p>
                   </div>
+                </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-black text-white mb-1">{request.playerName}</h3>
-                        <div className="flex items-center gap-3 text-sm text-gray-400">
-                          <div className="flex items-center gap-2">
-                            {request.teamLogo && (
-                              <div className="w-5 h-5 rounded overflow-hidden">
-                                <img src={request.teamLogo} alt={request.teamName} className="w-full h-full object-contain" />
+                {/* Team's Requests */}
+                <div className="space-y-4">
+                  {group.requests.map(request => (
+                    <div key={request.id} className="rounded-xl bg-[#111111] border border-yellow-500/30 p-4">
+                      <div className="flex items-start gap-4">
+                        {/* Player Info */}
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
+                          <Image
+                            src={getPlayerPhotoUrl(`${request.playerPhotoId}.webp`)}
+                            alt={request.playerName}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h4 className="text-lg font-black text-white mb-1">{request.playerName}</h4>
+                              <div className="text-xs text-gray-400">
+                                Submitted: {formatDate(request.submittedAt)}
                               </div>
-                            )}
-                            <span>{request.teamName}</span>
+                            </div>
                           </div>
-                          <span>•</span>
-                          <span>{formatDate(request.submittedAt)}</span>
+
+                          {/* Budget Info */}
+                          <div className="grid grid-cols-3 gap-3 mb-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1">Refund</div>
+                              <div className="text-sm font-black text-[#E8A800]">{formatCurrency(request.refundAmount)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1">Current Budget</div>
+                              <div className="text-sm font-black text-white">{formatCurrency(request.currentBudget)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1">New Budget</div>
+                              <div className="text-sm font-black text-emerald-400">{formatCurrency(request.newBudget)}</div>
+                            </div>
+                          </div>
+
+                          {request.notes && (
+                            <div className="mb-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                              <div className="text-xs text-gray-400 mb-1">Notes</div>
+                              <div className="text-sm text-gray-300">{request.notes}</div>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleApprove(request)}
+                              disabled={processingId === request.id}
+                              className="flex-1 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg font-bold transition-colors border border-emerald-500/30 disabled:opacity-50 text-sm"
+                            >
+                              {processingId === request.id ? 'Processing...' : 'Approve & Release'}
+                            </button>
+                            <button
+                              onClick={() => openRejectModal(request)}
+                              disabled={processingId === request.id}
+                              className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold transition-colors border border-red-500/30 disabled:opacity-50 text-sm"
+                            >
+                              Reject
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-400 mb-1">Refund</div>
-                        <div className="text-2xl font-black text-[#E8A800]">{formatCurrency(request.refundAmount)}</div>
-                      </div>
                     </div>
-
-                    {request.notes && (
-                      <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/10">
-                        <div className="text-xs text-gray-400 mb-1">Notes</div>
-                        <div className="text-sm text-gray-300">{request.notes}</div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleApprove(request)}
-                        disabled={processingId === request.id}
-                        className="flex-1 px-4 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg font-bold transition-colors border border-emerald-500/30 disabled:opacity-50"
-                      >
-                        {processingId === request.id ? 'Processing...' : 'Approve & Release'}
-                      </button>
-                      <button
-                        onClick={() => openRejectModal(request)}
-                        disabled={processingId === request.id}
-                        className="flex-1 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold transition-colors border border-red-500/30 disabled:opacity-50"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             ))}
@@ -310,6 +349,7 @@ export default function ReleaseRequestsAdminClient({
                         alt={request.playerName}
                         fill
                         className="object-cover"
+                        unoptimized
                       />
                     </div>
                     <div>

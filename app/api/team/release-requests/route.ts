@@ -27,6 +27,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Release window is closed' }, { status: 400 })
     }
 
+    const MAX_RELEASES_PER_TEAM = 3
+
+    // Check total release requests (all statuses)
+    const totalRequestsCount = await prisma.release_requests.count({
+      where: {
+        seasonId,
+        teamId,
+      },
+    })
+
+    // Check if adding these releases would exceed the total request limit
+    if (totalRequestsCount + releases.length > MAX_RELEASES_PER_TEAM) {
+      const remaining = MAX_RELEASES_PER_TEAM - totalRequestsCount
+      return NextResponse.json(
+        { 
+          error: `You can only submit ${MAX_RELEASES_PER_TEAM} release requests per season. You have ${remaining} request${remaining !== 1 ? 's' : ''} remaining.` 
+        },
+        { status: 400 }
+      )
+    }
+
+    // Also check approved releases count
+    const approvedReleasesCount = await prisma.release_requests.count({
+      where: {
+        seasonId,
+        teamId,
+        status: 'approved',
+      },
+    })
+
+    // Check if adding these releases would exceed the approved limit
+    if (approvedReleasesCount + releases.length > MAX_RELEASES_PER_TEAM) {
+      const remaining = MAX_RELEASES_PER_TEAM - approvedReleasesCount
+      return NextResponse.json(
+        { 
+          error: `You can only have ${MAX_RELEASES_PER_TEAM} approved releases per season. You have ${remaining} approval${remaining !== 1 ? 's' : ''} remaining.` 
+        },
+        { status: 400 }
+      )
+    }
+
     // Get current window timestamp
     const windowOpenedAt = new Date()
 
@@ -122,7 +163,26 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ requests })
+    // Count total requests (all statuses)
+    const totalRequestsCount = requests.length
+
+    // Count approved releases
+    const approvedCount = await prisma.release_requests.count({
+      where: {
+        seasonId,
+        teamId: session.user.teamId,
+        status: 'approved',
+      },
+    })
+
+    return NextResponse.json({ 
+      requests,
+      totalRequestsCount,
+      approvedCount,
+      maxReleases: 3,
+      remainingRequests: 3 - totalRequestsCount,
+      remainingApprovals: 3 - approvedCount,
+    })
   } catch (error: any) {
     console.error('Error fetching release requests:', error)
     return NextResponse.json(

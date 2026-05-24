@@ -22,7 +22,10 @@ interface ExistingRequest {
   playerName: string
   refundAmount: number
   notes: string | null
+  status: string
   submittedAt: string
+  processedAt?: string | null
+  rejectionReason?: string | null
 }
 
 interface Props {
@@ -34,6 +37,12 @@ interface Props {
   maxSlots: number
   players: Player[]
   existingRequests: ExistingRequest[]
+  allRequests: ExistingRequest[]
+  totalRequestsCount: number
+  approvedReleasesCount: number
+  maxReleases: number
+  remainingRequests: number
+  remainingApprovals: number
 }
 
 // Custom Select Component
@@ -178,6 +187,12 @@ export default function ReleaseRequestClient({
   maxSlots,
   players,
   existingRequests: initialRequests,
+  allRequests: initialAllRequests,
+  totalRequestsCount: initialTotalCount,
+  approvedReleasesCount: initialApprovedCount,
+  maxReleases,
+  remainingRequests: initialRemainingRequests,
+  remainingApprovals: initialRemainingApprovals,
 }: Props) {
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
@@ -185,6 +200,11 @@ export default function ReleaseRequestClient({
   const [styleFilter, setStyleFilter] = useState('ALL')
   const [positionGroupFilter, setPositionGroupFilter] = useState('ALL')
   const [existingRequests, setExistingRequests] = useState(initialRequests)
+  const [allRequests, setAllRequests] = useState(initialAllRequests)
+  const [totalRequestsCount, setTotalRequestsCount] = useState(initialTotalCount)
+  const [approvedReleasesCount, setApprovedReleasesCount] = useState(initialApprovedCount)
+  const [remainingRequests, setRemainingRequests] = useState(initialRemainingRequests)
+  const [remainingApprovals, setRemainingApprovals] = useState(initialRemainingApprovals)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [whatsappText, setWhatsappText] = useState('')
@@ -223,6 +243,11 @@ export default function ReleaseRequestClient({
     if (newSelected.has(playerId)) {
       newSelected.delete(playerId)
     } else {
+      // Check if adding this player would exceed the REQUEST limit
+      if (newSelected.size >= remainingRequests) {
+        alert(`You can only submit ${remainingRequests} more release request${remainingRequests !== 1 ? 's' : ''} (${totalRequestsCount}/${maxReleases} requests used)`)
+        return
+      }
       newSelected.add(playerId)
     }
     setSelectedPlayers(newSelected)
@@ -231,6 +256,12 @@ export default function ReleaseRequestClient({
   const handleSubmit = async () => {
     if (selectedPlayers.size === 0) {
       alert('Please select at least one player to release')
+      return
+    }
+
+    // Check if this would exceed the REQUEST limit
+    if (selectedPlayers.size > remainingRequests) {
+      alert(`You can only submit ${remainingRequests} more release request${remainingRequests !== 1 ? 's' : ''}. You have already submitted ${totalRequestsCount}/${maxReleases} requests.`)
       return
     }
 
@@ -264,8 +295,13 @@ export default function ReleaseRequestClient({
       const message = generateWhatsAppMessage()
       setWhatsappText(message)
       
+      // Update counts
+      setTotalRequestsCount(totalRequestsCount + releases.length)
+      setRemainingRequests(remainingRequests - releases.length)
+      
       // Update existing requests
       setExistingRequests([...existingRequests, ...data.requests])
+      setAllRequests([...allRequests, ...data.requests])
       setSelectedPlayers(new Set())
       setShowSuccess(true)
     } catch (error: any) {
@@ -289,7 +325,13 @@ export default function ReleaseRequestClient({
         throw new Error('Failed to cancel request')
       }
 
+      // Update counts
+      setTotalRequestsCount(totalRequestsCount - 1)
+      setRemainingRequests(remainingRequests + 1)
+      
+      // Update request lists
       setExistingRequests(existingRequests.filter(req => req.id !== requestId))
+      setAllRequests(allRequests.filter(req => req.id !== requestId))
     } catch (error: any) {
       alert(error.message || 'Failed to cancel request')
     }
@@ -323,6 +365,82 @@ export default function ReleaseRequestClient({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+
+        {/* Release Limit Banner - Dual Tracking */}
+        <div className={`mb-6 rounded-xl p-4 sm:p-6 border-2 ${
+          remainingRequests === 0 
+            ? 'bg-red-500/10 border-red-500/30' 
+            : remainingRequests <= 1 
+            ? 'bg-yellow-500/10 border-yellow-500/30'
+            : 'bg-blue-500/10 border-blue-500/30'
+        }`}>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                remainingRequests === 0 
+                  ? 'bg-red-500/20' 
+                  : remainingRequests <= 1 
+                  ? 'bg-yellow-500/20'
+                  : 'bg-blue-500/20'
+              }`}>
+                <svg className={`w-6 h-6 ${
+                  remainingRequests === 0 
+                    ? 'text-red-400' 
+                    : remainingRequests <= 1 
+                    ? 'text-yellow-400'
+                    : 'text-blue-400'
+                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Release Request Limits</h3>
+                <p className={`text-sm ${
+                  remainingRequests === 0 
+                    ? 'text-red-400' 
+                    : remainingRequests <= 1 
+                    ? 'text-yellow-400'
+                    : 'text-blue-400'
+                }`}>
+                  {remainingRequests === 0 
+                    ? `You have used all ${maxReleases} request slots for this season`
+                    : `${remainingRequests} of ${maxReleases} request slots remaining`
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-xs text-gray-400">Total Requests</div>
+                <div className={`text-2xl font-black ${
+                  totalRequestsCount >= maxReleases ? 'text-red-400' : 'text-white'
+                }`}>
+                  {totalRequestsCount}/{maxReleases}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-gray-400">Approved</div>
+                <div className={`text-2xl font-black ${
+                  approvedReleasesCount >= maxReleases ? 'text-red-400' : 'text-emerald-400'
+                }`}>
+                  {approvedReleasesCount}/{maxReleases}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Show message if limit reached */}
+        {remainingRequests === 0 && (
+          <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/30 p-6 text-center">
+            <svg className="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h2 className="text-2xl font-black text-white mb-2">Request Limit Reached</h2>
+            <p className="text-gray-400">You have already submitted {maxReleases} release requests this season. No more requests can be submitted.</p>
+            <p className="text-gray-500 text-sm mt-2">You have {approvedReleasesCount} approved release{approvedReleasesCount !== 1 ? 's' : ''}.</p>
+          </div>
+        )}
 
         {/* Success Modal */}
         {showSuccess && (
@@ -379,25 +497,54 @@ export default function ReleaseRequestClient({
           </div>
         </div>
 
-        {/* Existing Requests */}
-        {existingRequests.length > 0 && (
-          <div className="mb-8 rounded-xl bg-blue-500/10 border border-blue-500/30 p-6">
-            <h2 className="text-xl font-black text-white mb-4">Pending Requests</h2>
+        {/* All Requests - Show all statuses */}
+        {allRequests.length > 0 && (
+          <div className="mb-8 rounded-xl bg-white/5 border border-white/10 p-6">
+            <h2 className="text-xl font-black text-white mb-4">Your Release Requests</h2>
             <div className="space-y-3">
-              {existingRequests.map(req => (
-                <div key={req.id} className="flex items-center justify-between bg-[#111111] rounded-lg p-4">
-                  <div>
-                    <div className="font-bold text-white">{req.playerName}</div>
-                    <div className="text-sm text-gray-400">Refund: ${req.refundAmount.toLocaleString()}</div>
+              {allRequests.map(req => {
+                const isPending = req.status === 'pending'
+                const isApproved = req.status === 'approved'
+                const isRejected = req.status === 'rejected'
+                
+                return (
+                  <div key={req.id} className={`flex items-center justify-between rounded-lg p-4 ${
+                    isPending ? 'bg-blue-500/10 border border-blue-500/30' :
+                    isApproved ? 'bg-emerald-500/10 border border-emerald-500/30' :
+                    'bg-red-500/10 border border-red-500/30'
+                  }`}>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="font-bold text-white">{req.playerName}</div>
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          isPending ? 'bg-blue-500/20 text-blue-400' :
+                          isApproved ? 'bg-emerald-500/20 text-emerald-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {req.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        Refund: ${req.refundAmount.toLocaleString()}
+                        {req.processedAt && ` • Processed: ${new Date(req.processedAt).toLocaleDateString()}`}
+                      </div>
+                      {isRejected && req.rejectionReason && (
+                        <div className="mt-2 text-sm text-red-400">
+                          Reason: {req.rejectionReason}
+                        </div>
+                      )}
+                    </div>
+                    {isPending && (
+                      <button
+                        onClick={() => handleCancelRequest(req.id)}
+                        className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm font-bold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleCancelRequest(req.id)}
-                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm font-bold transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -493,12 +640,34 @@ export default function ReleaseRequestClient({
                   </div>
                 </div>
 
+                {/* Warning if exceeds limit */}
+                {selectedPlayers.size > remainingRequests && (
+                  <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <div className="font-bold text-red-400 mb-1">Request Limit Exceeded</div>
+                        <div className="text-sm text-red-300">
+                          You have selected {selectedPlayers.size} player{selectedPlayers.size !== 1 ? 's' : ''}, but only {remainingRequests} request slot{remainingRequests !== 1 ? 's' : ''} remaining. You have already submitted {totalRequestsCount}/{maxReleases} requests. Please deselect {selectedPlayers.size - remainingRequests} player{selectedPlayers.size - remainingRequests !== 1 ? 's' : ''}.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || selectedPlayers.size > remainingRequests}
+                  className="w-full px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#E8A800]"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Release Request'}
+                  {isSubmitting 
+                    ? 'Submitting...' 
+                    : selectedPlayers.size > remainingRequests
+                    ? `Exceeds limit (${remainingRequests} slot${remainingRequests !== 1 ? 's' : ''} remaining)`
+                    : 'Submit Release Request'
+                  }
                 </button>
               </div>
             )}

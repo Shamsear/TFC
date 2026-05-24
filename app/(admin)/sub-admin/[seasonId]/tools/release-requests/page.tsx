@@ -63,6 +63,23 @@ export default async function ReleaseRequestsAdminPage({
     ],
   })
 
+  // Get team budgets
+  const teamIds = [...new Set(requests.map(r => r.teamId))]
+  const seasonTeams = await prisma.season_teams.findMany({
+    where: {
+      seasonId,
+      teamId: { in: teamIds },
+    },
+    select: {
+      teamId: true,
+      currentBudget: true,
+    },
+  })
+
+  const teamBudgets = Object.fromEntries(
+    seasonTeams.map(st => [st.teamId, st.currentBudget])
+  )
+
   // Transform for client
   const transformedRequests = requests.map(req => ({
     id: req.id,
@@ -75,6 +92,8 @@ export default async function ReleaseRequestsAdminPage({
     teamId: req.teamId,
     teamName: req.team.name,
     teamLogo: req.team.logoUrl,
+    currentBudget: teamBudgets[req.teamId] || 0,
+    newBudget: (teamBudgets[req.teamId] || 0) + req.refundAmount,
     submittedAt: req.submittedAt.toISOString(),
     processedAt: req.processedAt?.toISOString() || null,
     processedBy: req.processor?.name || null,

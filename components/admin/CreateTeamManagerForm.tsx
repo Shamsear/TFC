@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/ToastProvider"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import SearchableSelect from "@/components/ui/SearchableSelect"
 
 interface Team {
   id: string
@@ -141,25 +142,20 @@ export default function CreateTeamManagerForm({
 
         {/* Team Assignment */}
         <div>
-          <label htmlFor="teamId" className="block text-white font-medium mb-2">
-            Assign Team
-          </label>
-          <select
-            id="teamId"
-            required
+          <SearchableSelect
+            label="Assign Team"
             value={formData.teamId}
-            onChange={(e) =>
-              setFormData({ ...formData, teamId: e.target.value })
-            }
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]/50"
-          >
-            <option value="">Select a team</option>
-            {availableTeams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: '', label: 'Select a team' },
+              ...availableTeams.map((team) => ({
+                value: team.id,
+                label: team.name
+              }))
+            ]}
+            onChange={(value) => setFormData({ ...formData, teamId: value })}
+            enableSearch={true}
+            required={true}
+          />
           {availableTeams.length === 0 && (
             <p className="text-yellow-400 text-sm mt-1">
               All teams already have managers assigned

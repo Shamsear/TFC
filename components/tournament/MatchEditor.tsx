@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface MatchEditorProps {
   match: any
@@ -98,18 +99,20 @@ export default function MatchEditor({ match, seasonId, tournamentId }: MatchEdit
           <h2 className="text-xl sm:text-2xl font-black text-white">Enter Match Result</h2>
           <div className="flex items-center gap-2">
             <span className="text-xs sm:text-sm text-[#7A7367]">Status:</span>
-            <select
-              required
+            <SearchableSelect
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className={`px-3 sm:px-4 py-2 rounded-lg border text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E8A800] ${getStatusColor(formData.status)}`}
-            >
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="LIVE">Live</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="POSTPONED">Postponed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+              options={[
+                { value: 'SCHEDULED', label: 'Scheduled' },
+                { value: 'LIVE', label: 'Live' },
+                { value: 'COMPLETED', label: 'Completed' },
+                { value: 'POSTPONED', label: 'Postponed' },
+                { value: 'CANCELLED', label: 'Cancelled' }
+              ]}
+              onChange={(value) => setFormData({ ...formData, status: value })}
+              enableSearch={false}
+              required={true}
+              className={`${getStatusColor(formData.status)}`}
+            />
           </div>
         </div>
         

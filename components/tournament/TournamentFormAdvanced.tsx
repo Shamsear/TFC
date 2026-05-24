@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Team {
   id: string
@@ -346,18 +347,17 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
-                  Teams Qualify Per Group
-                </label>
-                <select
-                  value={formData.groupQualifiers}
-                  onChange={(e) => setFormData({ ...formData, groupQualifiers: parseInt(e.target.value) })}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base"
-                >
-                  <option value="2">Top 2</option>
-                  <option value="3">Top 3</option>
-                  <option value="4">Top 4</option>
-                </select>
+                <SearchableSelect
+                  label="Teams Qualify Per Group"
+                  value={formData.groupQualifiers.toString()}
+                  options={[
+                    { value: '2', label: 'Top 2' },
+                    { value: '3', label: 'Top 3' },
+                    { value: '4', label: 'Top 4' }
+                  ]}
+                  onChange={(val) => setFormData({ ...formData, groupQualifiers: parseInt(val) })}
+                  enableSearch={false}
+                />
               </div>
             </div>
 

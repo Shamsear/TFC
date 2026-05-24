@@ -6,6 +6,7 @@ import PlayerCard from './PlayerCard'
 import ChangeComparisonCard from './ChangeComparisonCard'
 import DuplicateResolver from './DuplicateResolver'
 import { normalizeForSearch } from '@/lib/search-utils'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface PlayerPreviewListProps {
   preview: PreviewResponse
@@ -657,34 +658,30 @@ export default function PlayerPreviewList({
           </div>
 
           {/* Position Filter */}
-          <div>
-            <select
-              value={positionFilter}
-              onChange={(e) => { setPositionFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-cyan-500 focus:outline-none"
-            >
-              <option value="all">All Positions</option>
-              <option value="GK">Goalkeeper (GK)</option>
-              <optgroup label="Defenders">
-                <option value="CB">Center Back (CB)</option>
-                <option value="LB">Left Back (LB)</option>
-                <option value="RB">Right Back (RB)</option>
-              </optgroup>
-              <optgroup label="Midfielders">
-                <option value="DMF">Defensive Midfielder (DMF)</option>
-                <option value="CMF">Central Midfielder (CMF)</option>
-                <option value="LMF">Left Midfielder (LMF)</option>
-                <option value="RMF">Right Midfielder (RMF)</option>
-                <option value="AMF">Attacking Midfielder (AMF)</option>
-              </optgroup>
-              <optgroup label="Forwards">
-                <option value="SS">Second Striker (SS)</option>
-                <option value="LWF">Left Wing Forward (LWF)</option>
-                <option value="RWF">Right Wing Forward (RWF)</option>
-                <option value="CF">Center Forward (CF)</option>
-              </optgroup>
-            </select>
-          </div>
+          <SearchableSelect
+            value={positionFilter}
+            options={[
+              { value: 'all', label: 'All Positions' },
+              { value: 'GK', label: 'Goalkeeper (GK)' },
+              { value: '─── Defenders───', label: '─── Defenders───' },
+              { value: 'CB', label: 'Center Back (CB)' },
+              { value: 'LB', label: 'Left Back (LB)' },
+              { value: 'RB', label: 'Right Back (RB)' },
+              { value: '───Midfielders───', label: '───Midfielders───' },
+              { value: 'DMF', label: 'Defensive Midfielder (DMF)' },
+              { value: 'CMF', label: 'Central Midfielder (CMF)' },
+              { value: 'LMF', label: 'Left Midfielder (LMF)' },
+              { value: 'RMF', label: 'Right Midfielder (RMF)' },
+              { value: 'AMF', label: 'Attacking Midfielder (AMF)' },
+              { value: '───Forwards───', label: '───Forwards───' },
+              { value: 'SS', label: 'Second Striker (SS)' },
+              { value: 'LWF', label: 'Left Wing Forward (LWF)' },
+              { value: 'RWF', label: 'Right Wing Forward (RWF)' },
+              { value: 'CF', label: 'Center Forward (CF)' }
+            ]}
+            onChange={(value) => { setPositionFilter(value); setCurrentPage(1); }}
+            enableSearch={true}
+          />
         </div>
       </div>
 

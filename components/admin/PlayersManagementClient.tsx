@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import SearchableSelect from "@/components/ui/SearchableSelect"
 
 interface PlayerStats {
   nationality: string | null
@@ -322,21 +323,21 @@ export default function PlayersManagementClient() {
 
       {/* Club Filter */}
       <div className="mb-6">
-        <label className="block text-sm font-bold text-gray-400 mb-2">Filter by Club</label>
-        <select
+        <SearchableSelect
+          label="Filter by Club"
           value={clubFilter}
-          onChange={(e) => {
-            setClubFilter(e.target.value)
+          options={[
+            { value: 'all', label: 'All Clubs' },
+            ...clubs.map(club => ({ value: club, label: club }))
+          ]}
+          onChange={(value) => {
+            setClubFilter(value)
             setPage(1)
             setSelectedPlayers(new Set())
           }}
-          className="w-full max-w-md bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#E8A800] focus:ring-1 focus:ring-[#E8A800] transition-all"
-        >
-          <option value="all">All Clubs</option>
-          {clubs.map(club => (
-            <option key={club} value={club}>{club}</option>
-          ))}
-        </select>
+          enableSearch={true}
+          className="w-full max-w-md"
+        />
       </div>
 
       <div className="mb-4 text-sm text-gray-400 flex items-center justify-between">

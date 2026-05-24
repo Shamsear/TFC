@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface AuditLog {
   id: string
@@ -99,18 +100,19 @@ export default function AuditLogViewer({ logs }: AuditLogViewerProps) {
             onChange={(e) => setFilter(e.target.value)}
             className="px-4 py-2 bg-[#111111] border border-white/10 rounded-lg text-white text-sm focus:border-[#E8A800] focus:outline-none"
           />
-          <select
+          <SearchableSelect
             value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-            className="px-4 py-2 bg-[#111111] border border-white/10 rounded-lg text-white text-sm focus:border-[#E8A800] focus:outline-none"
-          >
-            <option value="all">All Actions</option>
-            {uniqueActions.map(action => (
-              <option key={action} value={action}>
-                {action.replace(/_/g, ' ')}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: 'all', label: 'All Actions' },
+              ...uniqueActions.map(action => ({
+                value: action,
+                label: action.replace(/_/g, ' ')
+              }))
+            ]}
+            onChange={setActionFilter}
+            enableSearch={true}
+            className="min-w-[200px]"
+          />
         </div>
       </div>
 

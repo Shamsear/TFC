@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { normalizeForSearch } from "@/lib/search-utils"
+import SearchableSelect from "@/components/ui/SearchableSelect"
 
 interface Player {
   id: string
@@ -969,18 +970,16 @@ export default function AuctionPlannerClient({
                 />
                 
                 {/* Playing Style Filter */}
-                <select
+                <SearchableSelect
                   value={selectedPlayingStyle}
-                  onChange={(e) => setSelectedPlayingStyle(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-white"
-                >
-                  <option value="all">All Playing Styles</option>
-                  {availablePlayingStyles.map(style => (
-                    <option key={style} value={style}>
-                      {style}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: 'all', label: 'All Playing Styles' },
+                    ...availablePlayingStyles.map(style => ({ value: style, label: style }))
+                  ]}
+                  onChange={setSelectedPlayingStyle}
+                  enableSearch={true}
+                  className="w-full"
+                />
               </div>
 
               {/* Active Filters Indicator */}

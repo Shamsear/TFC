@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import PageLoader from "@/components/ui/PageLoader"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface AuctionSettings {
   id: number
@@ -172,19 +173,18 @@ export default function AuctionSettingsPage() {
               When the auction takes place relative to the season
             </p>
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Auction Timing <span className="text-red-400">*</span>
-              </label>
-              <select
+              <SearchableSelect
+                label="Auction Timing"
                 value={formData.auction_window}
-                onChange={(e) => setFormData(prev => ({ ...prev, auction_window: e.target.value }))}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20"
-                required
-              >
-                <option value="season_start">Season Start</option>
-                <option value="mid_season">Mid Season</option>
-                <option value="season_end">Season End</option>
-              </select>
+                options={[
+                  { value: 'season_start', label: 'Season Start' },
+                  { value: 'mid_season', label: 'Mid Season' },
+                  { value: 'season_end', label: 'Season End' }
+                ]}
+                onChange={(val) => setFormData(prev => ({ ...prev, auction_window: val }))}
+                required={true}
+                enableSearch={false}
+              />
               <p className="text-xs text-white/40 mt-1">When the auction window opens</p>
             </div>
           </div>

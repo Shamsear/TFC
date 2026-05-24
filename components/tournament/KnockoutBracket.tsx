@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Team {
   id: string
@@ -133,29 +134,27 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
 
                   {isEditing ? (
                     <div className="space-y-3">
-                      <select
+                      <SearchableSelect
                         value={selectedTeam1}
-                        onChange={(e) => setSelectedTeam1(e.target.value)}
-                        className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      >
-                        <option value="">Select Team 1</option>
-                        {teams.map(team => (
-                          <option key={team.id} value={team.id}>{team.name}</option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: 'Select Team 1' },
+                          ...teams.map(team => ({ value: team.id, label: team.name }))
+                        ]}
+                        onChange={setSelectedTeam1}
+                        enableSearch={true}
+                      />
 
                       <div className="text-center text-gray-500 text-xs font-bold">VS</div>
 
-                      <select
+                      <SearchableSelect
                         value={selectedTeam2}
-                        onChange={(e) => setSelectedTeam2(e.target.value)}
-                        className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      >
-                        <option value="">Select Team 2</option>
-                        {teams.map(team => (
-                          <option key={team.id} value={team.id}>{team.name}</option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: 'Select Team 2' },
+                          ...teams.map(team => ({ value: team.id, label: team.name }))
+                        ]}
+                        onChange={setSelectedTeam2}
+                        enableSearch={true}
+                      />
 
                       <div className="flex gap-2 mt-3">
                         <button

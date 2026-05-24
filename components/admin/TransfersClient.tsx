@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Transfer {
   id: string
@@ -139,19 +140,20 @@ export default function TransfersClient({ transfers, seasonId, seasonName }: Tra
         {/* Round Filter */}
         {rounds.length > 0 && (
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-400 mb-2">Filter by Round</label>
-            <select
+            <SearchableSelect
+              label="Filter by Round"
               value={selectedRound}
-              onChange={(e) => setSelectedRound(e.target.value)}
-              className="w-full sm:w-64 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:border-[#E8A800] focus:ring-1 focus:ring-[#E8A800] outline-none transition-colors"
-            >
-              <option value="all">All Rounds ({transfers.length})</option>
-              {rounds.map((round) => (
-                <option key={round.id} value={round.id}>
-                  Round {round.roundNumber} ({transfers.filter(t => t.round?.id === round.id).length})
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: 'all', label: `All Rounds (${transfers.length})` },
+                ...rounds.map((round) => ({
+                  value: round.id,
+                  label: `Round ${round.roundNumber} (${transfers.filter(t => t.round?.id === round.id).length})`
+                }))
+              ]}
+              onChange={setSelectedRound}
+              enableSearch={true}
+              className="w-full sm:w-64"
+            />
           </div>
         )}
 

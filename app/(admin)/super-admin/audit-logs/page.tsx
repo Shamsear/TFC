@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getAuditLogs } from '@/lib/audit'
 import { prisma } from '@/lib/prisma'
+import AuditLogsFilters from '@/components/admin/AuditLogsFilters'
 
 async function getSubAdmins() {
   try {
@@ -90,79 +91,13 @@ export default async function AuditLogsPage({
         </div>
 
         {/* Filters */}
-        <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-6">
-          <h2 className="text-base sm:text-lg font-black text-white mb-4">Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-[#D4CCBB] mb-2">Sub-Admin</label>
-              <select
-                className="w-full px-3 sm:px-4 py-2 bg-[#111111] border border-white/10 rounded-lg text-white text-sm sm:text-base focus:border-[#E8A800] focus:outline-none"
-                value={params.userId || ''}
-                onChange={(e) => {
-                  const url = new URL(window.location.href)
-                  if (e.target.value) {
-                    url.searchParams.set('userId', e.target.value)
-                  } else {
-                    url.searchParams.delete('userId')
-                  }
-                  window.location.href = url.toString()
-                }}
-              >
-                <option value="">All Sub-Admins</option>
-                {subAdmins.map(sa => (
-                  <option key={sa.id} value={sa.id}>{sa.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-[#D4CCBB] mb-2">Season</label>
-              <select
-                className="w-full px-3 sm:px-4 py-2 bg-[#111111] border border-white/10 rounded-lg text-white text-sm sm:text-base focus:border-[#E8A800] focus:outline-none"
-                value={params.seasonId || ''}
-                onChange={(e) => {
-                  const url = new URL(window.location.href)
-                  if (e.target.value) {
-                    url.searchParams.set('seasonId', e.target.value)
-                  } else {
-                    url.searchParams.delete('seasonId')
-                  }
-                  window.location.href = url.toString()
-                }}
-              >
-                <option value="">All Seasons</option>
-                {seasons.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-[#D4CCBB] mb-2">Action Type</label>
-              <select
-                className="w-full px-3 sm:px-4 py-2 bg-[#111111] border border-white/10 rounded-lg text-white text-sm sm:text-base focus:border-[#E8A800] focus:outline-none"
-                value={params.action || ''}
-                onChange={(e) => {
-                  const url = new URL(window.location.href)
-                  if (e.target.value) {
-                    url.searchParams.set('action', e.target.value)
-                  } else {
-                    url.searchParams.delete('action')
-                  }
-                  window.location.href = url.toString()
-                }}
-              >
-                <option value="">All Actions</option>
-                <option value="CREATE_TOURNAMENT">Create Tournament</option>
-                <option value="UPDATE_TOURNAMENT">Update Tournament</option>
-                <option value="CREATE_MATCH">Create Match</option>
-                <option value="UPDATE_MATCH">Update Match</option>
-                <option value="SELL_PLAYER">Sell Player</option>
-                <option value="CREATE_AUCTION">Create Auction</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <AuditLogsFilters 
+          subAdmins={subAdmins}
+          seasons={seasons}
+          currentUserId={params.userId}
+          currentSeasonId={params.seasonId}
+          currentAction={params.action}
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6">

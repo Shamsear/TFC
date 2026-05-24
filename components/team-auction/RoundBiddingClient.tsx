@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { normalizeForSearch } from '@/lib/search-utils'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Player {
   id: string
@@ -428,16 +429,16 @@ export default function RoundBiddingClient({
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]"
             />
           </div>
-          <select
+          <SearchableSelect
             value={positionFilter}
-            onChange={(e) => setPositionFilter(e.target.value)}
-            className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]"
-          >
-            <option value="all">All Positions</option>
-            {positions.map(pos => (
-              <option key={pos} value={pos}>{pos}</option>
-            ))}
-          </select>
+            options={[
+              { value: 'all', label: 'All Positions' },
+              ...positions.map(pos => ({ value: pos, label: pos }))
+            ]}
+            onChange={setPositionFilter}
+            enableSearch={true}
+            className="w-full sm:w-48"
+          />
         </div>
 
         {/* Players Grid */}

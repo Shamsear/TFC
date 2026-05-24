@@ -173,21 +173,17 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
       </div>
 
       {/* Team Selection */}
-      <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-        <label className="block text-sm font-bold text-white mb-2">Select Team</label>
-        <select
-          value={selectedTeam}
-          onChange={(e) => handleTeamChange(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none"
-        >
-          <option value="">Choose a team...</option>
-          {teams.map((t) => (
-            <option key={t.team.id} value={t.team.id}>
-              {t.team.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SearchableSelect
+        label="Select Team"
+        value={selectedTeam}
+        options={[
+          { value: '', label: 'Choose a team...' },
+          ...teams.map((t) => ({ value: t.team.id, label: t.team.name }))
+        ]}
+        onChange={handleTeamChange}
+        enableSearch={true}
+        className="rounded-xl bg-white/5 border border-white/10 p-6"
+      />
 
       {/* Players List */}
       {selectedTeam && (
@@ -243,23 +239,19 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
 
       {/* Transfer Destination */}
       {activeTab === 'transfer' && selectedPlayers.size > 0 && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <label className="block text-sm font-bold text-white mb-2">Destination Team</label>
-          <select
-            value={destinationTeam}
-            onChange={(e) => setDestinationTeam(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none"
-          >
-            <option value="">Choose destination...</option>
-            {teams
+        <SearchableSelect
+          label="Destination Team"
+          value={destinationTeam}
+          options={[
+            { value: '', label: 'Choose destination...' },
+            ...teams
               .filter((t) => t.team.id !== selectedTeam)
-              .map((t) => (
-                <option key={t.team.id} value={t.team.id}>
-                  {t.team.name}
-                </option>
-              ))}
-          </select>
-        </div>
+              .map((t) => ({ value: t.team.id, label: t.team.name }))
+          ]}
+          onChange={setDestinationTeam}
+          enableSearch={true}
+          className="rounded-xl bg-white/5 border border-white/10 p-6"
+        />
       )}
 
       {/* Notes */}

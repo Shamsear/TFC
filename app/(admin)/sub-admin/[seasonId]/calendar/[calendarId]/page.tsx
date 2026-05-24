@@ -6,6 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import PageLoader from "@/components/ui/PageLoader"
 import { normalizeForSearch } from "@/lib/search-utils"
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface CalendarAuctionPageProps {
   params: Promise<{
@@ -467,21 +468,20 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
 
                 {/* Team Selection */}
                 <div className="mb-4">
-                  <label className="block text-sm font-bold mb-2 text-white">
-                    Select Team <span className="text-red-400">*</span>
-                  </label>
-                  <select
+                  <SearchableSelect
+                    label="Select Team"
                     value={selectedTeam}
-                    onChange={(e) => setSelectedTeam(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all text-white"
-                  >
-                    <option value="">Choose a team...</option>
-                    {teams.map((team) => (
-                      <option key={team.id} value={team.id}>
-                        {team.name} (${team.currentBudget.toLocaleString()})
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: 'Choose a team...' },
+                      ...teams.map(team => ({
+                        value: team.id,
+                        label: `${team.name} ($${team.currentBudget.toLocaleString()})`
+                      }))
+                    ]}
+                    onChange={setSelectedTeam}
+                    required={true}
+                    enableSearch={true}
+                  />
                 </div>
 
                 {/* Price Input */}

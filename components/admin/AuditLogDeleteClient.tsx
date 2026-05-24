@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 interface Team {
   id: string;
@@ -114,24 +115,16 @@ export default function AuditLogDeleteClient({
         <div className="space-y-4">
           {/* Team Selection */}
           <div>
-            <label className="block text-sm font-medium text-[#D4CCBB] mb-2">Filter by Team (Optional)</label>
-            <select
+            <SearchableSelect
+              label="Filter by Team (Optional)"
               value={selectedTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
-              className="w-full px-4 py-2 bg-[#1a1a1a] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800] transition-colors appearance-none cursor-pointer"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23D4CCBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: 'right 0.5rem center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '1.5em 1.5em',
-                paddingRight: '2.5rem'
-              }}
-            >
-              <option value="" className="bg-[#1a1a1a]">All Teams</option>
-              {teams.map(team => (
-                <option key={team.id} value={team.id} className="bg-[#1a1a1a]">{team.name}</option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'All Teams' },
+                ...teams.map(team => ({ value: team.id, label: team.name }))
+              ]}
+              onChange={setSelectedTeam}
+              enableSearch={true}
+            />
             <p className="text-xs text-[#7A7367] mt-1">Leave empty to view ledger entries for all teams</p>
           </div>
         </div>

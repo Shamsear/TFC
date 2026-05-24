@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Round {
   id: string
@@ -150,6 +151,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const [showLogModal, setShowLogModal] = useState(false)
   const [finalizationLogs, setFinalizationLogs] = useState<string[]>([])
   const [isStreamingLogs, setIsStreamingLogs] = useState(false)
+  const [previousStatus, setPreviousStatus] = useState<string>(round.status)
+  const [finalizationInProgress, setFinalizationInProgress] = useState(false)
 
   const submittedTeamsList = teams.filter(t => {
     if (round.roundType === 'bulk') {
@@ -207,8 +210,40 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     setIsMounted(true)
   }, [])
 
+  // Auto-open log modal when status changes from active
+  useEffect(() => {
+    // Check if status changed from 'active' to something else
+    if (previousStatus === 'active' && localStatus !== 'active' && localStatus !== previousStatus) {
+      console.log(`Status changed from ${previousStatus} to ${localStatus} - opening log modal`)
+      setShowLogModal(true)
+      setFinalizationLogs([`Round status changed from ${previousStatus.toUpperCase()} to ${localStatus.toUpperCase()}`])
+      
+      // Fetch finalization logs if available
+      fetch(`/api/admin/rounds/${round.id}/logs`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.logs && data.logs.length > 0) {
+            setFinalizationLogs(data.logs)
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch logs:', err)
+        })
+    }
+    
+    // Update previous status
+    if (localStatus !== previousStatus) {
+      setPreviousStatus(localStatus)
+    }
+  }, [localStatus, previousStatus, round.id])
+
   // Live polling - refresh data every 3 seconds for active/pending rounds
   useEffect(() => {
+    // Don't poll if finalization is in progress to avoid conflicts
+    if (finalizationInProgress) {
+      return
+    }
+
     // Only poll for rounds that are active or have pending actions, OR if there's a mismatch between client and server status
     const shouldPoll = isPolling && (
       localStatus === 'active' || 
@@ -277,7 +312,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
     // Poll every 3 seconds for real-time updates
     const interval = setInterval(fetchLiveData, 3000)
     return () => clearInterval(interval)
-  }, [isPolling, localStatus, round.id, round.status])
+  }, [isPolling, localStatus, round.id, round.status, finalizationInProgress])
 
   // Calculate time remaining for active rounds
   useEffect(() => {
@@ -289,37 +324,83 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         setTimeRemaining(remaining)
         
         // Auto-trigger finalization when timer expires (only once)
-        if (remaining === 0 && !autoFinalizationTriggered) {
+        if (remaining === 0 && !autoFinalizationTriggered && !finalizationInProgress) {
           setAutoFinalizationTriggered(true)
+          setFinalizationInProgress(true)
           
           // Trigger finalization based on mode
           if (round.finalizationMode === 'auto') {
-            // Auto mode: trigger finalization with force=true to bypass timing checks
-            console.log('Timer expired - triggering auto finalization')
+            // Auto mode: trigger finalization with streaming logs
+            console.log('Timer expired - triggering auto finalization with logs')
             
-            // Call finalization API directly with force=true
-            fetch(`/api/admin/rounds/${round.id}/finalize`, {
+            // Open log modal
+            setShowLogModal(true)
+            setFinalizationLogs(['⏰ Timer expired - Starting auto-finalization...'])
+            setIsStreamingLogs(true)
+            
+            // Call finalization API with streaming
+            fetch(`/api/admin/rounds/${round.id}/finalize-stream`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ force: true })
             }).then(async response => {
-              if (response.ok) {
-                console.log('Auto-finalization successful')
-                const data = await response.json()
-                console.log('Finalization result:', data)
-              } else {
-                console.error('Auto-finalization failed with status:', response.status)
+              if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-                console.error('Error details:', errorData)
+                setFinalizationLogs(prev => [...prev, `❌ Error: ${errorData.error || 'Unknown error'}`])
+                setIsStreamingLogs(false)
+                setFinalizationInProgress(false)
+                return
               }
-              router.refresh()
+
+              // Read the SSE stream
+              const reader = response.body?.getReader()
+              const decoder = new TextDecoder()
+
+              if (reader) {
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+
+                  const chunk = decoder.decode(value)
+                  const lines = chunk.split('\n')
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      try {
+                        const data = JSON.parse(line.slice(6))
+                        
+                        if (data.type === 'log') {
+                          setFinalizationLogs(prev => [...prev, `[${data.level.toUpperCase()}] ${data.message}`])
+                        } else if (data.type === 'complete') {
+                          setIsStreamingLogs(false)
+                          if (data.success) {
+                            setFinalizationLogs(prev => [...prev, '\n✅ Auto-finalization completed successfully!'])
+                            setTimeout(() => {
+                              window.location.reload()
+                            }, 3000)
+                          } else {
+                            setFinalizationLogs(prev => [...prev, `\n❌ Auto-finalization failed: ${data.error}`])
+                            setFinalizationInProgress(false)
+                          }
+                        }
+                      } catch (e) {
+                        console.error('Failed to parse SSE data:', e)
+                      }
+                    }
+                  }
+                }
+              }
             }).catch(error => {
               console.error('Auto-finalization error:', error)
-              router.refresh()
+              setFinalizationLogs(prev => [...prev, `\n❌ Error: ${error.message}`])
+              setIsStreamingLogs(false)
+              setFinalizationInProgress(false)
+              setTimeout(() => router.refresh(), 2000)
             })
           } else {
             // Manual mode: just refresh to update status to expired_pending_finalization
             console.log('Timer expired - refreshing for manual finalization')
+            setFinalizationInProgress(false)
             router.refresh()
           }
         }
@@ -333,7 +414,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       return () => clearInterval(interval)
     }
-  }, [localStatus, localEndTime, round.finalizationMode, round.id, autoFinalizationTriggered, router])
+  }, [localStatus, localEndTime, round.finalizationMode, round.id, autoFinalizationTriggered, finalizationInProgress, router])
 
   // Format time remaining
   const formatTimeRemaining = (ms: number) => {
@@ -382,11 +463,17 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       return
     }
 
+    if (finalizationInProgress) {
+      alert('Finalization is already in progress. Please wait...')
+      return
+    }
+
     setLoading(true)
     setError('')
     setShowLogModal(true)
     setFinalizationLogs([])
     setIsStreamingLogs(true)
+    setFinalizationInProgress(true)
 
     try {
       const response = await fetch(`/api/admin/rounds/${round.id}/finalize-stream`, {
@@ -431,6 +518,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   } else {
                     setFinalizationLogs(prev => [...prev, `\n❌ Finalization failed: ${data.error}`])
                     setError(data.error)
+                    setFinalizationInProgress(false)
                   }
                 }
               } catch (e) {
@@ -444,6 +532,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       setError(err.message)
       setFinalizationLogs(prev => [...prev, `\n❌ Error: ${err.message}`])
       setIsStreamingLogs(false)
+      setFinalizationInProgress(false)
     } finally {
       setLoading(false)
     }
@@ -1078,20 +1167,19 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
-                      Finalization Mode
-                    </label>
-                    <select
+                    <SearchableSelect
+                      label="Finalization Mode"
                       value={editForm.finalizationMode}
-                      onChange={(e) => setEditForm(prev => ({
+                      options={[
+                        { value: 'auto', label: 'Auto (Immediate)' },
+                        { value: 'manual', label: 'Manual (Preview First)' }
+                      ]}
+                      onChange={(value) => setEditForm(prev => ({
                         ...prev,
-                        finalizationMode: e.target.value
+                        finalizationMode: value
                       }))}
-                      className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E8A800]"
-                    >
-                      <option value="auto">Auto (Immediate)</option>
-                      <option value="manual">Manual (Preview First)</option>
-                    </select>
+                      enableSearch={false}
+                    />
                     <p className="text-xs text-gray-400 mt-1">
                       {editForm.finalizationMode === 'auto' 
                         ? 'Results finalize automatically when timer ends'
@@ -1275,6 +1363,42 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 hover:bg-purple-500/30 transition-all text-sm font-bold disabled:opacity-50"
               >
                 {loading ? 'Processing...' : '🔄 Force Re-finalize'}
+              </button>
+            </div>
+          )}
+          {round.status === 'finalizing' && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
+              <div className="text-blue-400 font-bold text-sm sm:text-base">
+                ⏳ Finalization in progress...
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm('Force finalize? Use this only if the finalization process is stuck.')) return
+                  setLoading(true)
+                  try {
+                    const res = await fetch(`/api/admin/rounds/${round.id}/finalize`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ force: true })
+                    })
+                    const data = await res.json()
+                    if (data.success) {
+                      setLocalStatus(data.tieDetected ? 'tiebreaker_pending' : (data.previewMode ? 'preview_finalized' : 'completed'))
+                      alert(data.message || 'Finalization triggered successfully.')
+                      window.location.reload()
+                    } else {
+                      alert(`Error: ${data.error}`)
+                    }
+                  } catch (e) {
+                    alert('Failed to contact server.')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading}
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-300 hover:bg-blue-500/30 transition-all text-sm font-bold disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : '🔄 Force Finalize'}
               </button>
             </div>
           )}

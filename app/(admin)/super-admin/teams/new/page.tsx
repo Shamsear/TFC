@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ImageKitUpload } from "@/components/upload/ImageKitUpload"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import PageLoader from "@/components/ui/PageLoader"
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 // Icon Components
 const ArrowLeftIcon = () => (
@@ -292,23 +293,20 @@ export default function CreateTeamPage() {
 
             {/* Season Selection */}
             <div>
-              <label htmlFor="seasonId" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
-                Assign to Season
-              </label>
-              <select
-                id="seasonId"
+              <SearchableSelect
+                label="Assign to Season"
                 value={formData.seasonId}
-                onChange={(e) => setFormData(prev => ({ ...prev, seasonId: e.target.value }))}
-                className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                options={[
+                  { value: '', label: 'No season (assign later)' },
+                  ...seasons.map(season => ({
+                    value: season.id,
+                    label: `${season.name}${season.isActive ? ' (Active)' : ''}`
+                  }))
+                ]}
+                onChange={(val) => setFormData(prev => ({ ...prev, seasonId: val }))}
                 disabled={isSubmitting}
-              >
-                <option value="">No season (assign later)</option>
-                {seasons.map((season) => (
-                  <option key={season.id} value={season.id}>
-                    {season.name} {season.isActive && "(Active)"}
-                  </option>
-                ))}
-              </select>
+                enableSearch={true}
+              />
               <p className="text-gray-400 text-xs mt-2">
                 Team manager will only see data for assigned seasons
               </p>

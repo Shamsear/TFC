@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Team {
   team: {
@@ -153,21 +154,17 @@ export default function TransferFixClient({ seasonId, teams }: TransferFixClient
       </div>
 
       {/* Team Selection */}
-      <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-        <label className="block text-sm font-bold text-white mb-2">Select Team</label>
-        <select
-          value={selectedTeam}
-          onChange={(e) => handleTeamChange(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none"
-        >
-          <option value="">Choose a team...</option>
-          {teams.map((t) => (
-            <option key={t.team.id} value={t.team.id}>
-              {t.team.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SearchableSelect
+        label="Select Team"
+        value={selectedTeam}
+        options={[
+          { value: '', label: 'Choose a team...' },
+          ...teams.map((t) => ({ value: t.team.id, label: t.team.name }))
+        ]}
+        onChange={handleTeamChange}
+        enableSearch={true}
+        className="rounded-xl bg-white/5 border border-white/10 p-6"
+      />
 
       {/* Wrong Player Selection */}
       {selectedTeam && (

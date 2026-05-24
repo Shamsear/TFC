@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import ImportWizard from '@/components/import/ImportWizard'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface Season {
   id: string
@@ -84,19 +85,18 @@ export default function DatabaseImportPage() {
               No seasons available. Please contact a Super Admin to create a season.
             </div>
           ) : (
-            <select
-              id="season"
+            <SearchableSelect
               value={selectedSeasonId}
-              onChange={(e) => setSelectedSeasonId(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
-            >
-              <option value="">Choose a season...</option>
-              {seasons.map((season) => (
-                <option key={season.id} value={season.id}>
-                  {season.name} (Starting Purse: ${season.startingPurse.toLocaleString()})
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'Choose a season...' },
+                ...seasons.map(season => ({
+                  value: season.id,
+                  label: `${season.name} (Starting Purse: $${season.startingPurse.toLocaleString()})`
+                }))
+              ]}
+              onChange={setSelectedSeasonId}
+              enableSearch={true}
+            />
           )}
         </div>
 

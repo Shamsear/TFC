@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { normalizeForSearch } from "@/lib/search-utils"
+import SearchableSelect from "@/components/ui/SearchableSelect"
 
 interface PlayerData {
   id: string
@@ -428,25 +429,21 @@ export default function PlayersSearchClient({
           </div>
 
           {/* Playing Style Dropdown */}
-          <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <label className="block text-sm font-bold text-white mb-2">Playing Style</label>
-            <select
-              value={selectedPlayingStyle}
-              onChange={(e) => setSelectedPlayingStyle(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={availablePlayingStyles.length === 0}
-            >
-              <option value="ALL">All Styles</option>
-              {availablePlayingStyles.map((style) => (
-                <option key={style} value={style}>
-                  {style}
-                </option>
-              ))}
-            </select>
-            {availablePlayingStyles.length === 0 && (
-              <div className="text-xs text-gray-500 mt-1">No styles for selected position</div>
-            )}
-          </div>
+          <SearchableSelect
+            label="Playing Style"
+            value={selectedPlayingStyle}
+            options={[
+              { value: 'ALL', label: 'All Styles' },
+              ...availablePlayingStyles.map((style) => ({ value: style, label: style }))
+            ]}
+            onChange={setSelectedPlayingStyle}
+            enableSearch={true}
+            disabled={availablePlayingStyles.length === 0}
+            className="rounded-xl bg-white/5 border border-white/10 p-4"
+          />
+          {availablePlayingStyles.length === 0 && (
+            <div className="text-xs text-gray-500 mt-1">No styles for selected position</div>
+          )}
 
           {/* Clear Filters Button */}
           <div className="rounded-xl bg-white/5 border border-white/10 p-4 flex items-end">

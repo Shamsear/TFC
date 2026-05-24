@@ -698,7 +698,7 @@ _All releases processed by admin_`
       )}
 
       {/* Success Modal with WhatsApp Copy */}
-      {showSuccessModal && approvedRequest && (
+      {showSuccessModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-[#111111] border border-emerald-500/30 rounded-xl p-6 max-w-md w-full">
             <div className="text-center mb-6">
@@ -707,13 +707,18 @@ _All releases processed by admin_`
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-black text-white mb-2">Release Approved!</h3>
+              <h3 className="text-xl font-black text-white mb-2">
+                {approvedRequest ? 'Release Approved!' : 'All Releases Approved!'}
+              </h3>
               <p className="text-gray-400 text-sm">
-                {approvedRequest.playerName} has been released from {approvedRequest.teamName}
+                {approvedRequest 
+                  ? `${approvedRequest.playerName} has been released from ${approvedRequest.teamName}`
+                  : 'All pending releases have been processed successfully'
+                }
               </p>
             </div>
 
-            <div className="bg-[#0a0a0a] rounded-lg p-4 mb-4 border border-white/10">
+            <div className="bg-[#0a0a0a] rounded-lg p-4 mb-4 border border-white/10 max-h-60 overflow-y-auto">
               <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">{whatsappMessage}</pre>
             </div>
 

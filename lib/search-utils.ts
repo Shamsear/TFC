@@ -10,6 +10,9 @@ export function normalizeString(str: string): string {
     .trim();
 }
 
+// Alias for backward compatibility
+export const normalizeForSearch = normalizeString;
+
 /**
  * Check if a normalized search query matches a normalized target string
  */

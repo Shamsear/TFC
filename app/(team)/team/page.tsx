@@ -51,11 +51,12 @@ export default async function TeamDashboardPage() {
   }
 
   // Team is in active season - show dashboard
-  // Get squad count for current season
+  // Get squad count for current season (only ACTIVE players)
   const squadCount = await prisma.transfer_history.count({
     where: {
       seasonId: activeSeason.id,
       teamId: team.id,
+      status: 'ACTIVE',
     },
   })
 
@@ -343,11 +344,12 @@ export default async function TeamDashboardPage() {
   const totalActiveTiebreakers = activeBulkTiebreakers.length + activeNormalTiebreakers.length
   const totalPendingTiebreakers = pendingBulkTiebreakers.length + pendingNormalTiebreakers.length
 
-  // Get recent auction results (last 5 players won from transfer_history)
+  // Get recent auction results (last 5 ACTIVE players won from transfer_history)
   const recentAuctionResults = await prisma.transfer_history.findMany({
     where: {
       seasonId: activeSeason.id,
       teamId: team.id,
+      status: 'ACTIVE',
     },
     include: {
       basePlayer: {
@@ -371,11 +373,12 @@ export default async function TeamDashboardPage() {
     take: 5,
   })
 
-  // Get squad players for tabs
+  // Get squad players for tabs (only ACTIVE players)
   const squadPlayers = await prisma.transfer_history.findMany({
     where: {
       seasonId: activeSeason.id,
       teamId: team.id,
+      status: 'ACTIVE',
     },
     include: {
       basePlayer: {

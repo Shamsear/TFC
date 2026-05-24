@@ -41,11 +41,12 @@ export default async function SquadBuilderPage() {
     where: { id: session.user.teamId },
   })
 
-  // Get squad players with their stats
+  // Get squad players with their stats (only ACTIVE players)
   const transfers = await prisma.transfer_history.findMany({
     where: {
       seasonId: activeSeason.id,
       teamId: session.user.teamId,
+      status: 'ACTIVE',
     },
     include: {
       basePlayer: {

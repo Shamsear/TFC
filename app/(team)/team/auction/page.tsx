@@ -87,11 +87,12 @@ export default async function TeamAuctionPage() {
     )
   }
 
-  // Get squad size
+  // Get squad size (only ACTIVE players)
   const squadSize = await prisma.transfer_history.count({
     where: {
       teamId: team.id,
-      seasonId: activeSeason.id
+      seasonId: activeSeason.id,
+      status: 'ACTIVE'
     }
   })
 

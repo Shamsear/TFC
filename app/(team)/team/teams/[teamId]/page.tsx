@@ -43,11 +43,12 @@ async function getTeamData(teamId: string, seasonId: string) {
     }
   })
 
-  // Get all transfers for this team in this season
+  // Get all ACTIVE transfers for this team in this season
   const transfers = await prisma.transfer_history.findMany({
     where: {
       seasonId,
-      teamId
+      teamId,
+      status: 'ACTIVE',
     },
     include: {
       basePlayer: {

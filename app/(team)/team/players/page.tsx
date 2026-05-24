@@ -43,7 +43,7 @@ export default async function TeamPlayersPage() {
 
   // Fetch static metadata - positions and teams
   const [soldCount, totalCount, allPositions, allTeams] = await Promise.all([
-    prisma.transfer_history.count({ where: { seasonId: activeSeason.id } }),
+    prisma.transfer_history.count({ where: { seasonId: activeSeason.id, status: 'ACTIVE' } }),
     prisma.seasonal_player_stats.count({ where: { seasonId: activeSeason.id } }),
     prisma.seasonal_player_stats.findMany({
       where: { seasonId: activeSeason.id },

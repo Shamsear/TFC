@@ -56,11 +56,12 @@ export default async function AuctionPlannerPage() {
     ],
   })
 
-  // Get current squad
+  // Get current squad (only ACTIVE players)
   const currentSquad = await prisma.transfer_history.findMany({
     where: {
       seasonId: activeSeason.id,
       teamId: session.user.teamId,
+      status: 'ACTIVE',
     },
     select: {
       basePlayerId: true,

@@ -117,11 +117,12 @@ export async function POST(
 
     const isEdit = !!existingBids;
 
-    // Get current squad size
+    // Get current squad size (only ACTIVE players)
     const squadSize = await prisma.transfer_history.count({
       where: {
         teamId,
-        seasonId: round.seasonId
+        seasonId: round.seasonId,
+        status: 'ACTIVE'
       }
     });
 

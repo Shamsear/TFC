@@ -21,7 +21,7 @@ export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
   // Fetch static metadata in parallel — positions, teams, and stat counts
   // These don't change on every search so we keep them server-side
   const [soldCount, totalCount, allPositions, allTeams] = await Promise.all([
-    prisma.transfer_history.count({ where: { seasonId } }),
+    prisma.transfer_history.count({ where: { seasonId, status: 'ACTIVE' } }),
     prisma.base_players.count(),
     prisma.seasonal_player_stats.findMany({
       where: { seasonId },

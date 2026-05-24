@@ -78,11 +78,12 @@ export default async function TeamTeamsPage() {
   const teamsWithDetails = await Promise.all(
     season.seasonTeams.map(async (st) => {
       const [playerCount, totalSpent, playersByPosition] = await Promise.all([
-        // Count players
+        // Count ACTIVE players only
         prisma.transfer_history.count({
           where: {
             seasonId,
-            teamId: st.team.id
+            teamId: st.team.id,
+            status: 'ACTIVE'
           }
         }),
 
@@ -97,13 +98,14 @@ export default async function TeamTeamsPage() {
           }
         }),
 
-        // Get position breakdown
+        // Get position breakdown (only ACTIVE players)
         prisma.$queryRaw<Array<{ position: string; count: bigint }>>`
           SELECT sps.position, COUNT(*)::bigint as count
           FROM transfer_history th
           INNER JOIN seasonal_player_stats sps ON th."basePlayerId" = sps."basePlayerId"
           WHERE th."seasonId" = ${seasonId}
             AND th."teamId" = ${st.team.id}
+            AND th."status" = 'ACTIVE'
             AND sps."seasonId" = ${seasonId}
           GROUP BY sps.position
           ORDER BY sps.position

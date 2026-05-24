@@ -118,11 +118,12 @@ export default async function RoundBiddingPage({
 
   // Run queries in parallel for better performance
   const [squadSize, ownedPlayerIds] = await Promise.all([
-    // Get squad size
+    // Get squad size (only ACTIVE players)
     prisma.transfer_history.count({
       where: {
         teamId: teamId,
-        seasonId: round.seasonId
+        seasonId: round.seasonId,
+        status: 'ACTIVE'
       }
     }),
     

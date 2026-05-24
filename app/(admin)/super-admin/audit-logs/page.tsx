@@ -4,13 +4,18 @@ import { getAuditLogs } from '@/lib/audit'
 import { prisma } from '@/lib/prisma'
 import AuditLogsFilters from '@/components/admin/AuditLogsFilters'
 
-async function getSubAdmins() {
+async function getSubAdmins(): Promise<{ id: string; name: string; email: string }[]> {
   try {
     const subAdmins = await prisma.users.findMany({
       where: { role: 'SUB_ADMIN' },
       select: { id: true, name: true, email: true }
     })
-    return subAdmins
+    // Filter out null names and provide default
+    return subAdmins.map(admin => ({
+      id: admin.id,
+      name: admin.name || 'Unknown',
+      email: admin.email
+    }))
   } catch (error) {
     return []
   }

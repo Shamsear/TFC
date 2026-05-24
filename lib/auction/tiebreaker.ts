@@ -137,6 +137,7 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
   winnerId?: string;
   winningBid?: number;
   error?: string;
+  newTiebreakerId?: string;
 }> {
   console.log('\n' + '='.repeat(80));
   console.log('⚔️ STARTING TIEBREAKER RESOLUTION');
@@ -192,7 +193,55 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
 
     // Check for another tie
     if (sorted.length > 1 && sorted[0].newBidAmount === sorted[1].newBidAmount) {
-      return { success: false, error: 'Another tie detected - manual resolution required' };
+      console.log('🔄 Another tie detected - creating new tiebreaker');
+      
+      // Mark current tiebreaker as completed (tie)
+      await prisma.tiebreakers.update({
+        where: { id: tiebreakerId },
+        data: {
+          status: 'completed',
+          winningTeamId: null,
+          winningBid: null
+        }
+      });
+      
+      // Get all teams that tied at the highest bid
+      const highestBid = sorted[0].newBidAmount!;
+      const tiedTeams = sorted.filter(b => b.newBidAmount === highestBid);
+      
+      // Create new tiebreaker for the tied teams
+      const newTiebreaker = await prisma.tiebreakers.create({
+        data: {
+          id: `TB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          roundId: tiebreaker.roundId,
+          basePlayerId: tiebreaker.basePlayerId,
+          originalAmount: highestBid,
+          tiedTeamsCount: tiedTeams.length,
+          status: 'active'
+        }
+      });
+      
+      // Create bid entries for tied teams
+      for (const team of tiedTeams) {
+        await prisma.team_tiebreaker_bids.create({
+          data: {
+            id: `TTB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            tiebreakerId: newTiebreaker.id,
+            teamId: team.teamId,
+            oldBidAmount: highestBid,
+            newBidAmount: null,
+            submitted: false
+          }
+        });
+      }
+      
+      console.log(`✅ New tiebreaker created: ${newTiebreaker.id} with ${tiedTeams.length} teams`);
+      
+      return { 
+        success: false, 
+        error: `Another tie detected at £${highestBid}. New tiebreaker created.`,
+        newTiebreakerId: newTiebreaker.id
+      };
     }
 
     const winner = sorted[0];

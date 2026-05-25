@@ -303,6 +303,86 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
                    autoAllocatedPlayers.reduce((sum: number, p: any) => sum + p.amount, 0)
       }
     })
+
+    // For bulk rounds, also fetch selections to show what teams selected
+    if (round.roundType === 'bulk') {
+      const bulkSelections = await prisma.bulk_round_selections.findMany({
+        where: { roundId },
+        select: {
+          teamId: true,
+          selectedPlayers: true,
+          submitted: true
+        }
+      })
+
+      // Collect all selected player IDs
+      const allSelectedPlayerIds = new Set<string>()
+      for (const selection of bulkSelections) {
+        try {
+          const parsed = JSON.parse(selection.selectedPlayers as string)
+          parsed.players.forEach((playerId: string) => allSelectedPlayerIds.add(playerId))
+        } catch (e) {}
+      }
+
+      // Fetch player details in bulk
+      const [selectedPlayers, selectedSeasonalStats] = await Promise.all([
+        prisma.base_players.findMany({
+          where: { id: { in: Array.from(allSelectedPlayerIds) } },
+          select: { id: true, name: true, photoUrl: true }
+        }),
+        prisma.seasonal_player_stats.findMany({
+          where: { seasonId, basePlayerId: { in: Array.from(allSelectedPlayerIds) } },
+          select: { basePlayerId: true, position: true, position_group: true, overallRating: true }
+        })
+      ])
+
+      const playerMap = new Map(selectedPlayers.map(p => [p.id, p]))
+      const statsMap2 = new Map(selectedSeasonalStats.map(s => [s.basePlayerId, s]))
+
+      // Build team selections with details
+      bulkSelectionsWithDetails = seasonTeams.map(st => {
+        const team = st.team
+        const selection = bulkSelections.find(s => s.teamId === team.id)
+        
+        if (!selection) {
+          return {
+            teamId: team.id,
+            teamName: team.name,
+            teamLogo: team.logoUrl,
+            submitted: false,
+            selections: []
+          }
+        }
+
+        let selections: any[] = []
+        try {
+          const parsed = JSON.parse(selection.selectedPlayers as string)
+          selections = parsed.players.map((playerId: string, index: number) => {
+            const player = playerMap.get(playerId)
+            const stats = statsMap2.get(playerId)
+            
+            return {
+              playerId,
+              playerName: player?.name || 'Unknown',
+              photoUrl: getPlayerPhotoUrl(player?.photoUrl),
+              position: stats?.position || 'Unknown',
+              overallRating: stats?.overallRating || 0,
+              priority: index + 1
+            }
+          })
+        } catch (e) {
+          console.error(`Failed to parse selections for team ${team.id}:`, e)
+        }
+
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          teamLogo: team.logoUrl,
+          submitted: selection.submitted,
+          selections
+        }
+      })
+    }
   } else if (round.status === 'preview_finalized') {
     // Get preview allocations from database table
     const rawPreviewAllocations = await prisma.preview_allocations.findMany({

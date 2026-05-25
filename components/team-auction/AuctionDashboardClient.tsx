@@ -410,7 +410,9 @@ export default function AuctionDashboardClient({
                         </h3>
                         {round.position && (
                           <p className="text-sm text-[#D4CCBB]">
-                            {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                            <span className="truncate max-w-[200px] sm:max-w-none inline-block">
+                              {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                            </span>
                           </p>
                         )}
                       </div>
@@ -652,7 +654,9 @@ export default function AuctionDashboardClient({
                       </h3>
                       {round.position && (
                         <p className="text-sm text-[#D4CCBB]">
-                          {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                          <span className="truncate max-w-[200px] sm:max-w-none inline-block">
+                            {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                          </span>
                         </p>
                       )}
                     </div>
@@ -691,7 +695,9 @@ export default function AuctionDashboardClient({
                       </h3>
                       {round.position && (
                         <p className="text-sm text-[#D4CCBB]">
-                          {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                          <span className="truncate max-w-[200px] sm:max-w-none inline-block">
+                            {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                          </span>
                         </p>
                       )}
                     </div>

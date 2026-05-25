@@ -536,7 +536,7 @@ export default async function TeamDashboardPage() {
                             </span>
                           </div>
                           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[#D4CCBB]">
-                            <span className="font-medium">
+                            <span className="font-medium truncate max-w-[200px] sm:max-w-none">
                               {round.position ? `${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}` : 'All Positions'}
                             </span>
                             <span className="text-[#7A7367]">•</span>

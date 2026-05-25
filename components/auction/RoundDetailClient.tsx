@@ -2056,7 +2056,9 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                             ✓ {wonBids.length} Won
                           </span>
                         )}
-                        <span className="text-sm text-gray-400 flex-shrink-0">{teamBid.bidCount} bids</span>
+                        <span className="text-sm text-gray-400 flex-shrink-0">
+                          {round.roundType === 'bulk' ? `${teamBid.bidCount} players` : `${teamBid.bidCount} bids`}
+                        </span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation()

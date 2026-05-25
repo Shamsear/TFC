@@ -171,7 +171,9 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
     // Fetch and decrypt team bids for completed rounds
     const { decryptBids } = await import('@/lib/auction/encryption')
     
-    const teamBidsRaw = await prisma.team_round_bids.findMany({
+    // For normal rounds, process team_round_bids
+    if (round.roundType !== 'bulk') {
+      const teamBidsRaw = await prisma.team_round_bids.findMany({
       where: { roundId },
       include: {
         round: {
@@ -303,6 +305,131 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
                    autoAllocatedPlayers.reduce((sum: number, p: any) => sum + p.amount, 0)
       }
     })
+    } else {
+      // For bulk rounds, build teamBidsWithDetails from allocations AND selections
+      // First get all selections
+      const bulkSelections = await prisma.bulk_round_selections.findMany({
+        where: { roundId },
+        select: {
+          teamId: true,
+          selectedPlayers: true,
+          submitted: true
+        }
+      })
+
+      // Get all bulk tiebreakers for this round to fetch bid amounts
+      const bulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
+        where: { roundId },
+        include: {
+          participants: {
+            select: {
+              teamId: true,
+              newBidAmount: true,
+              currentBid: true
+            }
+          }
+        }
+      })
+
+      // Create a map of playerId -> teamId -> highest bid amount
+      const tiebreakerBidsMap = new Map<string, Map<string, number>>()
+      for (const tb of bulkTiebreakers) {
+        const teamBidsForPlayer = new Map<string, number>()
+        for (const participant of tb.participants) {
+          const bidAmount = participant.newBidAmount || participant.currentBid || 0
+          teamBidsForPlayer.set(participant.teamId, bidAmount)
+        }
+        tiebreakerBidsMap.set(tb.basePlayerId, teamBidsForPlayer)
+      }
+
+      // Collect all selected player IDs
+      const allSelectedPlayerIds = new Set<string>()
+      for (const selection of bulkSelections) {
+        try {
+          const parsed = JSON.parse(selection.selectedPlayers as string)
+          parsed.players.forEach((playerId: string) => allSelectedPlayerIds.add(playerId))
+        } catch (e) {}
+      }
+
+      // Fetch player details for selections
+      const [selectedPlayers, selectedSeasonalStats] = await Promise.all([
+        prisma.base_players.findMany({
+          where: { id: { in: Array.from(allSelectedPlayerIds) } },
+          select: { id: true, name: true, photoUrl: true }
+        }),
+        prisma.seasonal_player_stats.findMany({
+          where: { seasonId, basePlayerId: { in: Array.from(allSelectedPlayerIds) } },
+          select: { basePlayerId: true, position: true, position_group: true, overallRating: true }
+        })
+      ])
+
+      const selectionPlayerMap = new Map(selectedPlayers.map(p => [p.id, p]))
+      const selectionStatsMap = new Map(selectedSeasonalStats.map(s => [s.basePlayerId, s]))
+
+      // Build teamBidsWithDetails with both selections and allocations
+      teamBidsWithDetails = seasonTeams.map(st => {
+        const team = st.team
+        const selection = bulkSelections.find(s => s.teamId === team.id)
+        const teamAllocations = rawResults.filter(r => r.teamId === team.id)
+        
+        // Create a set of won player IDs for this team
+        const wonPlayerIds = new Set(teamAllocations.map(a => a.basePlayerId))
+
+        let allBids: any[] = []
+        
+        if (selection) {
+          try {
+            const parsed = JSON.parse(selection.selectedPlayers as string)
+            allBids = parsed.players.map((playerId: string, index: number) => {
+              const player = selectionPlayerMap.get(playerId)
+              const stats = selectionStatsMap.get(playerId)
+              const won = wonPlayerIds.has(playerId)
+              const allocation = teamAllocations.find(a => a.basePlayerId === playerId)
+              
+              // Get the bid amount - either from allocation (if won) or from tiebreaker (if lost)
+              let amount = 0
+              if (won && allocation) {
+                amount = allocation.soldPrice || 0
+              } else {
+                // Check if there was a tiebreaker for this player
+                const tiebreakerBids = tiebreakerBidsMap.get(playerId)
+                if (tiebreakerBids) {
+                  amount = tiebreakerBids.get(team.id) || 0
+                }
+              }
+              
+              return {
+                playerId,
+                playerName: player?.name || 'Unknown',
+                photoUrl: getPlayerPhotoUrl(player?.photoUrl),
+                amount,
+                position: stats?.position || 'Unknown',
+                overallRating: stats?.overallRating || 0,
+                won,
+                acquisitionType: allocation?.acquisitionType || null,
+                acquisitionNotes: allocation?.acquisitionNotes || null,
+                priority: index + 1
+              }
+            })
+          } catch (e) {
+            console.error(`Failed to parse selections for team ${team.id}:`, e)
+          }
+        }
+
+        const wonCount = allBids.filter(b => b.won).length
+        const totalSpent = allBids.filter(b => b.won).reduce((sum, b) => sum + b.amount, 0)
+
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          teamLogo: team.logoUrl,
+          submitted: selection?.submitted || false,
+          bidCount: allBids.length, // Total selections made
+          bids: allBids, // All selections with won status
+          totalSpent
+        }
+      })
+    }
 
     // For bulk rounds, also fetch selections to show what teams selected
     if (round.roundType === 'bulk') {

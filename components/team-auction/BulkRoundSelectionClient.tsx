@@ -541,8 +541,15 @@ export default function BulkRoundSelectionClient({
               <h1 className="text-2xl sm:text-3xl font-black text-white mb-1 truncate">
                 Round {round.roundNumber} - Bulk Selection
               </h1>
-              <p className="text-sm text-[#D4CCBB] truncate">
-                {season.name} {round.position && `— ${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}`}
+              <p className="text-sm text-[#D4CCBB]">
+                {season.name} {round.position && (
+                  <>
+                    {' — '}
+                    <span className="truncate max-w-[200px] sm:max-w-none inline-block align-bottom">
+                      {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                    </span>
+                  </>
+                )}
               </p>
             </div>
             {timeRemaining && (

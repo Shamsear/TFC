@@ -16,7 +16,17 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
 
   const { seasonId, roundId } = await params
 
-  // Fetch round with all related data
+  // First fetch round to check type
+  const roundBasic = await prisma.rounds.findUnique({
+    where: { id: roundId },
+    select: { roundType: true }
+  })
+
+  if (!roundBasic) {
+    notFound()
+  }
+
+  // Fetch round with all related data based on type
   const round = await prisma.rounds.findUnique({
     where: { id: roundId },
     include: {
@@ -27,8 +37,8 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           seasonNumber: true
         }
       },
-      teamRoundBids: true,
-      bulkRoundSelections: true,
+      teamRoundBids: roundBasic.roundType !== 'bulk',
+      bulkRoundSelections: roundBasic.roundType === 'bulk',
       tiebreakers: {
         include: {
           basePlayer: {
@@ -97,6 +107,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
   let previewAllocations = null
   let bulkConflicts: any[] | null = null
   let teamBidsWithDetails: any[] | null = null
+  let bulkSelectionsWithDetails: any[] | null = null
   
   if (round.status === 'completed') {
     const rawResults = await prisma.transfer_history.findMany({
@@ -399,6 +410,86 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
     }
   }
 
+  // Fetch bulk selections with details for bulk rounds in tiebreaker_pending or expired_pending_finalization
+  if (round.roundType === 'bulk' && (round.status === 'tiebreaker_pending' || round.status === 'expired_pending_finalization')) {
+    const bulkSelections = await prisma.bulk_round_selections.findMany({
+      where: { roundId },
+      select: {
+        teamId: true,
+        selectedPlayers: true,
+        submitted: true
+      }
+    })
+
+    // Collect all selected player IDs
+    const allSelectedPlayerIds = new Set<string>()
+    for (const selection of bulkSelections) {
+      try {
+        const parsed = JSON.parse(selection.selectedPlayers as string)
+        parsed.players.forEach((playerId: string) => allSelectedPlayerIds.add(playerId))
+      } catch (e) {}
+    }
+
+    // Fetch player details in bulk
+    const [selectedPlayers, selectedSeasonalStats] = await Promise.all([
+      prisma.base_players.findMany({
+        where: { id: { in: Array.from(allSelectedPlayerIds) } },
+        select: { id: true, name: true, photoUrl: true }
+      }),
+      prisma.seasonal_player_stats.findMany({
+        where: { seasonId, basePlayerId: { in: Array.from(allSelectedPlayerIds) } },
+        select: { basePlayerId: true, position: true, position_group: true, overallRating: true }
+      })
+    ])
+
+    const playerMap = new Map(selectedPlayers.map(p => [p.id, p]))
+    const statsMap = new Map(selectedSeasonalStats.map(s => [s.basePlayerId, s]))
+
+    // Build team selections with details
+    bulkSelectionsWithDetails = seasonTeams.map(st => {
+      const team = st.team
+      const selection = bulkSelections.find(s => s.teamId === team.id)
+      
+      if (!selection) {
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          teamLogo: team.logoUrl,
+          submitted: false,
+          selections: []
+        }
+      }
+
+      let selections: any[] = []
+      try {
+        const parsed = JSON.parse(selection.selectedPlayers as string)
+        selections = parsed.players.map((playerId: string, index: number) => {
+          const player = playerMap.get(playerId)
+          const stats = statsMap.get(playerId)
+          
+          return {
+            playerId,
+            playerName: player?.name || 'Unknown',
+            photoUrl: getPlayerPhotoUrl(player?.photoUrl),
+            position: stats?.position || 'Unknown',
+            overallRating: stats?.overallRating || 0,
+            priority: index + 1
+          }
+        })
+      } catch (e) {
+        console.error(`Failed to parse selections for team ${team.id}:`, e)
+      }
+
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        teamLogo: team.logoUrl,
+        submitted: selection.submitted,
+        selections
+      }
+    })
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
@@ -409,6 +500,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           previewAllocations={previewAllocations ?? undefined}
           bulkConflicts={bulkConflicts}
           teamBidsWithDetails={teamBidsWithDetails ?? undefined}
+          bulkSelectionsWithDetails={bulkSelectionsWithDetails ?? undefined}
           teamSquadSizes={Object.fromEntries(squadSizeMap)}
         />
       </div>

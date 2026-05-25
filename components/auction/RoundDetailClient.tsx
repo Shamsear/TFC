@@ -106,10 +106,11 @@ interface RoundDetailClientProps {
   previewAllocations?: any[] // Preview allocations from finalization state
   bulkConflicts?: BulkConflict[] | null
   teamBidsWithDetails?: TeamBidDetails[]
+  bulkSelectionsWithDetails?: any[]
   teamSquadSizes?: Record<string, number> // Map of teamId to current squad size
 }
 
-export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts, teamBidsWithDetails, teamSquadSizes }: RoundDetailClientProps) {
+export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts, teamBidsWithDetails, bulkSelectionsWithDetails, teamSquadSizes }: RoundDetailClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -2240,8 +2241,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 let bSubmitted = false
                 
                 if (round.roundType === 'bulk') {
-                  const aSelection = round.bulkRoundSelections?.find((s: any) => s.teamId === a.id)
-                  const bSelection = round.bulkRoundSelections?.find((s: any) => s.teamId === b.id)
+                  const aSelection = liveBulkSelections.find((s: any) => s.teamId === a.id)
+                  const bSelection = liveBulkSelections.find((s: any) => s.teamId === b.id)
                   aSubmitted = aSelection?.submitted || false
                   bSubmitted = bSelection?.submitted || false
                 } else {
@@ -2259,7 +2260,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               
               return sortedTeams.map(team => {
               if (round.roundType === 'bulk') {
-                const selection = round.bulkRoundSelections?.find((s: any) => s.teamId === team.id)
+                const selection = liveBulkSelections.find((s: any) => s.teamId === team.id)
                 let selectedCount = 0
                 if (selection?.selectedPlayers) {
                   try {
@@ -2352,6 +2353,159 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           )}
         </div>
       </div>
+
+      {/* Bulk Round Team Selections - Show for tiebreaker_pending or expired_pending_finalization */}
+      {round.roundType === 'bulk' && (round.status === 'tiebreaker_pending' || round.status === 'expired_pending_finalization') && bulkSelectionsWithDetails && bulkSelectionsWithDetails.length > 0 && (
+        <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-8">
+          <h3 className="text-xl font-black text-white mb-4">Team Selections</h3>
+          <div className="space-y-2">
+            {bulkSelectionsWithDetails.map(teamSelection => {
+              const isExpanded = expandedTeams.has(teamSelection.teamId)
+              
+              return (
+                <div key={teamSelection.teamId} className="rounded-lg bg-black/30 border border-white/10 overflow-hidden">
+                  {/* Team Header */}
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/5 transition-colors gap-3">
+                    <div 
+                      onClick={() => {
+                        const newExpanded = new Set(expandedTeams)
+                        if (isExpanded) {
+                          newExpanded.delete(teamSelection.teamId)
+                        } else {
+                          newExpanded.add(teamSelection.teamId)
+                        }
+                        setExpandedTeams(newExpanded)
+                      }}
+                      className="flex items-center gap-3 w-full sm:w-auto text-left cursor-pointer flex-1"
+                    >
+                      {teamSelection.teamLogo && (
+                        <img src={teamSelection.teamLogo} alt={teamSelection.teamName} className="w-8 h-8 rounded" />
+                      )}
+                      <span className="font-bold text-white truncate">{teamSelection.teamName}</span>
+                    </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                      <div className="flex items-center gap-3">
+                        {teamSelection.submitted && teamSelection.selections.length > 0 && (
+                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30 flex-shrink-0">
+                            ✓ {teamSelection.selections.length} Selected
+                          </span>
+                        )}
+                        {teamSelection.selections.length > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const selectionsText = teamSelection.selections
+                                .map((sel: any) => `${sel.priority}. ${sel.playerName} (${sel.position}, ${sel.overallRating} OVR)`)
+                                .join('\n')
+                              const fullText = `${teamSelection.teamName} - Selections:\n\n${selectionsText}`
+                              navigator.clipboard.writeText(fullText)
+                              // Show feedback
+                              const btn = e.currentTarget
+                              const originalHTML = btn.innerHTML
+                              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
+                              setTimeout(() => {
+                                btn.innerHTML = originalHTML
+                              }, 1500)
+                            }}
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex-shrink-0"
+                            title="Copy selections to clipboard"
+                          >
+                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      {teamSelection.selections.length > 0 && (
+                        <button
+                          onClick={() => {
+                            const newExpanded = new Set(expandedTeams)
+                            if (isExpanded) {
+                              newExpanded.delete(teamSelection.teamId)
+                            } else {
+                              newExpanded.add(teamSelection.teamId)
+                            }
+                            setExpandedTeams(newExpanded)
+                          }}
+                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                          aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                        >
+                          <svg 
+                            className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded Selections List */}
+                  {isExpanded && teamSelection.selections.length > 0 && (
+                    <div className="border-t border-white/10 p-4 space-y-2 bg-black/20">
+                      <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
+                        Selected Players (Priority Order)
+                      </div>
+                      {teamSelection.selections.map((selection: any, idx: number) => (
+                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-[#E8A800]/20 border border-[#E8A800]/30 flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm font-bold text-[#E8A800]">{selection.priority}</span>
+                            </div>
+                            <img 
+                              src={selection.photoUrl} 
+                              alt={selection.playerName} 
+                              className="w-10 h-10 rounded-lg object-cover bg-white/5 flex-shrink-0"
+                              onError={(e) => {
+                                e.currentTarget.src = '/placeholder-player.png'
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <span className="font-bold text-white truncate">{selection.playerName}</span>
+                                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/30 flex-shrink-0">
+                                  {selection.position}
+                                </span>
+                                <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                  {selection.overallRating}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Show message if team didn't submit */}
+                  {!teamSelection.submitted && (
+                    <div className="border-t border-white/10 p-3 bg-yellow-500/5">
+                      <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Team did not submit selections for this round</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show message if team submitted but no selections */}
+                  {teamSelection.submitted && teamSelection.selections.length === 0 && (
+                    <div className="border-t border-white/10 p-3 bg-gray-500/5">
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        <span>Team submitted with no selections</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Extend Time Modal */}
       {/* Extend Time Modal */}

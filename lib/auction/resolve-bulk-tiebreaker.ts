@@ -99,7 +99,7 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
       });
 
       // Create transfer record
-      const transferId = await generateTransferId(tx);
+      const transferId = await generateTransferId();
       await tx.transfer_history.create({
         data: {
           id: transferId,
@@ -142,7 +142,7 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
       });
 
       // Create financial ledger entry
-      const financialId = await generateFinancialId(tx);
+      const financialId = await generateFinancialId();
       await tx.financial_ledger.create({
         data: {
           id: financialId,

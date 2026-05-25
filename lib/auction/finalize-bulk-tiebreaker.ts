@@ -15,14 +15,12 @@ export interface BulkTiebreakerResult {
 
 /**
  * Check if bulk tiebreaker should auto-finalize
- * Conditions:
- * 1. Only 1 team remains active
- * 2. 24 hours elapsed (safety limit)
+ * For sealed bid model: auto-finalize when all active teams have submitted
  */
 export async function shouldAutoFinalizeBulkTiebreaker(
   tiebreakerId: number
 ): Promise<boolean> {
-  console.log(`\n🔍 CHECKING AUTO-FINALIZATION CONDITIONS`);
+  console.log(`\n🔍 CHECKING AUTO-FINALIZATION CONDITIONS (SEALED BID MODEL)`);
   console.log(`   Tiebreaker ID: ${tiebreakerId}`);
   
   const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
@@ -31,7 +29,13 @@ export async function shouldAutoFinalizeBulkTiebreaker(
       teamsRemaining: true,
       startTime: true,
       maxEndTime: true,
-      status: true
+      status: true,
+      participants: {
+        where: { status: 'active' },
+        select: {
+          submitted: true
+        }
+      }
     }
   });
 
@@ -42,18 +46,24 @@ export async function shouldAutoFinalizeBulkTiebreaker(
 
   console.log(`   Status: ${tiebreaker.status}`);
   console.log(`   Teams Remaining: ${tiebreaker.teamsRemaining}`);
+  console.log(`   Active Participants: ${tiebreaker.participants.length}`);
   console.log(`   Start Time: ${tiebreaker.startTime?.toISOString() || 'Not started'}`);
   console.log(`   Max End Time: ${tiebreaker.maxEndTime?.toISOString() || 'Not set'}`);
 
-  // Condition 1: Only 1 team remaining
-  if (tiebreaker.teamsRemaining === 1) {
-    console.log(`   ✅ CONDITION MET: Only 1 team remaining`);
+  // Sealed Bid Model: Check if all active participants have submitted
+  const allSubmitted = tiebreaker.participants.every(p => p.submitted);
+  const submittedCount = tiebreaker.participants.filter(p => p.submitted).length;
+  
+  console.log(`   Submitted: ${submittedCount} / ${tiebreaker.participants.length}`);
+  
+  if (allSubmitted && tiebreaker.participants.length > 0) {
+    console.log(`   ✅ CONDITION MET: All active teams have submitted sealed bids`);
     return true;
   } else {
-    console.log(`   ❌ Condition 1 not met: ${tiebreaker.teamsRemaining} teams remaining (need exactly 1)`);
+    console.log(`   ❌ Condition not met: Not all teams have submitted (${submittedCount}/${tiebreaker.participants.length})`);
   }
 
-  // Condition 2: 24 hours elapsed
+  // Fallback: Time expired (24 hours)
   if (tiebreaker.maxEndTime) {
     const now = new Date();
     const timeRemaining = tiebreaker.maxEndTime.getTime() - now.getTime();
@@ -102,7 +112,9 @@ export async function finalizeBulkTiebreaker(
           where: { status: 'active' },
           select: {
             teamId: true,
-            currentBid: true,
+            newBidAmount: true,
+            submitted: true,
+            submittedAt: true,
             status: true
           }
         }
@@ -125,7 +137,7 @@ export async function finalizeBulkTiebreaker(
     console.log(`   Max End Time: ${tiebreaker.maxEndTime?.toISOString() || 'Not set'}`);
     console.log(`\n📊 ACTIVE PARTICIPANTS (${tiebreaker.participants.length}):`);
     tiebreaker.participants.forEach((p, i) => {
-      console.log(`   ${i + 1}. Team: ${p.teamId}, Bid: £${p.currentBid || 'None'}, Status: ${p.status}`);
+      console.log(`   ${i + 1}. Team: ${p.teamId}, Sealed Bid: £${p.newBidAmount || 'Not submitted'}, Submitted: ${p.submitted}, Status: ${p.status}`);
     });
 
     if (tiebreaker.status !== 'active') {
@@ -146,46 +158,44 @@ export async function finalizeBulkTiebreaker(
       return { success: false, error: 'Tiebreaker not ready to finalize' };
     }
 
-    // Determine winner
-    console.log(`\n🏆 DETERMINING WINNER...`);
+    // Determine winner (Sealed Bid Model)
+    console.log(`\n🏆 DETERMINING WINNER (SEALED BID MODEL)...`);
     let winnerId: string | null = null;
     let winningBid: number | null = null;
 
-    if (tiebreaker.teamsRemaining === 1) {
-      console.log(`   Condition: Only 1 team remaining (Last Person Standing)`);
-      
-      // Only 1 team remaining - they win with their current bid (or highest bid)
-      const activeParticipant = tiebreaker.participants[0]; // Should only be 1 active
-      
-      if (activeParticipant) {
-        winnerId = activeParticipant.teamId;
-        // Use their current bid, or fall back to the tiebreaker's highest bid
-        winningBid = activeParticipant.currentBid || tiebreaker.currentHighestBid;
-        console.log(`   ✅ Winner Found: ${winnerId}`);
-        console.log(`   💰 Winning Bid: £${winningBid}`);
-        console.log(`   📝 Source: Active participant record`);
-      } else {
-        console.log(`   ⚠️ WARNING: No active participant found in participants array`);
-        console.log(`   🔄 Attempting fallback to highest bidder...`);
-        // Fallback: use the highest bidder from the tiebreaker
-        if (tiebreaker.currentHighestTeamId && tiebreaker.currentHighestBid) {
-          winnerId = tiebreaker.currentHighestTeamId;
-          winningBid = tiebreaker.currentHighestBid;
-          console.log(`   ✅ Winner Found (Fallback): ${winnerId}`);
-          console.log(`   💰 Winning Bid: £${winningBid}`);
-          console.log(`   📝 Source: Tiebreaker highest bid record`);
-        } else {
-          console.log(`   ❌ ERROR: No highest bidder information available`);
-        }
+    // Find all valid sealed bids
+    const validBids = tiebreaker.participants.filter(
+      p => p.submitted && p.newBidAmount && p.newBidAmount > tiebreaker.basePrice
+    );
+
+    console.log(`   Valid sealed bids: ${validBids.length}`);
+    
+    if (validBids.length === 0) {
+      console.log(`   ⚠️ No valid sealed bids found`);
+      console.log(`\n❌ FINALIZATION FAILED: No valid bids`);
+      console.log(`${'='.repeat(60)}\n`);
+      return { success: false, error: 'No valid bids submitted' };
+    }
+
+    // Sort by bid amount (highest first), then by submission time (earliest first) for tiebreaks
+    validBids.sort((a, b) => {
+      if (b.newBidAmount! !== a.newBidAmount!) {
+        return b.newBidAmount! - a.newBidAmount!;
       }
-    } else if (tiebreaker.currentHighestTeamId && tiebreaker.currentHighestBid) {
-      console.log(`   Condition: Time expired (24 hours elapsed)`);
-      // 24 hours elapsed - highest bidder wins
-      winnerId = tiebreaker.currentHighestTeamId;
-      winningBid = tiebreaker.currentHighestBid;
-      console.log(`   ✅ Winner Found: ${winnerId}`);
-      console.log(`   💰 Winning Bid: £${winningBid}`);
-      console.log(`   📝 Source: Highest bidder at time expiry`);
+      // If bids are equal, earliest submission wins
+      return (a.submittedAt?.getTime() || 0) - (b.submittedAt?.getTime() || 0);
+    });
+
+    const winner = validBids[0];
+    winnerId = winner.teamId;
+    winningBid = winner.newBidAmount!;
+
+    console.log(`   ✅ Winner Found: ${winnerId}`);
+    console.log(`   💰 Winning Bid: £${winningBid}`);
+    console.log(`   📝 Submission Time: ${winner.submittedAt?.toISOString() || 'Unknown'}`);
+    
+    if (validBids.length > 1 && validBids[1].newBidAmount === winningBid) {
+      console.log(`   ⚖️ Tiebreaker applied: Multiple teams bid £${winningBid}, earliest submission wins`);
     }
 
     if (!winnerId || !winningBid) {
@@ -412,6 +422,7 @@ export async function applyBulkTiebreakerResult(
 
 /**
  * Process team withdrawal from bulk tiebreaker
+ * Updated for sealed bid model
  */
 export async function withdrawFromBulkTiebreaker(
   tiebreakerId: number,
@@ -425,13 +436,18 @@ export async function withdrawFromBulkTiebreaker(
     console.log(`   Timestamp: ${new Date().toISOString()}`);
     console.log(`${'='.repeat(60)}\n`);
 
-    // Check if team is the highest bidder
+    // Check tiebreaker status and if team has submitted
     const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
       where: { id: tiebreakerId },
       select: { 
-        currentHighestTeamId: true,
         status: true,
-        teamsRemaining: true
+        teamsRemaining: true,
+        participants: {
+          where: { teamId },
+          select: {
+            submitted: true
+          }
+        }
       }
     });
 
@@ -443,18 +459,19 @@ export async function withdrawFromBulkTiebreaker(
     console.log(`📊 CURRENT STATE:`);
     console.log(`   Status: ${tiebreaker.status}`);
     console.log(`   Teams Remaining: ${tiebreaker.teamsRemaining}`);
-    console.log(`   Highest Bidder: ${tiebreaker.currentHighestTeamId || 'None'}`);
 
     if (tiebreaker.status !== 'active') {
       console.log(`\n❌ ERROR: Tiebreaker is not active\n`);
       return { success: false, error: 'Tiebreaker is not active' };
     }
 
-    if (tiebreaker.currentHighestTeamId === teamId) {
-      console.log(`\n❌ ERROR: Cannot withdraw - team has highest bid\n`);
+    // Sealed bid model: Cannot withdraw after submission
+    const participant = tiebreaker.participants[0];
+    if (participant?.submitted) {
+      console.log(`\n❌ ERROR: Cannot withdraw after submitting sealed bid\n`);
       return { 
         success: false, 
-        error: 'Cannot withdraw while you have the highest bid. Wait to be outbid first.' 
+        error: 'Cannot withdraw after submitting your bid' 
       };
     }
 
@@ -494,8 +511,8 @@ export async function withdrawFromBulkTiebreaker(
         console.log(`      ✅ Teams remaining updated`);
       }
     }, {
-      timeout: 15000, // 15 second timeout
-      maxWait: 10000  // Wait max 10 seconds to acquire connection
+      timeout: 15000,
+      maxWait: 10000
     });
 
     console.log(`\n✅ TRANSACTION COMPLETED`);
@@ -503,31 +520,18 @@ export async function withdrawFromBulkTiebreaker(
     // Small delay to ensure transaction is committed
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Check if should auto-finalize
+    // Check if should auto-finalize (sealed bid model checks if all submitted)
     console.log(`\n🔍 Checking auto-finalization after withdrawal...`);
     const shouldFinalize = await shouldAutoFinalizeBulkTiebreaker(tiebreakerId);
     
     if (shouldFinalize) {
       console.log(`\n🎯 AUTO-FINALIZATION TRIGGERED`);
-      const result = await finalizeBulkTiebreaker(tiebreakerId);
-      console.log(`📊 Finalization result:`, result);
-      
-      if (result.success && result.winnerId && result.winningBid) {
-        console.log(`\n💰 APPLYING TIEBREAKER RESULT...`);
-        await applyBulkTiebreakerResult(tiebreakerId, result.winnerId, result.winningBid);
-        console.log(`✅ Tiebreaker ${tiebreakerId} finalized and applied successfully!`);
-      }
+      // Use the sealed bid resolution function
+      const { resolveBulkTiebreaker } = await import('./resolve-bulk-tiebreaker');
+      const result = await resolveBulkTiebreaker(tiebreakerId);
+      console.log(`📊 Resolution result:`, result);
     } else {
       console.log(`\n📊 Auto-finalization not needed - tiebreaker continues`);
-    }
-
-    console.log(`\n📡 EMITTING SSE EVENT...`);
-    try {
-      const { emitTiebreakerChange } = await import('./tiebreaker-events');
-      await emitTiebreakerChange(tiebreakerId);
-      console.log(`✅ SSE event emitted`);
-    } catch (e) {
-      console.error('❌ Error emitting tiebreaker change event:', e);
     }
 
     console.log(`\n✅ WITHDRAWAL COMPLETED SUCCESSFULLY`);
@@ -537,301 +541,6 @@ export async function withdrawFromBulkTiebreaker(
     console.log(`\n❌ WITHDRAWAL EXCEPTION`);
     console.error('Error:', error);
     console.log(`${'='.repeat(60)}\n`);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-/**
- * Place bid in bulk tiebreaker
- */
-export async function placeBulkTiebreakerBid(
-  tiebreakerId: number,
-  teamId: string,
-  bidAmount: number
-): Promise<{ success: boolean; error?: string; warning?: string }> {
-  try {
-    // Validate bid
-    const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
-      where: { id: tiebreakerId },
-      select: {
-        status: true,
-        currentHighestBid: true,
-        basePrice: true,
-        roundId: true,
-        teamsRemaining: true
-      }
-    });
-
-    if (!tiebreaker) {
-      return { success: false, error: 'Tiebreaker not found' };
-    }
-
-    if (tiebreaker.status !== 'active') {
-      return { success: false, error: 'Tiebreaker is not active' };
-    }
-
-    // Check if only one team remains - should not be able to bid
-    if (tiebreaker.teamsRemaining === 1) {
-      console.log(`🎯 Only 1 team remaining in tiebreaker ${tiebreakerId} - auto-finalizing instead of accepting bid...`);
-      
-      // Auto-finalize the tiebreaker
-      const finalizeResult = await finalizeBulkTiebreaker(tiebreakerId);
-      
-      if (finalizeResult.success && finalizeResult.winnerId && finalizeResult.winningBid) {
-        await applyBulkTiebreakerResult(tiebreakerId, finalizeResult.winnerId, finalizeResult.winningBid);
-        
-        // Emit change after finalization
-        try {
-          const { emitTiebreakerChange } = await import('./tiebreaker-events');
-          await emitTiebreakerChange(tiebreakerId);
-        } catch (e) {
-          console.error('Error emitting tiebreaker change event after auto-finalization:', e);
-        }
-        
-        return { 
-          success: false, 
-          error: 'You are the only team remaining. The tiebreaker has been automatically finalized and the player has been assigned to you.' 
-        };
-      }
-      
-      return { 
-        success: false, 
-        error: 'You are the only team remaining. Cannot place additional bids.' 
-      };
-    }
-
-    const minBid = tiebreaker.currentHighestBid
-      ? tiebreaker.currentHighestBid + 1
-      : tiebreaker.basePrice;
-
-    if (bidAmount < minBid) {
-      return {
-        success: false,
-        error: `Bid must be at least ${minBid}`
-      };
-    }
-
-    // Check team budget and get round info
-    const round = await prisma.rounds.findFirst({
-      where: {
-        bulkRoundSelections: {
-          some: { roundId: tiebreaker.roundId }
-        }
-      },
-      select: { 
-        seasonId: true,
-        roundNumber: true
-      }
-    });
-
-    if (!round) {
-      return { success: false, error: 'Round not found' };
-    }
-
-    const seasonTeam = await prisma.season_teams.findUnique({
-      where: {
-        seasonId_teamId: {
-          seasonId: round.seasonId,
-          teamId
-        }
-      },
-      select: { currentBudget: true }
-    });
-
-    if (!seasonTeam || bidAmount > seasonTeam.currentBudget) {
-      return { success: false, error: 'Insufficient budget' };
-    }
-
-    // ENHANCED: Check reserve requirements using Prisma
-    
-    // Get team balance from season_teams
-    const seasonTeamObj = await prisma.season_teams.findUnique({
-      where: {
-        seasonId_teamId: { seasonId: round.seasonId, teamId }
-      },
-      select: { currentBudget: true }
-    });
-    
-    if (!seasonTeamObj) {
-      return { success: false, error: 'Team not found in season_teams' };
-    }
-    
-    const teamBalance = seasonTeamObj.currentBudget;
-    
-    // Get current squad size by counting ACTIVE transfer history records for this team & season
-    const currentSquadSize = await prisma.transfer_history.count({
-      where: { 
-        teamId, 
-        seasonId: round.seasonId,
-        status: 'ACTIVE'
-      }
-    });
-    
-    // Get auction settings
-    const settingsResult = await prisma.$queryRaw<any[]>`
-      SELECT 
-        phase_1_end_round,
-        phase_1_min_balance,
-        phase_2_end_round,
-        phase_2_min_balance,
-        phase_3_min_balance,
-        min_squad_size,
-        max_squad_size
-      FROM auction_settings
-      WHERE "seasonId" = ${round.seasonId}
-    `;
-    
-    // Calculate reserve if settings exist
-    if (settingsResult && settingsResult.length > 0) {
-      const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
-      
-      const settings = settingsResult[0];
-      const config = {
-        phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
-        phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
-        phase_2_end_round: parseInt(settings.phase_2_end_round) || 20,
-        phase_2_min_balance: parseInt(settings.phase_2_min_balance) || 30,
-        phase_3_min_balance: parseInt(settings.phase_3_min_balance) || 10,
-        min_squad_size: parseInt(settings.min_squad_size) || 25,
-        max_squad_size: parseInt(settings.max_squad_size) || 30
-      };
-      
-      const reserveInfo = calculateReserveCore(
-        round.roundNumber,
-        teamBalance,
-        currentSquadSize,
-        config
-      );
-      
-      // Validate bid against reserve
-      const validation = validateBidAgainstReserve(bidAmount, reserveInfo);
-      
-      if (!validation.valid) {
-        return { 
-          success: false, 
-          error: validation.error 
-        };
-      }
-      
-      // If there's a warning, we'll return it with success
-      if (validation.warning) {
-        // Continue with bid placement but include warning
-        console.log(`⚠️ Tiebreaker bid warning for team ${teamId}: ${validation.warning}`);
-      }
-    }
- 
-    // Place bid
-    await prisma.$transaction(async (tx) => {
-      // Update tiebreaker with concurrency control
-      const updateResult = await tx.bulk_tiebreakers.updateMany({
-        where: { 
-          id: tiebreakerId,
-          OR: [
-            { currentHighestBid: { lt: bidAmount } },
-            { currentHighestBid: null }
-          ]
-        },
-        data: {
-          currentHighestBid: bidAmount,
-          currentHighestTeamId: teamId
-        }
-      });
-      
-      if (updateResult.count === 0) {
-        throw new Error('A higher or equal bid was already placed. Please bid again with a higher amount.');
-      }
- 
-      // Update participant
-      await tx.bulk_tiebreaker_participants.updateMany({
-        where: {
-          tiebreakerId,
-          teamId
-        },
-        data: {
-          currentBid: bidAmount,
-          lastBidTime: new Date()
-        }
-      });
- 
-      // Insert bid history
-      await tx.bulk_tiebreaker_bid_history.create({
-        data: {
-          tiebreakerId,
-          teamId,
-          bidAmount
-        }
-      });
-    });
- 
-    // Return success with optional warning
-    const result: { success: boolean; warning?: string } = { success: true };
-    
-    // Check if there was a warning from reserve validation
-    if (settingsResult && settingsResult.length > 0) {
-      const { calculateReserveCore, validateBidAgainstReserve } = await import('./reserve-calculator-v2');
-      
-      const settings = settingsResult[0];
-      const config = {
-        phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
-        phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
-        phase_2_end_round: parseInt(settings.phase_2_end_round) || 20,
-        phase_2_min_balance: parseInt(settings.phase_2_min_balance) || 30,
-        phase_3_min_balance: parseInt(settings.phase_3_min_balance) || 10,
-        min_squad_size: parseInt(settings.min_squad_size) || 25,
-        max_squad_size: parseInt(settings.max_squad_size) || 30
-      };
-      
-      const reserveInfo = calculateReserveCore(
-        round.roundNumber,
-        teamBalance,
-        currentSquadSize,
-        config
-      );
-      
-      const validation = validateBidAgainstReserve(bidAmount, reserveInfo);
-      if (validation.warning) {
-        result.warning = validation.warning;
-      }
-    }
-    
-    try {
-      const { emitTiebreakerChange } = await import('./tiebreaker-events');
-      await emitTiebreakerChange(tiebreakerId);
-    } catch (e) {
-      console.error('Error emitting tiebreaker change event on bid:', e);
-    }
-    
-    // Check if should auto-finalize after bid (e.g., if this team is now the only one left)
-    console.log(`🔍 Checking auto-finalization after bid for tiebreaker ${tiebreakerId}...`);
-    const shouldFinalize = await shouldAutoFinalizeBulkTiebreaker(tiebreakerId);
-    console.log(`📊 Should finalize: ${shouldFinalize}`);
-    
-    if (shouldFinalize) {
-      console.log(`🎯 Auto-finalizing tiebreaker ${tiebreakerId} after bid...`);
-      const finalizeResult = await finalizeBulkTiebreaker(tiebreakerId);
-      console.log(`📊 Finalization result:`, finalizeResult);
-      
-      if (finalizeResult.success && finalizeResult.winnerId && finalizeResult.winningBid) {
-        console.log(`💰 Applying result: Winner=${finalizeResult.winnerId}, Bid=£${finalizeResult.winningBid}`);
-        await applyBulkTiebreakerResult(tiebreakerId, finalizeResult.winnerId, finalizeResult.winningBid);
-        console.log(`✅ Tiebreaker ${tiebreakerId} finalized successfully after bid!`);
-        
-        // Emit change again after finalization
-        try {
-          const { emitTiebreakerChange } = await import('./tiebreaker-events');
-          await emitTiebreakerChange(tiebreakerId);
-        } catch (e) {
-          console.error('Error emitting tiebreaker change event after finalization:', e);
-        }
-      }
-    }
-    
-    return result;
-  } catch (error) {
-    console.error('Bid placement error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

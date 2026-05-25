@@ -117,7 +117,7 @@ export async function POST(
       })
 
       // Create transfer record
-      const transferId = await generateTransferId(tx)
+      const transferId = await generateTransferId()
       const transfer = await tx.transfer_history.create({
         data: {
           id: transferId,
@@ -159,7 +159,7 @@ export async function POST(
       })
 
       // Create financial ledger entry
-      const financialId = await generateFinancialId(tx)
+      const financialId = await generateFinancialId()
       await tx.financial_ledger.create({
         data: {
           id: financialId,

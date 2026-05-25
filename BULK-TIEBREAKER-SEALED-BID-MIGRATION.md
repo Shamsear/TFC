@@ -172,9 +172,29 @@ Updated `bulk_tiebreaker_participants` model with new fields.
 8. Team bidding UI completely rewritten
 9. Admin manual resolve component updated
 10. Admin monitor component updated
+11. Finalization utilities updated for sealed bid model
 
 ### 🎯 READY FOR TESTING
 All code changes are complete. The sealed bid model is now fully implemented and ready for testing.
+
+## Files Updated
+
+### Backend
+- `app/api/team/bulk-tiebreakers/[id]/bid/route.ts` - Sealed bid submission
+- `app/api/team/bulk-tiebreakers/[id]/route.ts` - Hide sealed bids from other teams
+- `app/api/team/bulk-tiebreakers/[id]/status/route.ts` - Status polling (NEW)
+- `app/api/team/bulk-tiebreakers/[id]/withdraw/route.ts` - Prevent withdrawal after submission
+- `lib/auction/resolve-bulk-tiebreaker.ts` - Auto-resolution when all submit (NEW)
+- `lib/auction/finalize-bulk-tiebreaker.ts` - Updated for sealed bid model
+
+### Frontend
+- `components/team-auction/BulkTiebreakerBiddingClient.tsx` - Complete rewrite for sealed bids
+- `components/auction/BulkTiebreakerManualResolve.tsx` - Show sealed bids to admin
+- `components/auction/BulkTiebreakerMonitorClient.tsx` - Submission progress display
+
+### Database
+- `scripts/migrations/007-bulk-tiebreaker-sealed-bid.sql` - Schema migration
+- `prisma/schema.prisma` - Updated model
 
 ## Migration Steps
 

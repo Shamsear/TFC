@@ -22,7 +22,7 @@ export default async function BulkTiebreakerMonitorPage({ params }: BulkTiebreak
     notFound()
   }
 
-  // Fetch bulk tiebreaker details
+  // Fetch bulk tiebreaker details (sealed bid model)
   const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
     where: { id: tiebreakerId },
     include: {
@@ -54,22 +54,8 @@ export default async function BulkTiebreakerMonitorPage({ params }: BulkTiebreak
           }
         },
         orderBy: {
-          currentBid: 'desc'
+          newBidAmount: 'desc'
         }
-      },
-      bidHistory: {
-        include: {
-          team: {
-            select: {
-              name: true,
-              logoUrl: true
-            }
-          }
-        },
-        orderBy: {
-          bidTime: 'desc'
-        },
-        take: 50
       }
     }
   })
@@ -130,7 +116,9 @@ export default async function BulkTiebreakerMonitorPage({ params }: BulkTiebreak
 
   const tiebreakerWithData = {
     ...tiebreaker,
-    participants: participantsWithData
+    participants: participantsWithData,
+    // Note: bidHistory removed for sealed bid model
+    bidHistory: []
   }
 
   return (

@@ -89,7 +89,7 @@ export default async function SquadPage() {
   }, {} as Record<string, any[]>)
 
   // Position order for display
-  const positionOrder = ["GK", "CB", "LB", "RB", "DMF", "CMF", "LMF", "RMF", "AMF", "LWF", "RWF", "CF", "SS"]
+  const positionOrder = ["GK", "CB", "LB", "RB", "DMF", "CMF", "AMF", "LMF", "RMF", "LWF", "RWF", "SS", "CF"]
   const sortedPositions = Object.keys(playersByPosition).sort((a, b) => {
     const indexA = positionOrder.indexOf(a)
     const indexB = positionOrder.indexOf(b)

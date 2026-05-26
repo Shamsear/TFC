@@ -180,7 +180,7 @@ export default async function SwapRequestsAdminPage({
         <SwapRequestsAdminClient
           seasonId={seasonId}
           seasonName={season.name}
-          swapWindowOpen={season.swapWindowOpen}
+          swapWindowOpen={!!season.swapWindowOpen}
           requests={transformedRequests}
           teamStats={teamStats}
           swapWindows={serializedSwapWindows}

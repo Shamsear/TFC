@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
       targetTeamId: swapRequest.targetTeamId,
       targetTeamName: swapRequest.targetTeam.name,
       isMyRequest: true,
-      submittedAt: swapRequest.submittedAt.toISOString(),
+      submittedAt: swapRequest.submittedAt ? swapRequest.submittedAt.toISOString() : '',
       players: swapRequest.players.map(p => ({
         id: p.id,
         playerId: p.playerId,

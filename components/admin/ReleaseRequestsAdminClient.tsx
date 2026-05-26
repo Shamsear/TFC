@@ -13,7 +13,7 @@ interface Request {
   playerPhotoId: string
   refundAmount: number
   notes: string | null
-  status: string
+  status: string | null,
   teamId: string
   teamName: string
   teamLogo: string

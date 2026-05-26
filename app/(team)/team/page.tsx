@@ -724,7 +724,7 @@ export default async function TeamDashboardPage() {
         {/* Quick Actions */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-10 gap-3 sm:gap-4">
             <Link
               href="/team/auction"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
@@ -768,6 +768,17 @@ export default async function TeamDashboardPage() {
                 </svg>
               </div>
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-cyan-400 transition-colors">Swap</div>
+            </Link>
+            <Link
+              href="/team/transfers"
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-emerald-500/50 hover:bg-white/[0.07] transition-all text-center group"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-2 sm:mb-3 group-hover:bg-emerald-500/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-emerald-400 transition-colors">Transfers</div>
             </Link>
             <Link
               href="/team/starred"

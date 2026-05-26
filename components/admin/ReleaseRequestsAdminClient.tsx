@@ -356,7 +356,7 @@ _All releases processed by admin_`
           
           <div className="flex items-center gap-3">
             <Link
-              href={`/sub-admin/${seasonId}/release-windows`}
+              href={`/sub-admin/${seasonId}/transfer-windows`}
               className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg font-bold transition-all text-sm flex items-center gap-2"
             >
               <svg className="w-4 h-4 text-[#E8A800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,7 +403,7 @@ _All releases processed by admin_`
                   {isTogglingWindow ? 'Processing...' : selectedWindow.status === 'ACTIVE' ? 'Close Window' : 'Open Window'}
                 </button>
                 <Link
-                  href={`/sub-admin/${seasonId}/release-windows`}
+                  href={`/sub-admin/${seasonId}/transfer-windows`}
                   className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-semibold transition-all border border-white/10"
                 >
                   Edit Window

@@ -45,6 +45,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
   const activeSeasonNavigation = [
     { name: "Dashboard", href: "/team" },
     { name: "Squad", href: "/team/squad" },
+    { name: "Transfers", href: "/team/transfers" },
     { name: "Auction", href: "/team/auction" },
     { name: "Players", href: "/team/players" },
     { name: "Starred", href: "/team/starred" },
@@ -59,6 +60,28 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
     { name: "Status", href: "/team/not-in-season" },
     { name: "Profile", href: "/team/profile" },
   ]
+
+  // Setup desktop vs mobile navigation
+  const primaryNavigation = isInActiveSeason 
+    ? [
+        { name: "Dashboard", href: "/team" },
+        { name: "Squad", href: "/team/squad" },
+        { name: "Transfers", href: "/team/transfers" },
+        { name: "Auction", href: "/team/auction" },
+        { name: "Players", href: "/team/players" },
+        { name: "Matches", href: "/team/matches" },
+      ]
+    : inactiveSeasonNavigation
+
+  const moreNavigation = isInActiveSeason
+    ? [
+        { name: "Starred", href: "/team/starred" },
+        { name: "Teams", href: "/team/teams" },
+        { name: "Tournaments", href: "/team/tournaments" },
+        { name: "Calendar", href: "/team/calendar" },
+        { name: "Finances", href: "/team/finances" },
+      ]
+    : []
 
   const navigation = isInActiveSeason ? activeSeasonNavigation : inactiveSeasonNavigation
 
@@ -95,8 +118,8 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navigation.map((item) => (
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+            {primaryNavigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -109,6 +132,38 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
                 {item.name}
               </Link>
             ))}
+
+            {moreNavigation.length > 0 && (
+              <div className="relative group py-2">
+                <button
+                  className={`text-sm font-bold transition-colors flex items-center gap-1 ${
+                    moreNavigation.some((item) => isActive(item.href))
+                      ? "text-[#F5F0E8]"
+                      : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
+                >
+                  More
+                  <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className="absolute left-0 mt-2 w-48 bg-[#161616]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-2 hidden group-hover:block transition-all z-50">
+                  {moreNavigation.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`block px-4 py-2 text-sm font-bold transition-colors ${
+                        isActive(item.href)
+                          ? "text-[#E8A800] bg-white/5"
+                          : "text-[#7A7367] hover:text-[#F5F0E8] hover:bg-white/5"
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </nav>
 
           {/* Team Info with Dropdown - Right Side */}

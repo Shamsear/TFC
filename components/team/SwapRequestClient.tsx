@@ -258,34 +258,43 @@ export default function SwapRequestClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-16 sm:pt-20">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-4 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-6">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black mb-2 sm:mb-0">
             <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
               Swap Request
             </span>
           </h1>
-          <div className="mt-4 bg-[#111111]/80 border border-[#E8A800]/30 rounded-xl p-4 text-sm sm:text-base text-gray-300">
-            <p className="font-bold text-[#E8A800] mb-2">How to Request a Swap:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Select the target team from the <strong>Target Team Players</strong> column below.</li>
-              <li>Select <strong>one</strong> player from your squad that you want to offer.</li>
-              <li>Select <strong>one</strong> player from the target team that you want in return.</li>
-              <li>Review the swap summary and submit your request.</li>
-            </ol>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-4">
-            <div className={`px-4 py-2 rounded-lg border ${limits.remainingRequests === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
-              <span className="text-sm text-gray-400 block mb-1">Swap Requests Left</span>
-              <span className="font-bold">{limits.remainingRequests} / 5</span>
+          
+          <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-4">
+            <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border ${limits.remainingRequests === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
+              <span className="text-xs sm:text-sm text-gray-400 block sm:mb-1">Requests Left</span>
+              <span className="font-bold text-sm sm:text-base">{limits.remainingRequests} / 5</span>
             </div>
-            <div className={`px-4 py-2 rounded-lg border ${limits.remainingSwaps === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
-              <span className="text-sm text-gray-400 block mb-1">Completed Swaps Left</span>
-              <span className="font-bold">{limits.remainingSwaps} / 5</span>
+            <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border ${limits.remainingSwaps === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
+              <span className="text-xs sm:text-sm text-gray-400 block sm:mb-1">Swaps Left</span>
+              <span className="font-bold text-sm sm:text-base">{limits.remainingSwaps} / 5</span>
             </div>
           </div>
+
+          <details className="mt-3 sm:mt-4 group bg-[#111111]/80 border border-[#E8A800]/30 rounded-xl">
+            <summary className="p-3 sm:p-4 text-sm sm:text-base font-bold text-[#E8A800] cursor-pointer list-none flex items-center justify-between">
+              How to Request a Swap
+              <svg className="w-5 h-5 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-3 pb-3 sm:px-4 sm:pb-4 text-sm sm:text-base text-gray-300 border-t border-[#E8A800]/10 mt-1 pt-3">
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Select the target team from the <strong>Target Team Players</strong> column below.</li>
+                <li>Select <strong>one</strong> player from your squad that you want to offer.</li>
+                <li>Select <strong>one</strong> player from the target team that you want in return.</li>
+                <li>Review the swap summary and submit your request.</li>
+              </ol>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -474,7 +483,7 @@ export default function SwapRequestClient({
                 className="w-full px-4 py-3 bg-[#111111] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]"
               />
             </div>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+            <div className="space-y-3 max-h-[350px] lg:max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               {filteredMyPlayers.map(player => {
                 const isSelected = selectedMyPlayers.has(player.id)
                 return (
@@ -555,7 +564,7 @@ export default function SwapRequestClient({
                 <p className="text-gray-400">Choose a team from the dropdown above to view their squad.</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-3 max-h-[350px] lg:max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               {filteredOtherPlayers.map(player => {
                 const isSelected = selectedOtherPlayers.has(player.id)
                 return (

@@ -927,3 +927,9 @@ enum RequestStatus {
   approved
   rejected
 }
+
+model id_counters {
+  prefix     String   @id @db.VarChar(10)
+  counter    Int      @default(0)
+  updated_at DateTime @default(now())
+}

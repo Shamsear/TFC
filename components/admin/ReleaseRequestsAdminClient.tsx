@@ -19,7 +19,7 @@ interface Request {
   teamLogo: string
   currentBudget: number
   newBudget: number
-  submittedAt: string
+  submittedAt: string | null,
   processedAt: string | null
   processedBy: string | null
   rejectionReason: string | null
@@ -631,7 +631,7 @@ _All releases processed by admin_`
                             <div>
                               <h4 className="text-lg font-black text-white mb-1">{request.playerName}</h4>
                               <div className="text-xs text-gray-400">
-                                Submitted: {formatDate(request.submittedAt)}
+                                Submitted: {request.submittedAt ? formatDate(request.submittedAt) : 'N/A'}
                               </div>
                             </div>
                           </div>
@@ -718,7 +718,7 @@ _All releases processed by admin_`
                       {request.status.toUpperCase()}
                     </span>
                     {request.processedAt && (
-                      <div className="text-xs text-gray-500 mt-1">{formatDate(request.processedAt)}</div>
+                      <div className="text-xs text-gray-500 mt-1">{request.processedAt ? formatDate(request.processedAt) : 'N/A'}</div>
                     )}
                   </div>
                 </div>

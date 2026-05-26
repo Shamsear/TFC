@@ -153,7 +153,7 @@ export default async function ReleaseRequestPage() {
     refundAmount: req.refundAmount,
     notes: req.notes,
     status: req.status,
-    submittedAt: req.submittedAt.toISOString(),
+    submittedAt: req.submittedAt ? req.submittedAt.toISOString() : '',
   }))
 
   // Also get all requests for display
@@ -164,7 +164,7 @@ export default async function ReleaseRequestPage() {
     refundAmount: req.refundAmount,
     notes: req.notes,
     status: req.status,
-    submittedAt: req.submittedAt.toISOString(),
+    submittedAt: req.submittedAt ? req.submittedAt.toISOString() : '',
     processedAt: req.processedAt?.toISOString() || null,
     rejectionReason: req.rejectionReason,
   }))

@@ -43,64 +43,58 @@ export async function POST(
 
     // Perform the swap in a transaction
     await prisma.$transaction(async (tx) => {
-      // For each player in the swap
+      // Pass 1: Collect original transfers and mark as SWAPPED_OUT
+      const originalTransfers = new Map<string, any>()
+      
       for (const swapPlayer of swapRequest.players) {
-        // 1. Mark old transfer as SWAPPED_OUT
-        await tx.transfer_history.updateMany({
+        // Find the active transfer
+        const activeTransfer = await tx.transfer_history.findFirst({
           where: {
             seasonId: swapRequest.seasonId,
             teamId: swapPlayer.fromTeamId,
             basePlayerId: swapPlayer.playerId,
             status: 'ACTIVE',
           },
+          orderBy: { createdAt: 'desc' },
+        })
+        
+        if (!activeTransfer) {
+          throw new Error(`Active transfer not found for player ${swapPlayer.playerName}`)
+        }
+        
+        originalTransfers.set(swapPlayer.playerId, activeTransfer)
+        
+        // Mark as SWAPPED_OUT
+        await tx.transfer_history.update({
+          where: { id: activeTransfer.id },
           data: {
             status: 'SWAPPED_OUT',
             releasedAt: new Date(),
             releaseNotes: `Swapped via admin approval - Request ID: ${id}`,
           },
         })
-
-        // 2. Get the player's current value (from the transfer we just marked)
-        const oldTransfer = await tx.transfer_history.findFirst({
-          where: {
-            seasonId: swapRequest.seasonId,
-            teamId: swapPlayer.fromTeamId,
-            basePlayerId: swapPlayer.playerId,
-            status: 'SWAPPED_OUT',
-          },
-          orderBy: { createdAt: 'desc' },
-        })
-
-        if (!oldTransfer) {
-          throw new Error(`Transfer not found for player ${swapPlayer.playerName}`)
-        }
-
-        // 3. Find the counterpart player (who's coming to this team)
+      }
+      
+      // Pass 2: Create new transfers swapping the values
+      for (const swapPlayer of swapRequest.players) {
+        const oldTransfer = originalTransfers.get(swapPlayer.playerId)
+        
+        // Find counterpart
         const counterpart = swapRequest.players.find(
           p => p.fromTeamId === swapPlayer.toTeamId && p.toTeamId === swapPlayer.fromTeamId
         )
-
+        
         if (!counterpart) {
           throw new Error(`Counterpart not found for player ${swapPlayer.playerName}`)
         }
-
-        // Get counterpart's value
-        const counterpartTransfer = await tx.transfer_history.findFirst({
-          where: {
-            seasonId: swapRequest.seasonId,
-            teamId: counterpart.fromTeamId,
-            basePlayerId: counterpart.playerId,
-            status: 'SWAPPED_OUT',
-          },
-          orderBy: { createdAt: 'desc' },
-        })
-
+        
+        const counterpartTransfer = originalTransfers.get(counterpart.playerId)
+        
         if (!counterpartTransfer) {
-          throw new Error(`Counterpart transfer not found for ${counterpart.playerName}`)
+          throw new Error(`Counterpart transfer data not found for ${counterpart.playerName}`)
         }
-
-        // 4. Create new transfer with counterpart's value
-        // Player gets the value of who they're being swapped for
+        
+        // Create new transfer with counterpart's value
         await tx.transfer_history.create({
           data: {
             id: `swap-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

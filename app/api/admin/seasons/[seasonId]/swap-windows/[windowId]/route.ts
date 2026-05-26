@@ -4,8 +4,8 @@ import { NextResponse } from "next/server"
 import { checkAdminRole } from "@/lib/auth-utils"
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { seasonId: string, windowId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ seasonId: string; windowId: string }> }
 ) {
   try {
     const session = await auth()
@@ -18,7 +18,7 @@ export async function PATCH(
       return new NextResponse("Forbidden", { status: 403 })
     }
 
-    const { seasonId, windowId } = await params
+    const { seasonId, windowId } = await context.params
     const body = await request.json()
     const { name, startDate, endDate, status, swapLimit } = body
 
@@ -64,8 +64,8 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { seasonId: string, windowId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ seasonId: string; windowId: string }> }
 ) {
   try {
     const session = await auth()
@@ -78,7 +78,7 @@ export async function DELETE(
       return new NextResponse("Forbidden", { status: 403 })
     }
 
-    const { seasonId, windowId } = await params
+    const { seasonId, windowId } = await context.params
 
     const window = await prisma.swap_windows.findUnique({
       where: { id: windowId, seasonId },

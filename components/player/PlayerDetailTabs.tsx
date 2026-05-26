@@ -8,6 +8,7 @@ interface Transfer {
   teamName: string
   teamLogo: string
   soldPrice: number
+  status: string
   createdAt: Date
 }
 
@@ -140,9 +141,19 @@ export default function PlayerDetailTabs({
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-black text-white truncate">{transfer.teamName}</h3>
-                          <span className="inline-block px-2 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-bold">
-                            {transfer.seasonName}
-                          </span>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            <span className="inline-block px-2 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-400 text-[10px] font-bold">
+                              {transfer.seasonName}
+                            </span>
+                            <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${
+                              transfer.status === 'ACTIVE' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
+                              transfer.status === 'RELEASED' ? 'bg-red-500/20 border-red-500/30 text-red-400' :
+                              transfer.status === 'SWAPPED_OUT' ? 'bg-purple-500/20 border-purple-500/30 text-purple-400' :
+                              'bg-gray-500/20 border-gray-500/30 text-gray-400'
+                            }`}>
+                              {transfer.status.replace(/_/g, ' ')}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-xs">
@@ -184,6 +195,14 @@ export default function PlayerDetailTabs({
                         <h3 className="text-lg font-black text-white truncate">{transfer.teamName}</h3>
                         <span className="px-2 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-bold flex-shrink-0">
                           {transfer.seasonName}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded border text-xs font-bold flex-shrink-0 uppercase ${
+                          transfer.status === 'ACTIVE' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
+                          transfer.status === 'RELEASED' ? 'bg-red-500/20 border-red-500/30 text-red-400' :
+                          transfer.status === 'SWAPPED_OUT' ? 'bg-purple-500/20 border-purple-500/30 text-purple-400' :
+                          'bg-gray-500/20 border-gray-500/30 text-gray-400'
+                        }`}>
+                          {transfer.status.replace(/_/g, ' ')}
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-sm">

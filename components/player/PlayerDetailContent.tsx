@@ -140,6 +140,7 @@ interface PlayerDetailContentProps {
     teamName: string
     teamLogo: string
     soldPrice: number
+    status: string
     createdAt: Date
   }>
   season: {

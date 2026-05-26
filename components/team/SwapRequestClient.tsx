@@ -45,6 +45,7 @@ interface ExistingRequest {
   targetTeamId: string
   targetTeamName: string
   isMyRequest: boolean
+  status: string
   submittedAt: string
   players: SwapPlayer[]
 }
@@ -339,12 +340,15 @@ export default function SwapRequestClient({
           </div>
         )}
 
-        {/* Existing Requests */}
+        {/* Swap History / Requests */}
         {existingRequests.length > 0 && (
-          <div className="mb-8 rounded-xl bg-blue-500/10 border border-blue-500/30 p-6">
-            <h2 className="text-xl font-black text-white mb-4">Pending Swap Requests</h2>
-            <div className="space-y-3">
-              {existingRequests.map(req => (
+          <div className="mb-8 space-y-6">
+            {/* Pending Requests */}
+            {existingRequests.filter(req => req.status === 'pending').length > 0 && (
+              <div className="rounded-xl bg-blue-500/10 border border-blue-500/30 p-6">
+                <h2 className="text-xl font-black text-white mb-4">Pending Swap Requests</h2>
+                <div className="space-y-3">
+                  {existingRequests.filter(req => req.status === 'pending').map(req => (
                 <div key={req.id} className="bg-[#111111] rounded-lg p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -424,6 +428,77 @@ export default function SwapRequestClient({
                 </div>
               ))}
             </div>
+          </div>
+            )}
+
+            {/* Done Deals */}
+            {existingRequests.filter(req => req.status === 'approved').length > 0 && (
+              <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-6">
+                <h2 className="text-xl font-black text-white mb-4">Completed Swaps (Done Deals)</h2>
+                <div className="space-y-3">
+                  {existingRequests.filter(req => req.status === 'approved').map(req => (
+                    <div key={req.id} className="bg-[#111111] border border-emerald-500/20 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="font-bold text-white mb-1">
+                            {req.requestingTeamName} ⇄ {req.targetTeamName}
+                          </div>
+                          <div className="text-sm text-emerald-400 font-bold">
+                            Completed!
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="text-gray-400 mb-2">{req.requestingTeamName} gave:</div>
+                          <div className="space-y-3">
+                            {req.players.filter(p => p.fromTeamId === req.requestingTeamId).map(p => (
+                              <div key={p.id} className="flex items-center gap-3">
+                                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
+                                  <Image
+                                    src={getPlayerPhotoUrl(`${p.playerPhotoId}.webp`)}
+                                    alt={p.playerName}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-white font-bold">{p.playerName}</div>
+                                  <div className="text-xs text-gray-400">{formatCurrency(p.playerValue)}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-gray-400 mb-2">{req.targetTeamName} gave:</div>
+                          <div className="space-y-3">
+                            {req.players.filter(p => p.fromTeamId === req.targetTeamId).map(p => (
+                              <div key={p.id} className="flex items-center gap-3">
+                                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
+                                  <Image
+                                    src={getPlayerPhotoUrl(`${p.playerPhotoId}.webp`)}
+                                    alt={p.playerName}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-white font-bold">{p.playerName}</div>
+                                  <div className="text-xs text-gray-400">{formatCurrency(p.playerValue)}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

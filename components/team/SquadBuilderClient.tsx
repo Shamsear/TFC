@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { getPhotoUrlFromDb } from "@/lib/image-cdn"
 import PlayerCardImage from "@/components/player/PlayerCardImage"
@@ -137,6 +137,84 @@ const FORMATIONS = {
     { position: "CF", x: 40, y: 12 },
     { position: "CF", x: 60, y: 12 },
   ],
+  "4-1-4-1": [
+    { position: "GK", x: 50, y: 90 },
+    { position: "LB", x: 15, y: 70 },
+    { position: "CB", x: 35, y: 75 },
+    { position: "CB", x: 65, y: 75 },
+    { position: "RB", x: 85, y: 70 },
+    { position: "DMF", x: 50, y: 60 },
+    { position: "LMF", x: 15, y: 40 },
+    { position: "CMF", x: 35, y: 40 },
+    { position: "CMF", x: 65, y: 40 },
+    { position: "RMF", x: 85, y: 40 },
+    { position: "CF", x: 50, y: 15 },
+  ],
+  "3-2-4-1": [
+    { position: "GK", x: 50, y: 90 },
+    { position: "CB", x: 25, y: 75 },
+    { position: "CB", x: 50, y: 78 },
+    { position: "CB", x: 75, y: 75 },
+    { position: "DMF", x: 35, y: 58 },
+    { position: "DMF", x: 65, y: 58 },
+    { position: "LMF", x: 15, y: 35 },
+    { position: "AMF", x: 35, y: 35 },
+    { position: "AMF", x: 65, y: 35 },
+    { position: "RMF", x: 85, y: 35 },
+    { position: "CF", x: 50, y: 12 },
+  ],
+  "4-2-2-2": [
+    { position: "GK", x: 50, y: 90 },
+    { position: "LB", x: 15, y: 70 },
+    { position: "CB", x: 35, y: 75 },
+    { position: "CB", x: 65, y: 75 },
+    { position: "RB", x: 85, y: 70 },
+    { position: "DMF", x: 35, y: 55 },
+    { position: "DMF", x: 65, y: 55 },
+    { position: "AMF", x: 25, y: 35 },
+    { position: "AMF", x: 75, y: 35 },
+    { position: "CF", x: 35, y: 15 },
+    { position: "CF", x: 65, y: 15 },
+  ],
+  "4-2-4": [
+    { position: "GK", x: 50, y: 90 },
+    { position: "LB", x: 15, y: 70 },
+    { position: "CB", x: 35, y: 75 },
+    { position: "CB", x: 65, y: 75 },
+    { position: "RB", x: 85, y: 70 },
+    { position: "CMF", x: 35, y: 45 },
+    { position: "CMF", x: 65, y: 45 },
+    { position: "LWF", x: 15, y: 20 },
+    { position: "CF", x: 35, y: 15 },
+    { position: "CF", x: 65, y: 15 },
+    { position: "RWF", x: 85, y: 20 },
+  ],
+  "5-2-3": [
+    { position: "GK", x: 50, y: 90 },
+    { position: "LWB", x: 15, y: 70 },
+    { position: "CB", x: 32, y: 75 },
+    { position: "CB", x: 50, y: 78 },
+    { position: "CB", x: 68, y: 75 },
+    { position: "RWB", x: 85, y: 70 },
+    { position: "CMF", x: 35, y: 45 },
+    { position: "CMF", x: 65, y: 45 },
+    { position: "LWF", x: 20, y: 20 },
+    { position: "CF", x: 50, y: 15 },
+    { position: "RWF", x: 80, y: 20 },
+  ],
+  "Custom": [
+    { position: "GK", x: 50, y: 90 },
+    { position: "LB", x: 20, y: 70 },
+    { position: "CB", x: 40, y: 75 },
+    { position: "CB", x: 60, y: 75 },
+    { position: "RB", x: 80, y: 70 },
+    { position: "CMF", x: 35, y: 50 },
+    { position: "CMF", x: 50, y: 45 },
+    { position: "CMF", x: 65, y: 50 },
+    { position: "LWF", x: 20, y: 20 },
+    { position: "CF", x: 50, y: 15 },
+    { position: "RWF", x: 80, y: 20 },
+  ],
 }
 
 export default function SquadBuilderClient({
@@ -164,14 +242,23 @@ export default function SquadBuilderClient({
   const [pendingPlayer, setPendingPlayer] = useState<Player | null>(null)
   // Modal: toggle to show all players vs position-compatible only
   const [showAllPlayers, setShowAllPlayers] = useState(false)
+  const [isSubstituteHighlighted, setIsSubstituteHighlighted] = useState(false)
 
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+
+  const pitchRef = useRef<HTMLDivElement>(null)
+  const [draggingNode, setDraggingNode] = useState<number | null>(null)
+  const [dragStartPos, setDragStartPos] = useState<{x: number, y: number} | null>(null)
+  const [hasDragged, setHasDragged] = useState(false)
+  const [editingPositionIdx, setEditingPositionIdx] = useState<number | null>(null)
 
   useEffect(() => {
     // If it's the initial load and we have a saved squad for THIS formation, use it
     if (savedSquad && savedSquad.type === selectedFormation && fieldPositions.length === 0) {
       setFieldPositions(savedSquad.positions)
       setSubstitutes(savedSquad.substitutes || [])
+    } else if (savedSquad && selectedFormation === "Custom" && savedSquad.type === "Custom") {
+      setFieldPositions(savedSquad.positions)
     } else {
       // Initialize field positions based on formation
       const positions = FORMATIONS[selectedFormation].map((pos) => ({
@@ -192,6 +279,7 @@ export default function SquadBuilderClient({
     setShowAllPlayers(false)
     // clear sidebar selection when modal opens
     setPendingPlayer(null)
+    setIsSubstituteHighlighted(false)
   }
 
   // Sidebar-first flow: select player → compatible positions glow
@@ -200,6 +288,7 @@ export default function SquadBuilderClient({
       // deselect
       setPendingPlayer(null)
       setHighlightedPositions([])
+      setIsSubstituteHighlighted(false)
       return
     }
 
@@ -214,6 +303,7 @@ export default function SquadBuilderClient({
     }
 
     setPendingPlayer(player)
+    setIsSubstituteHighlighted(true) // Bench is always compatible for pending players
     
     // Highlight compatible positions
     const compatible = fieldPositions
@@ -397,8 +487,15 @@ export default function SquadBuilderClient({
                 </div>
               </div>
 
+              {/* Custom Mode Banner */}
+              {selectedFormation === "Custom" && (
+                <div className="mb-4 bg-[#E8A800]/10 border border-[#E8A800]/30 rounded-lg p-3 text-sm text-[#E8A800] flex items-center justify-between">
+                  <span><strong>Custom Mode:</strong> Drag players on the pitch to freely position them. Click ✏️ to change roles.</span>
+                </div>
+              )}
+
               {/* Football Field */}
-              <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden" style={{ boxShadow: '0 0 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.3)' }}>
+              <div ref={pitchRef} className="relative w-full aspect-[2/3] rounded-xl overflow-hidden" style={{ boxShadow: '0 0 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.3)' }}>
                 {/* Grass base */}
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #1a5c2a 0%, #1e6b30 50%, #1a5c2a 100%)' }} />
                 {/* Grass stripes */}
@@ -441,12 +538,51 @@ export default function SquadBuilderClient({
                       key={idx}
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
+                      onPointerDown={(e) => {
+                        if (selectedFormation !== 'Custom') return
+                        e.stopPropagation()
+                        e.currentTarget.setPointerCapture(e.pointerId)
+                        setDraggingNode(idx)
+                        setDragStartPos({ x: e.clientX, y: e.clientY })
+                        setHasDragged(false)
+                      }}
+                      onPointerMove={(e) => {
+                        if (draggingNode !== idx || !pitchRef.current) return
+                        if (dragStartPos) {
+                          const dx = e.clientX - dragStartPos.x
+                          const dy = e.clientY - dragStartPos.y
+                          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                            setHasDragged(true)
+                          }
+                        }
+                        const rect = pitchRef.current.getBoundingClientRect()
+                        let x = ((e.clientX - rect.left) / rect.width) * 100
+                        let y = ((e.clientY - rect.top) / rect.height) * 100
+                        x = Math.max(0, Math.min(100, x))
+                        y = Math.max(0, Math.min(100, y))
+                        setFieldPositions(prev => {
+                          const newArr = [...prev]
+                          newArr[idx] = { ...newArr[idx], x, y }
+                          return newArr
+                        })
+                      }}
+                      onPointerUp={(e) => {
+                        if (draggingNode === idx) {
+                          e.currentTarget.releasePointerCapture(e.pointerId)
+                          setDraggingNode(null)
+                        }
+                      }}
+                      onClick={(e) => {
+                        if (hasDragged) {
+                          setHasDragged(false)
+                          return
+                        }
                         if (pendingPlayer && isHighlighted) {
                           // Sidebar-first flow: assign pending player to this glowing position
                           assignPlayer(idx, pendingPlayer.id)
                           setPendingPlayer(null)
                           setHighlightedPositions([])
+                          setIsSubstituteHighlighted(false)
                         } else if (selectedPlayer && isHighlighted) {
                           assignPlayerToPosition(idx)
                         } else if (!player && !pendingPlayer) {
@@ -455,6 +591,7 @@ export default function SquadBuilderClient({
                           // clicked non-compatible empty slot while pending — cancel pending
                           setPendingPlayer(null)
                           setHighlightedPositions([])
+                          setIsSubstituteHighlighted(false)
                         }
                       }}
                       onKeyDown={(e) => {
@@ -470,7 +607,7 @@ export default function SquadBuilderClient({
                       style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                     >
                       {player ? (
-                        <div className="relative group w-12 h-[68px] sm:w-20 sm:h-28 -mt-2 sm:-mt-4 transition-transform hover:scale-105">
+                        <div className="relative group w-7 h-[42px] sm:w-16 sm:h-24 md:w-20 md:h-28 -mt-2 sm:-mt-4 transition-transform hover:scale-105">
                           <PlayerCardImage
                             playerCardId={player.playerId}
                             playerName={player.name}
@@ -480,13 +617,13 @@ export default function SquadBuilderClient({
                               e.stopPropagation()
                               removePlayer(idx)
                             }}
-                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
+                            className="absolute -top-2 -right-2 w-4 h-4 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] sm:text-sm z-10 shadow-lg"
                           >
                             ×
                           </button>
                         </div>
                       ) : (
-                        <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
+                        <div className={`w-6 h-6 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
                           isHighlighted && pendingPlayer
                             ? 'border-emerald-400 bg-emerald-900/60 shadow-[0_0_14px_rgba(52,211,153,0.5)] scale-110 cursor-pointer'
                             : isHighlighted
@@ -494,15 +631,39 @@ export default function SquadBuilderClient({
                             : 'border-white/20 bg-black/40 cursor-pointer hover:border-[#E8A800]/60 hover:shadow-[0_0_10px_rgba(232,168,0,0.2)]'
                         }`}>
                           {/* Silhouette */}
-                          <svg className={`w-3 h-3 sm:w-4 sm:h-4 mb-0.5 ${
+                          <svg className={`w-2 h-2 sm:w-4 sm:h-4 mb-0.5 ${
                             isHighlighted && pendingPlayer ? 'text-emerald-400' : isHighlighted ? 'text-[#E8A800]' : 'text-white/20'
                           }`} viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
                           </svg>
-                          <span className={`text-[8px] sm:text-[10px] font-black leading-none ${
+                          <span className={`text-[6px] sm:text-[10px] font-black leading-none ${
                             isHighlighted && pendingPlayer ? 'text-emerald-400' : isHighlighted ? 'text-[#E8A800]' : 'text-white/40'
                           }`}>{pos.position}</span>
                         </div>
+                      )}
+                      
+                      {/* Position Edit Button (Custom Mode) */}
+                      {selectedFormation === "Custom" && !player && !pendingPlayer && (
+                        <button
+                          className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 bg-blue-600 border border-blue-400 rounded-full flex items-center justify-center shadow-lg z-20 text-[10px] sm:text-xs text-white"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingPositionIdx(idx)
+                          }}
+                        >
+                          ✏️
+                        </button>
+                      )}
+                      {selectedFormation === "Custom" && player && (
+                        <button
+                          className="absolute -top-1 left-0 sm:-top-2 sm:-left-2 w-5 h-5 sm:w-6 sm:h-6 bg-blue-600 border border-blue-400 rounded-full flex items-center justify-center shadow-lg z-20 text-[10px] sm:text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingPositionIdx(idx)
+                          }}
+                        >
+                          ✏️
+                        </button>
                       )}
                     </div>
                   )
@@ -510,31 +671,79 @@ export default function SquadBuilderClient({
               </div>
 
               {/* Substitutes Bench */}
-              {substitutes.length > 0 && (
-                <div className="mt-8 bg-black/30 rounded-xl p-4 border border-white/10">
-                  <h3 className="text-[#D4CCBB] text-sm font-bold mb-4 uppercase tracking-wider">Substitutes Bench ({substitutes.length})</h3>
-                  <div className="flex flex-wrap gap-4">
-                    {substitutes.map((subId, idx) => {
-                      const player = getPlayerById(subId)
-                      if (!player) return null
+              <div className="mt-8 bg-black/30 rounded-xl p-4 border border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[#D4CCBB] text-sm font-bold uppercase tracking-wider">Substitutes Bench ({substitutes.length}/{Math.max(7, players.length - fieldPositions.filter(p => p.playerId).length)})</h3>
+                  <div className="flex items-center gap-3">
+                    {availablePlayers.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          const availableIds = availablePlayers.map(p => p.id)
+                          setSubstitutes(prev => [...prev, ...availableIds])
+                        }}
+                        className="text-xs bg-[#E8A800]/20 text-[#E8A800] border border-[#E8A800]/30 hover:bg-[#E8A800]/30 px-3 py-1 rounded transition-colors font-bold"
+                      >
+                        + Add All Available
+                      </button>
+                    )}
+                    {substitutes.length > 0 && (
+                      <span className="text-xs text-[#7A7367] hidden sm:inline">Click on a player to remove</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 sm:gap-4">
+                  {Array.from({ length: Math.max(7, players.length - fieldPositions.filter(p => p.playerId).length) }).map((_, idx) => {
+                    const subId = substitutes[idx]
+                    const player = subId ? getPlayerById(subId) : null
+
+                    if (player) {
                       return (
-                        <div key={idx} className="relative group w-12 h-[68px] sm:w-20 sm:h-28 transition-transform hover:scale-105">
+                        <div key={`sub-${idx}`} className="relative group w-8 h-[48px] sm:w-16 sm:h-24 md:w-20 md:h-28 transition-transform hover:scale-105 cursor-pointer">
                           <PlayerCardImage
                             playerCardId={player.playerId}
                             playerName={player.name}
                           />
                           <button
                             onClick={() => removeSubstitute(subId)}
-                            className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs sm:text-sm z-10 shadow-lg"
+                            className="absolute -top-2 -right-2 w-4 h-4 sm:w-6 sm:h-6 bg-red-500 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[8px] sm:text-sm z-10 shadow-lg"
                           >
                             ×
                           </button>
                         </div>
                       )
-                    })}
-                  </div>
+                    }
+
+                    return (
+                      <div
+                        key={`sub-empty-${idx}`}
+                        className={`w-8 h-[48px] sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl border-2 flex flex-col items-center justify-center transition-all ${
+                          isSubstituteHighlighted
+                            ? 'border-[#E8A800] bg-[#E8A800]/10 shadow-[0_0_14px_rgba(232,168,0,0.3)] animate-pulse cursor-pointer'
+                            : 'border-dashed border-white/10 bg-black/20'
+                        }`}
+                        onClick={() => {
+                          if (isSubstituteHighlighted && selectedPlayer) {
+                            assignPlayerToBench()
+                          } else if (isSubstituteHighlighted && pendingPlayer) {
+                            assignPlayerToBench(pendingPlayer.id)
+                          }
+                        }}
+                      >
+                        <svg className={`w-3 h-3 sm:w-6 sm:h-6 mb-1 sm:mb-2 ${
+                          isSubstituteHighlighted ? 'text-[#E8A800]' : 'text-white/10'
+                        }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span className={`text-[6px] sm:text-[10px] font-black tracking-wider ${
+                          isSubstituteHighlighted ? 'text-[#E8A800]' : 'text-white/20'
+                        }`}>
+                          BENCH
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
-              )}
+              </div>
 
               {/* Save Button */}
               <button
@@ -558,7 +767,7 @@ export default function SquadBuilderClient({
                 <h2 className="text-base font-black">Available <span className="text-[#E8A800]">{availablePlayers.length}</span></h2>
                 {pendingPlayer && (
                   <button
-                    onClick={() => { setPendingPlayer(null); setHighlightedPositions([]) }}
+                    onClick={() => { setPendingPlayer(null); setHighlightedPositions([]); setIsSubstituteHighlighted(false) }}
                     className="text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded border border-red-500/30 bg-red-500/10"
                   >
                     Cancel
@@ -587,7 +796,7 @@ export default function SquadBuilderClient({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span>Now click a <strong>glowing position</strong> on the field</span>
+                  <span>Now click a <strong>glowing position</strong> or <strong>substitute slot</strong> on the field</span>
                 </div>
               ) : (
                 <div className="mb-3 flex items-center gap-2 text-xs text-[#E8A800]/80 bg-[#E8A800]/5 border border-[#E8A800]/20 rounded-lg p-2.5">
@@ -843,6 +1052,51 @@ export default function SquadBuilderClient({
             >
               Got it
             </button>
+          </div>
+        </div>
+      )}
+      {/* Position Editing Modal */}
+      {editingPositionIdx !== null && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-sm flex flex-col">
+            <div className="p-4 sm:p-6 border-b border-white/10">
+              <h3 className="text-xl font-black text-white">Select Role</h3>
+            </div>
+            <div className="p-4 sm:p-6 grid grid-cols-4 sm:grid-cols-5 gap-2">
+              {["GK", "CB", "LB", "RB", "LWB", "RWB", "DMF", "CMF", "LMF", "RMF", "AMF", "LWF", "RWF", "SS", "CF"].map(pos => (
+                <button
+                  key={pos}
+                  onClick={() => {
+                    setFieldPositions(prev => {
+                      const newArr = [...prev]
+                      newArr[editingPositionIdx] = { ...newArr[editingPositionIdx], position: pos }
+                      // Also clear the player in this slot if they are not compatible with the new position
+                      const player = getPlayerById(newArr[editingPositionIdx].playerId)
+                      if (player && !isPositionCompatible(player.position, pos)) {
+                        newArr[editingPositionIdx].playerId = null
+                      }
+                      return newArr
+                    })
+                    setEditingPositionIdx(null)
+                  }}
+                  className={`py-2 border border-white/10 rounded-lg text-xs font-bold transition-all ${
+                    fieldPositions[editingPositionIdx]?.position === pos
+                      ? 'bg-[#E8A800] text-black'
+                      : 'bg-black/30 hover:bg-[#E8A800]/20 hover:border-[#E8A800]/50 text-white hover:text-[#E8A800]'
+                  }`}
+                >
+                  {pos}
+                </button>
+              ))}
+            </div>
+            <div className="p-4 sm:p-6 border-t border-white/10">
+              <button
+                onClick={() => setEditingPositionIdx(null)}
+                className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

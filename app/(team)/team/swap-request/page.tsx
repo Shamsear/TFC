@@ -147,7 +147,7 @@ export default async function SwapRequestPage() {
     },
   })
 
-  // Get existing pending swap requests (both as requester and target)
+  // Get existing swap requests (both as requester and target)
   const existingRequests = await prisma.swap_requests.findMany({
     where: {
       seasonId: activeSeason.id,
@@ -155,7 +155,6 @@ export default async function SwapRequestPage() {
         { requestingTeamId: session.user.teamId },
         { targetTeamId: session.user.teamId },
       ],
-      status: 'pending',
     },
     include: {
       requestingTeam: {
@@ -247,6 +246,7 @@ export default async function SwapRequestPage() {
     targetTeamId: req.targetTeamId,
     targetTeamName: req.targetTeam.name,
     isMyRequest: req.requestingTeamId === session.user.teamId,
+    status: req.status,
     submittedAt: req.submittedAt.toISOString(),
     players: req.players.map(p => ({
       id: p.id,
@@ -261,15 +261,16 @@ export default async function SwapRequestPage() {
     })),
   }))
 
-  const totalRequestsCount = existingRequests.length
+  const pendingRequestsCount = existingRequests.filter(r => r.status === 'pending').length
   const completedSwapsCount = existingRequests.filter(r => r.status === 'approved').length
+  const usedRequestsCount = pendingRequestsCount + completedSwapsCount
 
   const limits = {
-    totalRequests: totalRequestsCount,
+    totalRequests: usedRequestsCount,
     completedSwaps: completedSwapsCount,
-    remainingRequests: Math.max(0, 5 - totalRequestsCount),
+    remainingRequests: Math.max(0, 5 - usedRequestsCount),
     remainingSwaps: Math.max(0, 5 - completedSwapsCount),
-    canSubmit: totalRequestsCount < 5 && completedSwapsCount < 5,
+    canSubmit: usedRequestsCount < 5 && completedSwapsCount < 5,
   }
 
   return (

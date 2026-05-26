@@ -97,6 +97,14 @@ export default function TeamDetailTabs({
     }
   }
 
+  const positionOrder = [
+    'GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'AMF', 'LMF', 'RMF', 'LWF', 'RWF', 'SS', 'CF'
+  ]
+  const getPositionSortIndex = (pos: string) => {
+    const idx = positionOrder.indexOf(pos.toUpperCase())
+    return idx === -1 ? 99 : idx
+  }
+
   return (
     <div className="space-y-6">
       {/* Main Tabs */}
@@ -202,7 +210,7 @@ export default function TeamDetailTabs({
               <h4 className="text-lg font-black text-white mb-4">Squad Composition</h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {Object.entries(currentSeason.positionCounts)
-                  .sort(([a], [b]) => a.localeCompare(b))
+                  .sort(([a], [b]) => getPositionSortIndex(a) - getPositionSortIndex(b))
                   .map(([position, count]) => (
                   <div
                     key={position}
@@ -234,7 +242,7 @@ export default function TeamDetailTabs({
             ) : (
               <div className="space-y-6">
                 {Object.entries(currentSeason.squad)
-                  .sort(([a], [b]) => a.localeCompare(b))
+                  .sort(([a], [b]) => getPositionSortIndex(a) - getPositionSortIndex(b))
                   .map(([position, players]) => (
                   <div key={position}>
                     <h4 className={`text-lg font-black mb-3 ${getPositionColor(position).split(' ')[2]}`}>

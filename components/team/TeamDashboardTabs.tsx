@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import ReadonlySquadFormation from '@/components/team/ReadonlySquadFormation'
 
 interface Bid {
   id: string
@@ -40,10 +41,21 @@ interface SquadPlayer {
 interface TeamDashboardTabsProps {
   activeBids: Bid[]
   squadPlayers: SquadPlayer[]
+  teamSquad?: any
 }
 
-export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDashboardTabsProps) {
+export default function TeamDashboardTabs({ activeBids, squadPlayers, teamSquad }: TeamDashboardTabsProps) {
   const [activeTab, setActiveTab] = useState<'bids' | 'squad' | 'builder'>('bids')
+
+  // Map squadPlayers to the format expected by ReadonlySquadFormation
+  const allPlayers = squadPlayers.map(p => ({
+    id: p.basePlayer.id,
+    name: p.basePlayer.name,
+    photoUrl: getPlayerPhotoUrl(`${p.basePlayer.player_id || p.basePlayer.id}.webp`),
+    position: p.basePlayer.seasonalPlayerStats[0]?.position || 'N/A',
+    overallRating: p.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
+    playerId: p.basePlayer.player_id || p.basePlayer.id
+  }))
 
   return (
     <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
@@ -214,22 +226,36 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers }: TeamDash
 
         {/* Squad Builder Tab */}
         {activeTab === 'builder' && (
-          <div className="text-center py-8 sm:py-12">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/30 flex items-center justify-center text-[#E8A800] mx-auto mb-3 sm:mb-4">
-              <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-              </svg>
+          <div>
+            {teamSquad?.formation ? (
+              <div className="mb-6">
+                <ReadonlySquadFormation
+                  formation={teamSquad.formation}
+                  allPlayers={allPlayers}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-8 sm:py-12 bg-black/30 rounded-xl border border-white/10 mb-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/30 flex items-center justify-center text-[#E8A800] mx-auto mb-3 sm:mb-4">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-bold text-base sm:text-lg mb-2">Build Your Formation</h3>
+                <p className="text-[#7A7367] text-sm mb-4 sm:mb-6">
+                  Arrange your squad in different formations and save lineups
+                </p>
+              </div>
+            )}
+            
+            <div className="flex justify-center">
+              <Link
+                href="/team/squad/builder"
+                className="inline-block px-8 py-3 rounded-lg bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-bold text-sm transition-all"
+              >
+                {teamSquad?.formation ? 'Edit Formation in Squad Builder' : 'Open Squad Builder'}
+              </Link>
             </div>
-            <h3 className="text-white font-bold text-base sm:text-lg mb-2">Build Your Formation</h3>
-            <p className="text-[#7A7367] text-sm mb-4 sm:mb-6">
-              Arrange your squad in different formations and save lineups
-            </p>
-            <Link
-              href="/team/squad/builder"
-              className="inline-block px-6 py-3 rounded-lg bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-bold text-sm transition-all"
-            >
-              Open Squad Builder
-            </Link>
           </div>
         )}
       </div>

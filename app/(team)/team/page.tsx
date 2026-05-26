@@ -408,7 +408,15 @@ export default async function TeamDashboardPage() {
   // Get active round info for tabs (just summary, not individual bids since they're encrypted)
   const activeRoundWithBids = activeRounds.length > 0 ? activeRounds[0] : null
 
-
+  // Get saved squad formation
+  const teamSquad = await prisma.team_squads.findUnique({
+    where: {
+      team_id_season_id: {
+        team_id: team.id,
+        season_id: activeSeason.id,
+      }
+    }
+  })
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
@@ -714,7 +722,7 @@ export default async function TeamDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div>
+        <div className="mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-3 sm:gap-4">
             <Link
@@ -820,10 +828,11 @@ export default async function TeamDashboardPage() {
         </div>
 
         {/* Tabbed Section - Bids and Squad */}
-        <div className="mt-6 sm:mt-8">
+        <div className="mt-6 sm:mt-8 mb-6 sm:mb-8">
           <TeamDashboardTabs
             activeBids={[]}
             squadPlayers={squadPlayers}
+            teamSquad={teamSquad}
           />
         </div>
       </div>

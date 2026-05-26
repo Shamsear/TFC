@@ -217,6 +217,99 @@ const FORMATIONS = {
   ],
 }
 
+const getPositionFromCoordinates = (x: number, y: number): string => {
+  if (y > 85) return "GK";
+  if (y > 65) {
+    if (x < 28) return y < 73 ? "LWB" : "LB";
+    if (x > 72) return y < 73 ? "RWB" : "RB";
+    return "CB";
+  }
+  if (y >= 55) {
+    if (x < 28) return "LMF";
+    if (x > 72) return "RMF";
+    return "DMF";
+  }
+  if (y >= 38) {
+    if (x < 28) return "LMF";
+    if (x > 72) return "RMF";
+    return "CMF";
+  }
+  if (y >= 25) {
+    if (x < 28) return "LMF";
+    if (x > 72) return "RMF";
+    if (x < 40 || x > 60) return y < 30 ? "SS" : "AMF";
+    return "AMF";
+  }
+  // < 25
+  if (x < 30) return "LWF";
+  if (x > 70) return "RWF";
+  if (y >= 18) return "SS";
+  return "CF";
+}
+
+const getCustomFormationString = (positions: FieldPosition[]) => {
+  const bands = [0, 0, 0, 0, 0];
+  positions.forEach(p => {
+    if (p.position === "GK" || p.y > 85) return;
+    if (p.y > 65) bands[0]++; // Defenders
+    else if (p.y > 52) bands[1]++; // DMF
+    else if (p.y > 38) bands[2]++; // CMF/Wide
+    else if (p.y > 25) bands[3]++; // AMF
+    else bands[4]++; // Fwd
+  });
+  
+  const scheme = bands.filter(b => b > 0).join("-");
+  return scheme || "Custom";
+}
+
+const generateCustomPositions = (scheme: string, currentPositions: FieldPosition[]): FieldPosition[] => {
+  const parts = scheme.split('-').map(n => parseInt(n)).filter(n => !isNaN(n) && n > 0);
+  const sum = parts.reduce((a, b) => a + b, 0);
+  
+  if (sum !== 10) return currentPositions;
+  
+  const newPositions: FieldPosition[] = [];
+  
+  // 1. Keep GK
+  newPositions.push({
+    position: "GK",
+    x: 50,
+    y: 90,
+    playerId: currentPositions[0]?.playerId || null
+  });
+  
+  // 2. Generate outfield
+  let playerIdx = 1;
+  const numBands = parts.length;
+  
+  parts.forEach((count, bandIdx) => {
+    // Determine Y for this band
+    const y = numBands === 1 ? 45 : 75 - (bandIdx * (60 / (numBands - 1)));
+    
+    for (let i = 0; i < count; i++) {
+      let x = 50;
+      if (count === 2) x = [35, 65][i];
+      else if (count === 3) x = [20, 50, 80][i];
+      else if (count === 4) x = [15, 38, 62, 85][i];
+      else if (count === 5) x = [15, 32.5, 50, 67.5, 85][i];
+      else if (count > 5) x = 15 + (i * (70 / (count - 1)));
+      
+      const posString = getPositionFromCoordinates(x, y);
+      
+      newPositions.push({
+        position: posString,
+        x,
+        y,
+        playerId: currentPositions[playerIdx]?.playerId || null
+      });
+      
+      playerIdx++;
+    }
+  });
+  
+  return newPositions;
+}
+
 export default function SquadBuilderClient({
   seasonId,
   seasonName,
@@ -226,7 +319,10 @@ export default function SquadBuilderClient({
   savedSquad,
 }: SquadBuilderClientProps) {
   const [selectedFormation, setSelectedFormation] = useState<keyof typeof FORMATIONS>(
-    savedSquad?.type || "4-3-3"
+    savedSquad?.type?.startsWith("Custom") ? "Custom" : (savedSquad?.type || "4-3-3")
+  )
+  const [customFormationName, setCustomFormationName] = useState<string>(
+    savedSquad?.type?.startsWith("Custom (") ? savedSquad.type.replace("Custom (", "").replace(")", "") : ""
   )
   const [fieldPositions, setFieldPositions] = useState<FieldPosition[]>([])
   const [substitutes, setSubstitutes] = useState<string[]>(
@@ -253,12 +349,23 @@ export default function SquadBuilderClient({
   const [editingPositionIdx, setEditingPositionIdx] = useState<number | null>(null)
 
   useEffect(() => {
+    // Helper to clean up players that are no longer in the team (released/swapped)
+    const cleanupPositions = (positions: FieldPosition[]) => {
+      return positions.map(pos => ({
+        ...pos,
+        playerId: pos.playerId && players.some(p => p.id === pos.playerId) ? pos.playerId : null
+      }))
+    }
+    const cleanupSubstitutes = (subs: string[]) => {
+      return subs.filter(subId => players.some(p => p.id === subId))
+    }
+
     // If it's the initial load and we have a saved squad for THIS formation, use it
-    if (savedSquad && savedSquad.type === selectedFormation && fieldPositions.length === 0) {
-      setFieldPositions(savedSquad.positions)
-      setSubstitutes(savedSquad.substitutes || [])
-    } else if (savedSquad && selectedFormation === "Custom" && savedSquad.type === "Custom") {
-      setFieldPositions(savedSquad.positions)
+    if (savedSquad && savedSquad.type.startsWith(selectedFormation) && fieldPositions.length === 0) {
+      setFieldPositions(cleanupPositions(savedSquad.positions))
+      setSubstitutes(cleanupSubstitutes(savedSquad.substitutes || []))
+    } else if (savedSquad && selectedFormation === "Custom" && savedSquad.type.startsWith("Custom")) {
+      setFieldPositions(cleanupPositions(savedSquad.positions))
     } else {
       // Initialize field positions based on formation
       const positions = FORMATIONS[selectedFormation].map((pos) => ({
@@ -384,7 +491,9 @@ export default function SquadBuilderClient({
         body: JSON.stringify({
           seasonId,
           formation: {
-            type: selectedFormation,
+            type: selectedFormation === "Custom" 
+              ? `Custom (${customFormationName.trim() || getCustomFormationString(fieldPositions)})`
+              : selectedFormation,
             positions: fieldPositions,
             substitutes,
           },
@@ -441,6 +550,14 @@ export default function SquadBuilderClient({
     ? availablePlayers.filter(p => isPositionCompatible(p.position, modalPositionLabel)).length
     : 0
 
+  const customFormationSum = customFormationName
+    .split('-')
+    .map(n => parseInt(n))
+    .filter(n => !isNaN(n))
+    .reduce((a, b) => a + b, 0);
+
+  const isCustomFormationValid = selectedFormation !== "Custom" || customFormationName === "" || customFormationSum === 10;
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white py-8 pt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -468,8 +585,42 @@ export default function SquadBuilderClient({
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-[#7A7367] uppercase tracking-widest">Formation</label>
-                  <span className="text-sm font-black text-[#E8A800]">{selectedFormation}</span>
+                  <span className="text-sm font-black text-[#E8A800]">
+                    {selectedFormation === "Custom" 
+                      ? `Custom (${customFormationName.trim() || getCustomFormationString(fieldPositions)})` 
+                      : selectedFormation}
+                  </span>
                 </div>
+                {selectedFormation === "Custom" && (
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      placeholder={`e.g. ${getCustomFormationString(fieldPositions)}`}
+                      value={customFormationName}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 5);
+                        const formatted = digits.split('').join('-');
+                        setCustomFormationName(formatted);
+
+                        const parts = formatted.split('-').map(n => parseInt(n)).filter(n => !isNaN(n));
+                        const sum = parts.reduce((a, b) => a + b, 0);
+
+                        if (sum === 10) {
+                          const newPositions = generateCustomPositions(formatted, fieldPositions);
+                          setFieldPositions(newPositions);
+                        }
+                      }}
+                      className={`w-full bg-black/40 border ${!isCustomFormationValid ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-[#E8A800]'} rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none transition-colors`}
+                      maxLength={9}
+                    />
+                    {!isCustomFormationValid && (
+                      <div className="text-red-400 text-[10px] mt-1.5 font-medium flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        Sum must be exactly 10 (currently {customFormationSum})
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-1.5">
                   {Object.keys(FORMATIONS).map((f) => (
                     <button
@@ -563,6 +714,9 @@ export default function SquadBuilderClient({
                         setFieldPositions(prev => {
                           const newArr = [...prev]
                           newArr[idx] = { ...newArr[idx], x, y }
+                          if (selectedFormation === 'Custom') {
+                            newArr[idx].position = getPositionFromCoordinates(x, y)
+                          }
                           return newArr
                         })
                       }}
@@ -748,8 +902,12 @@ export default function SquadBuilderClient({
               {/* Save Button */}
               <button
                 onClick={saveSquad}
-                disabled={isSaving}
-                className="mt-5 w-full px-6 py-3 bg-gradient-to-r from-[#E8A800] to-[#FFC93A] text-black font-black rounded-xl hover:from-[#FFC93A] hover:to-[#E8A800] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(232,168,0,0.3)] hover:shadow-[0_4px_30px_rgba(232,168,0,0.5)]"
+                disabled={isSaving || !isCustomFormationValid}
+                className={`mt-5 w-full px-6 py-3 bg-gradient-to-r font-black rounded-xl transition-all flex items-center justify-center gap-2 ${
+                  isSaving || !isCustomFormationValid
+                    ? 'from-gray-600 to-gray-700 text-gray-400 cursor-not-allowed opacity-70'
+                    : 'from-[#E8A800] to-[#FFC93A] text-black hover:from-[#FFC93A] hover:to-[#E8A800] shadow-[0_4px_20px_rgba(232,168,0,0.3)] hover:shadow-[0_4px_30px_rgba(232,168,0,0.5)]'
+                }`}
               >
                 {isSaving ? (
                   <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Saving...</>

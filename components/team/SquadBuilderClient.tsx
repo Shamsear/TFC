@@ -462,6 +462,18 @@ export default function SquadBuilderClient({
     setSearchQuery("")
   }
 
+  const assignPlayerToBench = (playerId?: string) => {
+    const id = playerId ?? selectedPlayer?.id
+    if (!id) return
+    if (!substitutes.includes(id)) {
+      setSubstitutes((prev) => [...prev, id])
+    }
+    setPendingPlayer(null)
+    setHighlightedPositions([])
+    setIsSubstituteHighlighted(false)
+    setSelectedPlayer(null)
+  }
+
   const assignPlayer = (positionIndex: number, playerId: string) => {
     setFieldPositions((prev) =>
       prev.map((pos, idx) =>

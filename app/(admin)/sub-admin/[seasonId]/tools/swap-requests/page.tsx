@@ -110,7 +110,7 @@ export default async function SwapRequestsAdminPage({
     targetTeamId: req.targetTeamId,
     targetTeamName: req.targetTeam.name,
     targetTeamLogo: req.targetTeam.logoUrl,
-    status: req.status,
+    status: (req.status ?? '') as string,
     submittedAt: req.submittedAt ? req.submittedAt.toISOString() : null,
     processedAt: req.processedAt?.toISOString() || null,
     processedBy: req.processor?.name || null,

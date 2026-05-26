@@ -107,6 +107,7 @@ export default async function BulkTiebreakerMonitorPage({ params }: BulkTiebreak
   // Merge budget and squad size data into participants
   const participantsWithData = tiebreaker.participants.map(p => ({
     ...p,
+    submitted: p.submitted ?? false,
     team: {
       ...p.team,
       currentBudget: seasonTeams.find(st => st.teamId === p.teamId)?.currentBudget || 0,

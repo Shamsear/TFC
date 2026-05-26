@@ -105,7 +105,7 @@ export default async function BulkTiebreakerPage({
     teamId: p.team.id,
     teamName: p.team.name,
     teamLogo: p.team.logoUrl,
-    submitted: p.submitted,
+    submitted: !!p.submitted,
     submittedAt: p.submittedAt,
     isCurrentTeam: p.teamId === teamId
   }))
@@ -113,7 +113,7 @@ export default async function BulkTiebreakerPage({
   // Prepare my bid info (only show own bid amount)
   const myBid = myParticipation ? {
     newBidAmount: myParticipation.newBidAmount,
-    submitted: myParticipation.submitted,
+    submitted: !!myParticipation.submitted,
     submittedAt: myParticipation.submittedAt
   } : null
 

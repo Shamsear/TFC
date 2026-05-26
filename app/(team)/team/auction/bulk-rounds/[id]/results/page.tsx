@@ -207,7 +207,11 @@ export default async function BulkRoundResultsPage({
     basePlayer: {
       ...t.basePlayer,
       photoUrl: getPhotoUrlFromDb(t.basePlayer.photoUrl)
-    }
+    },
+    participants: t.participants.map(p => ({
+      ...p,
+      submitted: !!p.submitted
+    }))
   }))
 
   return (

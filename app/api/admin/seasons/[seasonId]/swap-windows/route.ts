@@ -1,12 +1,12 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { checkAdminRole } from "@/lib/auth-utils"
 import { generateIds } from "@/lib/id-generator"
 
 export async function GET(
-  request: Request,
-  { params }: { params: { seasonId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ seasonId: string }> }
 ) {
   try {
     const session = await auth()
@@ -14,7 +14,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const { seasonId } = await params
+    const { seasonId } = await context.params
 
     const windows = await prisma.swap_windows.findMany({
       where: { seasonId },
@@ -34,8 +34,8 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
-  { params }: { params: { seasonId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ seasonId: string }> }
 ) {
   try {
     const session = await auth()
@@ -48,7 +48,7 @@ export async function POST(
       return new NextResponse("Forbidden", { status: 403 })
     }
 
-    const { seasonId } = await params
+    const { seasonId } = await context.params
     const body = await request.json()
     const { name, startDate, endDate, status, swapLimit } = body
 

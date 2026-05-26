@@ -22,7 +22,7 @@ interface ExistingRequest {
   playerName: string
   refundAmount: number
   notes: string | null
-  status: string
+  status: string | null
   submittedAt: string
   processedAt?: string | null
   rejectionReason?: string | null

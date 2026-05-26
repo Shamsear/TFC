@@ -524,7 +524,7 @@ export default function ReleaseRequestClient({
                           isApproved ? 'bg-emerald-500/20 text-emerald-400' :
                           'bg-red-500/20 text-red-400'
                         }`}>
-                          {req.status.toUpperCase()}
+                          {req.status ? req.status.toUpperCase() : ''}
                         </span>
                       </div>
                       <div className="text-sm text-gray-400">

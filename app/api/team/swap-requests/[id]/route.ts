@@ -23,9 +23,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Request not found' }, { status: 404 })
     }
 
-    // Only requesting team can cancel
-    if (swapRequest.requestingTeamId !== session.user.teamId) {
-      return NextResponse.json({ error: 'Only requesting team can cancel' }, { status: 403 })
+    // Either requesting or target team can cancel
+    if (swapRequest.requestingTeamId !== session.user.teamId && swapRequest.targetTeamId !== session.user.teamId) {
+      return NextResponse.json({ error: 'Not authorized to cancel this request' }, { status: 403 })
     }
 
     // Can only cancel pending requests

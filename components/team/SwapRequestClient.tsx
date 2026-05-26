@@ -48,6 +48,14 @@ interface ExistingRequest {
   players: SwapPlayer[]
 }
 
+interface Limits {
+  totalRequests: number
+  completedSwaps: number
+  remainingRequests: number
+  remainingSwaps: number
+  canSubmit: boolean
+}
+
 interface Props {
   seasonId: string
   myTeamId: string
@@ -56,6 +64,7 @@ interface Props {
   availablePlayers: Player[]
   teams: Team[]
   existingRequests: ExistingRequest[]
+  limits: Limits
 }
 
 export default function SwapRequestClient({
@@ -66,6 +75,7 @@ export default function SwapRequestClient({
   availablePlayers,
   teams,
   existingRequests: initialRequests,
+  limits,
 }: Props) {
   const [selectedMyPlayers, setSelectedMyPlayers] = useState<Set<string>>(new Set())
   const [selectedOtherPlayers, setSelectedOtherPlayers] = useState<Set<string>>(new Set())
@@ -225,8 +235,8 @@ export default function SwapRequestClient({
   }
 
   const generateWhatsAppMessage = () => {
-    const myPlayersList = mySelectedList.map(p => `${p.name} (£${(p.soldPrice / 1000).toFixed(0)}K)`).join('\n')
-    const otherPlayersList = otherSelectedList.map(p => `${p.name} (£${(p.soldPrice / 1000).toFixed(0)}K)`).join('\n')
+    const myPlayersList = mySelectedList.map(p => `${p.name} (£${(p.soldPrice).toLocaleString()})`).join('\n')
+    const otherPlayersList = otherSelectedList.map(p => `${p.name} (£${(p.soldPrice).toLocaleString()})`).join('\n')
     
     return `🔄 *Swap Request*\n\n*${myTeamName}* gives:\n${myPlayersList}\n\n*${targetTeamName}* gives:\n${otherPlayersList}\n\n*Type:* ${selectedMyPlayers.size}-for-${selectedOtherPlayers.size} swap`
   }
@@ -237,10 +247,7 @@ export default function SwapRequestClient({
   }
 
   const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `£${(amount / 1000000).toFixed(2)}M`
-    }
-    return `£${(amount / 1000).toFixed(0)}K`
+    return `£${(amount).toLocaleString()}`
   }
 
   return (
@@ -254,6 +261,16 @@ export default function SwapRequestClient({
             </span>
           </h1>
           <p className="text-[#D4CCBB] text-sm sm:text-base">Select equal number of players from both teams to swap</p>
+          <div className="mt-4 flex flex-wrap gap-4">
+            <div className={`px-4 py-2 rounded-lg border ${limits.remainingRequests === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
+              <span className="text-sm text-gray-400 block mb-1">Swap Requests Left</span>
+              <span className="font-bold">{limits.remainingRequests} / 5</span>
+            </div>
+            <div className={`px-4 py-2 rounded-lg border ${limits.remainingSwaps === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
+              <span className="text-sm text-gray-400 block mb-1">Completed Swaps Left</span>
+              <span className="font-bold">{limits.remainingSwaps} / 5</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -375,10 +392,14 @@ export default function SwapRequestClient({
             )}
             <button
               onClick={handleSubmit}
-              disabled={!isValidSwap || isSubmitting}
-              className="w-full px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isValidSwap || isSubmitting || !limits.canSubmit}
+              className={`w-full px-6 py-3 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                !limits.canSubmit
+                  ? 'bg-gray-500/20 text-gray-400'
+                  : 'bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a]'
+              }`}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Swap Request'}
+              {isSubmitting ? 'Submitting...' : !limits.canSubmit ? 'Limit Reached' : 'Submit Swap Request'}
             </button>
           </div>
         )}
@@ -449,6 +470,7 @@ export default function SwapRequestClient({
                           alt={player.name}
                           fill
                           className="object-cover"
+                          unoptimized
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -507,6 +529,7 @@ export default function SwapRequestClient({
                           alt={player.name}
                           fill
                           className="object-cover"
+                          unoptimized
                         />
                       </div>
                       <div className="flex-1 min-w-0">

@@ -113,6 +113,52 @@ export default async function SwapRequestsAdminPage({
     })),
   }))
 
+  // Get ALL teams in this season
+  const allSeasonTeams = await prisma.season_teams.findMany({
+    where: {
+      seasonId,
+    },
+    include: {
+      team: {
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true,
+        },
+      },
+    },
+    orderBy: {
+      team: {
+        name: 'asc',
+      },
+    },
+  })
+
+  // Calculate swap stats for each team
+  const teamStats = allSeasonTeams.map(st => {
+    // Count ALL requests involved in (both initiated and targeted)
+    const involvedRequests = requests.filter(r => r.requestingTeamId === st.teamId || r.targetTeamId === st.teamId)
+    const totalRequests = involvedRequests.length
+    const pendingRequests = involvedRequests.filter(r => r.status === 'pending').length
+    const rejectedRequests = involvedRequests.filter(r => r.status === 'rejected').length
+
+    // Completed swaps can be initiated by this team or the other team
+    const approvedSwaps = involvedRequests.filter(r => r.status === 'approved').length
+
+    return {
+      teamId: st.teamId,
+      teamName: st.team.name,
+      teamLogo: st.team.logoUrl,
+      currentBudget: st.currentBudget,
+      totalRequests,
+      approvedSwaps,
+      pendingRequests,
+      rejectedRequests,
+      remainingRequests: Math.max(0, 5 - totalRequests),
+      remainingSwaps: Math.max(0, 5 - approvedSwaps),
+    }
+  })
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,6 +167,7 @@ export default async function SwapRequestsAdminPage({
           seasonName={season.name}
           swapWindowOpen={season.swapWindowOpen}
           requests={transformedRequests}
+          teamStats={teamStats}
         />
       </div>
     </div>

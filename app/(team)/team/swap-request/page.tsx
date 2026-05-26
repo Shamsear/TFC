@@ -261,6 +261,17 @@ export default async function SwapRequestPage() {
     })),
   }))
 
+  const totalRequestsCount = existingRequests.length
+  const completedSwapsCount = existingRequests.filter(r => r.status === 'approved').length
+
+  const limits = {
+    totalRequests: totalRequestsCount,
+    completedSwaps: completedSwapsCount,
+    remainingRequests: Math.max(0, 5 - totalRequestsCount),
+    remainingSwaps: Math.max(0, 5 - completedSwapsCount),
+    canSubmit: totalRequestsCount < 5 && completedSwapsCount < 5,
+  }
+
   return (
     <SwapRequestClient
       seasonId={activeSeason.id}
@@ -270,6 +281,7 @@ export default async function SwapRequestPage() {
       availablePlayers={availablePlayers}
       teams={teams}
       existingRequests={requests}
+      limits={limits}
     />
   )
 }

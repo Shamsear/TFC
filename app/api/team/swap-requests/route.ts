@@ -58,6 +58,68 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check request limit (max 5 requests involved in - sent or received)
+    const teamRequests = await prisma.swap_requests.count({
+      where: {
+        seasonId,
+        OR: [
+          { requestingTeamId },
+          { targetTeamId: requestingTeamId },
+        ],
+      }
+    })
+
+    if (teamRequests >= 5) {
+      return NextResponse.json({ error: 'You have reached the maximum limit of 5 swap requests per season' }, { status: 400 })
+    }
+
+    // Check completed swap limit for requesting team (max 5 approved swaps)
+    const approvedSwaps = await prisma.swap_requests.count({
+      where: {
+        seasonId,
+        status: 'approved',
+        OR: [
+          { requestingTeamId },
+          { targetTeamId: requestingTeamId },
+        ],
+      }
+    })
+
+    if (approvedSwaps >= 5) {
+      return NextResponse.json({ error: 'You have reached the maximum limit of 5 completed swaps per season' }, { status: 400 })
+    }
+
+    // Check target team request limit
+    const targetTeamRequests = await prisma.swap_requests.count({
+      where: {
+        seasonId,
+        OR: [
+          { requestingTeamId: targetTeamId },
+          { targetTeamId },
+        ],
+      }
+    })
+
+    if (targetTeamRequests >= 5) {
+      return NextResponse.json({ error: 'The target team has already reached their maximum limit of 5 swap requests per season' }, { status: 400 })
+    }
+
+    // Check completed swap limit for target team (max 5 approved swaps)
+    const targetApprovedSwaps = await prisma.swap_requests.count({
+      where: {
+        seasonId,
+        status: 'approved',
+        OR: [
+          { requestingTeamId: targetTeamId },
+          { targetTeamId },
+        ],
+      }
+    })
+
+    if (targetApprovedSwaps >= 5) {
+      return NextResponse.json({ error: 'The target team has already reached their maximum limit of 5 completed swaps per season' }, { status: 400 })
+    }
+
     // Check if similar request already exists
     const existing = await prisma.swap_requests.findFirst({
       where: {

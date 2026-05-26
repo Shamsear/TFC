@@ -219,6 +219,7 @@ async function getPlayerData(playerId: string, seasonId: string) {
       teamName: transfer.team.name,
       teamLogo: transfer.team.logoUrl,
       soldPrice: transfer.soldPrice,
+      status: transfer.status as string,
       createdAt: transfer.createdAt,
     })),
     season: stats.season,

@@ -253,8 +253,8 @@ export default async function SwapRequestPage() {
     targetTeamId: req.targetTeamId,
     targetTeamName: req.targetTeam.name,
     isMyRequest: req.requestingTeamId === session.user.teamId,
-    status: req.status,
-    submittedAt: req.submittedAt.toISOString(),
+    status: req.status ?? '',
+    submittedAt: req.submittedAt ? req.submittedAt.toISOString() : '',
     players: req.players.map(p => ({
       id: p.id,
       playerId: p.playerId,

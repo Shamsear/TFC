@@ -715,10 +715,10 @@ _All releases processed by admin_`
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : 'bg-red-500/20 text-red-400 border border-red-500/30'
                     }`}>
-                      {request.status.toUpperCase()}
+                      {request.status ? request.status.toUpperCase() : ''}
                     </span>
                     {request.processedAt && (
-                      <div className="text-xs text-gray-500 mt-1">{request.processedAt ? formatDate(request.processedAt) : 'N/A'}</div>
+                      <div className="text-xs text-gray-500 mt-1">{formatDate(request.processedAt)}</div>
                     )}
                   </div>
                 </div>

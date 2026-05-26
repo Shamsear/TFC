@@ -25,7 +25,7 @@ export async function GET(
         basePlayer: {
           include: {
             transferHistory: {
-              where: { seasonId },
+              where: { seasonId, status: 'ACTIVE' },
               include: {
                 team: {
                   select: {

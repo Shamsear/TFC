@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         { realWorldClub: { contains: q, mode: 'insensitive' as const } },
         { position: { contains: q, mode: 'insensitive' as const } }
       ]}}},
-      { transferHistory: { some: { seasonId, team: { name: { contains: q, mode: 'insensitive' as const } } }}}
+      { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: { contains: q, mode: 'insensitive' as const } } }}}
     ]
   }
   if (positionsList && positionsList.length > 0) {
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
         { position: { contains: q, mode: 'insensitive' as const } },
         { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },
         { basePlayer: { normalized_name: { contains: normalizedQuery, mode: 'insensitive' as const } } },
-        { basePlayer: { transferHistory: { some: { seasonId, team: { name: { contains: q, mode: 'insensitive' as const } } } } } }
+        { basePlayer: { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: { contains: q, mode: 'insensitive' as const } } } } } }
       ]
     }
     if (positionsList && positionsList.length > 0) {
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
           basePlayer: {
             include: {
               transferHistory: {
-                where: { seasonId },
+                where: { seasonId, status: 'ACTIVE' },
                 include: { team: { select: { id: true, name: true, logoUrl: true } } }
               }
             }

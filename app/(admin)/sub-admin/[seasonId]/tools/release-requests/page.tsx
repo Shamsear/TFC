@@ -146,7 +146,7 @@ export default async function ReleaseRequestsAdminPage({
     playerPhotoId: req.basePlayer.player_id || req.basePlayer.id,
     refundAmount: req.refundAmount,
     notes: req.notes,
-    status: req.status,
+    status: req.status ? req.status.toString() : null,
     teamId: req.teamId,
     teamName: req.team.name,
     teamLogo: req.team.logoUrl,

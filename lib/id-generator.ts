@@ -30,6 +30,8 @@ export const ID_PREFIXES = {
   GROUP: 'TFCG',
   STANDING: 'TFCSD',
   ROUND: 'TFCR',
+  RELEASE_WINDOW: 'TFCRW',
+  SWAP_WINDOW: 'TFCSW',
 } as const
 
 type IDPrefix = typeof ID_PREFIXES[keyof typeof ID_PREFIXES]

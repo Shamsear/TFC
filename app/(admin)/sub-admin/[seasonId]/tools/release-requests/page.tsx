@@ -29,6 +29,21 @@ export default async function ReleaseRequestsAdminPage({
     redirect('/sub-admin')
   }
 
+  // Get all release windows for this season
+  const releaseWindows = await prisma.release_windows.findMany({
+    where: { seasonId },
+    orderBy: { startDate: 'desc' }
+  })
+
+  const serializedReleaseWindows = releaseWindows.map(w => ({
+    id: w.id,
+    name: w.name,
+    startDate: w.startDate.toISOString(),
+    endDate: w.endDate.toISOString(),
+    status: w.status,
+    releaseLimit: w.releaseLimit
+  }))
+
   // Get all release requests for this season
   const requests = await prisma.release_requests.findMany({
     where: {
@@ -152,6 +167,7 @@ export default async function ReleaseRequestsAdminPage({
           releaseWindowOpen={season.releaseWindowOpen}
           requests={transformedRequests}
           teamStats={teamStats}
+          releaseWindows={serializedReleaseWindows}
         />
       </div>
     </div>

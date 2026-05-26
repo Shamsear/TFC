@@ -56,10 +56,12 @@ interface Limits {
   remainingRequests: number
   remainingSwaps: number
   canSubmit: boolean
+  maxSwaps?: number
 }
 
 interface Props {
   seasonId: string
+  swapWindowId?: string
   myTeamId: string
   myTeamName: string
   myPlayers: Player[]
@@ -71,6 +73,7 @@ interface Props {
 
 export default function SwapRequestClient({
   seasonId,
+  swapWindowId,
   myTeamId,
   myTeamName,
   myPlayers,
@@ -180,6 +183,7 @@ export default function SwapRequestClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           seasonId,
+          swapWindowId,
           requestingTeamId: myTeamId,
           targetTeamId,
           players: swapPlayers,
@@ -272,11 +276,11 @@ export default function SwapRequestClient({
           <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-4">
             <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border ${limits.remainingRequests === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
               <span className="text-xs sm:text-sm text-gray-400 block sm:mb-1">Requests Left</span>
-              <span className="font-bold text-sm sm:text-base">{limits.remainingRequests} / 5</span>
+              <span className="font-bold text-sm sm:text-base">{limits.remainingRequests} / {limits.maxSwaps || 5}</span>
             </div>
             <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border ${limits.remainingSwaps === 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'}`}>
               <span className="text-xs sm:text-sm text-gray-400 block sm:mb-1">Swaps Left</span>
-              <span className="font-bold text-sm sm:text-base">{limits.remainingSwaps} / 5</span>
+              <span className="font-bold text-sm sm:text-base">{limits.remainingSwaps} / {limits.maxSwaps || 5}</span>
             </div>
           </div>
 

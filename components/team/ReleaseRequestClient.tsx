@@ -30,6 +30,7 @@ interface ExistingRequest {
 
 interface Props {
   seasonId: string
+  releaseWindowId: string
   teamId: string
   teamName: string
   currentBudget: number
@@ -180,6 +181,7 @@ function CustomSelect({
 
 export default function ReleaseRequestClient({
   seasonId,
+  releaseWindowId,
   teamId,
   teamName,
   currentBudget,
@@ -280,6 +282,7 @@ export default function ReleaseRequestClient({
         body: JSON.stringify({
           seasonId,
           teamId,
+          releaseWindowId,
           releases,
         }),
       })

@@ -22,6 +22,7 @@ interface KnockoutRoundManagerProps {
 }
 
 const roundOptions = [
+  { value: 'ROUND_OF_32', label: 'Round of 32', teams: 32 },
   { value: 'ROUND_OF_16', label: 'Round of 16', teams: 16 },
   { value: 'QUARTER_FINAL', label: 'Quarter Final', teams: 8 },
   { value: 'SEMI_FINAL', label: 'Semi Final', teams: 4 },
@@ -110,8 +111,28 @@ export default function KnockoutRoundManager({
     }
   }
 
+  // Parse custom knockout config if available
+  const knockoutCfg = tournament.knockoutConfig ? JSON.parse(tournament.knockoutConfig) : null
+  const isCustomKnockout = tournament.tournamentType === 'CUSTOM_KNOCKOUT'
+
   return (
     <div className="space-y-6">
+      {/* Custom Knockout Config Banner */}
+      {isCustomKnockout && knockoutCfg?.qualifyingTeams && (
+        <div className="rounded-xl bg-[#E8A800]/5 border border-[#E8A800]/20 p-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-[#E8A800] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <p className="text-sm font-bold text-[#E8A800] mb-0.5">Custom Knockout Configuration</p>
+            <p className="text-sm text-[#D4CCBB]">
+              <span className="font-bold text-white">{knockoutCfg.qualifyingTeams} teams</span> qualify and enter at the{' '}
+              <span className="font-bold text-white">{roundOptions.find(r => r.value === knockoutCfg.qualifyingRound)?.label ?? knockoutCfg.qualifyingRound}</span> stage
+              ({knockoutCfg.defaultLegs === 1 ? 'single leg' : 'two-legged'} ties).
+            </p>
+          </div>
+        </div>
+      )}
       {/* Bracket View */}
       {existingRounds.length > 0 && (
         <KnockoutBracket

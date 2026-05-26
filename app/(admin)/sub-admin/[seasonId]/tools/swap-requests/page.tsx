@@ -29,6 +29,21 @@ export default async function SwapRequestsAdminPage({
     redirect('/sub-admin')
   }
 
+  // Get all swap windows for this season
+  const swapWindows = await prisma.swap_windows.findMany({
+    where: { seasonId },
+    orderBy: { startDate: 'desc' }
+  })
+
+  const serializedSwapWindows = swapWindows.map(w => ({
+    id: w.id,
+    name: w.name,
+    startDate: w.startDate.toISOString(),
+    endDate: w.endDate.toISOString(),
+    status: w.status,
+    swapLimit: w.swapLimit
+  }))
+
   // Get all swap requests for this season
   const requests = await prisma.swap_requests.findMany({
     where: {
@@ -168,6 +183,7 @@ export default async function SwapRequestsAdminPage({
           swapWindowOpen={season.swapWindowOpen}
           requests={transformedRequests}
           teamStats={teamStats}
+          swapWindows={serializedSwapWindows}
         />
       </div>
     </div>

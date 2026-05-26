@@ -166,6 +166,14 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                       Transfers
                     </Link>
                     <Link
+                      href={`/sub-admin/${activeSeasonId}/release-windows`}
+                      className={`text-sm font-bold transition-colors ${
+                        isActive(`/sub-admin/${activeSeasonId}/release-windows`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                      }`}
+                    >
+                      Release Windows
+                    </Link>
+                    <Link
                       href={`/sub-admin/${activeSeasonId}/tournaments`}
                       className={`text-sm font-bold transition-colors ${
                         isActive(`/sub-admin/${activeSeasonId}/tournaments`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
@@ -351,6 +359,15 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Transfers
+                      </Link>
+                      <Link
+                        href={`/sub-admin/${activeSeasonId}/release-windows`}
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/release-windows`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Release Windows
                       </Link>
                       <Link
                         href={`/sub-admin/${activeSeasonId}/tournaments`}

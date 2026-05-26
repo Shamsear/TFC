@@ -23,8 +23,15 @@ export default async function SwapRequestPage() {
     redirect("/team/not-in-season")
   }
 
-  // Check if swap window is open
-  if (!activeSeason.swapWindowOpen) {
+  // Check if an active swap window exists
+  const activeSwapWindow = await prisma.swap_windows.findFirst({
+    where: {
+      seasonId: activeSeason.id,
+      status: 'ACTIVE',
+    }
+  })
+
+  if (!activeSwapWindow) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
         {/* Header */}
@@ -265,17 +272,20 @@ export default async function SwapRequestPage() {
   const completedSwapsCount = existingRequests.filter(r => r.status === 'approved').length
   const usedRequestsCount = pendingRequestsCount + completedSwapsCount
 
+  const maxSwaps = activeSwapWindow.swapLimit || 5
   const limits = {
     totalRequests: usedRequestsCount,
     completedSwaps: completedSwapsCount,
-    remainingRequests: Math.max(0, 5 - usedRequestsCount),
-    remainingSwaps: Math.max(0, 5 - completedSwapsCount),
-    canSubmit: usedRequestsCount < 5 && completedSwapsCount < 5,
+    remainingRequests: Math.max(0, maxSwaps - usedRequestsCount),
+    remainingSwaps: Math.max(0, maxSwaps - completedSwapsCount),
+    canSubmit: usedRequestsCount < maxSwaps && completedSwapsCount < maxSwaps,
+    maxSwaps,
   }
 
   return (
     <SwapRequestClient
       seasonId={activeSeason.id}
+      swapWindowId={activeSwapWindow.id}
       myTeamId={session.user.teamId!}
       myTeamName={team?.name || ''}
       myPlayers={myPlayers}

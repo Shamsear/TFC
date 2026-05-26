@@ -21,7 +21,16 @@ const tournamentTypes = [
   { value: 'LEAGUE_ONLY', label: 'League Only' },
   { value: 'LEAGUE_PLAYOFF', label: 'League + Playoff' },
   { value: 'GROUP_KNOCKOUT', label: 'Group Stage + Knockout' },
-  { value: 'KNOCKOUT_ONLY', label: 'Knockout Only' }
+  { value: 'KNOCKOUT_ONLY', label: 'Knockout Only' },
+  { value: 'CUSTOM_KNOCKOUT', label: 'Custom Knockout' }
+]
+
+const knockoutRoundOptions = [
+  { value: 'ROUND_OF_32', label: 'Round of 32', teams: 32 },
+  { value: 'ROUND_OF_16', label: 'Round of 16', teams: 16 },
+  { value: 'QUARTER_FINAL', label: 'Quarter Final', teams: 8 },
+  { value: 'SEMI_FINAL', label: 'Semi Final', teams: 4 },
+  { value: 'FINAL', label: 'Final', teams: 2 },
 ]
 
 export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFormAdvancedProps) {
@@ -47,7 +56,11 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
     groupQualifiers: 2, // Top 2 or Top 3 qualify
     
     // Knockout settings
-    knockoutLegs: 2 // 1 or 2 per round (can be customized per round later)
+    knockoutLegs: 2, // 1 or 2 per round (can be customized per round later)
+
+    // Custom Knockout settings
+    qualifyingTeams: 4,    // how many teams enter the knockout
+    qualifyingRound: 'SEMI_FINAL' // which round they start from
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,6 +109,10 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
   const showPlayoffSettings = formData.tournamentType === 'LEAGUE_PLAYOFF'
   const showGroupSettings = formData.tournamentType === 'GROUP_KNOCKOUT'
   const showKnockoutSettings = formData.tournamentType === 'KNOCKOUT_ONLY' || formData.tournamentType === 'GROUP_KNOCKOUT' || formData.tournamentType === 'LEAGUE_PLAYOFF'
+  const showCustomKnockoutSettings = formData.tournamentType === 'CUSTOM_KNOCKOUT'
+
+  // Derive which round options are valid for the chosen qualifying team count
+  const validCustomRounds = knockoutRoundOptions.filter(r => r.teams >= formData.qualifyingTeams && (formData.qualifyingTeams % 2 === 0 || r.teams === formData.qualifyingTeams))
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
@@ -446,6 +463,126 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
               </div>
               <p className="text-xs text-[#7A7367] mt-2">
                 * Can be customized per round when generating knockout fixtures
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Knockout Settings */}
+      {showCustomKnockoutSettings && (
+        <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-black text-white mb-1">Custom Knockout Settings</h2>
+          <p className="text-sm text-[#7A7367] mb-5">Define how many teams qualify and which knockout stage they enter.</p>
+
+          <div className="space-y-6">
+            {/* Qualifying Teams */}
+            <div>
+              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                Number of Qualifying Teams
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="2"
+                  max="64"
+                  value={formData.qualifyingTeams}
+                  onChange={(e) => {
+                    const val = Math.max(2, parseInt(e.target.value) || 2)
+                    setFormData({ ...formData, qualifyingTeams: val })
+                  }}
+                  className="w-28 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base text-center font-bold"
+                />
+                <span className="text-sm text-[#7A7367]">teams enter the knockout stage</span>
+              </div>
+              {/* Quick-select pills */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {[2, 4, 8, 16, 32].map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, qualifyingTeams: n })}
+                    className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                      formData.qualifyingTeams === n
+                        ? 'bg-[#E8A800] text-black border-[#E8A800]'
+                        : 'bg-white/5 text-[#7A7367] border-white/10 hover:border-[#E8A800]/50 hover:text-white'
+                    }`}
+                  >
+                    Top {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Qualifying Round */}
+            <div>
+              <label className="block text-sm font-medium text-[#D4CCBB] mb-3">
+                They Enter At
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {knockoutRoundOptions.map((option) => {
+                  const isActive = formData.qualifyingRound === option.value
+                  return (
+                    <label
+                      key={option.value}
+                      className={`cursor-pointer rounded-lg sm:rounded-xl border-2 p-3 sm:p-4 transition-all ${
+                        isActive
+                          ? 'border-[#E8A800] bg-[#E8A800]/10'
+                          : 'border-white/10 bg-black/30 hover:border-white/20'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="qualifyingRound"
+                        value={option.value}
+                        checked={isActive}
+                        onChange={(e) => setFormData({ ...formData, qualifyingRound: e.target.value })}
+                        className="sr-only"
+                      />
+                      <div className="font-bold text-white text-sm sm:text-base">{option.label}</div>
+                      <div className="text-xs text-[#7A7367] mt-1">{option.teams} team bracket</div>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Knockout Legs */}
+            <div>
+              <label className="block text-sm font-medium text-[#D4CCBB] mb-3">
+                Match Format
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <label className={`cursor-pointer rounded-lg sm:rounded-xl border-2 p-3 sm:p-4 transition-all ${
+                  formData.knockoutLegs === 1
+                    ? 'border-[#E8A800] bg-[#E8A800]/10'
+                    : 'border-white/10 bg-black/30 hover:border-white/20'
+                }`}>
+                  <input type="radio" name="customKnockoutLegs" checked={formData.knockoutLegs === 1} onChange={() => setFormData({ ...formData, knockoutLegs: 1 })} className="sr-only" />
+                  <div className="font-bold text-white text-sm sm:text-base">Single Leg</div>
+                  <div className="text-xs sm:text-sm text-[#7A7367] mt-1">One match per round</div>
+                </label>
+                <label className={`cursor-pointer rounded-lg sm:rounded-xl border-2 p-3 sm:p-4 transition-all ${
+                  formData.knockoutLegs === 2
+                    ? 'border-[#E8A800] bg-[#E8A800]/10'
+                    : 'border-white/10 bg-black/30 hover:border-white/20'
+                }`}>
+                  <input type="radio" name="customKnockoutLegs" checked={formData.knockoutLegs === 2} onChange={() => setFormData({ ...formData, knockoutLegs: 2 })} className="sr-only" />
+                  <div className="font-bold text-white text-sm sm:text-base">Two Legs</div>
+                  <div className="text-xs sm:text-sm text-[#7A7367] mt-1">Home & away (aggregate)</div>
+                </label>
+              </div>
+            </div>
+
+            {/* Summary preview */}
+            <div className="rounded-xl bg-[#E8A800]/5 border border-[#E8A800]/20 p-4 flex items-start gap-3">
+              <svg className="w-5 h-5 text-[#E8A800] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-[#D4CCBB]">
+                <span className="font-bold text-[#E8A800]">{formData.qualifyingTeams} teams</span> will qualify and enter at the{' '}
+                <span className="font-bold text-white">{knockoutRoundOptions.find(r => r.value === formData.qualifyingRound)?.label}</span>{' '}
+                stage ({formData.knockoutLegs === 1 ? 'single leg' : 'two-legged'} ties).
               </p>
             </div>
           </div>

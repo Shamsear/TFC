@@ -18,13 +18,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // Verify season has release window open
-    const season = await prisma.seasons.findUnique({
-      where: { id: seasonId },
+    // Verify there is an active release window
+    const activeWindow = await prisma.release_windows.findFirst({
+      where: { 
+        seasonId,
+        status: 'ACTIVE'
+      }
     })
 
-    if (!season?.releaseWindowOpen) {
-      return NextResponse.json({ error: 'Release window is closed' }, { status: 400 })
+    if (!activeWindow) {
+      return NextResponse.json({ error: 'No active release window found' }, { status: 400 })
     }
 
     const MAX_RELEASES_PER_TEAM = 3
@@ -114,6 +117,7 @@ export async function POST(request: NextRequest) {
             notes: release.notes || null,
             status: 'pending',
             windowOpenedAt,
+            releaseWindowId: activeWindow.id
           },
         })
       })

@@ -28,7 +28,9 @@ export async function POST(
       playoffFormat,
       groupLegs,
       groupQualifiers,
-      knockoutLegs
+      knockoutLegs,
+      qualifyingTeams,
+      qualifyingRound
     } = body
 
     if (!name || !tournamentType || !startDate || !selectedTeams || selectedTeams.length < 2) {
@@ -70,8 +72,14 @@ export async function POST(
             ? (groupQualifiers || 2) 
             : null,
           // Knockout configuration (stored as JSON for per-round customization)
-          knockoutConfig: (tournamentType === 'KNOCKOUT_ONLY' || tournamentType === 'GROUP_KNOCKOUT' || tournamentType === 'LEAGUE_PLAYOFF')
-            ? JSON.stringify({ defaultLegs: knockoutLegs || 2 })
+          knockoutConfig: (tournamentType === 'KNOCKOUT_ONLY' || tournamentType === 'GROUP_KNOCKOUT' || tournamentType === 'LEAGUE_PLAYOFF' || tournamentType === 'CUSTOM_KNOCKOUT')
+            ? JSON.stringify({
+                defaultLegs: knockoutLegs || 2,
+                ...(tournamentType === 'CUSTOM_KNOCKOUT' ? {
+                  qualifyingTeams: qualifyingTeams || 4,
+                  qualifyingRound: qualifyingRound || 'SEMI_FINAL'
+                } : {})
+              })
             : null
         }
       })
@@ -131,7 +139,9 @@ export async function POST(
         playoffFormat,
         groupLegs,
         groupQualifiers,
-        knockoutLegs
+        knockoutLegs,
+        qualifyingTeams,
+        qualifyingRound
       },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'

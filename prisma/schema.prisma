@@ -1,31 +1,33 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model base_players {
-  id                   String                  @id
-  player_id            String?                 @unique @map("player_id")
-  name                 String
-  normalized_name      String?                 @map("normalized_name")
-  photoUrl             String
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime
-  retentions           retentions[]
-  seasonalPlayerStats  seasonal_player_stats[]
-  transferHistory      transfer_history[]
-  tiebreakers          tiebreakers[]
-  bulkTiebreakers      bulk_tiebreakers[]
-  previewAllocations   preview_allocations[]
-  starredPlayers       starred_players[]
-  releaseRequests      release_requests[]
-  swapRequestPlayers   swap_request_players[]
+  id                  String                  @id
+  name                String
+  photoUrl            String
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime
+  player_id           String?                 @unique @map("player_id")
+  normalized_name     String?                 @map("normalized_name")
+  bulkTiebreakers     bulk_tiebreakers[]
+  previewAllocations  preview_allocations[]
+  releaseRequests     release_requests[]
+  retentions          retentions[]
+  seasonalPlayerStats seasonal_player_stats[]
+  starredPlayers      starred_players[]
+  swapRequestPlayers  swap_request_players[]
+  tiebreakers         tiebreakers[]
+  transferHistory     transfer_history[]
+
+  @@index([normalized_name], map: "idx_base_players_normalized_name")
 }
 
 model financial_ledger {
@@ -37,8 +39,8 @@ model financial_ledger {
   previousBalance Int
   newBalance      Int
   description     String?
-  playerName      String?         @map("player_name")
   createdAt       DateTime        @default(now())
+  playerName      String?         @map("player_name")
   season          seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   seasonTeam      season_teams    @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
 }
@@ -56,236 +58,247 @@ model retentions {
 }
 
 model season_teams {
-  id              String             @id
-  seasonId        String
-  teamId          String
-  currentBudget   Int
-  finalBudget     Int?
-  trophiesWon     Int                @default(0)
-  football_min_slots Int?              @default(25) @map("football_min_slots")
-  football_max_slots Int?              @default(30) @map("football_max_slots")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime
-  financialLedger financial_ledger[]
-  season          seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  team            teams              @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  homeMatches     matches[]          @relation("HomeTeam")
-  awayMatches     matches[]          @relation("AwayTeam")
-  standings       standings[]        @relation("StandingsTeam")
-  tournamentTeams tournament_teams[] @relation("TournamentTeams")
-  starredPlayers  starred_players[]
-  auctionPlans    auction_plans[]
+  id                 String             @id
+  seasonId           String
+  teamId             String
+  currentBudget      Int
+  finalBudget        Int?
+  trophiesWon        Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime
+  football_min_slots Int?               @default(25) @map("football_min_slots")
+  football_max_slots Int?               @default(30) @map("football_max_slots")
+  auctionPlans       auction_plans[]
+  financialLedger    financial_ledger[]
+  awayMatches        matches[]          @relation("AwayTeam")
+  homeMatches        matches[]          @relation("HomeTeam")
+  season             seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team               teams              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  standings          standings[]        @relation("StandingsTeam")
+  starredPlayers     starred_players[]
+  tournamentTeams    tournament_teams[] @relation("TournamentTeams")
 
   @@unique([seasonId, teamId])
 }
 
 model seasonal_player_stats {
-  id            String       @id
-  basePlayerId  String
-  seasonId      String
-  position      String
-  position_group String?     @map("position_group")
-  realWorldClub String
-  overallRating Int
-  star_rating   Int?         @map("star_rating")
-  
-  // Player Info
-  nationality           String?
-  playing_style         String?      @map("playing_style")
-  height                Int?
-  weight                Int?
-  age                   Int?
-  foot                  String?
-  featured              String?
-  weak_foot_usage       String?      @map("weak_foot_usage")
-  weak_foot_accuracy    String?      @map("weak_foot_accuracy")
-  form                  String?
-  injury_resistance     String?      @map("injury_resistance")
-  condition             String?
-  max_level             Int?         @map("max_level")
-  overall_at_max_level  Int?         @map("overall_at_max_level")
-  
-  // Offensive Stats
-  offensive_awareness Int?        @map("offensive_awareness")
-  ball_control        Int?        @map("ball_control")
-  dribbling           Int?
-  tight_possession    Int?        @map("tight_possession")
-  low_pass            Int?        @map("low_pass")
-  lofted_pass         Int?        @map("lofted_pass")
-  finishing           Int?
-  heading             Int?
-  set_piece_taking    Int?        @map("set_piece_taking")
-  curl                Int?
-  
-  // Physical Stats
-  speed             Int?
-  acceleration      Int?
-  kicking_power     Int?          @map("kicking_power")
-  jumping           Int?
-  physical_contact  Int?          @map("physical_contact")
-  balance           Int?
-  stamina           Int?
-  
-  // Defensive Stats
-  defensive_awareness  Int?       @map("defensive_awareness")
-  tackling             Int?
+  id                   String       @id
+  basePlayerId         String
+  seasonId             String
+  position             String
+  realWorldClub        String
+  overallRating        Int
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime
+  acceleration         Int?
   aggression           Int?
-  defensive_engagement Int?       @map("defensive_engagement")
-  
-  // Goalkeeper Stats
-  gk_awareness Int?               @map("gk_awareness")
-  gk_catching  Int?               @map("gk_catching")
-  gk_parrying  Int?               @map("gk_parrying")
-  gk_reflexes  Int?               @map("gk_reflexes")
-  gk_reach     Int?               @map("gk_reach")
-  
-  // Dribbling Skills
-  scissors_feint      String?     @map("scissors_feint")
-  double_touch        String?     @map("double_touch")
-  flip_flap           String?     @map("flip_flap")
-  marseille_turn      String?     @map("marseille_turn")
-  sombrero            String?
-  chop_turn           String?     @map("chop_turn")
-  cut_behind_turn     String?     @map("cut_behind_turn")
-  scotch_move         String?     @map("scotch_move")
-  sole_control        String?     @map("sole_control")
-  momentum_dribbling  String?     @map("momentum_dribbling")
-  acceleration_burst  String?     @map("acceleration_burst")
-  magnetic_feet       String?     @map("magnetic_feet")
-  
-  // Heading Skills
-  heading_skill       String?     @map("heading_skill")
-  bullet_header       String?     @map("bullet_header")
-  
-  // Shooting Skills
-  long_range_curler   String?     @map("long_range_curler")
-  blitz_curler        String?     @map("blitz_curler")
-  chip_shot_control   String?     @map("chip_shot_control")
-  knuckle_shot        String?     @map("knuckle_shot")
-  dipping_shot        String?     @map("dipping_shot")
-  rising_shot         String?     @map("rising_shot")
-  long_range_shooting String?     @map("long_range_shooting")
-  low_screamer        String?     @map("low_screamer")
-  acrobatic_finishing String?     @map("acrobatic_finishing")
-  heel_trick          String?     @map("heel_trick")
-  first_time_shot     String?     @map("first_time_shot")
-  phenomenal_finishing String?    @map("phenomenal_finishing")
-  willpower           String?
-  
-  // Passing Skills
-  one_touch_pass      String?     @map("one_touch_pass")
-  through_passing     String?     @map("through_passing")
-  weighted_pass       String?     @map("weighted_pass")
-  pinpoint_crossing   String?     @map("pinpoint_crossing")
-  edged_crossing      String?     @map("edged_crossing")
-  outside_curler      String?     @map("outside_curler")
-  rabona              String?
-  no_look_pass        String?     @map("no_look_pass")
-  game_changing_pass  String?     @map("game_changing_pass")
-  visionary_pass      String?     @map("visionary_pass")
-  phenomenal_pass     String?     @map("phenomenal_pass")
-  low_lofted_pass     String?     @map("low_lofted_pass")
-  
-  // Goalkeeper Skills
-  gk_low_punt         String?     @map("gk_low_punt")
-  gk_high_punt        String?     @map("gk_high_punt")
-  long_throw          String?     @map("long_throw")
-  gk_long_throw       String?     @map("gk_long_throw")
-  penalty_specialist  String?     @map("penalty_specialist")
-  gk_penalty_saver    String?     @map("gk_penalty_saver")
-  gk_directing_defence String?    @map("gk_directing_defence")
-  gk_spirit_roar      String?     @map("gk_spirit_roar")
-  
-  // Defensive Skills
-  gamesmanship        String?
-  man_marking         String?     @map("man_marking")
-  track_back          String?     @map("track_back")
-  interception        String?
-  blocker             String?
-  aerial_superiority  String?     @map("aerial_superiority")
-  sliding_tackle      String?     @map("sliding_tackle")
-  long_reach_tackle   String?     @map("long_reach_tackle")
-  fortress            String?
-  acrobatic_clearance String?     @map("acrobatic_clearance")
-  aerial_fort         String?     @map("aerial_fort")
-  
-  // Special Skills
-  captaincy           String?
-  attack_trigger      String?     @map("attack_trigger")
-  super_sub           String?     @map("super_sub")
-  fighting_spirit     String?     @map("fighting_spirit")
-  trickster           String?
-  mazing_run          String?     @map("mazing_run")
-  speeding_bullet     String?     @map("speeding_bullet")
-  incisive_run        String?     @map("incisive_run")
-  long_ball_expert    String?     @map("long_ball_expert")
-  early_cross         String?     @map("early_cross")
-  long_ranger         String?     @map("long_ranger")
-  
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime
-  basePlayer    base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
-  season        seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  balance              Int?
+  ball_control         Int?         @map("ball_control")
+  curl                 Int?
+  defensive_awareness  Int?         @map("defensive_awareness")
+  defensive_engagement Int?         @map("defensive_engagement")
+  dribbling            Int?
+  finishing            Int?
+  gk_awareness         Int?         @map("gk_awareness")
+  gk_catching          Int?         @map("gk_catching")
+  gk_parrying          Int?         @map("gk_parrying")
+  gk_reach             Int?         @map("gk_reach")
+  gk_reflexes          Int?         @map("gk_reflexes")
+  heading              Int?
+  jumping              Int?
+  kicking_power        Int?         @map("kicking_power")
+  lofted_pass          Int?         @map("lofted_pass")
+  low_pass             Int?         @map("low_pass")
+  nationality          String?
+  offensive_awareness  Int?         @map("offensive_awareness")
+  physical_contact     Int?         @map("physical_contact")
+  playing_style        String?      @map("playing_style")
+  set_piece_taking     Int?         @map("set_piece_taking")
+  speed                Int?
+  stamina              Int?
+  star_rating          Int?         @map("star_rating")
+  tackling             Int?
+  tight_possession     Int?         @map("tight_possession")
+  height               Int?
+  weight               Int?
+  age                  Int?
+  foot                 String?
+  featured             String?
+  weak_foot_usage      String?      @map("weak_foot_usage")
+  weak_foot_accuracy   String?      @map("weak_foot_accuracy")
+  form                 String?
+  injury_resistance    String?      @map("injury_resistance")
+  condition            String?
+  max_level            Int?         @map("max_level")
+  overall_at_max_level Int?         @map("overall_at_max_level")
+  scissors_feint       String?      @map("scissors_feint")
+  double_touch         String?      @map("double_touch")
+  flip_flap            String?      @map("flip_flap")
+  marseille_turn       String?      @map("marseille_turn")
+  sombrero             String?
+  chop_turn            String?      @map("chop_turn")
+  cut_behind_turn      String?      @map("cut_behind_turn")
+  scotch_move          String?      @map("scotch_move")
+  sole_control         String?      @map("sole_control")
+  momentum_dribbling   String?      @map("momentum_dribbling")
+  acceleration_burst   String?      @map("acceleration_burst")
+  magnetic_feet        String?      @map("magnetic_feet")
+  heading_skill        String?      @map("heading_skill")
+  bullet_header        String?      @map("bullet_header")
+  long_range_curler    String?      @map("long_range_curler")
+  blitz_curler         String?      @map("blitz_curler")
+  chip_shot_control    String?      @map("chip_shot_control")
+  knuckle_shot         String?      @map("knuckle_shot")
+  dipping_shot         String?      @map("dipping_shot")
+  rising_shot          String?      @map("rising_shot")
+  long_range_shooting  String?      @map("long_range_shooting")
+  low_screamer         String?      @map("low_screamer")
+  acrobatic_finishing  String?      @map("acrobatic_finishing")
+  heel_trick           String?      @map("heel_trick")
+  first_time_shot      String?      @map("first_time_shot")
+  phenomenal_finishing String?      @map("phenomenal_finishing")
+  willpower            String?
+  one_touch_pass       String?      @map("one_touch_pass")
+  through_passing      String?      @map("through_passing")
+  weighted_pass        String?      @map("weighted_pass")
+  pinpoint_crossing    String?      @map("pinpoint_crossing")
+  edged_crossing       String?      @map("edged_crossing")
+  outside_curler       String?      @map("outside_curler")
+  rabona               String?
+  no_look_pass         String?      @map("no_look_pass")
+  game_changing_pass   String?      @map("game_changing_pass")
+  visionary_pass       String?      @map("visionary_pass")
+  phenomenal_pass      String?      @map("phenomenal_pass")
+  low_lofted_pass      String?      @map("low_lofted_pass")
+  gk_low_punt          String?      @map("gk_low_punt")
+  gk_high_punt         String?      @map("gk_high_punt")
+  long_throw           String?      @map("long_throw")
+  gk_long_throw        String?      @map("gk_long_throw")
+  penalty_specialist   String?      @map("penalty_specialist")
+  gk_penalty_saver     String?      @map("gk_penalty_saver")
+  gk_directing_defence String?      @map("gk_directing_defence")
+  gk_spirit_roar       String?      @map("gk_spirit_roar")
+  gamesmanship         String?
+  man_marking          String?      @map("man_marking")
+  track_back           String?      @map("track_back")
+  interception         String?
+  blocker              String?
+  aerial_superiority   String?      @map("aerial_superiority")
+  sliding_tackle       String?      @map("sliding_tackle")
+  long_reach_tackle    String?      @map("long_reach_tackle")
+  fortress             String?
+  acrobatic_clearance  String?      @map("acrobatic_clearance")
+  aerial_fort          String?      @map("aerial_fort")
+  captaincy            String?
+  attack_trigger       String?      @map("attack_trigger")
+  super_sub            String?      @map("super_sub")
+  fighting_spirit      String?      @map("fighting_spirit")
+  trickster            String?
+  mazing_run           String?      @map("mazing_run")
+  speeding_bullet      String?      @map("speeding_bullet")
+  incisive_run         String?      @map("incisive_run")
+  long_ball_expert     String?      @map("long_ball_expert")
+  early_cross          String?      @map("early_cross")
+  long_ranger          String?      @map("long_ranger")
+  position_group       String?      @map("position_group")
+  basePlayer           base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  season               seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   @@unique([basePlayerId, seasonId])
 }
 
 model seasons {
-  id                      String                  @id
-  seasonNumber            Int                     @unique @map("season_number")
-  name                    String                  @unique
-  startingPurse           Int
-  isActive                Boolean                 @default(false)
-  releaseWindowOpen       Boolean                 @default(false) @map("release_window_open")
-  swapWindowOpen          Boolean                 @default(false) @map("swap_window_open")
-  defaultMaxBidsPerTeam   Int?                    @default(10) @map("defaultMaxBidsPerTeam")
-  defaultBasePrice        Int?                    @default(100000) @map("defaultBasePrice")
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime
-  financialLedger         financial_ledger[]
-  retentions              retentions[]
-  seasonTeams             season_teams[]
-  seasonalPlayerStats     seasonal_player_stats[]
-  transferHistory         transfer_history[]
-  auctionCalendar         auction_calendar[]
-  tournaments             tournaments[]
-  rounds                  rounds[]
-  starredPlayers          starred_players[]
-  auctionPlans            auction_plans[]
-  teamSquads              team_squads[]
-  auctionSettings         auction_settings?
-  releaseRequests         release_requests[]
-  swapRequests            swap_requests[]
+  id                    String                  @id
+  name                  String                  @unique
+  startingPurse         Int
+  isActive              Boolean                 @default(false)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  seasonNumber          Int                     @unique @map("season_number")
+  defaultMaxBidsPerTeam Int?                    @default(10) @map("defaultMaxBidsPerTeam")
+  defaultBasePrice      Int?                    @default(100000) @map("defaultBasePrice")
+  releaseWindowOpen     Boolean?                @default(false) @map("release_window_open")
+  swapWindowOpen        Boolean?                @default(false) @map("swap_window_open")
+  auctionCalendar       auction_calendar[]
+  auctionPlans          auction_plans[]
+  auctionSettings       auction_settings?
+  financialLedger       financial_ledger[]
+  releaseRequests       release_requests[]
+  releaseWindows        release_windows[]
+  retentions            retentions[]
+  rounds                rounds[]
+  seasonTeams           season_teams[]
+  seasonalPlayerStats   seasonal_player_stats[]
+  starredPlayers        starred_players[]
+  swapRequests          swap_requests[]
+  swapWindows           swap_windows[]
+  teamSquads            team_squads[]
+  tournaments           tournaments[]
+  transferHistory       transfer_history[]
 }
 
+model release_windows {
+  id              String             @id @db.VarChar(36)
+  seasonId        String             @map("season_id") @db.VarChar(36)
+  name            String
+  startDate       DateTime           @map("start_date") @db.Timestamp(6)
+  endDate         DateTime           @map("end_date") @db.Timestamp(6)
+  status          String             @default("UPCOMING")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  releaseLimit    Int                @default(3) @map("release_limit")
+  season          seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  releaseRequests release_requests[]
+
+  @@index([seasonId], map: "idx_release_windows_season")
+}
+
+model swap_windows {
+  id              String             @id @db.VarChar(36)
+  seasonId        String             @map("season_id") @db.VarChar(36)
+  name            String
+  startDate       DateTime           @map("start_date") @db.Timestamp(6)
+  endDate         DateTime           @map("end_date") @db.Timestamp(6)
+  status          String             @default("UPCOMING")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  swapLimit       Int                @default(5) @map("swap_limit")
+  season          seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  swapRequests    swap_requests[]
+
+  @@index([seasonId], map: "idx_swap_windows_season")
+}
+
+
 model starred_players {
-  id            Int          @id @default(autoincrement())
-  seasonTeamId  String       @map("seasonTeamId")
-  playerId      String       @map("playerId")
-  seasonId      String       @map("seasonId")
-  starred_at    DateTime     @default(now())
-  seasonTeam    season_teams @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
-  basePlayer    base_players @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  season        seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  id           Int          @id @default(autoincrement())
+  seasonTeamId String       @map("seasonTeamId")
+  playerId     String       @map("playerId")
+  seasonId     String       @map("seasonId")
+  starred_at   DateTime     @default(now())
+  basePlayer   base_players @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season       seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  seasonTeam   season_teams @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
 
   @@unique([seasonTeamId, playerId, seasonId], name: "starred_players_unique")
-  @@index([seasonTeamId])
   @@index([playerId])
   @@index([seasonId])
   @@index([seasonTeamId, seasonId])
+  @@index([seasonTeamId], map: "idx_starred_players_season_team")
+  @@index([seasonTeamId], map: "idx_starred_players_seasonteamid")
 }
 
 model auction_plans {
-  id                   Int          @id @default(autoincrement())
-  season_team_id       String
-  season_id            String
-  team_id              String
-  encrypted_plan_data  String       @db.Text
-  last_updated         DateTime     @default(now()) @updatedAt
-  created_at           DateTime     @default(now())
-  seasonTeam           season_teams @relation(fields: [season_team_id], references: [id], onDelete: Cascade)
-  season               seasons      @relation(fields: [season_id], references: [id], onDelete: Cascade)
-  team                 teams        @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  id                  Int          @id @default(autoincrement())
+  season_team_id      String
+  season_id           String
+  team_id             String
+  encrypted_plan_data String
+  last_updated        DateTime     @default(now()) @updatedAt
+  created_at          DateTime     @default(now())
+  season              seasons      @relation(fields: [season_id], references: [id], onDelete: Cascade)
+  seasonTeam          season_teams @relation(fields: [season_team_id], references: [id], onDelete: Cascade)
+  team                teams        @relation(fields: [team_id], references: [id], onDelete: Cascade)
 
   @@unique([season_team_id, season_id])
   @@index([season_team_id])
@@ -293,125 +306,119 @@ model auction_plans {
 }
 
 model teams {
-  id                            String                           @id
-  name                          String                           @unique
-  managerName                   String
-  logoUrl                       String
-  createdAt                     DateTime                         @default(now())
-  updatedAt                     DateTime
-  seasonTeams                   season_teams[]
-  transferHistory               transfer_history[]
-  teamManagers                  users[]                          @relation("TeamManager")
-  bulkTiebreakerParticipants    bulk_tiebreaker_participants[]   @relation("BulkTiebreakerParticipants")
-  bulkTiebreakerBidHistory      bulk_tiebreaker_bid_history[]    @relation("BulkTiebreakerBidHistory")
-  releaseRequests               release_requests[]
-  requestingSwaps               swap_requests[]                  @relation("RequestingTeam")
-  targetSwaps                   swap_requests[]                  @relation("TargetTeam")
-  swapPlayersFrom               swap_request_players[]           @relation("SwapPlayerFromTeam")
-  swapPlayersTo                 swap_request_players[]           @relation("SwapPlayerToTeam")
-  previewAllocations            preview_allocations[]
-  auctionPlans                  auction_plans[]
-  teamSquads                    team_squads[]
+  id                         String                         @id
+  name                       String                         @unique
+  managerName                String
+  logoUrl                    String
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime
+  auctionPlans               auction_plans[]
+  bulkTiebreakerBidHistory   bulk_tiebreaker_bid_history[]  @relation("BulkTiebreakerBidHistory")
+  bulkTiebreakerParticipants bulk_tiebreaker_participants[] @relation("BulkTiebreakerParticipants")
+  previewAllocations         preview_allocations[]
+  releaseRequests            release_requests[]
+  seasonTeams                season_teams[]
+  swapPlayersFrom            swap_request_players[]         @relation("SwapPlayerFromTeam")
+  swapPlayersTo              swap_request_players[]         @relation("SwapPlayerToTeam")
+  requestingSwaps            swap_requests[]                @relation("RequestingTeam")
+  targetSwaps                swap_requests[]                @relation("TargetTeam")
+  teamSquads                 team_squads[]
+  transferHistory            transfer_history[]
+  teamManagers               users[]                        @relation("TeamManager")
 }
 
 model team_squads {
-  id         String   @id @default(dbgenerated("gen_random_uuid()::TEXT"))
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   team_id    String
   season_id  String
   formation  Json     @default("{}")
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  team       teams    @relation(fields: [team_id], references: [id], onDelete: Cascade)
   season     seasons  @relation(fields: [season_id], references: [id], onDelete: Cascade)
+  team       teams    @relation(fields: [team_id], references: [id], onDelete: Cascade)
 
   @@unique([team_id, season_id])
   @@index([team_id, season_id])
 }
 
 model transfer_history {
-  id               String          @id
+  id               String         @id
   basePlayerId     String
   seasonId         String
   teamId           String
-  roundId          String?         @map("round_id")
   soldPrice        Int
-  acquisitionType  String          @default("bid_won") @map("acquisition_type") // 'bid_won' | 'auto_assigned' | 'tiebreaker_won'
-  acquisitionNotes String?         @map("acquisition_notes") @db.Text
-  status           TransferStatus  @default(ACTIVE)
-  releasedAt       DateTime?       @map("released_at")
-  releaseNotes     String?         @map("release_notes") @db.Text
-  createdAt        DateTime        @default(now())
-  basePlayer       base_players    @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
-  season           seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  team             teams           @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  round            rounds?         @relation("TransferHistoryRound", fields: [roundId], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+  roundId          String?        @map("round_id")
+  acquisitionType  String         @default("bid_won") @map("acquisition_type")
+  acquisitionNotes String?        @map("acquisition_notes")
+  status           TransferStatus @default(ACTIVE)
+  releasedAt       DateTime?      @map("released_at")
+  releaseNotes     String?        @map("release_notes")
+  basePlayer       base_players   @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  round            rounds?        @relation("TransferHistoryRound", fields: [roundId], references: [id])
+  season           seasons        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team             teams          @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([roundId])
   @@index([acquisitionType], map: "idx_transfer_history_acquisition_type")
-  @@index([status], map: "transfer_history_status_idx")
+  @@index([status])
   @@index([seasonId, teamId, status], map: "transfer_history_season_team_status_idx")
-}
-
-enum TransferStatus {
-  ACTIVE
-  RELEASED
-  SWAPPED_OUT
+  @@index([roundId], map: "idx_transfer_history_round_id")
 }
 
 model users {
-  id                    String              @id
-  email                 String              @unique
-  name                  String?
-  role                  UserRole            @default(SUB_ADMIN)
-  passwordHash          String
-  teamId                String?             @map("team_id")
-  createdBy             String?             @map("created_by")
-  isActive              Boolean             @default(true) @map("is_active")
-  mustChangePassword    Boolean             @default(false) @map("must_change_password")
-  assignedSeasons       Json                @default("[]") @map("assigned_seasons")
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  team                  teams?              @relation("TeamManager", fields: [teamId], references: [id], onDelete: SetNull)
-  auditLogs             audit_logs[]
-  updatedCalendars      auction_calendar[]  @relation("CalendarUpdatedBy")
-  passwordResetRequests password_reset_requests[] @relation("UserResetRequests")
-  reviewedResetRequests password_reset_requests[] @relation("ReviewedResetRequests")
-  processedReleaseRequests release_requests[] @relation("ReleaseRequestProcessor")
-  processedSwapRequests swap_requests[]     @relation("SwapRequestProcessor")
+  id                       String                    @id
+  email                    String                    @unique
+  name                     String?
+  role                     UserRole                  @default(SUB_ADMIN)
+  passwordHash             String
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  createdBy                String?                   @map("created_by")
+  isActive                 Boolean                   @default(true) @map("is_active")
+  assignedSeasons          Json                      @default("[]") @map("assigned_seasons")
+  teamId                   String?                   @map("team_id")
+  mustChangePassword       Boolean                   @default(false) @map("must_change_password")
+  updatedCalendars         auction_calendar[]        @relation("CalendarUpdatedBy")
+  auditLogs                audit_logs[]
+  reviewedResetRequests    password_reset_requests[] @relation("ReviewedResetRequests")
+  passwordResetRequests    password_reset_requests[] @relation("UserResetRequests")
+  processedReleaseRequests release_requests[]        @relation("ReleaseRequestProcessor")
+  processedSwapRequests    swap_requests[]           @relation("SwapRequestProcessor")
+  team                     teams?                    @relation("TeamManager", fields: [teamId], references: [id])
 }
 
 model password_reset_requests {
-  id          String    @id
-  userId      String    @map("user_id")
-  teamName    String    @map("team_name")
-  status      String    @default("pending")
-  reviewedBy  String?   @map("reviewed_by")
-  reviewedAt  DateTime? @map("reviewed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
-  
-  user        users     @relation("UserResetRequests", fields: [userId], references: [id], onDelete: Cascade)
-  reviewer    users?    @relation("ReviewedResetRequests", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  id         String    @id
+  userId     String    @map("user_id")
+  teamName   String    @map("team_name")
+  status     String    @default("pending")
+  reviewedBy String?   @map("reviewed_by")
+  reviewedAt DateTime? @map("reviewed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at")
+  reviewer   users?    @relation("ReviewedResetRequests", fields: [reviewedBy], references: [id])
+  user       users     @relation("UserResetRequests", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
 }
 
 model audit_logs {
-  id          String   @id
-  userId      String   @map("user_id")
-  userEmail   String   @map("user_email")
-  userRole    String   @map("user_role")
-  action      String
-  entityType  String   @map("entity_type")
-  entityId    String?  @map("entity_id")
-  entityName  String?  @map("entity_name")
-  seasonId    String?  @map("season_id")
-  details     String?  // JSON string
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  createdAt   DateTime @default(now()) @map("created_at")
-  user        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id
+  userId     String   @map("user_id")
+  userEmail  String   @map("user_email")
+  userRole   String   @map("user_role")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  entityName String?  @map("entity_name")
+  seasonId   String?  @map("season_id")
+  details    String?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([seasonId])
@@ -423,62 +430,56 @@ model auction_calendar {
   id           String          @id
   seasonId     String
   auctionDate  DateTime
-  endDate      DateTime?
   description  String?
-  updated_by   String?         @map("updated_by")
   createdAt    DateTime        @default(now())
   updatedAt    DateTime
+  updated_by   String?         @map("updated_by")
+  endDate      DateTime
   season       seasons         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  updatedBy    users?          @relation("CalendarUpdatedBy", fields: [updated_by], references: [id])
   auctionSlots auction_slots[]
-  updatedBy    users?          @relation("CalendarUpdatedBy", fields: [updated_by], references: [id], onDelete: SetNull)
 
   @@unique([seasonId, auctionDate])
+  @@index([endDate])
 }
 
 model auction_slots {
   id                String           @id
   auctionCalendarId String
   position          String
-  position_group    String?          @map("position_group")
-  roundType         String           @default("normal") @map("round_type")
-  positionHidden    Boolean          @default(false)
   slotOrder         Int              @default(0)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime
+  position_group    String?          @map("position_group")
+  roundType         String           @default("normal") @map("round_type")
+  positionHidden    Boolean          @default(false)
   auctionCalendar   auction_calendar @relation(fields: [auctionCalendarId], references: [id], onDelete: Cascade)
 
   @@unique([auctionCalendarId, position])
 }
 
 model tournaments {
-  id              String           @id
+  id              String             @id
   seasonId        String
   name            String
   tournamentType  TournamentType
   startDate       DateTime
   endDate         DateTime?
-  status          TournamentStatus @default(UPCOMING)
+  status          TournamentStatus   @default(UPCOMING)
   description     String?
-  
-  // League Configuration
-  leagueLegs      Int?             @default(2) // 1 or 2 legs
-  playoffFormat   String?          // JSON: {top2: 'SEMI', top3to6: 'PLAYOFF', top4: 'SEMI', top8: 'QUARTER'}
-  
-  // Group Configuration
-  groupLegs       Int?             @default(1) // 1 or 2 legs
-  groupQualifiers Int?             @default(2) // Top 2 or Top 3 qualify
-  
-  // Knockout Configuration
-  knockoutConfig  String?          // JSON: Round-by-round config with legs and teams
-  
-  createdAt       DateTime         @default(now())
+  leagueLegs      Int?               @default(2)
+  playoffFormat   String?
+  groupLegs       Int?               @default(1)
+  groupQualifiers Int?               @default(2)
+  knockoutConfig  String?
+  createdAt       DateTime           @default(now())
   updatedAt       DateTime
-  season          seasons          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  tournamentTeams tournament_teams[]
-  matches         matches[]
   groups          groups[]
-  standings       standings[]
   knockoutRounds  knockout_rounds[]
+  matches         matches[]
+  standings       standings[]
+  tournamentTeams tournament_teams[]
+  season          seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   @@unique([seasonId, name])
 }
@@ -491,8 +492,8 @@ model tournament_teams {
   seedPosition Int?         @map("seed_position")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @default(now()) @map("updated_at")
-  tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   seasonTeam   season_teams @relation("TournamentTeams", fields: [teamId], references: [id], onDelete: Cascade)
+  tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, teamId])
   @@index([tournamentId])
@@ -500,39 +501,39 @@ model tournament_teams {
 }
 
 model knockout_rounds {
-  id           String      @id
+  id           String              @id
   tournamentId String
-  roundName    String      // ROUND_OF_16, QUARTER_FINAL, SEMI_FINAL, FINAL
+  roundName    String
   roundOrder   Int
-  legs         Int         @default(1) // 1 or 2 legs
-  status       RoundStatus @default(PENDING)
-  createdAt    DateTime    @default(now())
+  legs         Int                 @default(1)
+  status       RoundStatus         @default(PENDING)
+  createdAt    DateTime            @default(now())
   updatedAt    DateTime
-  tournament   tournaments @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   pairings     knockout_pairings[]
+  tournament   tournaments         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, roundName])
 }
 
 model knockout_pairings {
-  id             String          @id
+  id              String          @id
   knockoutRoundId String
-  team1Id        String?
-  team2Id        String?
-  winnerId       String?
-  leg1MatchId    String?
-  leg2MatchId    String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime
-  knockoutRound  knockout_rounds @relation(fields: [knockoutRoundId], references: [id], onDelete: Cascade)
+  team1Id         String?
+  team2Id         String?
+  winnerId        String?
+  leg1MatchId     String?
+  leg2MatchId     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  knockoutRound   knockout_rounds @relation(fields: [knockoutRoundId], references: [id], onDelete: Cascade)
 }
 
 model groups {
-  id           String   @id
+  id           String      @id
   tournamentId String
   name         String
-  groupOrder   Int      @default(0)
-  createdAt    DateTime @default(now())
+  groupOrder   Int         @default(0)
+  createdAt    DateTime    @default(now())
   updatedAt    DateTime
   tournament   tournaments @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   matches      matches[]
@@ -541,27 +542,27 @@ model groups {
 }
 
 model matches {
-  id              String       @id
-  tournamentId    String
-  groupId         String?
-  homeTeamId      String
-  awayTeamId      String
-  matchDate       DateTime
-  venue           String?
-  round           String?
-  matchType       MatchType    @default(LEAGUE)
-  status          MatchStatus  @default(SCHEDULED)
-  homeScore       Int?
-  awayScore       Int?
-  homePenalty     Int?
-  awayPenalty     Int?
-  notes           String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime
-  tournament      tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  group           groups?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  homeTeam        season_teams @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
-  awayTeam        season_teams @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  id           String       @id
+  tournamentId String
+  groupId      String?
+  homeTeamId   String
+  awayTeamId   String
+  matchDate    DateTime
+  venue        String?
+  round        String?
+  matchType    MatchType    @default(LEAGUE)
+  status       MatchStatus  @default(SCHEDULED)
+  homeScore    Int?
+  awayScore    Int?
+  homePenalty  Int?
+  awayPenalty  Int?
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime
+  awayTeam     season_teams @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  group        groups?      @relation(fields: [groupId], references: [id])
+  homeTeam     season_teams @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 }
 
 model standings {
@@ -580,10 +581,321 @@ model standings {
   position     Int?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime
-  tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   seasonTeam   season_teams @relation("StandingsTeam", fields: [teamId], references: [id], onDelete: Cascade)
+  tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, teamId, groupName])
+}
+
+model rounds {
+  id                  String                  @id
+  seasonId            String                  @map("season_id")
+  position            String?
+  roundNumber         Int                     @map("round_number")
+  roundType           String                  @map("round_type")
+  maxBidsPerTeam      Int?                    @map("max_bids_per_team")
+  basePrice           Int?                    @map("base_price")
+  durationSeconds     Int                     @map("duration_seconds")
+  startTime           DateTime?               @map("start_time")
+  endTime             DateTime?               @map("end_time")
+  status              String                  @default("draft")
+  finalizationMode    String                  @default("auto") @map("finalization_mode")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  finalizationState   Json?                   @map("finalization_state")
+  position_group      String?                 @map("position_group")
+  position_hidden     Boolean                 @default(false) @map("position_hidden")
+  bidAuditLogs        bid_audit_log[]
+  bulkRoundSelections bulk_round_selections[]
+  bulkTiebreakers     bulk_tiebreakers[]      @relation("BulkTiebreakerRound")
+  previewAllocations  preview_allocations[]
+  season              seasons                 @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  teamRoundBids       team_round_bids[]
+  tiebreakers         tiebreakers[]
+  transferHistory     transfer_history[]      @relation("TransferHistoryRound")
+
+  @@index([seasonId])
+  @@index([status])
+  @@index([endTime])
+  @@index([seasonId], map: "idx_rounds_season_id")
+  @@index([status], map: "idx_rounds_status")
+}
+
+model team_round_bids {
+  id            String    @id
+  roundId       String    @map("round_id")
+  teamId        String    @map("team_id")
+  encryptedBids String    @map("encrypted_bids")
+  submitted     Boolean   @default(false)
+  bidCount      Int       @default(0) @map("bid_count")
+  lastUpdated   DateTime  @default(now()) @map("last_updated")
+  submittedAt   DateTime? @map("submitted_at")
+  round         rounds    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, teamId])
+  @@index([roundId])
+  @@index([teamId])
+  @@index([roundId], map: "idx_team_round_bids_round")
+  @@index([teamId], map: "idx_team_round_bids_team")
+}
+
+model tiebreakers {
+  id                 String                 @id
+  roundId            String                 @map("round_id")
+  basePlayerId       String                 @map("base_player_id")
+  originalAmount     Int                    @map("original_amount")
+  tiedTeamsCount     Int                    @map("tied_teams_count")
+  status             String                 @default("active")
+  winningTeamId      String?                @map("winning_team_id")
+  winningBid         Int?                   @map("winning_bid")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  teamTiebreakerBids team_tiebreaker_bids[]
+  basePlayer         base_players           @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  round              rounds                 @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([roundId])
+  @@index([status])
+  @@index([roundId], map: "idx_tiebreakers_round")
+  @@index([status], map: "idx_tiebreakers_status")
+}
+
+model team_tiebreaker_bids {
+  id           String      @id
+  tiebreakerId String      @map("tiebreaker_id")
+  teamId       String      @map("team_id")
+  oldBidAmount Int         @map("old_bid_amount")
+  newBidAmount Int?        @map("new_bid_amount")
+  submitted    Boolean     @default(false)
+  submittedAt  DateTime?   @map("submitted_at")
+  tiebreaker   tiebreakers @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+
+  @@unique([tiebreakerId, teamId])
+  @@index([tiebreakerId])
+  @@index([teamId])
+  @@index([teamId], map: "idx_team_tiebreaker_bids_team")
+  @@index([tiebreakerId], map: "idx_team_tiebreaker_bids_tiebreaker")
+}
+
+model bulk_round_selections {
+  id              String   @id
+  roundId         String   @map("round_id")
+  teamId          String   @map("team_id")
+  selectedPlayers String   @map("selected_players")
+  submitted       Boolean  @default(false)
+  lastUpdated     DateTime @default(now()) @map("last_updated")
+  round           rounds   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, teamId])
+  @@index([roundId])
+  @@index([teamId])
+  @@index([roundId], map: "idx_bulk_round_selections_round")
+  @@index([teamId], map: "idx_bulk_round_selections_team")
+}
+
+model bulk_tiebreakers {
+  id                   Int                            @id @default(autoincrement())
+  roundId              String                         @map("round_id")
+  basePlayerId         String                         @map("base_player_id")
+  basePrice            Int                            @map("base_price")
+  status               String                         @default("pending")
+  currentHighestBid    Int?                           @map("current_highest_bid")
+  currentHighestTeamId String?                        @map("current_highest_team_id")
+  teamsRemaining       Int                            @map("teams_remaining")
+  startTime            DateTime?                      @map("start_time")
+  maxEndTime           DateTime?                      @map("max_end_time")
+  createdAt            DateTime                       @default(now()) @map("created_at")
+  bidHistory           bulk_tiebreaker_bid_history[]
+  participants         bulk_tiebreaker_participants[]
+  basePlayer           base_players                   @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  round                rounds                         @relation("BulkTiebreakerRound", fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([roundId])
+  @@index([status])
+  @@index([roundId], map: "idx_bulk_tiebreakers_round")
+  @@index([status], map: "idx_bulk_tiebreakers_status")
+}
+
+model bulk_tiebreaker_participants {
+  id           Int              @id @default(autoincrement())
+  tiebreakerId Int              @map("tiebreaker_id")
+  teamId       String           @map("team_id")
+  status       String           @default("active")
+  currentBid   Int?             @map("current_bid")
+  lastBidTime  DateTime?        @map("last_bid_time")
+  newBidAmount Int?             @map("new_bid_amount")
+  submitted    Boolean?         @default(false)
+  submittedAt  DateTime?        @map("submitted_at") @db.Timestamptz(6)
+  team         teams            @relation("BulkTiebreakerParticipants", fields: [teamId], references: [id], onDelete: Cascade)
+  tiebreaker   bulk_tiebreakers @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+
+  @@unique([tiebreakerId, teamId])
+  @@index([tiebreakerId])
+  @@index([teamId])
+  @@index([teamId], map: "idx_bulk_tiebreaker_participants_team")
+  @@index([tiebreakerId], map: "idx_bulk_tiebreaker_participants_tiebreaker")
+}
+
+model bulk_tiebreaker_bid_history {
+  id           Int              @id @default(autoincrement())
+  tiebreakerId Int              @map("tiebreaker_id")
+  teamId       String           @map("team_id")
+  bidAmount    Int              @map("bid_amount")
+  bidTime      DateTime         @default(now()) @map("bid_time")
+  team         teams            @relation("BulkTiebreakerBidHistory", fields: [teamId], references: [id], onDelete: Cascade)
+  tiebreaker   bulk_tiebreakers @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
+
+  @@index([tiebreakerId])
+  @@index([teamId])
+  @@index([teamId], map: "idx_bulk_tiebreaker_bid_history_team")
+  @@index([tiebreakerId], map: "idx_bulk_tiebreaker_bid_history_tiebreaker")
+}
+
+model bid_audit_log {
+  id            String   @id
+  roundId       String   @map("round_id")
+  teamId        String   @map("team_id")
+  action        String
+  encryptedBids String   @map("encrypted_bids")
+  timestamp     DateTime @default(now())
+  round         rounds   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([roundId])
+  @@index([teamId])
+  @@index([timestamp])
+}
+
+model preview_allocations {
+  id               Int          @id @default(autoincrement())
+  roundId          String       @map("round_id")
+  teamId           String       @map("team_id")
+  basePlayerId     String       @map("base_player_id")
+  playerName       String       @map("player_name")
+  amount           Int
+  acquisitionType  String       @map("acquisition_type")
+  acquisitionNotes String?      @map("acquisition_notes")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  basePlayer       base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
+  round            rounds       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  team             teams        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, teamId])
+  @@unique([roundId, basePlayerId])
+  @@index([roundId])
+  @@index([teamId])
+  @@index([basePlayerId])
+  @@index([basePlayerId], map: "idx_preview_allocations_player_id")
+  @@index([roundId], map: "idx_preview_allocations_round")
+  @@index([roundId], map: "idx_preview_allocations_round_id")
+  @@index([teamId], map: "idx_preview_allocations_team_id")
+}
+
+model auction_settings {
+  id                    Int       @id @default(autoincrement())
+  seasonId              String    @unique
+  auction_window        String?   @default("season_start") @db.VarChar(50)
+  phase_1_end_round     Int?      @default(18)
+  phase_2_end_round     Int?      @default(20)
+  phase_1_min_balance   Int?      @default(30)
+  phase_2_min_balance   Int?      @default(30)
+  phase_3_min_balance   Int?      @default(10)
+  min_squad_size        Int?      @default(25)
+  max_squad_size        Int?      @default(30)
+  max_rounds            Int?      @default(25)
+  min_balance_per_round Int?      @default(30)
+  created_at            DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  season                seasons   @relation(fields: [seasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([seasonId], map: "idx_auction_settings_seasonid")
+}
+
+model release_requests {
+  id              String           @id @db.VarChar(36)
+  seasonId        String           @map("season_id") @db.VarChar(36)
+  teamId          String           @map("team_id") @db.VarChar(36)
+  playerId        String           @map("player_id") @db.VarChar(36)
+  playerName      String           @map("player_name") @db.VarChar(255)
+  refundAmount    Int              @map("refund_amount")
+  notes           String?
+  status          RequestStatus?   @default(pending)
+  windowOpenedAt  DateTime?        @map("window_opened_at") @db.Timestamp(6)
+  submittedAt     DateTime?        @default(now()) @map("submitted_at") @db.Timestamp(6)
+  processedAt     DateTime?        @map("processed_at") @db.Timestamp(6)
+  processedBy     String?          @map("processed_by") @db.VarChar(36)
+  rejectionReason String?          @map("rejection_reason")
+  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  releaseWindowId String?          @map("release_window_id") @db.VarChar(36)
+  releaseWindow   release_windows? @relation(fields: [releaseWindowId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_release_window")
+  basePlayer      base_players     @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  processor       users?           @relation("ReleaseRequestProcessor", fields: [processedBy], references: [id], onUpdate: NoAction)
+  season          seasons          @relation(fields: [seasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  team            teams            @relation(fields: [teamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([releaseWindowId], map: "idx_release_requests_release_window")
+  @@index([seasonId], map: "idx_release_requests_season")
+  @@index([status], map: "idx_release_requests_status")
+  @@index([teamId], map: "idx_release_requests_team")
+  @@index([windowOpenedAt], map: "idx_release_requests_window")
+}
+
+model swap_requests {
+  id               String                 @id @db.VarChar(36)
+  seasonId         String                 @map("season_id") @db.VarChar(36)
+  requestingTeamId String                 @map("requesting_team_id") @db.VarChar(36)
+  targetTeamId     String                 @map("target_team_id") @db.VarChar(36)
+  status           RequestStatus?         @default(pending)
+  windowOpenedAt   DateTime?              @map("window_opened_at") @db.Timestamp(6)
+  submittedAt      DateTime?              @default(now()) @map("submitted_at") @db.Timestamp(6)
+  processedAt      DateTime?              @map("processed_at") @db.Timestamp(6)
+  processedBy      String?                @map("processed_by") @db.VarChar(36)
+  rejectionReason  String?                @map("rejection_reason")
+  createdAt        DateTime?              @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime?              @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  swapWindowId     String?                @map("swap_window_id") @db.VarChar(36)
+  players          swap_request_players[]
+  processor        users?                 @relation("SwapRequestProcessor", fields: [processedBy], references: [id], onUpdate: NoAction)
+  requestingTeam   teams                  @relation("RequestingTeam", fields: [requestingTeamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  season           seasons                @relation(fields: [seasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  targetTeam       teams                  @relation("TargetTeam", fields: [targetTeamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  swapWindow       swap_windows?          @relation(fields: [swapWindowId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([requestingTeamId], map: "idx_swap_requests_requesting_team")
+  @@index([seasonId], map: "idx_swap_requests_season")
+  @@index([status], map: "idx_swap_requests_status")
+  @@index([targetTeamId], map: "idx_swap_requests_target_team")
+  @@index([windowOpenedAt], map: "idx_swap_requests_window")
+  @@index([swapWindowId], map: "idx_swap_requests_swap_window")
+}
+
+model swap_request_players {
+  id            String        @id @db.VarChar(36)
+  swapRequestId String        @map("swap_request_id") @db.VarChar(36)
+  playerId      String        @map("player_id") @db.VarChar(36)
+  playerName    String        @map("player_name") @db.VarChar(255)
+  fromTeamId    String        @map("from_team_id") @db.VarChar(36)
+  toTeamId      String        @map("to_team_id") @db.VarChar(36)
+  playerValue   Int           @map("player_value")
+  createdAt     DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
+  fromTeam      teams         @relation("SwapPlayerFromTeam", fields: [fromTeamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  basePlayer    base_players  @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  swapRequest   swap_requests @relation(fields: [swapRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  toTeam        teams         @relation("SwapPlayerToTeam", fields: [toTeamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([playerId], map: "idx_swap_request_players_player")
+  @@index([swapRequestId], map: "idx_swap_request_players_request")
+}
+
+model id_counters {
+  prefix     String   @id @db.VarChar(10)
+  counter    Int      @default(0)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+}
+
+enum TransferStatus {
+  ACTIVE
+  RELEASED
+  TRANSFERRED_OUT
+  SWAPPED_OUT
 }
 
 enum TransactionType {
@@ -639,297 +951,8 @@ enum RoundStatus {
   COMPLETED
 }
 
-// ============================================
-// AUCTION SYSTEM MODELS
-// ============================================
-
-model rounds {
-  id                  String    @id
-  seasonId            String    @map("season_id")
-  position            String?
-  position_group      String?   @map("position_group")
-  position_hidden     Boolean   @default(false) @map("position_hidden")
-  roundNumber         Int       @map("round_number")
-  roundType           String    @map("round_type") // 'normal' | 'bulk'
-  maxBidsPerTeam      Int?      @map("max_bids_per_team")
-  basePrice           Int?      @map("base_price")
-  durationSeconds     Int       @map("duration_seconds")
-  startTime           DateTime? @map("start_time")
-  endTime             DateTime? @map("end_time")
-  status              String    @default("draft")
-  finalizationMode    String    @default("auto") @map("finalization_mode") // 'auto' | 'manual'
-  finalizationState   Json?     @map("finalization_state") // Stores incremental finalization state for sequential tiebreaker resolution
-  createdAt           DateTime  @default(now()) @map("created_at")
-  season              seasons   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  teamRoundBids       team_round_bids[]
-  tiebreakers         tiebreakers[]
-  bulkRoundSelections bulk_round_selections[]
-  bulkTiebreakers     bulk_tiebreakers[] @relation("BulkTiebreakerRound")
-  bidAuditLogs        bid_audit_log[]
-  transferHistory     transfer_history[] @relation("TransferHistoryRound")
-  previewAllocations  preview_allocations[]
-
-  @@index([seasonId])
-  @@index([status])
-  @@index([endTime])
-}
-
-model team_round_bids {
-  id             String    @id
-  roundId        String    @map("round_id")
-  teamId         String    @map("team_id")
-  encryptedBids  String    @map("encrypted_bids") @db.Text
-  submitted      Boolean   @default(false)
-  bidCount       Int       @default(0) @map("bid_count")
-  lastUpdated    DateTime  @default(now()) @map("last_updated")
-  submittedAt    DateTime? @map("submitted_at")
-  round          rounds    @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
-  @@unique([roundId, teamId])
-  @@index([roundId])
-  @@index([teamId])
-}
-
-model tiebreakers {
-  id                 String    @id
-  roundId            String    @map("round_id")
-  basePlayerId       String    @map("base_player_id")
-  originalAmount     Int       @map("original_amount")
-  tiedTeamsCount     Int       @map("tied_teams_count")
-  status             String    @default("active")
-  winningTeamId      String?   @map("winning_team_id")
-  winningBid         Int?      @map("winning_bid")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  round              rounds    @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  basePlayer         base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
-  teamTiebreakerBids team_tiebreaker_bids[]
-
-  @@index([roundId])
-  @@index([status])
-}
-
-model team_tiebreaker_bids {
-  id             String      @id
-  tiebreakerId   String      @map("tiebreaker_id")
-  teamId         String      @map("team_id")
-  oldBidAmount   Int         @map("old_bid_amount")
-  newBidAmount   Int?        @map("new_bid_amount")
-  submitted      Boolean     @default(false)
-  submittedAt    DateTime?   @map("submitted_at")
-  tiebreaker     tiebreakers @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
-
-  @@unique([tiebreakerId, teamId])
-  @@index([tiebreakerId])
-  @@index([teamId])
-}
-
-model bulk_round_selections {
-  id               String    @id
-  roundId          String    @map("round_id")
-  teamId           String    @map("team_id")
-  selectedPlayers  String    @map("selected_players") @db.Text // JSON array of player IDs
-  submitted        Boolean   @default(false)
-  lastUpdated      DateTime  @default(now()) @map("last_updated")
-  round            rounds    @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
-  @@unique([roundId, teamId])
-  @@index([roundId])
-  @@index([teamId])
-}
-
-model bulk_tiebreakers {
-  id                    Int       @id @default(autoincrement())
-  roundId               String    @map("round_id")
-  basePlayerId          String    @map("base_player_id")
-  basePrice             Int       @map("base_price")
-  status                String    @default("pending")
-  currentHighestBid     Int?      @map("current_highest_bid")
-  currentHighestTeamId  String?   @map("current_highest_team_id")
-  teamsRemaining        Int       @map("teams_remaining")
-  startTime             DateTime? @map("start_time")
-  maxEndTime            DateTime? @map("max_end_time")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  round                 rounds    @relation("BulkTiebreakerRound", fields: [roundId], references: [id], onDelete: Cascade)
-  basePlayer            base_players @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
-  participants          bulk_tiebreaker_participants[]
-  bidHistory            bulk_tiebreaker_bid_history[]
-
-  @@index([roundId])
-  @@index([status])
-}
-
-model bulk_tiebreaker_participants {
-  id              Int               @id @default(autoincrement())
-  tiebreakerId    Int               @map("tiebreaker_id")
-  teamId          String            @map("team_id")
-  status          String            @default("active") // 'active' | 'withdrawn'
-  currentBid      Int?              @map("current_bid") // Original/base bid amount
-  lastBidTime     DateTime?         @map("last_bid_time")
-  newBidAmount    Int?              @map("new_bid_amount") // Sealed bid (hidden until all submit)
-  submitted       Boolean           @default(false) // Whether sealed bid submitted
-  submittedAt     DateTime?         @map("submitted_at") // When sealed bid submitted
-  tiebreaker      bulk_tiebreakers  @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
-  team            teams             @relation("BulkTiebreakerParticipants", fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@unique([tiebreakerId, teamId])
-  @@index([tiebreakerId])
-  @@index([teamId])
-}
-
-model bulk_tiebreaker_bid_history {
-  id           Int               @id @default(autoincrement())
-  tiebreakerId Int               @map("tiebreaker_id")
-  teamId       String            @map("team_id")
-  bidAmount    Int               @map("bid_amount")
-  bidTime      DateTime          @default(now()) @map("bid_time")
-  tiebreaker   bulk_tiebreakers  @relation(fields: [tiebreakerId], references: [id], onDelete: Cascade)
-  team         teams             @relation("BulkTiebreakerBidHistory", fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@index([tiebreakerId])
-  @@index([teamId])
-}
-
-model bid_audit_log {
-  id             String   @id
-  roundId        String   @map("round_id")
-  teamId         String   @map("team_id")
-  action         String   // 'create' | 'update' | 'submit'
-  encryptedBids  String   @map("encrypted_bids") @db.Text
-  timestamp      DateTime @default(now())
-  round          rounds   @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
-  @@index([roundId])
-  @@index([teamId])
-  @@index([timestamp])
-}
-
-model preview_allocations {
-  id                Int           @id @default(autoincrement())
-  roundId           String        @map("round_id")
-  teamId            String        @map("team_id")
-  basePlayerId      String        @map("base_player_id")
-  playerName        String        @map("player_name")
-  amount            Int
-  acquisitionType   String        @map("acquisition_type") // 'bid_won' | 'auto_assigned' | 'tiebreaker_won'
-  acquisitionNotes  String?       @map("acquisition_notes") @db.Text
-  createdAt         DateTime      @default(now()) @map("created_at")
-  round             rounds        @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  team              teams         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  basePlayer        base_players  @relation(fields: [basePlayerId], references: [id], onDelete: Cascade)
-
-  @@unique([roundId, teamId])
-  @@unique([roundId, basePlayerId])
-  @@index([roundId])
-  @@index([teamId])
-  @@index([basePlayerId])
-}
-
-model auction_settings {
-  id                    Int       @id @default(autoincrement())
-  seasonId              String    @unique
-  auction_window        String?   @default("season_start")
-  
-  phase_1_end_round     Int?      @default(18)
-  phase_2_end_round     Int?      @default(20)
-  
-  phase_1_min_balance   Int?      @default(30)
-  phase_2_min_balance   Int?      @default(30)
-  phase_3_min_balance   Int?      @default(10)
-  
-  min_squad_size        Int?      @default(25)
-  max_squad_size        Int?      @default(30)
-  max_rounds            Int?      @default(25)
-  
-  min_balance_per_round Int?      @default(30)
-  
-  created_at            DateTime  @default(now()) @map("created_at")
-  updated_at            DateTime  @default(now()) @updatedAt @map("updated_at")
-
-  season                seasons   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-}
-
-model release_requests {
-  id                String    @id
-  seasonId          String    @map("season_id")
-  teamId            String    @map("team_id")
-  playerId          String    @map("player_id")
-  playerName        String    @map("player_name")
-  refundAmount      Int       @map("refund_amount")
-  notes             String?   @db.Text
-  status            RequestStatus @default(pending)
-  windowOpenedAt    DateTime? @map("window_opened_at")
-  submittedAt       DateTime  @default(now()) @map("submitted_at")
-  processedAt       DateTime? @map("processed_at")
-  processedBy       String?   @map("processed_by")
-  rejectionReason   String?   @map("rejection_reason") @db.Text
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  
-  season            seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  team              teams        @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  basePlayer        base_players @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  processor         users?       @relation("ReleaseRequestProcessor", fields: [processedBy], references: [id], onDelete: SetNull)
-  
-  @@index([seasonId])
-  @@index([teamId])
-  @@index([status])
-  @@index([windowOpenedAt])
-}
-
-model swap_requests {
-  id                  String    @id
-  seasonId            String    @map("season_id")
-  requestingTeamId    String    @map("requesting_team_id")
-  targetTeamId        String    @map("target_team_id")
-  status              RequestStatus @default(pending)
-  windowOpenedAt      DateTime? @map("window_opened_at")
-  submittedAt         DateTime  @default(now()) @map("submitted_at")
-  processedAt         DateTime? @map("processed_at")
-  processedBy         String?   @map("processed_by")
-  rejectionReason     String?   @map("rejection_reason") @db.Text
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  
-  season              seasons      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  requestingTeam      teams        @relation("RequestingTeam", fields: [requestingTeamId], references: [id], onDelete: Cascade)
-  targetTeam          teams        @relation("TargetTeam", fields: [targetTeamId], references: [id], onDelete: Cascade)
-  processor           users?       @relation("SwapRequestProcessor", fields: [processedBy], references: [id], onDelete: SetNull)
-  players             swap_request_players[]
-  
-  @@index([seasonId])
-  @@index([requestingTeamId])
-  @@index([targetTeamId])
-  @@index([status])
-  @@index([windowOpenedAt])
-}
-
-model swap_request_players {
-  id              String    @id
-  swapRequestId   String    @map("swap_request_id")
-  playerId        String    @map("player_id")
-  playerName      String    @map("player_name")
-  fromTeamId      String    @map("from_team_id")
-  toTeamId        String    @map("to_team_id")
-  playerValue     Int       @map("player_value")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  
-  swapRequest     swap_requests @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
-  basePlayer      base_players  @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  fromTeam        teams         @relation("SwapPlayerFromTeam", fields: [fromTeamId], references: [id], onDelete: Cascade)
-  toTeam          teams         @relation("SwapPlayerToTeam", fields: [toTeamId], references: [id], onDelete: Cascade)
-  
-  @@index([swapRequestId])
-  @@index([playerId])
-}
-
 enum RequestStatus {
   pending
   approved
   rejected
-}
-
-model id_counters {
-  prefix     String   @id @db.VarChar(10)
-  counter    Int      @default(0)
-  updated_at DateTime @default(now())
 }

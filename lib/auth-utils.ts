@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { UserRole } from "@prisma/client"
+import { prisma } from "@/lib/prisma"
 
 /**
  * Get the current session on the server side
@@ -89,3 +90,15 @@ export async function requireAdminRole() {
   }
   return user
 }
+
+/**
+ * Check if a user ID corresponds to a Sub Admin or Super Admin
+ */
+export async function checkAdminRole(userId: string) {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { role: true }
+  })
+  return user?.role === 'SUPER_ADMIN' || user?.role === 'SUB_ADMIN'
+}
+

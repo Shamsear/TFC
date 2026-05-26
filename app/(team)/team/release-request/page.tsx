@@ -23,8 +23,15 @@ export default async function ReleaseRequestPage() {
     redirect("/team/not-in-season")
   }
 
-  // Check if release window is open
-  if (!activeSeason.releaseWindowOpen) {
+  // Check if an active release window exists
+  const activeReleaseWindow = await prisma.release_windows.findFirst({
+    where: {
+      seasonId: activeSeason.id,
+      status: 'ACTIVE',
+    }
+  })
+
+  if (!activeReleaseWindow) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
         {/* Header */}
@@ -119,9 +126,9 @@ export default async function ReleaseRequestPage() {
   // Count approved releases for this team in this season
   const approvedReleasesCount = allRequests.filter(req => req.status === 'approved').length
 
-  const MAX_RELEASES_PER_TEAM = 3
-  const remainingRequests = MAX_RELEASES_PER_TEAM - totalRequestsCount
-  const remainingApprovals = MAX_RELEASES_PER_TEAM - approvedReleasesCount
+  const MAX_RELEASES_PER_TEAM = activeReleaseWindow.releaseLimit || 3
+  const remainingRequests = Math.max(0, MAX_RELEASES_PER_TEAM - totalRequestsCount)
+  const remainingApprovals = Math.max(0, MAX_RELEASES_PER_TEAM - approvedReleasesCount)
 
   // Transform data for client
   const players = transfers.map(transfer => {
@@ -165,6 +172,7 @@ export default async function ReleaseRequestPage() {
   return (
     <ReleaseRequestClient
       seasonId={activeSeason.id}
+      releaseWindowId={activeReleaseWindow.id}
       teamId={session.user.teamId!}
       teamName={team?.name || ''}
       currentBudget={seasonTeam.currentBudget}

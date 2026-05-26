@@ -152,7 +152,7 @@ export default async function ReleaseRequestsAdminPage({
     teamLogo: req.team.logoUrl,
     currentBudget: teamBudgets[req.teamId] || 0,
     newBudget: (teamBudgets[req.teamId] || 0) + req.refundAmount,
-    submittedAt: req.submittedAt.toISOString(),
+    submittedAt: req.submittedAt ? req.submittedAt.toISOString() : null,
     processedAt: req.processedAt?.toISOString() || null,
     processedBy: req.processor?.name || null,
     rejectionReason: req.rejectionReason,
@@ -164,7 +164,7 @@ export default async function ReleaseRequestsAdminPage({
         <ReleaseRequestsAdminClient
           seasonId={seasonId}
           seasonName={season.name}
-          releaseWindowOpen={season.releaseWindowOpen}
+          releaseWindowOpen={!!season.releaseWindowOpen}
           requests={transformedRequests}
           teamStats={teamStats}
           releaseWindows={serializedReleaseWindows}

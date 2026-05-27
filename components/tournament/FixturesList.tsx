@@ -124,7 +124,8 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
               href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/matches/${match.id}`}
               className="block rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-4 sm:p-6"
             >
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
+              {/* Desktop view: Unchanged UI/UX */}
+              <div className="hidden lg:flex lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
                 {/* Date & Venue */}
                 <div className="flex-shrink-0 lg:w-40">
                   <div className="text-xs sm:text-sm text-[#7A7367]">{formatDate(match.matchDate)}</div>
@@ -221,6 +222,76 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
                 {/* Status */}
                 <div className="flex-shrink-0 lg:w-32 text-left lg:text-right">
                   <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full border text-xs font-bold ${getStatusColor(match.status)}`}>
+                    {match.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mobile view: Beautifully optimized, compact and space-efficient */}
+              <div className="lg:hidden space-y-3">
+                {/* Top line: Round & Date */}
+                <div className="flex items-center justify-between text-[11px] font-bold text-[#7A7367] tracking-wider uppercase border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    {match.round && <span className="text-[#E8A800]">{match.round}</span>}
+                    {match.group && <span className="text-purple-400">{match.group.name}</span>}
+                  </div>
+                  <div>{formatDate(match.matchDate)}</div>
+                </div>
+
+                {/* Main Score/Teams grid */}
+                <div className="grid grid-cols-7 items-center gap-2 py-1">
+                  {/* Home Team */}
+                  <div className="col-span-3 flex items-center justify-end gap-2 text-right">
+                    <span className={`font-bold text-xs truncate ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
+                      {match.homeTeam.team.name}
+                    </span>
+                    <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
+                      {match.homeTeam.team.logoUrl ? (
+                        <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5 rounded-md">
+                          {match.homeTeam.team.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Score or VS */}
+                  <div className="col-span-1 flex flex-col items-center justify-center">
+                    {hasScore ? (
+                      <div className="flex items-center gap-1 font-black text-xs text-[#F5F0E8] bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                        <span>{match.homeScore}</span>
+                        <span className="text-[#7A7367] text-[10px] font-normal">:</span>
+                        <span>{match.awayScore}</span>
+                      </div>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black tracking-wider uppercase text-[#7A7367]">
+                        VS
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Away Team */}
+                  <div className="col-span-3 flex items-center justify-start gap-2 text-left">
+                    <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
+                      {match.awayTeam.team.logoUrl ? (
+                        <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5 rounded-md">
+                          {match.awayTeam.team.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <span className={`font-bold text-xs truncate ${awayWin ? 'text-emerald-400' : 'text-white'}`}>
+                      {match.awayTeam.team.name}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom line: Venue & Status */}
+                <div className="flex items-center justify-between text-[10px] text-[#7A7367] pt-1">
+                  <span className="truncate max-w-[180px]">{match.venue || ''}</span>
+                  <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold ${getStatusColor(match.status)}`}>
                     {match.status}
                   </span>
                 </div>

@@ -425,23 +425,35 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
               const awayTeam = teams.find(t => t.id === fixture.awayTeamId)
               
               return (
-                <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-3 rounded-lg bg-black/30 border border-white/5 text-sm">
-                  <div className="flex items-center gap-2 sm:gap-4">
-                    <div className="text-[#E8A800] font-bold w-20 sm:w-24 text-xs flex-shrink-0">
+                <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-lg bg-black/30 border border-white/5 text-sm">
+                  {/* Round & Date-Time */}
+                  <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 border-b border-white/5 pb-2 sm:border-0 sm:pb-0">
+                    <span className="text-[#E8A800] font-extrabold text-[10px] sm:text-xs uppercase tracking-wider bg-[#E8A800]/10 px-2 py-0.5 rounded">
                       {fixture.round}
-                    </div>
-                    <div className="text-[#7A7367] w-36 sm:w-44 text-xs flex-shrink-0">
-                      {fixture.matchDate.toLocaleDateString()} {fixture.matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                    </span>
+                    <span className="text-[#7A7367] text-xs font-medium">
+                      {fixture.matchDate.toLocaleDateString()} at {fixture.matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {fixture.groupName && (
+                      <span className="text-purple-400 text-[10px] font-black uppercase tracking-wider bg-purple-500/10 px-1.5 py-0.5 rounded sm:hidden">
+                        {fixture.groupName}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                    <span className="text-white font-medium truncate">{homeTeam?.name}</span>
-                    <span className="text-[#7A7367] flex-shrink-0">vs</span>
-                    <span className="text-white font-medium truncate">{awayTeam?.name}</span>
+                  
+                  {/* Teams vs block */}
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 justify-between sm:justify-start sm:ml-4">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-white font-bold truncate text-xs sm:text-sm">{homeTeam?.name}</span>
+                      <span className="text-[#7A7367] text-xs font-black">VS</span>
+                      <span className="text-white font-bold truncate text-xs sm:text-sm text-left">{awayTeam?.name}</span>
+                    </div>
+                    {fixture.groupName && (
+                      <span className="text-purple-400 text-[10px] font-black uppercase tracking-wider bg-purple-500/10 px-1.5 py-0.5 rounded hidden sm:inline-block">
+                        {fixture.groupName}
+                      </span>
+                    )}
                   </div>
-                  {fixture.groupName && (
-                    <div className="text-purple-400 text-xs font-bold flex-shrink-0">{fixture.groupName}</div>
-                  )}
                 </div>
               )
             })}

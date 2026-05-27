@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
-import { sendPushNotificationRaw } from '@/lib/notifications-server'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -238,14 +238,15 @@ export async function POST(request: NextRequest) {
     try {
       const targetTeamData = await prisma.teams.findUnique({
         where: { id: targetTeamId },
-        select: { managerId: true, name: true }
+        select: { name: true }
       });
+      const targetManagerId = await getTeamManagerId(targetTeamId);
       const requestingTeamData = await prisma.teams.findUnique({
         where: { id: requestingTeamId },
         select: { name: true }
       });
-      if (targetTeamData?.managerId) {
-        await sendPushNotificationRaw(targetTeamData.managerId, {
+      if (targetManagerId) {
+        await sendPushNotificationRaw(targetManagerId, {
           title: '📨 New Swap Request!',
           body: `${requestingTeamData?.name || 'A team'} wants to swap players with you. Review it now.`,
           url: '/team/swap-request'

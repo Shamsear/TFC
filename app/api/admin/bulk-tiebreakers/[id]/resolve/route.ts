@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { generateTransferId, generateFinancialId, generateAuditId } from '@/lib/id-generator'
-import { sendPushNotificationRaw } from '@/lib/notifications-server'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -211,9 +211,9 @@ export async function POST(
       const playerName = tiebreaker.basePlayer.name;
       for (const participant of tiebreaker.participants) {
         const isWinner = participant.teamId === winnerId;
-        const manager = await prisma.teams.findUnique({ where: { id: participant.teamId }, select: { managerId: true } });
-        if (manager?.managerId) {
-          await sendPushNotificationRaw(manager.managerId,
+        const managerId = await getTeamManagerId(participant.teamId);
+        if (managerId) {
+          await sendPushNotificationRaw(managerId,
             isWinner
               ? { title: '🏅 Tiebreaker Won!', body: `You won the tiebreaker for ${playerName} at £${winningBid}. They're in your squad!`, url: '/team/squad' }
               : { title: '😔 Tiebreaker Lost', body: `You missed out on ${playerName} in the tiebreaker. Check your squad.`, url: '/team/auction' },

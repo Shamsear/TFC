@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { applyFinalizationResults } from '@/lib/auction/finalize-round';
 import { Prisma } from '@prisma/client';
-import { sendPushNotificationRaw } from '@/lib/notifications-server';
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server';
 
 /**
  * POST /api/admin/rounds/[id]/make-public
@@ -104,12 +104,9 @@ export async function POST(
 
       // Notify winning teams per-player
       for (const alloc of previewAllocations) {
-        const team = await prisma.teams.findUnique({
-          where: { id: alloc.teamId },
-          select: { managerId: true }
-        });
-        if (team?.managerId) {
-          await sendPushNotificationRaw(team.managerId, {
+        const managerId = await getTeamManagerId(alloc.teamId);
+        if (managerId) {
+          await sendPushNotificationRaw(managerId, {
             title: '🏅 You Won a Player!',
             body: `${alloc.playerName} is now in your squad for £${alloc.amount.toLocaleString()}.`,
             url: '/team/squad'
@@ -122,18 +119,20 @@ export async function POST(
       if (round) {
         const allSeasonTeams = await prisma.season_teams.findMany({
           where: { seasonId: round.seasonId },
-          select: { team: { select: { id: true, managerId: true } } }
+          select: { team: { select: { id: true } } }
         });
         const nonWinners = allSeasonTeams.filter(st => st.team && !winnerTeamIds.has(st.team.id));
-        await Promise.all(nonWinners.map(st =>
-          st.team?.managerId
-            ? sendPushNotificationRaw(st.team.managerId, {
-                title: '📊 Round Results Are Out',
-                body: 'Auction results have been published. Check your squad and finances.',
-                url: '/team/squad'
-              }, 'general').catch(() => {})
-            : Promise.resolve()
-        ));
+        await Promise.all(nonWinners.map(async st => {
+          if (!st.team) return;
+          const managerId = await getTeamManagerId(st.team.id);
+          if (managerId) {
+            await sendPushNotificationRaw(managerId, {
+              title: '📊 Round Results Are Out',
+              body: 'Auction results have been published. Check your squad and finances.',
+              url: '/team/squad'
+            }, 'general').catch(() => {});
+          }
+        }));
       }
     } catch (notifErr) {
       console.warn('[Push] Make-public notifications failed (non-fatal):', notifErr);

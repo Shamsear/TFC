@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { sendPushNotificationRaw } from '@/lib/notifications-server'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 export async function POST(
   request: NextRequest,
@@ -124,19 +124,22 @@ export async function POST(
     // Notify both teams about the approved swap
     try {
       const playerNames = swapRequest.players.map((p: any) => p.playerName).join(', ');
-      const reqManager = await prisma.teams.findUnique({ where: { id: swapRequest.requestingTeamId }, select: { managerId: true, name: true } });
-      const tgtManager = await prisma.teams.findUnique({ where: { id: swapRequest.targetTeamId }, select: { managerId: true, name: true } });
-      if (reqManager?.managerId) {
-        await sendPushNotificationRaw(reqManager.managerId, {
+      const reqTeam = await prisma.teams.findUnique({ where: { id: swapRequest.requestingTeamId }, select: { name: true } });
+      const tgtTeam = await prisma.teams.findUnique({ where: { id: swapRequest.targetTeamId }, select: { name: true } });
+      const reqManagerId = await getTeamManagerId(swapRequest.requestingTeamId);
+      const tgtManagerId = await getTeamManagerId(swapRequest.targetTeamId);
+
+      if (reqManagerId) {
+        await sendPushNotificationRaw(reqManagerId, {
           title: '✅ Swap Approved!',
-          body: `Your swap request with ${tgtManager?.name || 'the other team'} has been approved.`,
+          body: `Your swap request with ${tgtTeam?.name || 'the other team'} has been approved.`,
           url: '/team/swap-request'
         }, 'trades').catch(() => {});
       }
-      if (tgtManager?.managerId) {
-        await sendPushNotificationRaw(tgtManager.managerId, {
+      if (tgtManagerId) {
+        await sendPushNotificationRaw(tgtManagerId, {
           title: '✅ Swap Approved!',
-          body: `Your swap with ${reqManager?.name || 'the other team'} has been approved. Check your squad.`,
+          body: `Your swap with ${reqTeam?.name || 'the other team'} has been approved. Check your squad.`,
           url: '/team/swap-request'
         }, 'trades').catch(() => {});
       }

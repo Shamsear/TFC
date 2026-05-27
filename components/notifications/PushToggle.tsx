@@ -37,7 +37,7 @@ export default function PushToggle() {
       }
 
       // Always fetch all registered devices so every device shows in the list
-      await fetchDevices();
+      const serverDevices = await fetchDevices();
 
       if (hasSW && hasPush && (!isIOS || isStandalone)) {
         try {
@@ -53,7 +53,12 @@ export default function PushToggle() {
 
           if (registration) {
             const subscription = await registration.pushManager.getSubscription();
-            setIsSubscribed(!!subscription);
+            if (subscription) {
+              const isTracked = serverDevices.some((d: any) => d.endpoint === subscription.endpoint);
+              setIsSubscribed(isTracked);
+            } else {
+              setIsSubscribed(false);
+            }
           }
         } catch (err) {
           console.warn('[PWA Init Warning] Non-blocking registration load warning:', err);
@@ -70,10 +75,12 @@ export default function PushToggle() {
       if (res.ok) {
         const data = await res.json();
         setDevices(data.devices);
+        return data.devices;
       }
     } catch (err) {
       console.error('Failed fetching registered devices:', err);
     }
+    return [];
   }
 
   const handleSubscribe = async () => {

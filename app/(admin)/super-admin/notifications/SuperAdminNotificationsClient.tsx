@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Subscription {
   id: string
@@ -38,6 +38,39 @@ export default function SuperAdminNotificationsClient({ subscriptions: initialSu
   
   const [isSending, setIsSending] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [logs, setLogs] = useState<any[]>([])
+
+  // Poll active subscriptions and system logs in real-time every 5 seconds without page refresh
+  useEffect(() => {
+    let active = true;
+    
+    const fetchData = async () => {
+      try {
+        // Fetch subscribers
+        const subRes = await fetch('/api/admin/notifications/subscribers');
+        if (subRes.ok && active) {
+          const subData = await subRes.json();
+          setSubscriptions(subData.subscriptions);
+        }
+
+        // Fetch logs
+        const logsRes = await fetch('/api/admin/notifications/logs');
+        if (logsRes.ok && active) {
+          const logsData = await logsRes.json();
+          setLogs(logsData.logs);
+        }
+      } catch (err) {
+        console.error('Failed to poll notification data:', err);
+      }
+    };
+
+    fetchData(); // Initial load
+    const interval = setInterval(fetchData, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleSendTest = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -280,6 +313,56 @@ export default function SuperAdminNotificationsClient({ subscriptions: initialSu
             </table>
           </div>
         )}
+      </div>
+
+      {/* 3. Terminal-Style Live System Debug Logs Feed */}
+      <div className="lg:col-span-3 bg-[#0c0c0c] border border-white/10 rounded-2xl p-6 font-mono shadow-2xl">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse border-2 border-red-500/20" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">Live VAPID Delivery Debug Console</h2>
+          </div>
+          <span className="text-[10px] text-gray-500">Auto-refresh: 5s interval</span>
+        </div>
+
+        <div className="max-h-60 overflow-y-auto space-y-2 text-xs leading-relaxed">
+          {logs.length === 0 ? (
+            <div className="text-gray-600 italic py-4">No recent VAPID dispatches recorded. Try sending a test payload above to populate debug trace...</div>
+          ) : (
+            logs.map(log => {
+              const isSuccess = log.status === 'SUCCESS';
+              const isExpired = log.status === '410_EXPIRED';
+              return (
+                <div key={log.id} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-1.5 border-b border-white/5 last:border-0">
+                  <span className="text-gray-500 shrink-0 select-none">
+                    [{new Date(log.sentAt).toLocaleTimeString()}]
+                  </span>
+                  <div className="flex-1">
+                    <span className="font-bold text-gray-400">[{log.category.toUpperCase()}]</span>{' '}
+                    <span className="text-gray-300">VAPID Push Dispatch target SubID: </span>
+                    <span className="text-[#E8A800] select-all">{log.subscriptionId.substring(0, 8)}...</span>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      isSuccess 
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                        : isExpired
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                    }`}>
+                      {log.status}
+                    </span>
+                    {log.errorMessage && (
+                      <span className="text-red-400/80 text-[10px] font-medium max-w-xs truncate" title={log.errorMessage}>
+                        ({log.errorMessage})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
     </div>

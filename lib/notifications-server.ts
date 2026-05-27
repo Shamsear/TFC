@@ -7,11 +7,20 @@ import { z } from 'zod'
 
 export const runtime = 'nodejs' // Forces Node.js stack (prevents WebPush from crashing Edge runtime)
 
-webpush.setVapidDetails(
-  process.env.VAPID_CONTACT_EMAIL || 'mailto:admin@tfc.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+function setupVapidDetails(): boolean {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!publicKey || !privateKey) {
+    console.warn('[VAPID Warning] Missing VAPID environment variables. Cannot set VAPID details.');
+    return false;
+  }
+  webpush.setVapidDetails(
+    process.env.VAPID_CONTACT_EMAIL || 'mailto:admin@tfc.com',
+    publicKey,
+    privateKey
+  );
+  return true;
+}
 
 const QuietHoursSchema = z.string().regex(/^\d{2}:\d{2}$/);
 const PayloadSchema = z.object({
@@ -29,6 +38,14 @@ export async function sendPushNotificationRaw(userId: string, rawPayload: any, c
   const parsed = PayloadSchema.safeParse(rawPayload);
   if (!parsed.success) return;
   const payload = parsed.data;
+
+  // Initialize VAPID lazily. If keys are missing, write to inbox as a fallback and return early
+  if (!setupVapidDetails()) {
+    await prisma.notifications_inbox.create({
+      data: { userId, title: payload.title, body: payload.body, category, url: payload.url }
+    }).catch(() => {});
+    return;
+  }
 
   // 1. Fetch User preferences & evaluate Quiet Hours strictly
   const user = await prisma.users.findUnique({

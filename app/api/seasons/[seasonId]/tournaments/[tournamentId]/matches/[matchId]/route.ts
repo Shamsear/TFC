@@ -91,7 +91,6 @@ export async function PATCH(
     })
 
     // Create audit log
-    const { seasonId } = await params
     await createAuditLog({
       userId: session.user.id,
       userEmail: session.user.email!,

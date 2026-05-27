@@ -37,10 +37,25 @@ export default function PushToggle() {
       }
 
       if (hasSW && hasPush && (!isIOS || isStandalone)) {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!subscription);
-        await fetchDevices();
+        try {
+          let registration = await navigator.serviceWorker.getRegistration();
+          if (!registration) {
+            // Non-blocking 2-second timeout race for service worker ready state
+            const swReadyPromise = navigator.serviceWorker.ready;
+            const timeoutPromise = new Promise<never>((_, reject) => 
+              setTimeout(() => reject(new Error('SW ready timeout')), 2000)
+            );
+            registration = await Promise.race([swReadyPromise, timeoutPromise]);
+          }
+
+          if (registration) {
+            const subscription = await registration.pushManager.getSubscription();
+            setIsSubscribed(!!subscription);
+            await fetchDevices();
+          }
+        } catch (err) {
+          console.warn('[PWA Init Warning] Non-blocking registration load warning:', err);
+        }
       }
       setLoading(false);
     }

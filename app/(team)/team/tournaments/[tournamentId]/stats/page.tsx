@@ -47,7 +47,7 @@ export default async function TeamTournamentStatsPage({
         </div>
 
         {/* Tab Nav */}
-        <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit">
+        <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit max-w-full overflow-x-auto scrollbar-none">
           {[
             { label: 'Matches', href: `/team/tournaments/${tournamentId}` },
             { label: 'Table', href: `/team/tournaments/${tournamentId}/table` },

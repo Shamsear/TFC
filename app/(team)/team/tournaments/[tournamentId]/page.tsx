@@ -129,7 +129,7 @@ export default async function TournamentDetailsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-12">
+    <div className="min-h-screen bg-[#0a0a0a] pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Back */}
@@ -210,7 +210,7 @@ export default async function TournamentDetailsPage({
         </div>
 
         {/* Tab nav */}
-        <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit">
+        <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit max-w-full overflow-x-auto scrollbar-none">
           {[
             { label: 'Matches', href: `/team/tournaments/${tournamentId}`, active: true },
             { label: 'Table', href: `/team/tournaments/${tournamentId}/table` },

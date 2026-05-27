@@ -92,17 +92,17 @@ export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/team
   return (
     <div className="space-y-6">
       {/* Headline stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { icon: '⚽', value: Math.round(totalMatches), label: 'Matches Played' },
           { icon: '🥅', value: totalGoals, label: 'Total Goals' },
           { icon: '📊', value: avgGoalsPerMatch, label: 'Avg Goals / Match' },
           { icon: '🧤', value: totalCleanSheets, label: 'Clean Sheets' },
         ].map(({ icon, value, label }) => (
-          <div key={label} className="rounded-xl bg-[#111111] border border-white/10 p-4 text-center">
-            <div className="text-2xl mb-1">{icon}</div>
-            <div className="text-xl font-black text-[#F5F0E8]">{value}</div>
-            <div className="text-[10px] text-[#7A7367] uppercase tracking-wider">{label}</div>
+          <div key={label} className="rounded-xl bg-[#111111] border border-white/10 p-2.5 sm:p-4 text-center min-w-0">
+            <div className="text-xl sm:text-2xl mb-1">{icon}</div>
+            <div className="text-lg sm:text-xl font-black text-[#F5F0E8]">{value}</div>
+            <div className="text-[9px] sm:text-[10px] text-[#7A7367] uppercase tracking-normal sm:tracking-wider line-clamp-2">{label}</div>
           </div>
         ))}
       </div>
@@ -178,26 +178,24 @@ export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/team
               <Link
                 key={team.teamId}
                 href={`${teamLinkBase}/${team.teamId}`}
-                className={`flex items-center gap-4 px-5 py-4 transition-colors group ${
+                className={`flex items-center gap-2 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 transition-colors group ${
                   isMe ? 'bg-[#E8A800]/[0.06]' : 'hover:bg-white/[0.02]'
                 }`}
               >
                 {/* Position */}
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
                   style={{ background: posStyle.bg, color: posStyle.text }}
                 >
                   {pos}
                 </div>
 
                 {/* Logo */}
-                <div className="relative w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-white/5"
-                  style={{ border: `2px solid ${isMe ? '#E8A800' : 'rgba(255,255,255,0.1)'}` }}
-                >
+                <div className="relative w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-md overflow-hidden">
                   {team.logoUrl ? (
-                    <Image src={team.logoUrl} alt={team.teamName} fill className="object-cover" sizes="40px" />
+                    <Image src={team.logoUrl} alt={team.teamName} fill className="object-contain" sizes="36px" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-[#7A7367]">
+                    <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-[#7A7367] bg-white/5">
                       {team.teamName.slice(0, 2).toUpperCase()}
                     </div>
                   )}
@@ -205,11 +203,11 @@ export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/team
 
                 {/* Team name */}
                 <div className="flex-1 min-w-0">
-                  <div className={`font-bold text-sm group-hover:text-[#E8A800] transition-colors truncate ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
+                  <div className={`font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors truncate ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
                     {team.teamName}
-                    {isMe && <span className="ml-2 text-[10px] font-black text-[#E8A800]/60 uppercase">You</span>}
+                    {isMe && <span className="ml-1.5 text-[8px] font-black text-[#E8A800]/60 uppercase sm:inline hidden">You</span>}
                   </div>
-                  <div className="text-[11px] text-[#7A7367] truncate">{metric.secondary}</div>
+                  <div className="text-[10px] sm:text-[11px] text-[#7A7367] truncate">{metric.secondary}</div>
                 </div>
 
                 {/* Bar */}

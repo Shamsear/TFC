@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { checkTeamSeasonParticipation } from '@/lib/team-auth'
 import { getTournamentTableData } from '@/lib/tournament-data'
 import TournamentTable from '@/components/tournaments/TournamentTable'
+import ShareableTournamentTable from '@/components/tournaments/ShareableTournamentTable'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -50,16 +51,23 @@ export default async function TeamTournamentTablePage({
         </Link>
 
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-bold text-[#FFB347] uppercase tracking-wider">{data.tournament.tournamentType.replace(/_/g, ' ')}</span>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold text-[#FFB347] uppercase tracking-wider">{data.tournament.tournamentType.replace(/_/g, ' ')}</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">Table</h1>
+            <p className="text-[#D4CCBB]">{data.tournament.name} · {data.tournament.season.name}</p>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">Table</h1>
-          <p className="text-[#D4CCBB]">{data.tournament.name} · {data.tournament.season.name}</p>
+          <ShareableTournamentTable
+            standings={data.standings}
+            tournamentName={data.tournament.name}
+            seasonName={data.tournament.season.name}
+          />
         </div>
 
         {/* Tab Nav */}
-        <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit">
+        <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit max-w-full overflow-x-auto scrollbar-none">
           {[
             { label: 'Matches', href: `/team/tournaments/${tournamentId}` },
             { label: 'Table', href: `/team/tournaments/${tournamentId}/table`, active: true },

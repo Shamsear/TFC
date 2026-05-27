@@ -41,6 +41,7 @@
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.38.0",
+    "html-to-image": "^1.11.13",
     "imagekit": "^6.0.0",
     "imagekitio-react": "^4.3.0",
     "inngest": "^4.4.0",

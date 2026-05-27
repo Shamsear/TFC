@@ -6,7 +6,7 @@ import StandingsTable from './StandingsTable'
 import GroupsView from './GroupsView'
 import KnockoutRoundManager from './KnockoutRoundManager'
 import FixtureCalendarEditor from './FixtureCalendarEditor'
-
+import ShareableAdminStandings from './ShareableAdminStandings'
 import MatchRoundManager from './MatchRoundManager'
 
 interface TournamentTabsProps {
@@ -110,10 +110,20 @@ export default function TournamentTabs({ tournament, teams, seasonId }: Tourname
           />
         )}
         {activeTab === 'standings' && (
-          <StandingsTable
-            standings={tournament.standings}
-            groups={tournament.groups}
-          />
+          <div>
+            <div className="flex justify-end mb-4">
+              <ShareableAdminStandings
+                standings={tournament.standings}
+                groups={tournament.groups}
+                tournamentName={tournament.name}
+                seasonName={tournament.season?.name ?? ''}
+              />
+            </div>
+            <StandingsTable
+              standings={tournament.standings}
+              groups={tournament.groups}
+            />
+          </div>
         )}
         {activeTab === 'groups' && tournament.groups.length > 0 && (
           <GroupsView

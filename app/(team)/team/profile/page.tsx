@@ -5,6 +5,7 @@ import { canEditTeam, checkTeamSeasonParticipation } from "@/lib/team-auth"
 import Image from "next/image"
 import Link from "next/link"
 import TeamLogo from "@/components/team/TeamLogo"
+import PushToggle from "@/components/notifications/PushToggle"
 
 export const metadata = {
   title: "Team Profile | Turf Cats",
@@ -305,6 +306,11 @@ export default async function TeamProfilePage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Push Notification Controls */}
+        <div className="mb-6 sm:mb-8">
+          <PushToggle />
         </div>
 
         {/* Quick Links */}

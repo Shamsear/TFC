@@ -98,6 +98,33 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
     }
   }
 
+  const handleStopRound = async (roundName: string) => {
+    if (!confirm(`Are you sure you want to STOP ${roundName}? This will set all matches in this round to COMPLETED and notify teams that the deadline has ended.`)) {
+      return
+    }
+
+    setLoading(roundName + '_stop')
+    try {
+      const response = await fetch(`/api/seasons/${seasonId}/tournaments/${tournamentId}/rounds/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ round: roundName })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to stop round')
+      }
+
+      toast.success(`${roundName} stopped successfully`)
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setLoading(null)
+    }
+  }
+
   if (rounds.length === 0) {
     return (
       <div className="text-center py-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
@@ -151,29 +178,45 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
                   type="datetime-local"
                   value={deadlines[round.name] || ''}
                   onChange={(e) => handleDeadlineChange(round.name, e.target.value)}
-                  disabled={round.isCompleted || loading === round.name}
+                  disabled={round.isCompleted || loading?.includes(round.name)}
                   className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
                 />
               </div>
 
               {!round.isCompleted && (
-                <button
-                  onClick={() => handleStartRound(round.name)}
-                  disabled={loading === round.name}
-                  className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all ${
-                    round.isActive
-                      ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-                      : 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black'
-                  }`}
-                >
-                  {loading === round.name ? (
-                    <LoadingSpinner size="sm" />
-                  ) : round.isActive ? (
-                    'Update Deadline / Resend Notification'
-                  ) : (
-                    'Start Gameweek'
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => handleStartRound(round.name)}
+                    disabled={loading === round.name}
+                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all ${
+                      round.isActive
+                        ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                        : 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black'
+                    }`}
+                  >
+                    {loading === round.name ? (
+                      <LoadingSpinner size="sm" />
+                    ) : round.isActive ? (
+                      'Update Deadline / Resend Notification'
+                    ) : (
+                      'Start Gameweek'
+                    )}
+                  </button>
+
+                  {round.isActive && (
+                    <button
+                      onClick={() => handleStopRound(round.name)}
+                      disabled={loading === round.name + '_stop'}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
+                    >
+                      {loading === round.name + '_stop' ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        'Stop Gameweek'
+                      )}
+                    </button>
                   )}
-                </button>
+                </div>
               )}
             </div>
           </div>

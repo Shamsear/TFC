@@ -49,7 +49,8 @@ export default async function TeamTournamentStatsPage({
         {/* Tab Nav */}
         <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit max-w-full overflow-x-auto scrollbar-none">
           {[
-            { label: 'Matches', href: `/team/tournaments/${tournamentId}` },
+            { label: 'Overall', href: `/team/tournaments/${tournamentId}` },
+            { label: 'Matches', href: `/team/tournaments/${tournamentId}/matches` },
             { label: 'Table', href: `/team/tournaments/${tournamentId}/table` },
             { label: 'Stats', href: `/team/tournaments/${tournamentId}/stats`, active: true },
           ].map(({ label, href, active }) => (

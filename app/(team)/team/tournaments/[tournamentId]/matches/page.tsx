@@ -1,15 +1,13 @@
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { checkTeamSeasonParticipation } from '@/lib/team-auth'
-import { getTournamentTableData } from '@/lib/tournament-data'
-import TournamentTable from '@/components/tournaments/TournamentTable'
-import ShareableTournamentTable from '@/components/tournaments/ShareableTournamentTable'
-import { prisma } from '@/lib/prisma'
+import TournamentMatches from '@/components/tournaments/TournamentMatches'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TeamTournamentTablePage({
+export default async function TeamTournamentMatchesPage({
   params,
 }: {
   params: Promise<{ tournamentId: string }>
@@ -22,18 +20,39 @@ export default async function TeamTournamentTablePage({
   const { isParticipating } = await checkTeamSeasonParticipation()
   if (!isParticipating) redirect('/team/not-in-season')
 
-  const data = await getTournamentTableData(tournamentId)
-  if (!data) notFound()
+  const tournament = await prisma.tournaments.findUnique({
+    where: { id: tournamentId },
+    include: { season: true },
+  })
+  if (!tournament) notFound()
 
-  // Get the season_teams.id for the logged-in team so we can highlight their row
-  const mySeasonTeam = await prisma.season_teams.findUnique({
-    where: {
-      seasonId_teamId: {
-        seasonId: data.tournament.seasonId,
-        teamId: session.user.teamId,
+  const matches = await prisma.matches.findMany({
+    where: { tournamentId },
+    select: {
+      id: true,
+      matchDate: true,
+      status: true,
+      homeScore: true,
+      awayScore: true,
+      round: true,
+      homeTeamId: true,
+      awayTeamId: true,
+      homeTeam: {
+        select: {
+          id: true,
+          teamId: true,
+          team: { select: { id: true, name: true, logoUrl: true } },
+        },
+      },
+      awayTeam: {
+        select: {
+          id: true,
+          teamId: true,
+          team: { select: { id: true, name: true, logoUrl: true } },
+        },
       },
     },
-    select: { id: true },
+    orderBy: { matchDate: 'desc' },
   })
 
   return (
@@ -51,27 +70,20 @@ export default async function TeamTournamentTablePage({
         </Link>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold text-[#FFB347] uppercase tracking-wider">{data.tournament.tournamentType.replace(/_/g, ' ')}</span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">Table</h1>
-            <p className="text-[#D4CCBB]">{data.tournament.name} · {data.tournament.season.name}</p>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold text-[#FFB347] uppercase tracking-wider">{tournament.tournamentType.replace(/_/g, ' ')}</span>
           </div>
-          <ShareableTournamentTable
-            standings={data.standings}
-            tournamentName={data.tournament.name}
-            seasonName={data.tournament.season.name}
-          />
+          <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">Matches</h1>
+          <p className="text-[#D4CCBB]">{tournament.name} · {tournament.season.name}</p>
         </div>
 
         {/* Tab Nav */}
         <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit max-w-full overflow-x-auto scrollbar-none">
           {[
             { label: 'Overall', href: `/team/tournaments/${tournamentId}` },
-            { label: 'Matches', href: `/team/tournaments/${tournamentId}/matches` },
-            { label: 'Table', href: `/team/tournaments/${tournamentId}/table`, active: true },
+            { label: 'Matches', href: `/team/tournaments/${tournamentId}/matches`, active: true },
+            { label: 'Table', href: `/team/tournaments/${tournamentId}/table` },
             { label: 'Stats', href: `/team/tournaments/${tournamentId}/stats` },
           ].map(({ label, href, active }) => (
             <Link
@@ -88,9 +100,9 @@ export default async function TeamTournamentTablePage({
           ))}
         </div>
 
-        <TournamentTable
-          standings={data.standings}
-          myTeamId={mySeasonTeam?.id ?? null}
+        <TournamentMatches
+          matches={matches}
+          myTeamId={session.user.teamId}
           teamLinkBase="/teams"
         />
       </div>

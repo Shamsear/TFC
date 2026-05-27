@@ -212,7 +212,8 @@ export default async function TournamentDetailsPage({
         {/* Tab nav */}
         <div className="flex items-center gap-1 mb-8 bg-[#111111] rounded-xl border border-white/10 p-1 w-fit max-w-full overflow-x-auto scrollbar-none">
           {[
-            { label: 'Matches', href: `/team/tournaments/${tournamentId}`, active: true },
+            { label: 'Overall', href: `/team/tournaments/${tournamentId}`, active: true },
+            { label: 'Matches', href: `/team/tournaments/${tournamentId}/matches` },
             { label: 'Table', href: `/team/tournaments/${tournamentId}/table` },
             { label: 'Stats', href: `/team/tournaments/${tournamentId}/stats` },
           ].map(({ label, href, active }) => (
@@ -313,11 +314,11 @@ export default async function TournamentDetailsPage({
                             pos === 3 ? 'bg-[#CD7F32] text-[#0a0a0a]' :
                             'bg-white/5 text-[#7A7367]'
                           }`}>{pos}</span>
-                          <div className="relative w-6 h-6 flex-shrink-0 rounded-full overflow-hidden bg-white/5">
+                          <div className="relative w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
                             {s.seasonTeam.team.logoUrl ? (
-                              <Image src={s.seasonTeam.team.logoUrl} alt={s.seasonTeam.team.name} fill className="object-cover" sizes="24px" />
+                              <Image src={s.seasonTeam.team.logoUrl} alt={s.seasonTeam.team.name} fill className="object-contain" sizes="24px" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[8px] font-black text-[#7A7367]">
+                              <div className="w-full h-full flex items-center justify-center text-[8px] font-black text-[#7A7367] bg-white/5">
                                 {s.seasonTeam.team.name.slice(0, 2).toUpperCase()}
                               </div>
                             )}
@@ -382,65 +383,65 @@ function MatchCard({
   return (
     <Link
       href={`/team/matches/${match.id}`}
-      className={`block rounded-xl border p-4 hover:scale-[1.005] transition-all ${resultBorder}`}
+      className={`block rounded-xl border p-3 sm:p-4 hover:scale-[1.005] transition-all ${resultBorder}`}
     >
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          {match.round && <span className="text-[10px] font-bold text-[#7A7367] uppercase">{match.round}</span>}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-1.5">
+          {match.round && <span className="text-[9px] sm:text-[10px] font-bold text-[#7A7367] uppercase">{match.round}</span>}
           {myResult && (
-            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase ${
+            <span className={`text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded uppercase ${
               myResult === 'win' ? 'bg-emerald-400/15 text-emerald-400' :
               myResult === 'loss' ? 'bg-red-400/15 text-red-400' :
               'bg-[#E8A800]/15 text-[#E8A800]'
             }`}>{myResult}</span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[#7A7367]">{formatDate(match.matchDate)} {formatTime(match.matchDate)}</span>
-          <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${statusStyle(match.status)}`}>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] sm:text-[10px] text-[#7A7367]">{formatDate(match.matchDate)} {formatTime(match.matchDate)}</span>
+          <span className={`px-1.5 py-0.5 rounded-full border text-[8px] sm:text-[9px] font-bold ${statusStyle(match.status)}`}>
             {match.status === 'IN_PROGRESS' ? 'LIVE' : match.status}
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 items-center gap-2">
+      <div className="grid grid-cols-7 items-center gap-1 sm:gap-2">
         {/* Home */}
-        <div className={`flex items-center gap-2 justify-end ${isHome ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
-          <span className="font-bold text-sm text-right line-clamp-1">{match.homeTeam.team.name}</span>
-          <div className="relative w-8 h-8 flex-shrink-0 rounded-full overflow-hidden bg-white/5 border border-white/10">
+        <div className={`col-span-3 flex items-center gap-1.5 sm:gap-2 justify-end ${isHome ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
+          <span className="font-bold text-xs sm:text-sm text-right truncate max-w-[65px] sm:max-w-none">{match.homeTeam.team.name}</span>
+          <div className="relative w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded-md overflow-hidden">
             {match.homeTeam.team.logoUrl ? (
-              <Image src={match.homeTeam.team.logoUrl} alt={match.homeTeam.team.name} fill className="object-cover" sizes="32px" />
+              <Image src={match.homeTeam.team.logoUrl} alt={match.homeTeam.team.name} fill className="object-contain" sizes="28px" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367]">{match.homeTeam.team.name.slice(0,2).toUpperCase()}</div>
+              <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5">{match.homeTeam.team.name.slice(0,2).toUpperCase()}</div>
             )}
           </div>
         </div>
 
         {/* Score */}
-        <div className="text-center">
+        <div className="col-span-1 text-center">
           {match.homeScore !== null && match.awayScore !== null ? (
-            <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0a0a0a] border border-white/10 mx-auto w-fit">
-              <span className={`text-lg font-black ${isHome && myResult === 'win' ? 'text-emerald-400' : isHome && myResult === 'loss' ? 'text-red-400' : 'text-[#E8A800]'}`}>{match.homeScore}</span>
-              <span className="text-[#7A7367] text-sm">–</span>
-              <span className={`text-lg font-black ${isAway && myResult === 'win' ? 'text-emerald-400' : isAway && myResult === 'loss' ? 'text-red-400' : 'text-[#E8A800]'}`}>{match.awayScore}</span>
+            <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg bg-[#0a0a0a] border border-white/5 mx-auto w-fit">
+              <span className={`text-sm sm:text-base font-black ${isHome && myResult === 'win' ? 'text-emerald-400' : isHome && myResult === 'loss' ? 'text-red-400' : 'text-[#E8A800]'}`}>{match.homeScore}</span>
+              <span className="text-[#7A7367] text-xs">–</span>
+              <span className={`text-sm sm:text-base font-black ${isAway && myResult === 'win' ? 'text-emerald-400' : isAway && myResult === 'loss' ? 'text-red-400' : 'text-[#E8A800]'}`}>{match.awayScore}</span>
             </div>
           ) : (
-            <div className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] border border-white/10 mx-auto w-fit">
-              <span className="text-xs text-[#7A7367] font-bold">VS</span>
+            <div className="px-2 py-0.5 rounded-lg bg-[#0a0a0a] border border-white/5 mx-auto w-fit">
+              <span className="text-[10px] text-[#7A7367] font-bold">VS</span>
             </div>
           )}
         </div>
 
         {/* Away */}
-        <div className={`flex items-center gap-2 justify-start ${isAway ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
-          <div className="relative w-8 h-8 flex-shrink-0 rounded-full overflow-hidden bg-white/5 border border-white/10">
+        <div className={`col-span-3 flex items-center gap-1.5 sm:gap-2 justify-start ${isAway ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
+          <div className="relative w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded-md overflow-hidden">
             {match.awayTeam.team.logoUrl ? (
-              <Image src={match.awayTeam.team.logoUrl} alt={match.awayTeam.team.name} fill className="object-cover" sizes="32px" />
+              <Image src={match.awayTeam.team.logoUrl} alt={match.awayTeam.team.name} fill className="object-contain" sizes="28px" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367]">{match.awayTeam.team.name.slice(0,2).toUpperCase()}</div>
+              <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5">{match.awayTeam.team.name.slice(0,2).toUpperCase()}</div>
             )}
           </div>
-          <span className="font-bold text-sm line-clamp-1">{match.awayTeam.team.name}</span>
+          <span className="font-bold text-xs sm:text-sm truncate max-w-[65px] sm:max-w-none">{match.awayTeam.team.name}</span>
         </div>
       </div>
     </Link>

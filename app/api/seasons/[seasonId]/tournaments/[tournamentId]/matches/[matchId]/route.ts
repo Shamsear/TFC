@@ -14,7 +14,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { matchId } = await params
+    const { seasonId, tournamentId, matchId } = await params
     const body = await request.json()
     const {
       matchDate,

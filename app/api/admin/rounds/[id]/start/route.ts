@@ -24,7 +24,10 @@ export async function POST(
       where: { id: roundId },
       select: {
         status: true,
-        durationSeconds: true
+        durationSeconds: true,
+        seasonId: true,
+        roundNumber: true,
+        position: true
       }
     });
 

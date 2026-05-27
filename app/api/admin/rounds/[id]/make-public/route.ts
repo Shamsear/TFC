@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { applyFinalizationResults } from '@/lib/auction/finalize-round';
 import { Prisma } from '@prisma/client';
-import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server';
+import { sendPushNotificationRaw } from '@/lib/notifications-server';
 
 /**
  * POST /api/admin/rounds/[id]/make-public
@@ -104,14 +104,17 @@ export async function POST(
 
       // Notify winning teams per-player
       for (const alloc of previewAllocations) {
-          const managerId = await getTeamManagerId(alloc.teamId);
-          if (managerId) {
-            await sendPushNotificationRaw(managerId, {
-              title: '🏅 You Won a Player!',
-              body: `${alloc.playerName} is now in your squad for £${alloc.amount.toLocaleString()}.`,
-              url: '/team/squad'
-            }, 'auctionWins').catch(() => {});
-          }
+        const team = await prisma.teams.findUnique({
+          where: { id: alloc.teamId },
+          select: { managerId: true }
+        });
+        if (team?.managerId) {
+          await sendPushNotificationRaw(team.managerId, {
+            title: '🏅 You Won a Player!',
+            body: `${alloc.playerName} is now in your squad for £${alloc.amount.toLocaleString()}.`,
+            url: '/team/squad'
+          }, 'auctionWins').catch(() => {});
+        }
       }
 
       // Notify all other season teams that results are out

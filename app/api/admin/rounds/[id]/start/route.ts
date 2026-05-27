@@ -63,9 +63,11 @@ export async function POST(
       if (round) {
         const seasonTeams = await prisma.season_teams.findMany({
           where: { seasonId: round.seasonId },
-          select: { teamId: true }
+          select: { team: { select: { managerId: true } } }
         });
-        const managerIds = (await Promise.all(seasonTeams.map(async st => await getTeamManagerId(st.teamId)))).filter(Boolean) as string[];
+        const managerIds = seasonTeams
+          .map(st => st.team?.managerId)
+          .filter(Boolean) as string[];
         await Promise.all(managerIds.map(userId =>
           sendPushNotificationRaw(userId, {
             title: '🟢 New Auction Round Open!',

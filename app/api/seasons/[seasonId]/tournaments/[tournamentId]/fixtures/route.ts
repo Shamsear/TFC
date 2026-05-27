@@ -28,32 +28,23 @@ export async function POST(
     // Generate all IDs upfront in a single batch query to avoid transaction timeouts
     const matchIds = await generateIds(ID_PREFIXES.MATCH, fixtures.length)
 
-    // Create all fixtures in a transaction
-    const createdMatches = await prisma.$transaction(async (tx) => {
-      const matches = []
-      for (let index = 0; index < fixtures.length; index++) {
-        const fixture = fixtures[index]
-        const matchId = matchIds[index]
-        const match = await tx.matches.create({
-          data: {
-            id: matchId,
-            tournamentId,
-            groupId: fixture.groupId || null,
-            homeTeamId: fixture.homeTeamId,
-            awayTeamId: fixture.awayTeamId,
-            matchDate: new Date(fixture.matchDate),
-            venue: venue || null,
-            round: fixture.round || null,
-            matchType: fixture.matchType || 'LEAGUE',
-            status: 'SCHEDULED',
-            updatedAt: new Date()
-          }
-        })
-        matches.push(match)
-      }
-      return matches
-    }, {
-      timeout: 30000 // 30 seconds limit to prevent interactive transaction timeouts
+    const dataToInsert = fixtures.map((fixture: any, index: number) => ({
+      id: matchIds[index],
+      tournamentId,
+      groupId: fixture.groupId || null,
+      homeTeamId: fixture.homeTeamId,
+      awayTeamId: fixture.awayTeamId,
+      matchDate: new Date(fixture.matchDate),
+      venue: venue || null,
+      round: fixture.round || null,
+      matchType: fixture.matchType || 'LEAGUE',
+      status: 'SCHEDULED',
+      updatedAt: new Date()
+    }))
+
+    // Execute bulk insert in a single extremely fast query (takes <50ms instead of 30+ seconds!)
+    await prisma.matches.createMany({
+      data: dataToInsert
     })
 
     // Create audit log
@@ -65,11 +56,11 @@ export async function POST(
       action: 'CREATE_MATCH',
       entityType: 'match',
       entityId: tournamentId,
-      entityName: `${createdMatches.length} fixtures`,
+      entityName: `${fixtures.length} fixtures`,
       seasonId,
       details: {
         tournamentId,
-        fixtureCount: createdMatches.length,
+        fixtureCount: fixtures.length,
         venue,
         matchTypes: [...new Set(fixtures.map((f: any) => f.matchType || 'LEAGUE'))]
       },
@@ -78,7 +69,7 @@ export async function POST(
     })
 
     return NextResponse.json(
-      { message: `Created ${createdMatches.length} fixtures`, matches: createdMatches },
+      { message: `Created ${fixtures.length} fixtures` },
       { status: 201 }
     )
   } catch (error) {

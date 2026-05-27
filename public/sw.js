@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tfc-v1.0.0';
+const CACHE_NAME = 'tfc-v1.0.1';
 const OFFLINE_ASSETS = [
-  '/team',
+  '/',
   '/offline.html',
   '/android-chrome-192x192.png',
   '/manifest.json'

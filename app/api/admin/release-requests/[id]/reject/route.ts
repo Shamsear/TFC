@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 export async function POST(
   request: NextRequest,
@@ -43,6 +44,20 @@ export async function POST(
         rejectionReason: reason,
       },
     })
+
+    // Notify the team manager about the rejection
+    try {
+      const managerId = await getTeamManagerId(releaseRequest.teamId);
+      if (managerId) {
+        await sendPushNotificationRaw(managerId, {
+          title: '❌ Release Rejected',
+          body: `Your release request for ${releaseRequest.playerName} was rejected. Reason: ${reason}`,
+          url: '/team/release-request'
+        }, 'trades').catch(() => {});
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Release reject notification failed (non-fatal):', notifErr);
+    }
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

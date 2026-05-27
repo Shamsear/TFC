@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
+import { sendPushNotificationRaw } from '@/lib/notifications-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -231,6 +232,27 @@ export async function POST(request: NextRequest) {
         toTeamName: p.toTeam.name,
         playerValue: p.playerValue,
       })),
+    }
+
+    // Notify the target team that a swap request has been sent to them
+    try {
+      const targetTeamData = await prisma.teams.findUnique({
+        where: { id: targetTeamId },
+        select: { managerId: true, name: true }
+      });
+      const requestingTeamData = await prisma.teams.findUnique({
+        where: { id: requestingTeamId },
+        select: { name: true }
+      });
+      if (targetTeamData?.managerId) {
+        await sendPushNotificationRaw(targetTeamData.managerId, {
+          title: '📨 New Swap Request!',
+          body: `${requestingTeamData?.name || 'A team'} wants to swap players with you. Review it now.`,
+          url: '/team/swap-request'
+        }, 'trades').catch(() => {});
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Swap request notification failed (non-fatal):', notifErr);
     }
 
     return NextResponse.json({ success: true, request: transformedRequest })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { sendPushNotificationRaw } from '@/lib/notifications-server';
 
 /**
  * POST /api/admin/rounds/[id]/start - Start a round
@@ -52,6 +53,30 @@ export async function POST(
         endTime
       }
     });
+
+    // Notify all team managers in the season that a new round is open
+    try {
+      const round = await prisma.rounds.findUnique({
+        where: { id: roundId },
+        select: { seasonId: true, roundNumber: true, position: true }
+      });
+      if (round) {
+        const seasonTeams = await prisma.season_teams.findMany({
+          where: { seasonId: round.seasonId },
+          select: { teamId: true }
+        });
+        const managerIds = (await Promise.all(seasonTeams.map(async st => await getTeamManagerId(st.teamId)))).filter(Boolean) as string[];
+        await Promise.all(managerIds.map(userId =>
+          sendPushNotificationRaw(userId, {
+            title: '🟢 New Auction Round Open!',
+            body: `Round ${round.roundNumber}${round.position ? ` (${round.position})` : ''} is now live. Submit your bids before time runs out!`,
+            url: '/team/auction'
+          }, 'general').catch(() => {})
+        ));
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Round start notification failed (non-fatal):', notifErr);
+    }
 
     return NextResponse.json({
       success: true,

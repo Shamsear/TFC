@@ -150,3 +150,16 @@ export async function sendPushNotificationRaw(userId: string, rawPayload: any, c
     }).catch(() => {});
   }
 }
+
+/**
+ * Helper: get the userId of the team manager for a given teamId.
+ * The teams table has no managerId column — the FK lives on users.teamId.
+ */
+export async function getTeamManagerId(teamId: string): Promise<string | null> {
+  const manager = await prisma.users.findFirst({
+    where: { teamId, role: 'TEAM_MANAGER', isActive: true },
+    select: { id: true }
+  });
+  return manager?.id ?? null;
+}
+

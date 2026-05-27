@@ -5,6 +5,7 @@ import { finalizeRound, applyFinalizationResults } from '@/lib/auction/finalize-
 import { finalizeBulkRound, applyBulkFinalizationResults } from '@/lib/auction/finalize-bulk-round';
 import { createTiebreakers } from '@/lib/auction/tiebreaker';
 import { Prisma } from '@prisma/client';
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server';
 
 /**
  * POST /api/admin/rounds/[id]/finalize - Finalize a round
@@ -281,6 +282,24 @@ export async function POST(
           data: { status: 'tiebreaker_pending' }
         });
 
+        // Notify tied teams about the tiebreaker
+        try {
+          for (const tie of result.ties) {
+            for (const teamId of tie.tiedTeams) {
+              const managerId = await getTeamManagerId(teamId);
+              if (managerId) {
+                await sendPushNotificationRaw(managerId, {
+                  title: '⚔️ Tiebreaker — Submit Your Bid!',
+                  body: `You're tied for ${tie.playerName}. A tiebreaker is now open — submit your bid now!`,
+                  url: '/team/auction'
+                }, 'auctionWins').catch(() => {});
+              }
+            }
+          }
+        } catch (notifErr) {
+          console.warn('[Push] Tiebreaker notification failed (non-fatal):', notifErr);
+        }
+
         return NextResponse.json({
           success: true,
           tieDetected: true,
@@ -315,6 +334,24 @@ export async function POST(
         where: { id: roundId },
         data: { status: finalStatus }
       });
+
+      // Notify winning teams (direct finalize path)
+      try {
+        for (const alloc of result.allocations) {
+          if (alloc.acquisitionType === 'bid_won' || alloc.acquisitionType === 'tiebreaker_won') {
+            const managerId = await getTeamManagerId(alloc.teamId);
+            if (managerId) {
+              await sendPushNotificationRaw(managerId, {
+                title: '🏅 You Won a Player!',
+                body: `${alloc.playerName} is now in your squad for £${alloc.amount.toLocaleString()}.`,
+                url: '/team/squad'
+              }, 'auctionWins').catch(() => {});
+            }
+          }
+        }
+      } catch (notifErr) {
+        console.warn('[Push] Direct finalize win notification failed (non-fatal):', notifErr);
+      }
 
       return NextResponse.json({
         success: true,

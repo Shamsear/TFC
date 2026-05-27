@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendPushNotificationRaw } from '@/lib/notifications-server'
 
 export async function POST(
   request: NextRequest,
@@ -43,6 +44,26 @@ export async function POST(
         rejectionReason: reason,
       },
     })
+
+    // Notify requesting team of rejection
+    try {
+      const fullRequest = await prisma.swap_requests.findUnique({
+        where: { id },
+        select: { requestingTeamId: true, targetTeam: { select: { name: true, managerId: true } } }
+      });
+      const reqTeam = fullRequest?.requestingTeamId
+        ? await prisma.teams.findUnique({ where: { id: fullRequest.requestingTeamId }, select: { managerId: true } })
+        : null;
+      if (reqTeam?.managerId) {
+        await sendPushNotificationRaw(reqTeam.managerId, {
+          title: '❌ Swap Rejected',
+          body: `Your swap request was rejected. Reason: ${reason}`,
+          url: '/team/swap-request'
+        }, 'trades').catch(() => {});
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Swap reject notification failed (non-fatal):', notifErr);
+    }
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

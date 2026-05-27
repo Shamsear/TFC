@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { sendPushNotificationRaw } from '@/lib/notifications-server';
 
 /**
  * POST /api/admin/bulk-tiebreakers/[id]/start - Start/activate a bulk tiebreaker
@@ -61,6 +62,31 @@ export async function POST(
     }
 
     console.log(`✅ Bulk tiebreaker ${tiebreakerId} activated for ${tiebreaker.basePlayer.name}`);
+
+    // Notify all participating teams that the bulk tiebreaker is now live
+    try {
+      const full = await prisma.bulk_tiebreakers.findUnique({
+        where: { id: tiebreakerId },
+        select: {
+          basePlayer: { select: { name: true } },
+          participants: { select: { teamId: true } }
+        }
+      });
+      if (full) {
+        await Promise.all(full.participants.map(async p => {
+          const mgr = await prisma.teams.findUnique({ where: { id: p.teamId }, select: { managerId: true } });
+          if (mgr?.managerId) {
+            await sendPushNotificationRaw(mgr.managerId, {
+              title: '⚡ Bulk Tiebreaker Live!',
+              body: `Tiebreaker for ${full.basePlayer.name} is now open. Submit your bid before time runs out!`,
+              url: '/team/auction'
+            }, 'auctionWins').catch(() => {});
+          }
+        }));
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Bulk tiebreaker start notification failed (non-fatal):', notifErr);
+    }
 
     return NextResponse.json({
       success: true,

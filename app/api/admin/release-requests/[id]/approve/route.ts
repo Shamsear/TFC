@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 export async function POST(
   request: NextRequest,
@@ -97,6 +98,20 @@ export async function POST(
       maxWait: 10000, // 10 seconds max wait to acquire a connection
       timeout: 30000, // 30 seconds transaction timeout
     })
+
+    // Notify the team manager about the approved release
+    try {
+      const managerId = await getTeamManagerId(releaseRequest.teamId);
+      if (managerId) {
+        await sendPushNotificationRaw(managerId, {
+          title: '✅ Release Approved',
+          body: `${releaseRequest.playerName} has been released. £${releaseRequest.refundAmount.toLocaleString()} has been refunded to your budget.`,
+          url: '/team/release-request'
+        }, 'trades').catch(() => {});
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Release approve notification failed (non-fatal):', notifErr);
+    }
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

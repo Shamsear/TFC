@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { applyFinalizationResults } from '@/lib/auction/finalize-round';
 import { Prisma } from '@prisma/client';
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server';
 
 /**
  * POST /api/admin/rounds/[id]/make-public
@@ -96,6 +97,44 @@ export async function POST(
     console.log('✅ Results applied and made public');
     console.log('✅ Preview allocations cleaned up');
     console.log('='.repeat(80) + '\n');
+
+    // Send push notifications: per-team win + general round-complete
+    try {
+      const winnerTeamIds = new Set(previewAllocations.map(a => a.teamId));
+
+      // Notify winning teams per-player
+      for (const alloc of previewAllocations) {
+          const managerId = await getTeamManagerId(alloc.teamId);
+          if (managerId) {
+            await sendPushNotificationRaw(managerId, {
+              title: '🏅 You Won a Player!',
+              body: `${alloc.playerName} is now in your squad for £${alloc.amount.toLocaleString()}.`,
+              url: '/team/squad'
+            }, 'auctionWins').catch(() => {});
+          }
+      }
+
+      // Notify all other season teams that results are out
+      const round = await prisma.rounds.findUnique({ where: { id: roundId }, select: { seasonId: true } });
+      if (round) {
+        const allSeasonTeams = await prisma.season_teams.findMany({
+          where: { seasonId: round.seasonId },
+          select: { team: { select: { id: true, managerId: true } } }
+        });
+        const nonWinners = allSeasonTeams.filter(st => st.team && !winnerTeamIds.has(st.team.id));
+        await Promise.all(nonWinners.map(st =>
+          st.team?.managerId
+            ? sendPushNotificationRaw(st.team.managerId, {
+                title: '📊 Round Results Are Out',
+                body: 'Auction results have been published. Check your squad and finances.',
+                url: '/team/squad'
+              }, 'general').catch(() => {})
+            : Promise.resolve()
+        ));
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Make-public notifications failed (non-fatal):', notifErr);
+    }
 
     return NextResponse.json({
       success: true,

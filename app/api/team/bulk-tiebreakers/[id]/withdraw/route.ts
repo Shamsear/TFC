@@ -56,6 +56,18 @@ export async function POST(
       );
     }
 
+    // Notify Admins
+    try {
+      const { notifyAllAdmins } = await import('@/lib/notifications-server');
+      const teamData = await prisma.teams.findUnique({ where: { id: String(teamId) }, select: { name: true } });
+      notifyAllAdmins({
+        title: 'Tiebreaker Withdrawal',
+        body: `${teamData?.name || 'A team'} has withdrawn from a Tiebreaker.`
+      }).catch(() => {});
+    } catch (err) {
+      console.error('Failed to notify admins:', err);
+    }
+
     // Fetch the updated tiebreaker details to return immediately, matching GET route structure
     const tiebreaker = await prisma.bulk_tiebreakers.findUnique({
       where: { id: tiebreakerId },

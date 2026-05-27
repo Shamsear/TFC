@@ -90,6 +90,18 @@ export async function POST(
       }
     });
 
+    // Notify Admins
+    try {
+      const { notifyAllAdmins } = await import('@/lib/notifications-server');
+      const teamData = await prisma.teams.findUnique({ where: { id: String(teamId) }, select: { name: true } });
+      notifyAllAdmins({
+        title: 'Tiebreaker Bid Submitted',
+        body: `${teamData?.name || 'A team'} has submitted a bid for a Tiebreaker.`
+      }).catch(() => {});
+    } catch (err) {
+      console.error('Failed to notify admins:', err);
+    }
+
     // Check if all active participants have submitted
     const allParticipants = await prisma.bulk_tiebreaker_participants.findMany({
       where: {

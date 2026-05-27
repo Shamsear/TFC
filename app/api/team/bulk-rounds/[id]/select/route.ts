@@ -180,6 +180,19 @@ export async function POST(
       }
     });
 
+    if (submitted) {
+      try {
+        const { notifyAllAdmins } = await import('@/lib/notifications-server');
+        const teamData = await prisma.teams.findUnique({ where: { id: String(teamId) }, select: { name: true } });
+        notifyAllAdmins({
+          title: 'Round Bids Submitted',
+          body: `${teamData?.name || 'A team'} has submitted their final bids for this round.`
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Failed to notify admins:', err);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       playerCount: playerIds.length,

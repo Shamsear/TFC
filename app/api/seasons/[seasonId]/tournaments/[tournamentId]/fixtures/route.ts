@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
-import { generateMatchId } from '@/lib/id-generator'
+import { generateIds, ID_PREFIXES } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -25,12 +25,15 @@ export async function POST(
       )
     }
 
+    // Generate all IDs upfront in a single batch query to avoid transaction timeouts
+    const matchIds = await generateIds(ID_PREFIXES.MATCH, fixtures.length)
+
     // Create all fixtures in a transaction
     const createdMatches = await prisma.$transaction(async (tx) => {
       const matches = []
       for (let index = 0; index < fixtures.length; index++) {
         const fixture = fixtures[index]
-        const matchId = await generateMatchId()
+        const matchId = matchIds[index]
         const match = await tx.matches.create({
           data: {
             id: matchId,
@@ -49,6 +52,8 @@ export async function POST(
         matches.push(match)
       }
       return matches
+    }, {
+      timeout: 30000 // 30 seconds limit to prevent interactive transaction timeouts
     })
 
     // Create audit log

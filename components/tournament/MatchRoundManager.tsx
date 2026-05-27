@@ -53,6 +53,9 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
     })
   }, [matches])
 
+  const [defaultDeadlineTime, setDefaultDeadlineTime] = useState('22:00')
+  const [defaultDeadlineOffset, setDefaultDeadlineOffset] = useState(2)
+
   const [deadlines, setDeadlines] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {}
     rounds.forEach(r => {
@@ -60,6 +63,38 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
     })
     return initial
   })
+
+  const handleApplyDefaults = () => {
+    const updated = { ...deadlines }
+    rounds.forEach(r => {
+      if (r.matches.length === 0) return
+      
+      const earliestMatch = r.matches.reduce((earliest, match) => {
+        const d = new Date(match.matchDate)
+        return d < earliest ? d : earliest
+      }, new Date(r.matches[0].matchDate))
+
+      const [hours, minutes] = defaultDeadlineTime.split(':')
+      
+      const deadlineDate = new Date(
+        earliestMatch.getFullYear(),
+        earliestMatch.getMonth(),
+        earliestMatch.getDate() + Number(defaultDeadlineOffset),
+        Number(hours),
+        Number(minutes)
+      )
+
+      const year = deadlineDate.getFullYear()
+      const month = String(deadlineDate.getMonth() + 1).padStart(2, '0')
+      const day = String(deadlineDate.getDate()).padStart(2, '0')
+      const hr = String(deadlineDate.getHours()).padStart(2, '0')
+      const min = String(deadlineDate.getMinutes()).padStart(2, '0')
+      
+      updated[r.name] = `${year}-${month}-${day}T${hr}:${min}`
+    })
+    setDeadlines(updated)
+    toast.success('Applied default deadlines to all rounds!')
+  }
 
   const handleDeadlineChange = (roundName: string, value: string) => {
     setDeadlines(prev => ({
@@ -134,10 +169,80 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white">Manage Match Rounds</h2>
-        <p className="text-sm text-[#7A7367]">Set deadlines and start gameweeks</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/5 pb-4">
+        <div>
+          <h2 className="text-xl font-bold text-white">Manage Match Rounds</h2>
+          <p className="text-sm text-[#7A7367]">Set deadlines and start gameweeks</p>
+        </div>
+      </div>
+
+      {/* Bulk Deadline Prefill Panel */}
+      <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-5">
+        <h3 className="text-sm font-bold text-white mb-3">Bulk Set Default Round Deadlines</h3>
+        <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+          <div className="w-full sm:w-40">
+            <label className="block text-xs font-medium text-[#D4CCBB] mb-1.5">
+              Deadline Time
+            </label>
+            <input
+              type="time"
+              value={defaultDeadlineTime}
+              onChange={(e) => setDefaultDeadlineTime(e.target.value)}
+              className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+            />
+          </div>
+
+          <div className="w-full sm:w-44">
+            <label className="block text-xs font-medium text-[#D4CCBB] mb-1.5">
+              Deadline Offset
+            </label>
+            <select
+              value={defaultDeadlineOffset}
+              onChange={(e) => setDefaultDeadlineOffset(parseInt(e.target.value) || 0)}
+              className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+            >
+              <option value={0}>Same day</option>
+              <option value={1}>1 day after</option>
+              <option value={2}>2 days after</option>
+              <option value={3}>3 days after</option>
+              <option value={4}>4 days after</option>
+              <option value={5}>5 days after</option>
+              <option value={6}>6 days after</option>
+              <option value={7}>7 days after</option>
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleApplyDefaults}
+            className="w-full sm:w-auto px-4 py-2.5 bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] rounded-lg font-bold text-sm transition-all"
+          >
+            Apply to All Rounds
+          </button>
+        </div>
+
+        {/* Live Preview Widget */}
+        <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-3 flex items-center justify-between gap-4 mt-4 text-xs sm:text-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">📅</span>
+            <div>
+              <div className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-0.5">Round Deadline Preview Example</div>
+              <div className="font-bold text-white">
+                Match Start (Today): <span className="text-[#D4CCBB]">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <span className="mx-2 text-[#7A7367]">→</span>
+                Deadline: <span className="text-emerald-400">{(() => {
+                  const now = new Date()
+                  const [hours, minutes] = defaultDeadlineTime.split(':')
+                  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number(hours), Number(minutes))
+                  const deadline = new Date(base.getTime() + (Number(defaultDeadlineOffset) * 24 * 60 * 60 * 1000))
+                  return deadline.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + deadline.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                })()}</span>
+              </div>
+            </div>
+          </div>
+          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase">LIVE PREVIEW</span>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

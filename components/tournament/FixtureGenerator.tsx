@@ -31,6 +31,8 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
   
   const [formData, setFormData] = useState({
     startDate: '',
+    deadlineTime: '22:00', // Default overall deadline (10 PM)
+    deadlineOffsetDays: 2, // Default deadline is 2 days after start
     matchdaysPerWeek: 6, // How many matchdays in one week (1-7)
     venue: '',
     homeAndAway: (tournament.leagueLegs || 0) === 2 || (tournament.groupLegs || 0) === 2,
@@ -85,7 +87,9 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
     }
 
     // Assign dates by round based on matchdays per week
-    let currentDate = new Date(formData.startDate)
+    const [year, month, day] = formData.startDate.split('-')
+    const [hours, minutes] = (formData.deadlineTime || '22:00').split(':')
+    let currentDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
     const roundsMap = new Map<number, any[]>()
     
     // Group fixtures by round
@@ -101,7 +105,8 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
     Array.from(roundsMap.keys()).sort((a, b) => a - b).forEach(roundNum => {
       const roundFixtures = roundsMap.get(roundNum)!
       roundFixtures.forEach(fixture => {
-        fixture.matchDate = new Date(currentDate)
+        const deadlineDate = new Date(currentDate.getTime() + (Number(formData.deadlineOffsetDays || 0) * 24 * 60 * 60 * 1000))
+        fixture.matchDate = deadlineDate
       })
       
       matchdayCount++
@@ -218,7 +223,7 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
         <h2 className="text-xl sm:text-2xl font-black text-white mb-4 sm:mb-6">Fixture Settings</h2>
         
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
                 Start Date *
@@ -234,6 +239,39 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
 
             <div>
               <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                Deadline Time *
+              </label>
+              <input
+                type="time"
+                required
+                value={formData.deadlineTime}
+                onChange={(e) => setFormData({ ...formData, deadlineTime: e.target.value })}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                Deadline Offset *
+              </label>
+              <select
+                value={formData.deadlineOffsetDays}
+                onChange={(e) => setFormData({ ...formData, deadlineOffsetDays: parseInt(e.target.value) || 0 })}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base"
+              >
+                <option value={0}>Same day</option>
+                <option value={1}>1 day after</option>
+                <option value={2}>2 days after</option>
+                <option value={3}>3 days after</option>
+                <option value={4}>4 days after</option>
+                <option value={5}>5 days after</option>
+                <option value={6}>6 days after</option>
+                <option value={7}>7 days after</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
                 Matchdays Per Week
               </label>
               <input
@@ -244,9 +282,6 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
                 onChange={(e) => setFormData({ ...formData, matchdaysPerWeek: parseInt(e.target.value) || 6 })}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base"
               />
-              <p className="text-xs text-[#7A7367] mt-1">
-                6 = Mon-Sat (Sunday rest), 7 = Mon-Sun (full week), 3 = Mon/Wed/Fri, etc.
-              </p>
             </div>
           </div>
 
@@ -262,6 +297,29 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
               placeholder="e.g., Main Stadium"
             />
           </div>
+
+          {formData.startDate && (
+            <div className="rounded-xl bg-[#E8A800]/5 border border-[#E8A800]/20 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📅</span>
+                <div>
+                  <div className="text-xs text-[#7A7367] uppercase font-bold tracking-wider mb-0.5">Round Deadline Preview Example</div>
+                  <div className="text-sm font-bold text-white">
+                    Match Start: <span className="text-[#D4CCBB]">{new Date(formData.startDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span className="mx-2 text-[#7A7367]">→</span>
+                    Deadline: <span className="text-[#E8A800]">{(() => {
+                      const [year, month, day] = formData.startDate.split('-')
+                      const [hours, minutes] = (formData.deadlineTime || '22:00').split(':')
+                      const base = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
+                      const deadline = new Date(base.getTime() + (Number(formData.deadlineOffsetDays || 0) * 24 * 60 * 60 * 1000))
+                      return deadline.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + deadline.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    })()}</span>
+                  </div>
+                </div>
+              </div>
+              <span className="hidden sm:inline-block px-3 py-1 rounded bg-[#E8A800]/15 text-[#E8A800] text-xs font-black uppercase">LIVE PREVIEW</span>
+            </div>
+          )}
 
           {(tournament.tournamentType === 'LEAGUE_ONLY' || tournament.tournamentType === 'LEAGUE_PLAYOFF') && (
             <div className="rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 p-4">
@@ -372,8 +430,8 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
                     <div className="text-[#E8A800] font-bold w-20 sm:w-24 text-xs flex-shrink-0">
                       {fixture.round}
                     </div>
-                    <div className="text-[#7A7367] w-24 sm:w-32 text-xs flex-shrink-0">
-                      {fixture.matchDate.toLocaleDateString()}
+                    <div className="text-[#7A7367] w-36 sm:w-44 text-xs flex-shrink-0">
+                      {fixture.matchDate.toLocaleDateString()} {fixture.matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">

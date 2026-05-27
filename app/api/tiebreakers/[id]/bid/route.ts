@@ -159,7 +159,7 @@ export async function POST(
       notifyAllAdmins({
         title: 'Tiebreaker Bid Submitted',
         body: `${teamData?.name || 'A team'} has submitted a bid for a Tiebreaker.`
-      }).catch(() => {});
+      }, tiebreaker.round.seasonId).catch(() => {});
     } catch (err) {
       console.error('Failed to notify admins:', err);
     }

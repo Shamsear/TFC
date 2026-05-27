@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
         title: '🔄 New Swap Request',
         body: `A new swap request has been raised between teams.`,
         url: `/sub-admin/${seasonId}/tools/swap-requests`
-      });
+      }, seasonId);
     } catch (notifErr) {
       console.warn('[Push] Admin swap request notification failed:', notifErr);
     }

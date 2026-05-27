@@ -36,6 +36,13 @@ export async function POST(
       where: {
         tiebreakerId,
         teamId
+      },
+      include: {
+        tiebreaker: {
+          include: {
+            round: { select: { seasonId: true } }
+          }
+        }
       }
     });
 
@@ -63,7 +70,7 @@ export async function POST(
       notifyAllAdmins({
         title: 'Tiebreaker Withdrawal',
         body: `${teamData?.name || 'A team'} has withdrawn from a Tiebreaker.`
-      }).catch(() => {});
+      }, participant?.tiebreaker.round.seasonId).catch(() => {});
     } catch (err) {
       console.error('Failed to notify admins:', err);
     }

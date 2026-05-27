@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
-import { generateTournamentId, generateGroupId, generateStandingId } from '@/lib/id-generator'
+import { generateTournamentId, generateIds, ID_PREFIXES } from '@/lib/id-generator'
 
 export async function POST(
   request: NextRequest,
@@ -40,11 +40,16 @@ export async function POST(
       )
     }
 
+    // Generate all IDs outside the transaction to prevent transaction timeouts
+    const tournamentId = await generateTournamentId();
+    
+    const groupCount = tournamentType === 'GROUP_KNOCKOUT' ? (numGroups || 2) : 0;
+    const groupIds = groupCount > 0 ? await generateIds(ID_PREFIXES.GROUP, groupCount) : [];
+    
+    const standingIds = await generateIds(ID_PREFIXES.STANDING, selectedTeams.length);
+
     // Create tournament with groups and standings
     const tournament = await prisma.$transaction(async (tx) => {
-      // Generate clean tournament ID
-      const tournamentId = await generateTournamentId();
-      
       // Create the tournament with advanced configuration
       const newTournament = await tx.tournaments.create({
         data: {
@@ -85,34 +90,29 @@ export async function POST(
       })
 
       // Create groups if GROUP_KNOCKOUT type
-      if (tournamentType === 'GROUP_KNOCKOUT') {
+      if (tournamentType === 'GROUP_KNOCKOUT' && groupCount > 0) {
         const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
-        const groupCount = numGroups || 2
         
-        for (let i = 0; i < groupCount; i++) {
-          const groupId = await generateGroupId();
-          await tx.groups.create({
-            data: {
-              id: groupId,
-              tournamentId: newTournament.id,
-              name: `Group ${groupNames[i]}`,
-              groupOrder: i,
-              updatedAt: new Date()
-            }
-          })
-        }
+        await tx.groups.createMany({
+          data: groupIds.map((groupId, i) => ({
+            id: groupId,
+            tournamentId: newTournament.id,
+            name: `Group ${groupNames[i]}`,
+            groupOrder: i,
+            updatedAt: new Date()
+          }))
+        })
       }
 
-      // Create standings for selected teams
-      for (const teamId of selectedTeams) {
-        const standingId = await generateStandingId();
-        await tx.standings.create({
-          data: {
-            id: standingId,
+      // Create standings for selected teams in bulk
+      if (selectedTeams.length > 0) {
+        await tx.standings.createMany({
+          data: selectedTeams.map((teamId: string, i: number) => ({
+            id: standingIds[i],
             tournamentId: newTournament.id,
             teamId,
             updatedAt: new Date()
-          }
+          }))
         })
       }
 

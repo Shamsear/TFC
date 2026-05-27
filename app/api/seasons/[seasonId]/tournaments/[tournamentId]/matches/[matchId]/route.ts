@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
-import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
+import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
 
 export async function PATCH(
   request: NextRequest,
@@ -145,6 +145,17 @@ export async function PATCH(
         }
       } catch (notifErr) {
         console.warn('[Push] Match result notification failed:', notifErr);
+      }
+      
+      // Notify admins
+      try {
+        await notifyAllAdmins({
+          title: 'Match Result Published',
+          body: `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`,
+          url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
+        }, seasonId).catch(() => {});
+      } catch (adminNotifErr) {
+        console.warn('[Push] Admin match result notification failed:', adminNotifErr);
       }
     }
 

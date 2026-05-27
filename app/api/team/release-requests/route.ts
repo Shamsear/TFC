@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         title: '📋 New Release Request',
         body: `${teamData?.name || 'A team'} has requested to release ${requests.length} player(s).`,
         url: `/sub-admin/${seasonId}/tools/release-requests`
-      });
+      }, seasonId);
     } catch (notifErr) {
       console.warn('[Push] Admin release request notification failed:', notifErr);
     }

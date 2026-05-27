@@ -18,17 +18,12 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { seasonId, tournamentId } = await params
+    const { tournamentId } = await params
     const body = await request.json()
-    const { round, deadline } = body
+    const { round } = body
 
-    if (!round || !deadline) {
-      return NextResponse.json({ error: 'Round name and deadline are required' }, { status: 400 })
-    }
-
-    const parsedDeadline = new Date(deadline)
-    if (isNaN(parsedDeadline.getTime())) {
-      return NextResponse.json({ error: 'Invalid deadline date format' }, { status: 400 })
+    if (!round) {
+      return NextResponse.json({ error: 'Round name is required' }, { status: 400 })
     }
 
     // Get tournament to check if it exists
@@ -44,7 +39,8 @@ export async function POST(
     const matchesInRound = await prisma.matches.findMany({
       where: {
         tournamentId,
-        round
+        round,
+        status: 'LIVE' // Only complete the ones that are live
       },
       include: {
         homeTeam: {
@@ -57,18 +53,18 @@ export async function POST(
     })
 
     if (matchesInRound.length === 0) {
-      return NextResponse.json({ error: 'No matches found for this round' }, { status: 404 })
+      return NextResponse.json({ error: 'No live matches found for this round' }, { status: 404 })
     }
 
-    // Update matches: set to LIVE and update matchDate to deadline
+    // Update matches: set to COMPLETED
     await prisma.matches.updateMany({
       where: {
         tournamentId,
-        round
+        round,
+        status: 'LIVE'
       },
       data: {
-        status: 'LIVE',
-        matchDate: parsedDeadline,
+        status: 'COMPLETED',
         updatedAt: new Date()
       }
     })
@@ -80,14 +76,6 @@ export async function POST(
       uniqueTeamIds.add(m.awayTeam.team.id)
     })
 
-    const formattedDeadline = parsedDeadline.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    })
-
     for (const teamId of uniqueTeamIds) {
       try {
         const managerId = await getTeamManagerId(teamId)
@@ -95,31 +83,32 @@ export async function POST(
           await sendPushNotificationRaw(
             managerId,
             {
-              title: `⚽ Gameweek Started`,
-              body: `${round} is now LIVE. You can play your match until ${formattedDeadline}.`,
+              title: `Gameweek Stopped`,
+              body: `${round} is now closed.`,
               url: `/team/matches`
             },
             'general'
           ).catch(() => {})
         }
       } catch (err) {
-        console.error(`Failed to notify team ${teamId} for round start:`, err)
+        console.error(`Failed to notify team ${teamId} for round stop:`, err)
       }
     }
 
     try {
+      const { seasonId } = await params
       await notifyAllAdmins({
-        title: '⚽ Gameweek Started',
-        body: `${round} has been started for ${tournament.name}.`,
+        title: 'Gameweek Stopped',
+        body: `${round} has been finalized for ${tournament.name}.`,
         url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
       }, seasonId)
     } catch (err) {
-      console.warn('Failed to notify admins for round start:', err)
+      console.warn('Failed to notify admins for round stop:', err)
     }
 
     return NextResponse.json({ success: true, updatedMatches: matchesInRound.length })
   } catch (error: any) {
-    console.error('Error starting round:', error)
-    return NextResponse.json({ error: 'Failed to start round' }, { status: 500 })
+    console.error('Error stopping round:', error)
+    return NextResponse.json({ error: 'Failed to stop round' }, { status: 500 })
   }
 }

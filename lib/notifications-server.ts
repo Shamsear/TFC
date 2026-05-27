@@ -164,13 +164,24 @@ export async function getTeamManagerId(teamId: string): Promise<string | null> {
 }
 
 /**
- * Helper: notify all SUPER_ADMIN and SUB_ADMIN users
+ * Helper: notify all SUPER_ADMIN and SUB_ADMIN users.
+ * If seasonId is provided, restricts SUB_ADMIN notifications to those assigned to that season.
  */
-export async function notifyAllAdmins(payload: { title: string; body: string; url?: string }) {
+export async function notifyAllAdmins(payload: { title: string; body: string; url?: string }, seasonId?: string) {
   const admins = await prisma.users.findMany({
     where: { 
-      role: { in: ['SUPER_ADMIN', 'SUB_ADMIN'] },
-      isActive: true 
+      isActive: true,
+      ...(seasonId ? {
+        OR: [
+          { role: 'SUPER_ADMIN' },
+          { 
+            role: 'SUB_ADMIN',
+            sub_admin_seasons: { some: { season_id: seasonId } } 
+          }
+        ]
+      } : {
+        role: { in: ['SUPER_ADMIN', 'SUB_ADMIN'] }
+      })
     },
     select: { id: true }
   });

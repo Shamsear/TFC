@@ -187,7 +187,7 @@ export async function POST(
         notifyAllAdmins({
           title: 'Round Bids Submitted',
           body: `${teamData?.name || 'A team'} has submitted their final bids for this round.`
-        }).catch(() => {});
+        }, round.seasonId).catch(() => {});
       } catch (err) {
         console.error('Failed to notify admins:', err);
       }

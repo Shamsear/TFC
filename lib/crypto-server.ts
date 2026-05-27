@@ -3,13 +3,13 @@ import 'server-only'
 import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY_HEX = process.env.DB_ENCRYPTION_KEY;
-
-if (!ENCRYPTION_KEY_HEX || ENCRYPTION_KEY_HEX.length !== 64) {
-  throw new Error('[Startup Block] Missing or malformed DB_ENCRYPTION_KEY. An exact 64-character hexadecimal key (32 bytes) is required to run secure operations.');
+function getEncryptionKey(): Buffer {
+  const hex = process.env.DB_ENCRYPTION_KEY;
+  if (!hex || hex.length !== 64) {
+    throw new Error('[Runtime block] Missing or malformed DB_ENCRYPTION_KEY. An exact 64-character hexadecimal key (32 bytes) is required to run secure operations.');
+  }
+  return Buffer.from(hex, 'hex');
 }
-
-const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_HEX, 'hex');
 
 export function encrypt(text: string): string {
   const iv = crypto.randomBytes(16);

@@ -66,7 +66,7 @@ export default function PushToggle() {
 
   const fetchDevices = async () => {
     try {
-      const res = await fetch('/api/notifications/devices');
+      const res = await fetch(`/api/notifications/devices?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         setDevices(data.devices);
@@ -150,6 +150,7 @@ export default function PushToggle() {
   const handleRevokeDevice = async (deviceId: string) => {
     if (!confirm('Disconnect this device subscription?')) return;
     try {
+      const deviceToDelete = devices.find(d => d.id === deviceId);
       const res = await fetch(`/api/notifications/devices/${deviceId}`, { method: 'DELETE' });
       if (res.ok) {
         setDevices(prev => prev.filter(d => d.id !== deviceId));
@@ -159,18 +160,10 @@ export default function PushToggle() {
           const registration = await navigator.serviceWorker.getRegistration();
           if (registration) {
             const sub = await registration.pushManager.getSubscription();
-            // The deleted device's endpoint is not directly available here, so we compare
-            // by checking if we still have any devices left that match this browser.
-            // Simplest safe approach: only call unsubscribe if no remaining active devices exist
-            const remainingRes = await fetch('/api/notifications/devices');
-            if (remainingRes.ok) {
-              const remaining = await remainingRes.json();
-              // If no devices left at all, also kill the local SW subscription
-              if (remaining.devices.length === 0 && sub) {
-                await sub.unsubscribe();
-                setIsSubscribed(false);
-              }
-              setDevices(remaining.devices);
+            // Unsubscribe this browser ONLY if its endpoint matches the device we just deleted
+            if (deviceToDelete && sub && sub.endpoint === deviceToDelete.endpoint) {
+              await sub.unsubscribe();
+              setIsSubscribed(false);
             }
           }
         } catch (swErr) {

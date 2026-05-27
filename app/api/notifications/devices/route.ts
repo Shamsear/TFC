@@ -8,8 +8,10 @@ export async function GET() {
 
   const devices = await prisma.push_subscriptions.findMany({
     where: { userId: session.user.id, isActive: true },
-    select: { id: true, deviceName: true, deviceType: true, lastUsedAt: true },
+    select: { id: true, deviceName: true, deviceType: true, lastUsedAt: true, endpoint: true },
     orderBy: { lastUsedAt: 'desc' }
   })
-  return NextResponse.json({ devices })
+  return NextResponse.json({ devices }, {
+    headers: { 'Cache-Control': 'no-store' }
+  })
 }

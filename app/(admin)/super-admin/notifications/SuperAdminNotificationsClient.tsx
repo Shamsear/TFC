@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from 'react'
 
+// Use a fixed locale so server & client render identical date strings (prevents hydration mismatch)
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  })
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  })
+
 interface Subscription {
   id: string
   deviceName: string
@@ -291,10 +303,10 @@ export default function SuperAdminNotificationsClient({ subscriptions: initialSu
                       </div>
                     </td>
                     <td className="py-4 text-xs text-gray-400">
-                      {new Date(sub.lastUsedAt).toLocaleString()}
+                      {formatDateTime(sub.lastUsedAt)}
                     </td>
                     <td className="py-4 text-xs text-gray-500">
-                      {new Date(sub.consentGivenAt).toLocaleDateString()}
+                      {formatDate(sub.consentGivenAt)}
                     </td>
                     <td className="py-4 text-right">
                       <button
@@ -335,7 +347,7 @@ export default function SuperAdminNotificationsClient({ subscriptions: initialSu
               return (
                 <div key={log.id} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-1.5 border-b border-white/5 last:border-0">
                   <span className="text-gray-500 shrink-0 select-none">
-                    [{new Date(log.sentAt).toLocaleTimeString()}]
+                    [{new Date(log.sentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}]
                   </span>
                   <div className="flex-1">
                     <span className="font-bold text-gray-400">[{log.category.toUpperCase()}]</span>{' '}

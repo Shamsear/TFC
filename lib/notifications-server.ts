@@ -26,7 +26,8 @@ const QuietHoursSchema = z.string().regex(/^\d{2}:\d{2}$/);
 const PayloadSchema = z.object({
   title: z.string().min(1).max(60).transform(val => val.replace(/<\/?[^>]+(>|$)/g, "")),
   body: z.string().min(1).max(250).transform(val => val.replace(/<\/?[^>]+(>|$)/g, "")),
-  url: z.string().url().optional()
+  // Accept relative paths (e.g. "/team") AND full URLs — z.string().url() was silently rejecting relative paths
+  url: z.string().min(1).optional()
 });
 
 function timeToMinutes(hm: string): number {
@@ -35,8 +36,12 @@ function timeToMinutes(hm: string): number {
 }
 
 export async function sendPushNotificationRaw(userId: string, rawPayload: any, category: 'auctionWins' | 'outbids' | 'trades' | 'general' = 'general') {
+  console.log(`[Push] Sending to userId=${userId} category=${category} title="${rawPayload?.title}"`);
   const parsed = PayloadSchema.safeParse(rawPayload);
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    console.error('[Push] Payload validation failed:', parsed.error.flatten());
+    return;
+  }
   const payload = parsed.data;
 
   // Initialize VAPID lazily. If keys are missing, write to inbox as a fallback and return early
@@ -104,9 +109,12 @@ export async function sendPushNotificationRaw(userId: string, rawPayload: any, c
     let errorMsg = null;
 
     try {
+      console.log(`[Push] Dispatching to endpoint: ${sub.endpoint.substring(0, 60)}...`);
       await webpush.sendNotification(subObj, JSON.stringify(payload));
       pushSucceeded = true;
+      console.log(`[Push] ✅ SUCCESS subId=${sub.id}`);
     } catch (err: any) {
+      console.error(`[Push] ❌ FAILED subId=${sub.id} status=${err.statusCode}`, err.message);
       if (err.statusCode === 410 || err.statusCode === 404) {
         logStatus = '410_EXPIRED';
         await prisma.push_subscriptions.update({

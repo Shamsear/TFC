@@ -136,9 +136,12 @@ export default function SuperAdminNotificationsClient({ subscriptions: initialSu
       if (res.ok) {
         setSubscriptions(subscriptions.filter(s => s.id !== subId));
         alert('Device subscription revoked successfully.');
+      } else {
+        const err = await res.json();
+        throw new Error(err.error || 'Revocation failed');
       }
-    } catch (err) {
-      alert('Revocation failed');
+    } catch (err: any) {
+      alert(err.message || 'Revocation failed');
     }
   }
 

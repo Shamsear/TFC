@@ -176,9 +176,12 @@ export default function PushToggle() {
         } catch (swErr) {
           console.warn('SW unsubscribe check failed (non-fatal):', swErr);
         }
+      } else {
+        const err = await res.json();
+        throw new Error(err.error || 'Revocation failed');
       }
-    } catch (err) {
-      alert('Revocation failed');
+    } catch (err: any) {
+      alert(err.message || 'Revocation failed');
     }
   }
 

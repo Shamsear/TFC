@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import PushToggle from "@/components/notifications/PushToggle"
 
 // Icon Components
 const TrophyIcon = () => (
@@ -444,6 +445,11 @@ export default async function SubAdminDashboard() {
               ))}
             </div>
           )}
+        </div>
+        
+        {/* Push Notification Controls */}
+        <div className="mt-6 sm:mt-8 lg:mt-12">
+          <PushToggle />
         </div>
       </div>
     </div>

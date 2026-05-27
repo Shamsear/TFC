@@ -163,3 +163,19 @@ export async function getTeamManagerId(teamId: string): Promise<string | null> {
   return manager?.id ?? null;
 }
 
+/**
+ * Helper: notify all SUPER_ADMIN and SUB_ADMIN users
+ */
+export async function notifyAllAdmins(payload: { title: string; body: string; url?: string }) {
+  const admins = await prisma.users.findMany({
+    where: { 
+      role: { in: ['SUPER_ADMIN', 'SUB_ADMIN'] },
+      isActive: true 
+    },
+    select: { id: true }
+  });
+  
+  await Promise.all(admins.map(admin => 
+    sendPushNotificationRaw(admin.id, payload, 'general').catch(() => {})
+  ));
+}

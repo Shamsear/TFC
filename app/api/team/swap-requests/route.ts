@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
-import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
+import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -254,6 +254,17 @@ export async function POST(request: NextRequest) {
       }
     } catch (notifErr) {
       console.warn('[Push] Swap request notification failed (non-fatal):', notifErr);
+    }
+
+    // Notify Admins
+    try {
+      await notifyAllAdmins({
+        title: '🔄 New Swap Request',
+        body: `A new swap request has been raised between teams.`,
+        url: `/sub-admin/${seasonId}/tools/swap-requests`
+      });
+    } catch (notifErr) {
+      console.warn('[Push] Admin swap request notification failed:', notifErr);
     }
 
     return NextResponse.json({ success: true, request: transformedRequest })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyAllAdmins } from '@/lib/notifications-server'
 import { randomUUID } from 'crypto'
 
 export async function POST(request: NextRequest) {
@@ -122,6 +123,18 @@ export async function POST(request: NextRequest) {
         })
       })
     )
+
+    // Notify Admins
+    try {
+      const teamData = await prisma.teams.findUnique({ where: { id: teamId }, select: { name: true } });
+      await notifyAllAdmins({
+        title: '📋 New Release Request',
+        body: `${teamData?.name || 'A team'} has requested to release ${requests.length} player(s).`,
+        url: `/sub-admin/${seasonId}/tools/release-requests`
+      });
+    } catch (notifErr) {
+      console.warn('[Push] Admin release request notification failed:', notifErr);
+    }
 
     return NextResponse.json({ success: true, requests })
   } catch (error: any) {

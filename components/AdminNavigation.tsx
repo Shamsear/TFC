@@ -120,6 +120,14 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                 >
                   Audit Logs
                 </Link>
+                <Link
+                  href="/super-admin/notifications"
+                  className={`text-sm font-bold transition-colors ${
+                    isActive("/super-admin/notifications") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                  }`}
+                >
+                  Notifications
+                </Link>
               </>
             ) : (
               <>
@@ -309,6 +317,15 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Audit Logs
+                  </Link>
+                  <Link
+                    href="/super-admin/notifications"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/notifications") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Notifications
                   </Link>
                 </>
               ) : (

@@ -60,6 +60,12 @@ export default function PushToggle() {
   }
 
   const handleSubscribe = async () => {
+    if (!publicVapidKey) {
+      alert('VAPID public key is not loaded. If you recently modified your .env file, please restart your development server (npm run dev) to apply the change.');
+      setLoading(false);
+      return;
+    }
+
     if (Notification.permission === 'denied') {
       alert('System alerts are blocked in browser preferences. Please reset notification permissions in address bar settings.');
       return;
@@ -70,10 +76,24 @@ export default function PushToggle() {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') throw new Error('Permission rejected');
 
-      const registration = await navigator.serviceWorker.ready;
+      // Safely query service worker registration to prevent infinite hangs in Safari PWA
+      let registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        // Fallback with a 5-second timeout safeguard
+        const swReadyPromise = navigator.serviceWorker.ready;
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Service Worker registration timed out. Try closing and reopening the PWA.')), 5000)
+        );
+        registration = await Promise.race([swReadyPromise, timeoutPromise]);
+      }
+
+      if (!registration) {
+        throw new Error('Service Worker is not active or could not be found.');
+      }
+
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey!)
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
       });
 
       const userAgent = navigator.userAgent;
@@ -103,6 +123,7 @@ export default function PushToggle() {
       setIsSubscribed(true);
       await fetchDevices();
     } catch (err: any) {
+      console.error('[PWA Push Error]', err);
       alert(err.message || 'Subscription failed');
     } finally {
       setLoading(false);

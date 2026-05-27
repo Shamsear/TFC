@@ -1,16 +1,14 @@
 import { inngest } from "../lib/inngest/client";
 
-// Let's inspect the types by forcing a compilation check on different shapes
-// Option A: 2 arguments where trigger is combined in config
-const fnA = inngest.createFunction(
+// Let's test the 2-argument signature where the trigger is inside options
+const fnB = inngest.createFunction(
   {
-    id: "test-a",
-    name: "Test A",
-    // In some older versions, trigger was in the options object:
-    // @ts-ignore
+    id: "test-b",
+    name: "Test B",
+    // Nested trigger
     trigger: { event: "test/event" }
   },
-  async ({ event, step }) => {
+  async ({ event, step }: { event: any; step: any }) => {
     return event.data;
   }
 );

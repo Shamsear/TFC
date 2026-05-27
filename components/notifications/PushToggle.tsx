@@ -36,13 +36,16 @@ export default function PushToggle() {
         setShowIosTip(true);
       }
 
+      // Always fetch all registered devices so every device shows in the list
+      await fetchDevices();
+
       if (hasSW && hasPush && (!isIOS || isStandalone)) {
         try {
           let registration = await navigator.serviceWorker.getRegistration();
           if (!registration) {
             // Non-blocking 2-second timeout race for service worker ready state
             const swReadyPromise = navigator.serviceWorker.ready;
-            const timeoutPromise = new Promise<never>((_, reject) => 
+            const timeoutPromise = new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error('SW ready timeout')), 2000)
             );
             registration = await Promise.race([swReadyPromise, timeoutPromise]);
@@ -51,7 +54,6 @@ export default function PushToggle() {
           if (registration) {
             const subscription = await registration.pushManager.getSubscription();
             setIsSubscribed(!!subscription);
-            await fetchDevices();
           }
         } catch (err) {
           console.warn('[PWA Init Warning] Non-blocking registration load warning:', err);
@@ -150,12 +152,29 @@ export default function PushToggle() {
     try {
       const res = await fetch(`/api/notifications/devices/${deviceId}`, { method: 'DELETE' });
       if (res.ok) {
-        setDevices(devices.filter(d => d.id !== deviceId));
-        const registration = await navigator.serviceWorker.ready;
-        const sub = await registration.pushManager.getSubscription();
-        if (sub) {
-          await sub.unsubscribe();
-          setIsSubscribed(false);
+        setDevices(prev => prev.filter(d => d.id !== deviceId));
+
+        // Only unsubscribe THIS browser's push if its own registration is the one being removed
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            const sub = await registration.pushManager.getSubscription();
+            // The deleted device's endpoint is not directly available here, so we compare
+            // by checking if we still have any devices left that match this browser.
+            // Simplest safe approach: only call unsubscribe if no remaining active devices exist
+            const remainingRes = await fetch('/api/notifications/devices');
+            if (remainingRes.ok) {
+              const remaining = await remainingRes.json();
+              // If no devices left at all, also kill the local SW subscription
+              if (remaining.devices.length === 0 && sub) {
+                await sub.unsubscribe();
+                setIsSubscribed(false);
+              }
+              setDevices(remaining.devices);
+            }
+          }
+        } catch (swErr) {
+          console.warn('SW unsubscribe check failed (non-fatal):', swErr);
         }
       }
     } catch (err) {

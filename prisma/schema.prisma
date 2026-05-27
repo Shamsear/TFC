@@ -386,6 +386,11 @@ model users {
   processedReleaseRequests release_requests[]        @relation("ReleaseRequestProcessor")
   processedSwapRequests    swap_requests[]           @relation("SwapRequestProcessor")
   team                     teams?                    @relation("TeamManager", fields: [teamId], references: [id])
+  notificationPreferences  Json                      @default("{\"auctionWins\":true,\"outbids\":true,\"trades\":true,\"general\":true}") @map("notification_preferences")
+  quietHoursStart          String?                   @default("23:00") @map("quiet_hours_start")
+  quietHoursEnd            String?                   @default("07:00") @map("quiet_hours_end")
+  pushSubscriptions        push_subscriptions[]
+  notificationsInbox       notifications_inbox[]
 }
 
 model password_reset_requests {
@@ -955,4 +960,45 @@ enum RequestStatus {
   pending
   approved
   rejected
+}
+
+model push_subscriptions {
+  id             String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId         String   @map("user_id")
+  deviceType     String   @map("device_type") 
+  deviceName     String   @map("device_name") 
+  endpoint       String   @unique
+  p256dhEnc      String   @map("p256dh_enc")   // Encrypted AES ciphertext string
+  authEnc        String   @map("auth_enc")     // Encrypted AES ciphertext string
+  isActive       Boolean  @default(true)       @map("is_active")
+  createdAt      DateTime @default(now())       @map("created_at")
+  lastUsedAt     DateTime @default(now())       @map("last_used_at")
+  consentGivenAt DateTime @default(now())       @map("consent_given_at")
+  user           users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model notifications_inbox {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId      String   @map("user_id")
+  title       String
+  body        String
+  category    String   @default("general")
+  url         String?
+  isRead      Boolean  @default(false)      @map("is_read")
+  createdAt   DateTime @default(now())      @map("created_at")
+  user        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model push_delivery_log {
+  id             String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  subscriptionId String   @map("subscription_id")
+  sentAt         DateTime @default(now())      @map("sent_at")
+  status         String   // "SUCCESS", "FAILED", "410_EXPIRED", "429_RATE_LIMIT", "CLICKED"
+  errorMessage   String?  @map("error_message")
+  category       String
 }

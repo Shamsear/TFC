@@ -3,6 +3,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import PWARegistry from "@/components/PWARegistry";
 
 export const metadata: Metadata = {
   title: "Turf Cats",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-  manifest: '/site.webmanifest',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -31,6 +32,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <SessionProvider>
             <ToastProvider>
+              <PWARegistry />
               {children}
             </ToastProvider>
           </SessionProvider>

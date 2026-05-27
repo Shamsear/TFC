@@ -1,0 +1,189 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+export default function PushToggle() {
+  const [isSupported, setIsSupported] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [devices, setDevices] = useState<any[]>([])
+  const [showIosTip, setShowIosTip] = useState(false)
+
+  const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+  useEffect(() => {
+    const initStatus = async () => {
+      const hasSW = 'serviceWorker' in navigator;
+      const hasPush = 'PushManager' in window;
+      setIsSupported(hasSW && hasPush);
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+
+      // iOS devices MUST be launched from Home Screen PWA container to use standard Web Push APIs
+      if (isIOS && !isStandalone) {
+        setShowIosTip(true);
+      }
+
+      if (hasSW && hasPush && (!isIOS || isStandalone)) {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        setIsSubscribed(!!subscription);
+        await fetchDevices();
+      }
+      setLoading(false);
+    }
+    initStatus();
+  }, [])
+
+  const fetchDevices = async () => {
+    try {
+      const res = await fetch('/api/notifications/devices');
+      if (res.ok) {
+        const data = await res.json();
+        setDevices(data.devices);
+      }
+    } catch (err) {
+      console.error('Failed fetching registered devices:', err);
+    }
+  }
+
+  const handleSubscribe = async () => {
+    if (Notification.permission === 'denied') {
+      alert('System alerts are blocked in browser preferences. Please reset notification permissions in address bar settings.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') throw new Error('Permission rejected');
+
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey!)
+      });
+
+      const userAgent = navigator.userAgent;
+      const isMobile = /Mobi/i.test(userAgent);
+      const deviceType = isMobile ? 'Mobile' : 'Desktop';
+      let deviceName = 'Browser Target';
+
+      if (/Chrome/i.test(userAgent)) deviceName = 'Chrome';
+      else if (/Safari/i.test(userAgent)) deviceName = 'Safari';
+      else if (/Firefox/i.test(userAgent)) deviceName = 'Firefox';
+
+      const res = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription,
+          deviceName,
+          deviceType
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Server rejected subscription');
+      }
+
+      setIsSubscribed(true);
+      await fetchDevices();
+    } catch (err: any) {
+      alert(err.message || 'Subscription failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleRevokeDevice = async (deviceId: string) => {
+    if (!confirm('Disconnect this device subscription?')) return;
+    try {
+      const res = await fetch(`/api/notifications/devices/${deviceId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setDevices(devices.filter(d => d.id !== deviceId));
+        const registration = await navigator.serviceWorker.ready;
+        const sub = await registration.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+          setIsSubscribed(false);
+        }
+      }
+    } catch (err) {
+      alert('Revocation failed');
+    }
+  }
+
+  if (showIosTip) {
+    return (
+      <div className="p-4 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] text-sm leading-relaxed">
+        🔔 <strong>iOS Notification Tip:</strong> Safari requires this application to be installed first. Click your browser Share icon and choose <strong>Add to Home Screen</strong>, then open the installed PWA to enable push notifications!
+      </div>
+    );
+  }
+
+  if (!isSupported) {
+    return (
+      <div className="text-gray-400 text-xs italic">
+        Push notifications are not supported on this browser version.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-bold text-white">Push Notifications</h3>
+          <p className="text-xs text-gray-400">Receive real-time draft notifications and transaction updates</p>
+        </div>
+        <button
+          onClick={handleSubscribe}
+          disabled={loading || isSubscribed}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+            isSubscribed 
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+              : 'bg-[#E8A800] hover:bg-[#FFC93A] text-black'
+          }`}
+        >
+          {loading ? 'Processing...' : isSubscribed ? 'Active' : 'Enable Alerts'}
+        </button>
+      </div>
+
+      {devices.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">My Devices</h4>
+          {devices.map(dev => (
+            <div key={dev.id} className="flex items-center justify-between bg-black/40 border border-white/5 rounded-lg p-3 text-sm">
+              <div>
+                <div className="font-bold text-white">{dev.deviceName} ({dev.deviceType})</div>
+                <div className="text-xs text-gray-500">Registered: {new Date(dev.lastUsedAt).toLocaleDateString()}</div>
+              </div>
+              <button
+                onClick={() => handleRevokeDevice(dev.id)}
+                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

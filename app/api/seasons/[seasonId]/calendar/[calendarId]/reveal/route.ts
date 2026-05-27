@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createAuditLog } from '@/lib/audit'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 export async function POST(
   request: NextRequest,
@@ -58,6 +59,26 @@ export async function POST(
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Notify all season teams that calendar is revealed
+    try {
+      const seasonTeams = await prisma.season_teams.findMany({
+        where: { seasonId },
+        select: { teamId: true }
+      });
+      const managerIds = (await Promise.all(seasonTeams.map(st => getTeamManagerId(st.teamId)))).filter(Boolean) as string[];
+      
+      const isPartial = slotIds && slotIds.length > 0;
+      await Promise.all(managerIds.map(userId => 
+        sendPushNotificationRaw(userId, {
+          title: '📅 Auction Order Revealed!',
+          body: isPartial ? 'Some auction slots have been revealed. Check the calendar.' : 'The full auction order has been revealed!',
+          url: '/team/calendar'
+        }, 'general').catch(() => {})
+      ));
+    } catch (notifErr) {
+      console.warn('[Push] Calendar reveal notification failed:', notifErr);
+    }
 
     return NextResponse.json({
       message: `Revealed ${result.count} position(s)`,

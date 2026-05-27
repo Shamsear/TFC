@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 export async function PATCH(
   request: NextRequest,
@@ -116,6 +117,36 @@ export async function PATCH(
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Notify both teams if the match was just completed
+    if (status === 'COMPLETED' && existingMatch.status !== 'COMPLETED') {
+      try {
+        const homeManagerId = await getTeamManagerId(existingMatch.homeTeam.team.id);
+        const awayManagerId = await getTeamManagerId(existingMatch.awayTeam.team.id);
+        const matchTitle = `🏟️ Match Result Published`;
+        let matchBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`;
+        if (homePenalty !== null && awayPenalty !== null) {
+          matchBody += ` (${homePenalty}-${awayPenalty} pens)`;
+        }
+        
+        if (homeManagerId) {
+          await sendPushNotificationRaw(homeManagerId, {
+            title: matchTitle,
+            body: matchBody,
+            url: `/team/matches/${matchId}`
+          }, 'general').catch(() => {});
+        }
+        if (awayManagerId) {
+          await sendPushNotificationRaw(awayManagerId, {
+            title: matchTitle,
+            body: matchBody,
+            url: `/team/matches/${matchId}`
+          }, 'general').catch(() => {});
+        }
+      } catch (notifErr) {
+        console.warn('[Push] Match result notification failed:', notifErr);
+      }
+    }
 
     return NextResponse.json(updatedMatch)
   } catch (error) {

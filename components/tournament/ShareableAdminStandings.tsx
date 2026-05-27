@@ -219,10 +219,17 @@ export default function ShareableAdminStandings({
     setDownloading(true)
     try {
       const dataUrl = await getDataUrl()
+      const blob = await (await fetch(dataUrl)).blob()
+      const blobUrl = URL.createObjectURL(blob)
+      
       const link = document.createElement('a')
-      link.href = dataUrl
+      link.href = blobUrl
       link.download = `${tournamentName.replace(/\s+/g, '-').toLowerCase()}-standings.png`
+      document.body.appendChild(link)
       link.click()
+      document.body.removeChild(link)
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
       setDownloadDone(true)
       setTimeout(() => setDownloadDone(false), 2500)
     } catch (err) {

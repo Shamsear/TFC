@@ -8,15 +8,17 @@ import KnockoutRoundManager from './KnockoutRoundManager'
 import FixtureCalendarEditor from './FixtureCalendarEditor'
 import ShareableAdminStandings from './ShareableAdminStandings'
 import MatchRoundManager from './MatchRoundManager'
+import TournamentStats from '../tournaments/TournamentStats'
 
 interface TournamentTabsProps {
   tournament: any
   teams: any[]
   seasonId: string
+  statsTeams: any[]
 }
 
-export default function TournamentTabs({ tournament, teams, seasonId }: TournamentTabsProps) {
-  const [activeTab, setActiveTab] = useState<'fixtures' | 'calendar' | 'standings' | 'groups' | 'knockout' | 'rounds'>('fixtures')
+export default function TournamentTabs({ tournament, teams, seasonId, statsTeams }: TournamentTabsProps) {
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'calendar' | 'standings' | 'groups' | 'knockout' | 'rounds' | 'stats'>('fixtures')
   const [knockoutRounds, setKnockoutRounds] = useState<any[]>([])
   const [loadingKnockout, setLoadingKnockout] = useState(false)
 
@@ -45,6 +47,7 @@ export default function TournamentTabs({ tournament, teams, seasonId }: Tourname
     ...(hasFixtures ? [{ id: 'rounds', label: 'Manage Rounds', count: 0 }] : []),
     ...(hasFixtures ? [{ id: 'calendar', label: 'Calendar Editor', count: 0 }] : []),
     { id: 'standings', label: 'Standings', count: tournament.standings.length },
+    { id: 'stats', label: 'Stats', count: 0 },
     ...(tournament.groups.length > 0 ? [{ id: 'groups', label: 'Groups', count: tournament.groups.length }] : []),
     ...(hasKnockout ? [{ id: 'knockout', label: 'Knockout', count: knockoutRounds.length }] : [])
   ]
@@ -124,6 +127,12 @@ export default function TournamentTabs({ tournament, teams, seasonId }: Tourname
               groups={tournament.groups}
             />
           </div>
+        )}
+        {activeTab === 'stats' && (
+          <TournamentStats
+            teams={statsTeams}
+            teamLinkBase={`/sub-admin/${seasonId}/teams`}
+          />
         )}
         {activeTab === 'groups' && tournament.groups.length > 0 && (
           <GroupsView

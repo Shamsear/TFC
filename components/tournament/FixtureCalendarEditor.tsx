@@ -129,13 +129,13 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
         const dateStr = displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
         return (
-          <div key={dateKey} className="rounded-2xl bg-white/5 border border-white/10 p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div key={dateKey} className="rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-xl font-black text-white">
+                <h3 className="text-lg sm:text-xl font-black text-white">
                   {matchesOnDate[0]?.round || `Matchday ${index + 1}`}
                 </h3>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">
                   {dayName}, {dateStr}
                 </p>
               </div>
@@ -143,7 +143,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                 <button
                   onClick={() => addGapAfterMatchday(dateKey, 1)}
                   disabled={loading}
-                  className="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="flex-1 sm:flex-none px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
                   {loadingAction === `gap-1-${dateKey}` ? (
                     <>
@@ -151,13 +151,13 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                       <span>Applying...</span>
                     </>
                   ) : (
-                    '+1 Day Gap'
+                    '+1 Day'
                   )}
                 </button>
                 <button
                   onClick={() => addGapAfterMatchday(dateKey, 2)}
                   disabled={loading}
-                  className="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="flex-1 sm:flex-none px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
                   {loadingAction === `gap-2-${dateKey}` ? (
                     <>
@@ -165,7 +165,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                       <span>Applying...</span>
                     </>
                   ) : (
-                    '+2 Days Gap'
+                    '+2 Days'
                   )}
                 </button>
               </div>
@@ -173,7 +173,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
 
             <div className="space-y-2">
               {matchesOnDate.map((match) => (
-                <div key={match.id} className="rounded-xl bg-black/30 border border-white/10 p-4">
+                <div key={match.id} className="rounded-xl bg-black/30 border border-white/10 p-3 sm:p-4">
                   {editingMatchId === match.id ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
@@ -186,8 +186,8 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                             className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
-                        <div className="w-32">
-                          <label className="block text-xs text-gray-400 mb-1">Gap After (days)</label>
+                        <div className="w-24 sm:w-32">
+                          <label className="block text-xs text-gray-400 mb-1">Gap (days)</label>
                           <input
                             type="number"
                             min="0"
@@ -199,7 +199,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                         </div>
                       </div>
 
-                      <label className="flex items-center gap-2 text-sm text-gray-300">
+                      <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
                         <input
                           type="checkbox"
                           checked={pushSubsequent}
@@ -234,40 +234,79 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
-                            {match.homeTeam.team.logoUrl ? (
-                              <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
-                            ) : (
-                              <span className="text-sm">⚽</span>
-                            )}
+                    <>
+                      {/* Desktop View: Unchanged UI/UX */}
+                      <div className="hidden md:flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                              {match.homeTeam.team.logoUrl ? (
+                                <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
+                              ) : (
+                                <span className="text-sm">⚽</span>
+                              )}
+                            </div>
+                            <span className="text-white font-bold">{match.homeTeam.team.name}</span>
                           </div>
-                          <span className="text-white font-bold">{match.homeTeam.team.name}</span>
+
+                          <span className="text-gray-500 font-bold">vs</span>
+
+                          <div className="flex items-center gap-3 flex-1">
+                            <span className="text-white font-bold">{match.awayTeam.team.name}</span>
+                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                              {match.awayTeam.team.logoUrl ? (
+                                <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
+                              ) : (
+                                <span className="text-sm">⚽</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        <span className="text-gray-500 font-bold">vs</span>
-
-                        <div className="flex items-center gap-3 flex-1">
-                          <span className="text-white font-bold">{match.awayTeam.team.name}</span>
-                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
-                            {match.awayTeam.team.logoUrl ? (
-                              <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
-                            ) : (
-                              <span className="text-sm">⚽</span>
-                            )}
-                          </div>
-                        </div>
+                        <button
+                          onClick={() => handleEditDate(match)}
+                          className="px-4 py-2 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-all"
+                        >
+                          Edit Date
+                        </button>
                       </div>
 
-                      <button
-                        onClick={() => handleEditDate(match)}
-                        className="px-4 py-2 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-all"
-                      >
-                        Edit Date
-                      </button>
-                    </div>
+                      {/* Mobile View: Beautifully compact and responsive layout */}
+                      <div className="md:hidden space-y-3">
+                        <div className="grid grid-cols-7 items-center gap-2">
+                          {/* Home Team */}
+                          <div className="col-span-3 flex items-center justify-end gap-1.5 text-right">
+                            <span className="text-white font-bold text-xs truncate">{match.homeTeam.team.name}</span>
+                            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {match.homeTeam.team.logoUrl ? (
+                                <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
+                              ) : (
+                                <span className="text-xs">⚽</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* VS */}
+                          <div className="col-span-1 text-center text-gray-500 font-bold text-xs">vs</div>
+                          {/* Away Team */}
+                          <div className="col-span-3 flex items-center justify-start gap-1.5 text-left">
+                            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {match.awayTeam.team.logoUrl ? (
+                                <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
+                              ) : (
+                                <span className="text-xs">⚽</span>
+                              )}
+                            </div>
+                            <span className="text-white font-bold text-xs truncate">{match.awayTeam.team.name}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleEditDate(match)}
+                          className="w-full py-1.5 bg-white/10 text-white rounded-lg text-xs font-bold hover:bg-white/20 transition-all"
+                        >
+                          Edit Date
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}

@@ -95,6 +95,34 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
     logoUrl: st.team.logoUrl
   }))
 
+  // Fetch clean sheets for stats tab
+  const cleanSheetMatches = await prisma.matches.findMany({
+    where: { tournamentId, status: 'COMPLETED' },
+    select: { homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true }
+  })
+
+  const cleanSheetMap: Record<string, number> = {}
+  for (const m of cleanSheetMatches) {
+    if (m.homeScore === null || m.awayScore === null) continue
+    if (m.awayScore === 0) cleanSheetMap[m.homeTeamId] = (cleanSheetMap[m.homeTeamId] ?? 0) + 1
+    if (m.homeScore === 0) cleanSheetMap[m.awayTeamId] = (cleanSheetMap[m.awayTeamId] ?? 0) + 1
+  }
+
+  const statsTeams = tournament.standings.map((s) => ({
+    teamId: s.seasonTeam.team.id,
+    teamName: s.seasonTeam.team.name,
+    logoUrl: s.seasonTeam.team.logoUrl,
+    played: s.played,
+    won: s.won,
+    drawn: s.drawn,
+    lost: s.lost,
+    goalsFor: s.goalsFor,
+    goalsAgainst: s.goalsAgainst,
+    goalDiff: s.goalDiff,
+    points: s.points,
+    cleanSheets: cleanSheetMap[s.teamId] ?? 0,
+  }))
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       UPCOMING: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -185,6 +213,7 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
           tournament={tournament}
           teams={teams}
           seasonId={seasonId}
+          statsTeams={statsTeams}
         />
       </div>
     </div>

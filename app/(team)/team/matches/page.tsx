@@ -121,8 +121,8 @@ export default async function MatchesPage() {
 
   // Separate upcoming and past matches
   const now = new Date()
-  const upcomingMatches = allMatches.filter((m) => new Date(m.matchDate) > now || m.status === "SCHEDULED")
-  const pastMatches = allMatches.filter((m) => new Date(m.matchDate) <= now && m.status !== "SCHEDULED")
+  const upcomingMatches = allMatches.filter((m) => new Date(m.matchDate) > now || m.status === "SCHEDULED" || m.status === "LIVE")
+  const pastMatches = allMatches.filter((m) => new Date(m.matchDate) <= now && m.status !== "SCHEDULED" && m.status !== "LIVE")
 
   // Calculate stats
   const wins = pastMatches.filter((m) => {
@@ -185,29 +185,52 @@ export default async function MatchesPage() {
           </div>
         </div>
 
-        {/* Upcoming Matches */}
+        {/* Upcoming/Live Matches */}
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Upcoming Matches</h2>
+          <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Gameweek & Upcoming Matches</h2>
           {upcomingMatches.length > 0 ? (
             <div className="space-y-3 sm:space-y-4">
               {upcomingMatches.map((match) => {
                 const isHome = match.homeTeamId === currentSeasonTeam.id
+                const isLive = match.status === 'LIVE'
+                const matchDate = new Date(match.matchDate)
+                const isExpired = matchDate < now
+
                 return (
                   <Link
                     key={match.id}
                     href={`/team/matches/${match.id}`}
-                    className="block rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all"
+                    className={`block rounded-xl sm:rounded-2xl border p-4 sm:p-6 transition-all ${
+                      isLive 
+                        ? isExpired 
+                          ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
+                          : 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20' 
+                        : 'bg-white/5 border-white/10 hover:border-[#E8A800]/50 hover:bg-white/[0.07]'
+                    }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-4">
-                      <div className="text-xs sm:text-sm text-[#7A7367]">
-                        {new Date(match.matchDate).toLocaleDateString("en-US", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                      <div className="flex items-center gap-2">
+                        {isLive && (
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                            isExpired ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white animate-pulse'
+                          }`}>
+                            {isExpired ? 'DEADLINE PASSED' : 'LIVE'}
+                          </span>
+                        )}
+                        <div className={`text-xs sm:text-sm font-bold ${isLive ? (isExpired ? 'text-red-400' : 'text-emerald-400') : 'text-[#7A7367]'}`}>
+                          {isLive ? 'Deadline: ' : ''}{matchDate.toLocaleDateString("en-US", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit"
+                          })}
+                        </div>
                       </div>
-                      <div className="px-3 py-1 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg text-[#E8A800] text-xs sm:text-sm font-medium w-fit">
+                      <div className={`px-3 py-1 border rounded-lg text-xs sm:text-sm font-medium w-fit ${
+                        isLive ? 'bg-black/20 border-white/20 text-white' : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
+                      }`}>
                         {match.tournament.name}
                       </div>
                     </div>
@@ -217,9 +240,9 @@ export default async function MatchesPage() {
                         {match.homeTeam.team.name}
                       </div>
                       <div className="text-center">
-                        <div className="text-[#7A7367] text-xs sm:text-sm font-medium">VS</div>
+                        <div className={`text-xs sm:text-sm font-medium ${isLive ? 'text-white' : 'text-[#7A7367]'}`}>VS</div>
                         {match.venue && (
-                          <div className="text-xs text-[#7A7367] mt-1 hidden sm:block">{match.venue}</div>
+                          <div className={`text-xs mt-1 hidden sm:block ${isLive ? 'text-white/70' : 'text-[#7A7367]'}`}>{match.venue}</div>
                         )}
                       </div>
                       <div className={`text-left text-sm sm:text-base ${!isHome ? "text-[#E8A800] font-bold" : "text-white font-medium"}`}>

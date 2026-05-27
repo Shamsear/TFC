@@ -7,6 +7,8 @@ import GroupsView from './GroupsView'
 import KnockoutRoundManager from './KnockoutRoundManager'
 import FixtureCalendarEditor from './FixtureCalendarEditor'
 
+import MatchRoundManager from './MatchRoundManager'
+
 interface TournamentTabsProps {
   tournament: any
   teams: any[]
@@ -14,7 +16,7 @@ interface TournamentTabsProps {
 }
 
 export default function TournamentTabs({ tournament, teams, seasonId }: TournamentTabsProps) {
-  const [activeTab, setActiveTab] = useState<'fixtures' | 'calendar' | 'standings' | 'groups' | 'knockout'>('fixtures')
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'calendar' | 'standings' | 'groups' | 'knockout' | 'rounds'>('fixtures')
   const [knockoutRounds, setKnockoutRounds] = useState<any[]>([])
   const [loadingKnockout, setLoadingKnockout] = useState(false)
 
@@ -40,6 +42,7 @@ export default function TournamentTabs({ tournament, teams, seasonId }: Tourname
 
   const tabs = [
     { id: 'fixtures', label: 'Fixtures', count: tournament.matches.length },
+    ...(hasFixtures ? [{ id: 'rounds', label: 'Manage Rounds', count: 0 }] : []),
     ...(hasFixtures ? [{ id: 'calendar', label: 'Calendar Editor', count: 0 }] : []),
     { id: 'standings', label: 'Standings', count: tournament.standings.length },
     ...(tournament.groups.length > 0 ? [{ id: 'groups', label: 'Groups', count: tournament.groups.length }] : []),
@@ -87,6 +90,13 @@ export default function TournamentTabs({ tournament, teams, seasonId }: Tourname
       <div>
         {activeTab === 'fixtures' && (
           <FixturesList
+            matches={tournament.matches}
+            tournamentId={tournament.id}
+            seasonId={seasonId}
+          />
+        )}
+        {activeTab === 'rounds' && hasFixtures && (
+          <MatchRoundManager
             matches={tournament.matches}
             tournamentId={tournament.id}
             seasonId={seasonId}

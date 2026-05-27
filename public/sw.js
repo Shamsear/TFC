@@ -2,7 +2,7 @@ const CACHE_NAME = 'tfc-v1.0.0';
 const OFFLINE_ASSETS = [
   '/team',
   '/offline.html',
-  '/logo-192.png',
+  '/android-chrome-192x192.png',
   '/manifest.json'
 ];
 
@@ -70,8 +70,8 @@ self.addEventListener('push', (event) => {
     const payload = event.data.json();
     const options = {
       body: payload.body,
-      icon: '/logo-192.png',
-      badge: '/badge.png',
+      icon: '/android-chrome-192x192.png',
+      badge: '/android-chrome-192x192.png',
       vibrate: [100, 50, 100],
       data: {
         url: payload.url || '/team'

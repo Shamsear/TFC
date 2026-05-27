@@ -13,8 +13,12 @@ export async function DELETE(
 
   try {
     const device = await prisma.push_subscriptions.findUnique({ where: { id } });
-    if (!device || device.userId !== session.user.id) {
+    if (!device) {
       return NextResponse.json({ error: 'Device not found' }, { status: 404 })
+    }
+
+    if (device.userId !== session.user.id && session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized to delete this device' }, { status: 403 })
     }
 
     await prisma.push_subscriptions.delete({ where: { id } });

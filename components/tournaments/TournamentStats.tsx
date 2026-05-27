@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -15,9 +16,16 @@ export interface TeamStatRow {
   goalsAgainst: number
   goalDiff: number
   points: number
-  /** Derived: games with 0 goals conceded */
   cleanSheets?: number
 }
+
+type Tab = 'golden-boot' | 'golden-ball' | 'golden-glove'
+
+const TABS: { id: Tab; label: string; emoji: string; sublabel: string; accentColor: string }[] = [
+  { id: 'golden-boot', label: 'Golden Boot', emoji: '🥇', sublabel: 'Most Goals Scored', accentColor: '#FFD700' },
+  { id: 'golden-ball', label: 'Golden Ball', emoji: '🥊', sublabel: 'Best Performance', accentColor: '#E8A800' },
+  { id: 'golden-glove', label: 'Golden Glove', emoji: '🧤', sublabel: 'Best Defense', accentColor: '#60A5FA' },
+]
 
 interface TournamentStatsProps {
   teams: TeamStatRow[]
@@ -25,114 +33,9 @@ interface TournamentStatsProps {
   teamLinkBase?: string
 }
 
-function AwardCard({
-  icon,
-  label,
-  sublabel,
-  accentColor,
-  winner,
-  value,
-  valueLabel,
-  runnerUps,
-  myTeamId,
-  teamLinkBase,
-}: {
-  icon: React.ReactNode
-  label: string
-  sublabel: string
-  accentColor: string
-  winner: TeamStatRow | null
-  value: number
-  valueLabel: string
-  runnerUps: TeamStatRow[]
-  myTeamId?: string | null
-  teamLinkBase: string
-}) {
-  if (!winner) return null
-  const isMe = myTeamId && winner.teamId === myTeamId
-
-  return (
-    <div className={`rounded-xl border bg-[#111111] overflow-hidden`} style={{ borderColor: `${accentColor}30` }}>
-      {/* Award Header */}
-      <div className="px-5 py-4 border-b" style={{ borderColor: `${accentColor}20`, background: `${accentColor}08` }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${accentColor}18`, border: `1.5px solid ${accentColor}40` }}>
-            {icon}
-          </div>
-          <div>
-            <div className="font-black text-sm text-[#F5F0E8]">{label}</div>
-            <div className="text-[11px] text-[#7A7367]">{sublabel}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Winner */}
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-4">
-          <Link href={`${teamLinkBase}/${winner.teamId}`} className="flex items-center gap-3 group/link">
-            <div className="relative w-12 h-12 rounded-full overflow-hidden bg-white/5 flex-shrink-0" style={{ border: `2px solid ${accentColor}50` }}>
-              {winner.logoUrl ? (
-                <Image src={winner.logoUrl} alt={winner.teamName} fill className="object-cover" sizes="48px" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center font-black text-sm" style={{ color: accentColor }}>
-                  {winner.teamName.slice(0, 2).toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div>
-              <div className={`font-black text-base group-hover/link:text-[#FFC93A] transition-colors ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
-                {winner.teamName}
-                {isMe && <span className="ml-1.5 text-[10px] font-black text-[#E8A800]/60 uppercase">You</span>}
-              </div>
-              <div className="text-xs text-[#7A7367]">Winner</div>
-            </div>
-          </Link>
-          <div className="text-right">
-            <div className="text-3xl font-black" style={{ color: accentColor }}>{value}</div>
-            <div className="text-[10px] text-[#7A7367] uppercase tracking-wider">{valueLabel}</div>
-          </div>
-        </div>
-
-        {/* Runner-ups */}
-        {runnerUps.length > 0 && (
-          <div className="space-y-2 pt-3 border-t border-white/5">
-            {runnerUps.map((t, i) => {
-              const isMeRU = myTeamId && t.teamId === myTeamId
-              return (
-                <Link key={t.teamId} href={`${teamLinkBase}/${t.teamId}`} className="flex items-center justify-between group/ru hover:bg-white/[0.03] rounded-lg px-2 py-1 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#7A7367] w-4">{i + 2}</span>
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-white/5">
-                      {t.logoUrl ? (
-                        <Image src={t.logoUrl} alt={t.teamName} fill className="object-cover" sizes="24px" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[8px] font-black text-[#7A7367]">
-                          {t.teamName.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <span className={`text-xs font-medium group-hover/ru:text-[#E8A800] transition-colors ${isMeRU ? 'text-[#E8A800]' : 'text-[#D4CCBB]'}`}>
-                      {t.teamName}
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold text-[#7A7367]">{
-                    valueLabel === 'Goals Scored' ? t.goalsFor :
-                    valueLabel === 'Goals Conceded' ? t.goalsAgainst :
-                    valueLabel === 'Clean Sheets' ? (t.cleanSheets ?? 0) :
-                    valueLabel === 'Goal Difference' ? t.goalDiff :
-                    t.won
-                  }</span>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/teams' }: TournamentStatsProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('golden-boot')
+
   if (teams.length === 0) {
     return (
       <div className="rounded-xl bg-white/[0.02] border border-white/10 p-12 text-center">
@@ -145,75 +48,200 @@ export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/team
     )
   }
 
-  // Golden Boot: most goals scored (most lethal attack)
-  const byGoalsFor = [...teams].sort((a, b) => b.goalsFor - a.goalsFor || b.won - a.won)
-  // Golden Glove: fewest goals conceded (best defense) — among teams that have played
-  const byGA = [...teams].filter(t => t.played > 0).sort((a, b) => a.goalsAgainst - b.goalsAgainst || b.cleanSheets! - a.cleanSheets!)
-  // Golden Ball: best overall performance (points, then GD, then GF)
-  const byPoints = [...teams].sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
+  // Sorted lists for each award
+  const goldenBootRanking = [...teams].sort((a, b) => b.goalsFor - a.goalsFor || b.won - a.won)
+  const goldenBallRanking = [...teams].sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
+  const goldenGloveRanking = [...teams]
+    .filter(t => t.played > 0)
+    .sort((a, b) => a.goalsAgainst - b.goalsAgainst || (b.cleanSheets ?? 0) - (a.cleanSheets ?? 0))
 
-  const goldenBootWinner = byGoalsFor[0] ?? null
-  const goldenGloveWinner = byGA[0] ?? null
-  const goldenBallWinner = byPoints[0] ?? null
+  const rankingMap: Record<Tab, TeamStatRow[]> = {
+    'golden-boot': goldenBootRanking,
+    'golden-ball': goldenBallRanking,
+    'golden-glove': goldenGloveRanking,
+  }
+
+  const metricMap: Record<Tab, (t: TeamStatRow) => { primary: number; primaryLabel: string; secondary: string }> = {
+    'golden-boot': t => ({
+      primary: t.goalsFor,
+      primaryLabel: 'Goals',
+      secondary: `${t.played} played · ${t.won}W ${t.drawn}D ${t.lost}L`,
+    }),
+    'golden-ball': t => ({
+      primary: t.points,
+      primaryLabel: 'Pts',
+      secondary: `GD ${t.goalDiff > 0 ? '+' : ''}${t.goalDiff} · ${t.goalsFor} GF`,
+    }),
+    'golden-glove': t => ({
+      primary: t.goalsAgainst,
+      primaryLabel: 'GA',
+      secondary: `${t.cleanSheets ?? 0} clean sheets · ${t.played} played`,
+    }),
+  }
+
+  const activeTabData = TABS.find(t => t.id === activeTab)!
+  const rankedTeams = rankingMap[activeTab]
+  const getMetric = metricMap[activeTab]
+
+  // Summary stats
+  const totalGoals = teams.reduce((s, t) => s + t.goalsFor, 0)
+  const totalMatches = teams.reduce((s, t) => s + t.played, 0) / 2
+  const totalCleanSheets = teams.reduce((s, t) => s + (t.cleanSheets ?? 0), 0)
+  const avgGoalsPerMatch = totalMatches > 0 ? (totalGoals / totalMatches).toFixed(1) : '0.0'
 
   return (
     <div className="space-y-6">
-      {/* Headline stats row */}
+      {/* Headline stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Matches', value: Math.max(...teams.map(t => t.played)) > 0 ? teams.reduce((s, t) => s + t.played, 0) / 2 : 0, icon: '⚽', sub: 'Played' },
-          { label: 'Total Goals', value: teams.reduce((s, t) => s + t.goalsFor, 0), icon: '🥅', sub: 'Scored' },
-          { label: 'Avg Goals/Match', value: (() => { const pg = Math.max(...teams.map(t => t.played)); const tg = teams.reduce((s,t) => s + t.goalsFor, 0); const tm = teams.reduce((s,t) => s + t.played, 0) / 2; return tm > 0 ? (tg / tm).toFixed(1) : '0.0' })(), icon: '📊', sub: 'Per game' },
-          { label: 'Clean Sheets', value: teams.reduce((s, t) => s + (t.cleanSheets ?? 0), 0), icon: '🧤', sub: 'Total' },
-        ].map(({ label, value, icon, sub }) => (
+          { icon: '⚽', value: Math.round(totalMatches), label: 'Matches Played' },
+          { icon: '🥅', value: totalGoals, label: 'Total Goals' },
+          { icon: '📊', value: avgGoalsPerMatch, label: 'Avg Goals / Match' },
+          { icon: '🧤', value: totalCleanSheets, label: 'Clean Sheets' },
+        ].map(({ icon, value, label }) => (
           <div key={label} className="rounded-xl bg-[#111111] border border-white/10 p-4 text-center">
             <div className="text-2xl mb-1">{icon}</div>
             <div className="text-xl font-black text-[#F5F0E8]">{value}</div>
-            <div className="text-[10px] text-[#7A7367] uppercase tracking-wider">{sub}</div>
+            <div className="text-[10px] text-[#7A7367] uppercase tracking-wider">{label}</div>
           </div>
         ))}
       </div>
 
-      {/* Award cards */}
-      <div className="grid sm:grid-cols-3 gap-5">
-        <AwardCard
-          icon={<span className="text-xl">🥇</span>}
-          label="Team Golden Boot"
-          sublabel="Most goals scored"
-          accentColor="#FFD700"
-          winner={goldenBootWinner}
-          value={goldenBootWinner?.goalsFor ?? 0}
-          valueLabel="Goals Scored"
-          runnerUps={byGoalsFor.slice(1, 3)}
-          myTeamId={myTeamId}
-          teamLinkBase={teamLinkBase}
-        />
+      {/* Tab selector */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {TABS.map(tab => {
+          const isActive = activeTab === tab.id
+          const winner = rankingMap[tab.id][0]
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+                isActive
+                  ? 'border-[var(--accent)]/40 bg-[var(--accent)]/8 shadow-lg shadow-[var(--accent)]/10'
+                  : 'border-white/10 bg-[#111111] hover:border-white/20 hover:bg-[#141414]'
+              }`}
+              style={{ '--accent': tab.accentColor } as React.CSSProperties}
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-all"
+                style={{
+                  background: isActive ? `${tab.accentColor}20` : 'rgba(255,255,255,0.05)',
+                  border: `1.5px solid ${isActive ? `${tab.accentColor}50` : 'rgba(255,255,255,0.1)'}`,
+                }}
+              >
+                {tab.emoji}
+              </div>
+              <div className="min-w-0">
+                <div className={`font-black text-sm transition-colors ${isActive ? 'text-[#F5F0E8]' : 'text-[#7A7367]'}`}>
+                  {tab.label}
+                </div>
+                <div className="text-[10px] text-[#7A7367] truncate">
+                  {winner ? winner.teamName : '—'}
+                </div>
+              </div>
+              {isActive && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tab.accentColor }} />
+              )}
+            </button>
+          )
+        })}
+      </div>
 
-        <AwardCard
-          icon={<span className="text-xl">🥊</span>}
-          label="Team Golden Ball"
-          sublabel="Best overall performance"
-          accentColor="#E8A800"
-          winner={goldenBallWinner}
-          value={goldenBallWinner?.points ?? 0}
-          valueLabel="Points"
-          runnerUps={byPoints.slice(1, 3)}
-          myTeamId={myTeamId}
-          teamLinkBase={teamLinkBase}
-        />
+      {/* Full ranked list */}
+      <div className="rounded-xl border bg-[#111111] overflow-hidden" style={{ borderColor: `${activeTabData.accentColor}25` }}>
+        {/* List header */}
+        <div
+          className="px-5 py-4 border-b flex items-center gap-3"
+          style={{ borderColor: `${activeTabData.accentColor}15`, background: `${activeTabData.accentColor}06` }}
+        >
+          <span className="text-xl">{activeTabData.emoji}</span>
+          <div>
+            <div className="font-black text-sm text-[#F5F0E8]">{activeTabData.label}</div>
+            <div className="text-[11px] text-[#7A7367]">{activeTabData.sublabel} — All {rankedTeams.length} teams ranked</div>
+          </div>
+        </div>
 
-        <AwardCard
-          icon={<span className="text-xl">🧤</span>}
-          label="Team Golden Glove"
-          sublabel="Fewest goals conceded"
-          accentColor="#60A5FA"
-          winner={goldenGloveWinner}
-          value={goldenGloveWinner?.goalsAgainst ?? 0}
-          valueLabel="Goals Conceded"
-          runnerUps={byGA.slice(1, 3)}
-          myTeamId={myTeamId}
-          teamLinkBase={teamLinkBase}
-        />
+        {/* Rows */}
+        <div className="divide-y divide-white/[0.04]">
+          {rankedTeams.map((team, idx) => {
+            const isMe = myTeamId && team.teamId === myTeamId
+            const metric = getMetric(team)
+            const pos = idx + 1
+            const posStyle =
+              pos === 1 ? { bg: '#FFD700', text: '#0a0a0a' } :
+              pos === 2 ? { bg: '#C0C0C0', text: '#0a0a0a' } :
+              pos === 3 ? { bg: '#CD7F32', text: '#0a0a0a' } :
+              { bg: 'rgba(255,255,255,0.05)', text: '#7A7367' }
+
+            return (
+              <Link
+                key={team.teamId}
+                href={`${teamLinkBase}/${team.teamId}`}
+                className={`flex items-center gap-4 px-5 py-4 transition-colors group ${
+                  isMe ? 'bg-[#E8A800]/[0.06]' : 'hover:bg-white/[0.02]'
+                }`}
+              >
+                {/* Position */}
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+                  style={{ background: posStyle.bg, color: posStyle.text }}
+                >
+                  {pos}
+                </div>
+
+                {/* Logo */}
+                <div className="relative w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-white/5"
+                  style={{ border: `2px solid ${isMe ? '#E8A800' : 'rgba(255,255,255,0.1)'}` }}
+                >
+                  {team.logoUrl ? (
+                    <Image src={team.logoUrl} alt={team.teamName} fill className="object-cover" sizes="40px" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-[#7A7367]">
+                      {team.teamName.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Team name */}
+                <div className="flex-1 min-w-0">
+                  <div className={`font-bold text-sm group-hover:text-[#E8A800] transition-colors truncate ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
+                    {team.teamName}
+                    {isMe && <span className="ml-2 text-[10px] font-black text-[#E8A800]/60 uppercase">You</span>}
+                  </div>
+                  <div className="text-[11px] text-[#7A7367] truncate">{metric.secondary}</div>
+                </div>
+
+                {/* Bar */}
+                <div className="hidden sm:flex flex-col items-end gap-1 w-28 flex-shrink-0">
+                  <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${rankedTeams[0] && getMetric(rankedTeams[0]).primary > 0
+                          ? Math.max(4, (metric.primary / getMetric(rankedTeams[0]).primary) * 100)
+                          : 4}%`,
+                        background: activeTabData.accentColor,
+                        opacity: isMe ? 1 : 0.7,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric */}
+                <div className="text-right flex-shrink-0 w-14">
+                  <div
+                    className="text-lg font-black"
+                    style={{ color: pos <= 3 ? activeTabData.accentColor : isMe ? '#E8A800' : '#F5F0E8' }}
+                  >
+                    {metric.primary}
+                  </div>
+                  <div className="text-[10px] text-[#7A7367] uppercase">{metric.primaryLabel}</div>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

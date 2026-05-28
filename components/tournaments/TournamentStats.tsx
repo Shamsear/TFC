@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { captureTableAsPng } from '@/lib/share-table'
+import StatsPoster from './StatsPoster'
 
 export interface TeamStatRow {
   teamId: string
@@ -431,6 +432,16 @@ export default function TournamentStats({
           </button>
         </div>
       </div>
+
+      {/* Poster Studio */}
+      <StatsPoster
+        teams={computedTeams}
+        tournamentName={tournamentName || 'Tournament'}
+        seasonName={seasonName || 'Season'}
+        roundLabel={activeRoundLimit}
+        activeAward={activeTab}
+        imageTeamsLimit={imageTeamsLimit}
+      />
 
       {/* Headline stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">

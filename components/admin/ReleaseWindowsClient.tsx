@@ -39,6 +39,11 @@ export default function ReleaseWindowsClient({ seasonId, seasonName }: Props) {
     releaseLimit: 3
   })
   
+  const toLocalDatetimeString = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
   useEffect(() => {
     fetchWindows()
   }, [])
@@ -63,10 +68,16 @@ export default function ReleaseWindowsClient({ seasonId, seasonName }: Props) {
         ? `/api/admin/seasons/${seasonId}/release-windows/${currentId}`
         : `/api/admin/seasons/${seasonId}/release-windows`
       
+      const payload = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+      }
+
       const res = await fetch(url, {
         method: isEditing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
       
       if (!res.ok) {
@@ -110,10 +121,12 @@ export default function ReleaseWindowsClient({ seasonId, seasonName }: Props) {
   const toggleCreateCollapse = () => {
     setIsEditing(false)
     if (!isCreateExpanded) {
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       setFormData({
         name: '',
-        startDate: new Date().toISOString().slice(0, 16),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+        startDate: toLocalDatetimeString(now),
+        endDate: toLocalDatetimeString(nextWeek),
         status: 'UPCOMING',
         releaseLimit: 3
       })
@@ -126,8 +139,8 @@ export default function ReleaseWindowsClient({ seasonId, seasonName }: Props) {
     setCurrentId(releaseWindow.id)
     setFormData({
       name: releaseWindow.name,
-      startDate: new Date(releaseWindow.startDate).toISOString().slice(0, 16),
-      endDate: new Date(releaseWindow.endDate).toISOString().slice(0, 16),
+      startDate: toLocalDatetimeString(new Date(releaseWindow.startDate)),
+      endDate: toLocalDatetimeString(new Date(releaseWindow.endDate)),
       status: releaseWindow.status,
       releaseLimit: releaseWindow.releaseLimit || 3
     })

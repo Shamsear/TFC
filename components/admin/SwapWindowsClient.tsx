@@ -38,6 +38,11 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
     swapLimit: 5
   })
   
+  const toLocalDatetimeString = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
   useEffect(() => {
     fetchWindows()
   }, [])
@@ -62,10 +67,16 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
         ? `/api/admin/seasons/${seasonId}/swap-windows/${currentId}`
         : `/api/admin/seasons/${seasonId}/swap-windows`
       
+      const payload = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+      }
+
       const res = await fetch(url, {
         method: isEditing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
       
       if (!res.ok) {
@@ -109,10 +120,12 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
   const toggleCreateCollapse = () => {
     setIsEditing(false)
     if (!isCreateExpanded) {
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       setFormData({
         name: '',
-        startDate: new Date().toISOString().slice(0, 16),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+        startDate: toLocalDatetimeString(now),
+        endDate: toLocalDatetimeString(nextWeek),
         status: 'UPCOMING',
         swapLimit: 5
       })
@@ -125,8 +138,8 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
     setCurrentId(swapWindow.id)
     setFormData({
       name: swapWindow.name,
-      startDate: new Date(swapWindow.startDate).toISOString().slice(0, 16),
-      endDate: new Date(swapWindow.endDate).toISOString().slice(0, 16),
+      startDate: toLocalDatetimeString(new Date(swapWindow.startDate)),
+      endDate: toLocalDatetimeString(new Date(swapWindow.endDate)),
       status: swapWindow.status,
       swapLimit: swapWindow.swapLimit || 5
     })

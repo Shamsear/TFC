@@ -4,6 +4,7 @@ import { SessionProvider } from "@/components/auth/SessionProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import PWARegistry from "@/components/PWARegistry";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 export const metadata: Metadata = {
   title: "Turf Cats",
@@ -33,6 +34,7 @@ export default function RootLayout({
           <SessionProvider>
             <ToastProvider>
               <PWARegistry />
+              <AutoRefresh />
               {children}
             </ToastProvider>
           </SessionProvider>

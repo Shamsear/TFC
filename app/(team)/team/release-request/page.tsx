@@ -120,11 +120,14 @@ export default async function ReleaseRequestPage() {
   // Separate pending requests for the UI
   const existingRequests = allRequests.filter(req => req.status === 'pending')
 
-  // Count total requests (all statuses)
-  const totalRequestsCount = allRequests.length
+  // Get requests for the current active release window to calculate limits
+  const activeWindowRequests = allRequests.filter(req => req.releaseWindowId === activeReleaseWindow.id)
 
-  // Count approved releases for this team in this season
-  const approvedReleasesCount = allRequests.filter(req => req.status === 'approved').length
+  // Count total requests (all statuses) for the current window
+  const totalRequestsCount = activeWindowRequests.length
+
+  // Count approved releases for this team in this active window
+  const approvedReleasesCount = activeWindowRequests.filter(req => req.status === 'approved').length
 
   const MAX_RELEASES_PER_TEAM = activeReleaseWindow.releaseLimit || 3
   const remainingRequests = Math.max(0, MAX_RELEASES_PER_TEAM - totalRequestsCount)

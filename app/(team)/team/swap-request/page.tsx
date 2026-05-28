@@ -268,8 +268,11 @@ export default async function SwapRequestPage() {
     })),
   }))
 
-  const pendingRequestsCount = existingRequests.filter(r => r.status === 'pending').length
-  const completedSwapsCount = existingRequests.filter(r => r.status === 'approved').length
+  // Get requests for the current active swap window to calculate limits
+  const activeWindowRequests = existingRequests.filter(r => r.swapWindowId === activeSwapWindow.id)
+
+  const pendingRequestsCount = activeWindowRequests.filter(r => r.status === 'pending').length
+  const completedSwapsCount = activeWindowRequests.filter(r => r.status === 'approved').length
   const usedRequestsCount = pendingRequestsCount + completedSwapsCount
 
   const maxSwaps = activeSwapWindow.swapLimit || 5

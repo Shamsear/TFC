@@ -557,7 +557,8 @@ model matches {
   groupId      String?
   homeTeamId   String
   awayTeamId   String
-  matchDate    DateTime
+  startDate    DateTime?    // Start time of the round/match
+  matchDate    DateTime     // Submission deadline time of the match
   venue        String?
   round        String?
   matchType    MatchType    @default(LEAGUE)

@@ -30,6 +30,7 @@ export default async function TeamTournamentMatchesPage({
     where: { tournamentId },
     select: {
       id: true,
+      startDate: true,
       matchDate: true,
       status: true,
       homeScore: true,

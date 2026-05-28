@@ -73,6 +73,7 @@ export default async function TournamentDetailsPage({
     where: { tournamentId },
     select: {
       id: true,
+      startDate: true,
       matchDate: true,
       status: true,
       homeScore: true,

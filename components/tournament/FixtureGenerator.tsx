@@ -107,6 +107,7 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
       const roundFixtures = roundsMap.get(roundNum)!
       roundFixtures.forEach(fixture => {
         const deadlineDate = new Date(currentDate.getTime() + (Number(formData.deadlineOffsetDays || 0) * 24 * 60 * 60 * 1000))
+        fixture.startDate = new Date(currentDate.getTime())
         fixture.matchDate = deadlineDate
       })
       

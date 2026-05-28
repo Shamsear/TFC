@@ -34,6 +34,7 @@ export async function POST(
       groupId: fixture.groupId || null,
       homeTeamId: fixture.homeTeamId,
       awayTeamId: fixture.awayTeamId,
+      startDate: fixture.startDate ? new Date(fixture.startDate) : null,
       matchDate: new Date(fixture.matchDate),
       venue: venue || null,
       round: fixture.round || null,

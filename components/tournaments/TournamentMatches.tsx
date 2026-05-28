@@ -5,6 +5,7 @@ import Image from 'next/image'
 
 export interface MatchRow {
   id: string
+  startDate?: Date | string | null
   matchDate: Date
   status: string
   homeScore: number | null
@@ -77,18 +78,20 @@ export default function TournamentMatches({
   const formatTime = (d: Date) =>
     new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
-  const getRoundDates = (deadlineDate: Date) => {
-    const deadline = new Date(deadlineDate)
-    // Assume started is 2 days before the deadline (matching the default 2-day offset)
-    const started = new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
+  const getRoundDates = (match: MatchRow) => {
+    const deadline = new Date(match.matchDate)
+    const started = match.startDate ? new Date(match.startDate) : new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
     
+    const formatDateOnly = (d: Date) =>
+      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+
     const formatFull = (d: Date) => 
       d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
       ' at ' + 
       d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
     return {
-      startedStr: formatFull(started),
+      startedStr: formatDateOnly(started),
       deadlineStr: formatFull(deadline)
     }
   }
@@ -167,14 +170,14 @@ export default function TournamentMatches({
             <span className="text-base sm:text-lg">📅</span>
             <div>
               <span className="font-bold text-[#7A7367] uppercase tracking-wider text-[10px]">Round Active:</span>{' '}
-              <span className="text-[#F5F0E8] font-bold block sm:inline">{getRoundDates(filteredMatches[0].matchDate).startedStr}</span>
+              <span className="text-[#F5F0E8] font-bold block sm:inline">{getRoundDates(filteredMatches[0]).startedStr}</span>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
             <span className="text-base sm:text-lg">🚨</span>
             <div>
               <span className="font-black text-[#E8A800] uppercase tracking-wider text-[10px]">Submission Deadline:</span>{' '}
-              <span className="font-extrabold text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]">{getRoundDates(filteredMatches[0].matchDate).deadlineStr}</span>
+              <span className="font-extrabold text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]">{getRoundDates(filteredMatches[0]).deadlineStr}</span>
             </div>
           </div>
         </div>

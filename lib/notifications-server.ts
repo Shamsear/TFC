@@ -157,7 +157,7 @@ export async function sendPushNotificationRaw(userId: string, rawPayload: any, c
  */
 export async function getTeamManagerId(teamId: string): Promise<string | null> {
   const manager = await prisma.users.findFirst({
-    where: { teamId, role: 'TEAM_MANAGER', isActive: true },
+    where: { teamId, isActive: true },
     select: { id: true }
   });
   return manager?.id ?? null;
@@ -176,7 +176,7 @@ export async function notifyAllAdmins(payload: { title: string; body: string; ur
           { role: 'SUPER_ADMIN' },
           { 
             role: 'SUB_ADMIN',
-            sub_admin_seasons: { some: { season_id: seasonId } } 
+            subAdminSeasons: { some: { seasonId: seasonId } } 
           }
         ]
       } : {

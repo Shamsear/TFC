@@ -161,7 +161,7 @@ export default async function TournamentDetailsPage({
                       ? 'Group Stage + Knockout'
                       : tournament.tournamentType === 'KNOCKOUT_ONLY'
                       ? 'Knockout Only'
-                      : tournament.tournamentType.replace(/_/g, ' ')}
+                      : (tournament.tournamentType as string).replace(/_/g, ' ')}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">{tournament.name}</h1>

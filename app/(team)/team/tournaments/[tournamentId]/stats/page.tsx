@@ -49,7 +49,7 @@ export default async function TeamTournamentStatsPage({
                 ? 'Group Stage + Knockout'
                 : data.tournament.tournamentType === 'KNOCKOUT_ONLY'
                 ? 'Knockout Only'
-                : data.tournament.tournamentType.replace(/_/g, ' ')}
+                : (data.tournament.tournamentType as string).replace(/_/g, ' ')}
             </span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">Team Stats</h1>

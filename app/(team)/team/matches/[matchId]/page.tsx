@@ -320,7 +320,7 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
                   ? 'Group Stage + Knockout'
                   : match.tournament.tournamentType === 'KNOCKOUT_ONLY'
                   ? 'Knockout Only'
-                  : match.tournament.tournamentType.replace(/_/g, " ")}
+                  : (match.tournament.tournamentType as string).replace(/_/g, " ")}
               </div>
             </div>
           </div>

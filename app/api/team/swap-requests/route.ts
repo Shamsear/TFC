@@ -132,24 +132,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `The target team has already reached their maximum limit of ${maxSwaps} completed swaps per window` }, { status: 400 })
     }
 
-    // Check if similar request already exists
-    const existing = await prisma.swap_requests.findFirst({
-      where: {
-        seasonId,
-        OR: [
-          { requestingTeamId, targetTeamId },
-          { requestingTeamId: targetTeamId, targetTeamId: requestingTeamId },
-        ],
-        status: 'pending',
-      },
-    })
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'A pending swap request already exists between these teams' },
-        { status: 400 }
-      )
-    }
+    // Allow multiple pending swap requests between the same teams
 
     // Create swap request with players
     const windowOpenedAt = new Date()

@@ -73,6 +73,21 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
     }
   }
 
+  const getRoundDates = () => {
+    const deadline = new Date(match.matchDate)
+    const started = match.startDate ? new Date(match.startDate) : new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
+    
+    const formatFull = (d: Date) => 
+      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
+      ' at ' + 
+      d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+
+    return {
+      startedStr: formatFull(started),
+      deadlineStr: formatFull(deadline)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       {/* Header */}
@@ -96,6 +111,25 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Round Active Info & Deadline Banner */}
+        {match.round && (
+          <div className="rounded-xl border border-[#E8A800]/25 bg-[#E8A800]/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs sm:text-sm mb-6">
+            <div className="flex items-center gap-2.5">
+              <span className="text-base sm:text-lg">📅</span>
+              <div>
+                <span className="font-bold text-[#7A7367] uppercase tracking-wider text-[10px] block sm:inline">Round Active:</span>{' '}
+                <span className="text-[#F5F0E8] font-bold block sm:inline">{getRoundDates().startedStr}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-base sm:text-lg">🚨</span>
+              <div>
+                <span className="font-black text-[#E8A800] uppercase tracking-wider text-[10px] block sm:inline">Submission Deadline:</span>{' '}
+                <span className="font-extrabold text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]">{getRoundDates().deadlineStr}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Match Header */}
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-6 sm:mb-8">
@@ -120,6 +154,11 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
               <div className="px-3 py-1 bg-[#E8A800]/10 border border-[#E8A800]/30 rounded-lg text-[#E8A800] text-xs sm:text-sm font-bold">
                 {match.tournament.name}
               </div>
+              {match.round && (
+                <div className="px-3 py-1 bg-[#FFB347]/10 border border-[#FFB347]/30 rounded-lg text-[#FFB347] text-xs sm:text-sm font-bold">
+                  {match.round}
+                </div>
+              )}
               {match.group && (
                 <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[#7A7367] text-xs sm:text-sm font-medium">
                   {match.group.name}

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { checkTeamSeasonParticipation } from "@/lib/team-auth"
+import TournamentMatches from "@/components/tournaments/TournamentMatches"
 
 export const metadata = {
   title: "Matches | Team Dashboard",
@@ -77,20 +78,23 @@ export default async function MatchesPage() {
     },
     select: {
       id: true,
+      startDate: true,
       matchDate: true,
       status: true,
       homeScore: true,
       awayScore: true,
-      venue: true,
+      round: true,
       homeTeamId: true,
       awayTeamId: true,
       homeTeam: {
         select: {
           id: true,
+          teamId: true,
           team: {
             select: {
               id: true,
-              name: true
+              name: true,
+              logoUrl: true
             }
           }
         }
@@ -98,10 +102,12 @@ export default async function MatchesPage() {
       awayTeam: {
         select: {
           id: true,
+          teamId: true,
           team: {
             select: {
               id: true,
-              name: true
+              name: true,
+              logoUrl: true
             }
           }
         }
@@ -114,7 +120,7 @@ export default async function MatchesPage() {
       },
     },
     orderBy: {
-      matchDate: "desc",
+      matchDate: "asc",
     },
     take: 100 // Limit to last 100 matches
   })
@@ -185,160 +191,13 @@ export default async function MatchesPage() {
           </div>
         </div>
 
-        {/* Upcoming/Live Matches */}
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Gameweek & Upcoming Matches</h2>
-          {upcomingMatches.length > 0 ? (
-            <div className="space-y-3 sm:space-y-4">
-              {upcomingMatches.map((match) => {
-                const isHome = match.homeTeamId === currentSeasonTeam.id
-                const isLive = match.status === 'LIVE'
-                const matchDate = new Date(match.matchDate)
-                const isExpired = matchDate < now
-
-                return (
-                  <Link
-                    key={match.id}
-                    href={`/team/matches/${match.id}`}
-                    className={`block rounded-xl sm:rounded-2xl border p-4 sm:p-6 transition-all ${
-                      isLive 
-                        ? isExpired 
-                          ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
-                          : 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20' 
-                        : 'bg-white/5 border-white/10 hover:border-[#E8A800]/50 hover:bg-white/[0.07]'
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        {isLive && (
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                            isExpired ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white animate-pulse'
-                          }`}>
-                            {isExpired ? 'DEADLINE PASSED' : 'LIVE'}
-                          </span>
-                        )}
-                        <div className={`text-xs sm:text-sm font-bold ${isLive ? (isExpired ? 'text-red-400' : 'text-emerald-400') : 'text-[#7A7367]'}`}>
-                          {isLive ? 'Deadline: ' : ''}{matchDate.toLocaleDateString("en-US", {
-                            weekday: "short",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit"
-                          })}
-                        </div>
-                      </div>
-                      <div className={`px-3 py-1 border rounded-lg text-xs sm:text-sm font-medium w-fit ${
-                        isLive ? 'bg-black/20 border-white/20 text-white' : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
-                      }`}>
-                        {match.tournament.name}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-                      <div className={`text-right text-sm sm:text-base ${isHome ? "text-[#E8A800] font-bold" : "text-white font-medium"}`}>
-                        {match.homeTeam.team.name}
-                      </div>
-                      <div className="text-center">
-                        <div className={`text-xs sm:text-sm font-medium ${isLive ? 'text-white' : 'text-[#7A7367]'}`}>VS</div>
-                        {match.venue && (
-                          <div className={`text-xs mt-1 hidden sm:block ${isLive ? 'text-white/70' : 'text-[#7A7367]'}`}>{match.venue}</div>
-                        )}
-                      </div>
-                      <div className={`text-left text-sm sm:text-base ${!isHome ? "text-[#E8A800] font-bold" : "text-white font-medium"}`}>
-                        {match.awayTeam.team.name}
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#7A7367]/10 border border-[#7A7367]/20 flex items-center justify-center text-[#7A7367] mx-auto mb-4 sm:mb-6">
-                <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <p className="text-[#7A7367] text-sm sm:text-base">No upcoming matches scheduled</p>
-            </div>
-          )}
-        </div>
-
-        {/* Past Matches */}
-        <div>
-          <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Past Matches</h2>
-          {pastMatches.length > 0 ? (
-            <div className="space-y-3 sm:space-y-4">
-              {pastMatches.map((match) => {
-                const isHome = match.homeTeamId === currentSeasonTeam.id
-                const won =
-                  match.status === "COMPLETED" &&
-                  ((isHome && (match.homeScore || 0) > (match.awayScore || 0)) ||
-                    (!isHome && (match.awayScore || 0) > (match.homeScore || 0)))
-                const draw = match.status === "COMPLETED" && match.homeScore === match.awayScore
-
-                return (
-                  <Link
-                    key={match.id}
-                    href={`/team/matches/${match.id}`}
-                    className="block rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-4">
-                      <div className="text-xs sm:text-sm text-[#7A7367]">
-                        {new Date(match.matchDate).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[#7A7367] text-xs sm:text-sm font-medium">
-                          {match.tournament.name}
-                        </div>
-                        {match.status === "COMPLETED" && (
-                          <div
-                            className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium ${
-                              won
-                                ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                                : draw
-                                ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"
-                                : "bg-red-500/10 border border-red-500/20 text-red-400"
-                            }`}
-                          >
-                            {won ? "Won" : draw ? "Draw" : "Lost"}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-                      <div className={`text-right text-sm sm:text-base ${isHome ? "text-[#E8A800] font-bold" : "text-white font-medium"}`}>
-                        {match.homeTeam.team.name}
-                      </div>
-                      <div className="text-center">
-                        {match.status === "COMPLETED" ? (
-                          <div className="text-xl sm:text-2xl font-black text-white">
-                            {match.homeScore} - {match.awayScore}
-                          </div>
-                        ) : (
-                          <div className="text-[#7A7367] text-xs sm:text-sm">{match.status}</div>
-                        )}
-                      </div>
-                      <div className={`text-left text-sm sm:text-base ${!isHome ? "text-[#E8A800] font-bold" : "text-white font-medium"}`}>
-                        {match.awayTeam.team.name}
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#7A7367]/10 border border-[#7A7367]/20 flex items-center justify-center text-[#7A7367] mx-auto mb-4 sm:mb-6">
-                <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </div>
-              <p className="text-[#7A7367] text-sm sm:text-base">No matches played yet</p>
-            </div>
-          )}
+        {/* Tournament Matches Component */}
+        <div className="mt-8">
+          <TournamentMatches 
+            matches={allMatches}
+            myTeamId={session.user.teamId}
+            teamLinkBase="/teams"
+          />
         </div>
       </div>
     </div>

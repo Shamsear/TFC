@@ -39,7 +39,84 @@ interface TournamentMatchesProps {
   teamLinkBase?: string
 }
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+
+// ── Custom Select Component for Matchdays Pager ──────────────────────────────
+function CustomSelect({ 
+  value, 
+  options, 
+  onChange, 
+  displayValue 
+}: {
+  value: string
+  options: string[]
+  onChange: (val: string) => void
+  displayValue?: (val: string) => string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-black/50 border border-white/10 text-[#E8A800] focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] transition-all text-xs sm:text-sm font-black text-left gap-1"
+      >
+        <span className="truncate">
+          {displayValue ? displayValue(value) : value}
+        </span>
+        <svg
+          className={`w-3.5 h-3.5 text-[#E8A800] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-30 mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[150px] max-h-60 overflow-y-auto rounded-lg bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          {options.map((option) => {
+            const isSelected = option === value
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option)
+                  setIsOpen(false)
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                  isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
+                }`}
+              >
+                <span className="truncate">{displayValue ? displayValue(option) : option}</span>
+                {isSelected && (
+                  <svg className="w-3.5 h-3.5 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function TournamentMatches({
   matches,
@@ -49,7 +126,7 @@ export default function TournamentMatches({
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'live' | 'completed'>('all')
 
   // Extract all unique rounds in the matches list and sort them numerically
-  const allRounds = Array.from(new Set(matches.map(m => m.round || 'Round 1'))).sort((a, b) => {
+  const baseRounds = Array.from(new Set(matches.map(m => m.round || 'Round 1'))).sort((a, b) => {
     const getRoundNum = (name: string) => {
       const num = name.match(/\d+/)
       return num ? parseInt(num[0], 10) : 1
@@ -57,16 +134,13 @@ export default function TournamentMatches({
     return getRoundNum(a) - getRoundNum(b)
   })
 
-  // Find the first round with upcoming/live matches to set as default active round
-  const defaultRound = allRounds.find(roundName => 
-    matches.some(m => m.round === roundName && m.status !== 'COMPLETED')
-  ) || allRounds[0] || 'Round 1'
+  const allRounds = baseRounds.length > 0 ? ['All Matchdays', ...baseRounds] : []
 
-  const [activeRound, setActiveRound] = useState<string>(defaultRound)
+  const [activeRound, setActiveRound] = useState<string>('All Matchdays')
 
   // Filter matches based on selected round and status
   const filteredMatches = matches.filter(match => {
-    const isSameRound = (match.round || 'Round 1') === activeRound
+    const isSameRound = activeRound === 'All Matchdays' || (match.round || 'Round 1') === activeRound
     if (!isSameRound) return false
     if (filter === 'all') return true
     return match.status === (filter === 'scheduled' ? 'SCHEDULED' : filter === 'live' ? 'LIVE' : 'COMPLETED')
@@ -82,16 +156,13 @@ export default function TournamentMatches({
     const deadline = new Date(match.matchDate)
     const started = match.startDate ? new Date(match.startDate) : new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
     
-    const formatDateOnly = (d: Date) =>
-      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-
     const formatFull = (d: Date) => 
       d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
       ' at ' + 
       d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
     return {
-      startedStr: formatDateOnly(started),
+      startedStr: formatFull(started),
       deadlineStr: formatFull(deadline)
     }
   }
@@ -138,15 +209,11 @@ export default function TournamentMatches({
               ◀ Prev
             </button>
 
-            <select
+            <CustomSelect
               value={activeRound}
-              onChange={(e) => setActiveRound(e.target.value)}
-              className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
-            >
-              {allRounds.map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
+              options={allRounds}
+              onChange={setActiveRound}
+            />
 
             <button
               onClick={(e) => {
@@ -164,7 +231,7 @@ export default function TournamentMatches({
       </div>
 
       {/* Active Round Schedule Info Banner */}
-      {filteredMatches.length > 0 && (
+      {activeRound !== 'All Matchdays' && filteredMatches.length > 0 && (
         <div className="rounded-xl border border-[#E8A800]/25 bg-[#E8A800]/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs sm:text-sm">
           <div className="flex items-center gap-2.5">
             <span className="text-base sm:text-lg">📅</span>
@@ -246,11 +313,12 @@ function MatchCard({
   }
 
   return (
-    <div
-      className={`rounded-xl border p-4 sm:p-6 lg:p-7 transition-all ${
+    <Link
+      href={`/team/matches/${match.id}`}
+      className={`block rounded-xl border p-4 sm:p-6 lg:p-7 transition-all ${
         isMyMatch
-          ? 'bg-[#E8A800]/[0.03] border-[#E8A800]/20 hover:border-[#E8A800]/30 shadow-md'
-          : 'bg-[#111111] border-white/10 hover:border-white/20'
+          ? 'bg-[#E8A800]/[0.03] border-[#E8A800]/20 hover:border-[#E8A800]/30 shadow-md hover:bg-[#E8A800]/[0.05]'
+          : 'bg-[#111111] border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.03]'
       }`}
     >
       {/* Top line: Round & Date */}
@@ -260,17 +328,18 @@ function MatchCard({
           {resultBadge}
         </div>
         <div className="flex items-center gap-1.5">
-          <span>{formatDate(match.matchDate)}</span>
-          <span>·</span>
-          <span>{formatTime(match.matchDate)}</span>
+          <span>
+            {match.startDate
+              ? formatDate(new Date(match.startDate))
+              : formatDate(new Date(new Date(match.matchDate).getTime() - 2 * 24 * 60 * 60 * 1000))}
+          </span>
         </div>
       </div>
 
       {/* Main Score/Teams area */}
       <div className="grid grid-cols-7 items-center gap-2">
         {/* Home Team */}
-        <Link
-          href={`${teamLinkBase}/${match.homeTeam.team.id}`}
+        <div
           className="col-span-3 flex items-center justify-end gap-2 sm:gap-3 lg:gap-4 text-right group"
         >
           <span className={`font-bold text-xs sm:text-sm md:text-base lg:text-lg group-hover:text-[#E8A800] transition-colors truncate ${
@@ -287,7 +356,7 @@ function MatchCard({
               </div>
             )}
           </div>
-        </Link>
+        </div>
 
         {/* Score or Status display */}
         <div className="col-span-1 flex flex-col items-center justify-center">
@@ -314,8 +383,7 @@ function MatchCard({
         </div>
 
         {/* Away Team */}
-        <Link
-          href={`${teamLinkBase}/${match.awayTeam.team.id}`}
+        <div
           className="col-span-3 flex items-center justify-start gap-2 sm:gap-3 lg:gap-4 text-left group"
         >
           <div className="relative w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex-shrink-0 rounded-md overflow-hidden">
@@ -332,8 +400,8 @@ function MatchCard({
           }`}>
             {match.awayTeam.team.name}
           </span>
-        </Link>
+        </div>
       </div>
-    </div>
+    </Link>
   )
 }

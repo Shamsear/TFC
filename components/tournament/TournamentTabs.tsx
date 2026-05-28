@@ -132,6 +132,10 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
           <TournamentStats
             teams={statsTeams}
             teamLinkBase={`/sub-admin/${seasonId}/teams`}
+            matches={tournament.matches}
+            teamsData={teams}
+            tournamentName={tournament.name}
+            seasonName={tournament.season?.name || ''}
           />
         )}
         {activeTab === 'groups' && tournament.groups.length > 0 && (

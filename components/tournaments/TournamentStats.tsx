@@ -1,8 +1,7 @@
-'use client'
-
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { captureTableAsPng } from '@/lib/share-table'
 
 export interface TeamStatRow {
   teamId: string
@@ -31,12 +30,45 @@ interface TournamentStatsProps {
   teams: TeamStatRow[]
   myTeamId?: string | null
   teamLinkBase?: string
+  matches?: any[]
+  teamsData?: any[]
+  tournamentName?: string
+  seasonName?: string
 }
 
-export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/teams' }: TournamentStatsProps) {
+export default function TournamentStats({ 
+  teams, 
+  myTeamId, 
+  teamLinkBase = '/teams',
+  matches,
+  teamsData,
+  tournamentName,
+  seasonName
+}: TournamentStatsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('golden-boot')
+  
+  // Dynamic Round Filter
+  const baseRounds = matches 
+    ? Array.from(new Set(matches.filter(m => m.round).map(m => m.round as string))).sort((a, b) => {
+        const getRoundNum = (name: string) => {
+          const num = name.match(/\d+/)
+          return num ? parseInt(num[0], 10) : 1
+        }
+        return getRoundNum(a) - getRoundNum(b)
+      })
+    : []
+  const roundOptions = baseRounds.length > 0 ? ['All Matchdays', ...baseRounds] : []
+  const [activeRoundLimit, setActiveRoundLimit] = useState<string>('All Matchdays')
+  
+  // Custom Share Image Settings
+  const [imageTeamsLimit, setImageTeamsLimit] = useState<string>('5')
+  const [downloading, setDownloading] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [downloadDone, setDownloadDone] = useState(false)
+  const [shareDone, setShareDone] = useState(false)
+  const snapshotRef = useRef<HTMLDivElement>(null)
 
-  if (teams.length === 0) {
+  if (teams.length === 0 && (!teamsData || teamsData.length === 0)) {
     return (
       <div className="rounded-xl bg-white/[0.02] border border-white/10 p-12 text-center">
         <svg className="w-14 h-14 text-[#7A7367] mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,17 +80,86 @@ export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/team
     )
   }
 
+  // Dynamic Round Calculation
+  const computedTeams = (matches && teamsData)
+    ? teamsData.map(team => {
+        const relevantMatches = matches.filter(m => {
+          if (m.status !== 'COMPLETED') return false
+          if (activeRoundLimit !== 'All Matchdays') {
+            const getRoundNum = (name: string) => {
+              const num = name.match(/\d+/)
+              return num ? parseInt(num[0], 10) : 1
+            }
+            const matchRoundNum = getRoundNum(m.round || '')
+            const limitRoundNum = getRoundNum(activeRoundLimit)
+            if (matchRoundNum > limitRoundNum) return false
+          }
+          return m.homeTeamId === team.id || m.awayTeamId === team.id
+        })
+
+        let played = 0
+        let won = 0
+        let drawn = 0
+        let lost = 0
+        let goalsFor = 0
+        let goalsAgainst = 0
+        let cleanSheets = 0
+        let points = 0
+
+        relevantMatches.forEach(m => {
+          const isHome = m.homeTeamId === team.id
+          const myScore = isHome ? m.homeScore : m.awayScore
+          const oppScore = isHome ? m.awayScore : m.homeScore
+
+          if (myScore !== null && oppScore !== null) {
+            played++
+            goalsFor += myScore
+            goalsAgainst += oppScore
+            if (oppScore === 0) cleanSheets++
+
+            if (myScore > oppScore) {
+              won++
+              points += 3
+            } else if (myScore === oppScore) {
+              drawn++
+              points += 1
+            } else {
+              lost++
+            }
+          }
+        })
+
+        return {
+          teamId: team.teamId || team.id,
+          teamName: team.name,
+          logoUrl: team.logoUrl,
+          played,
+          won,
+          drawn,
+          lost,
+          goalsFor,
+          goalsAgainst,
+          goalDiff: goalsFor - goalsAgainst,
+          points,
+          cleanSheets
+        }
+      })
+    : teams
+
   // Sorted lists for each award
-  const goldenBootRanking = [...teams].sort((a, b) => b.goalsFor - a.goalsFor || b.won - a.won)
-  const goldenBallRanking = [...teams].sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
-  const goldenGloveRanking = [...teams]
+  const goldenBootRanking = [...computedTeams].sort((a, b) => b.goalsFor - a.goalsFor || b.won - a.won)
+  const goldenBallRanking = [...computedTeams].sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
+  const goldenGloveRanking = [...computedTeams]
     .filter(t => t.played > 0)
     .sort((a, b) => a.goalsAgainst - b.goalsAgainst || (b.cleanSheets ?? 0) - (a.cleanSheets ?? 0))
+
+  // Fallback sorted glove in case no games played yet
+  const fallbackGoldenGlove = [...computedTeams].sort((a, b) => a.goalsAgainst - b.goalsAgainst)
 
   const rankingMap: Record<Tab, TeamStatRow[]> = {
     'golden-boot': goldenBootRanking,
     'golden-ball': goldenBallRanking,
-    'golden-glove': goldenGloveRanking,
+    'golden-glove': goldenGloveRanking.length > 0 ? goldenGloveRanking : fallbackGoldenGlove,
   }
 
   const metricMap: Record<Tab, (t: TeamStatRow) => { primary: number; primaryLabel: string; secondary: string }> = {
@@ -84,13 +185,253 @@ export default function TournamentStats({ teams, myTeamId, teamLinkBase = '/team
   const getMetric = metricMap[activeTab]
 
   // Summary stats
-  const totalGoals = teams.reduce((s, t) => s + t.goalsFor, 0)
-  const totalMatches = teams.reduce((s, t) => s + t.played, 0) / 2
-  const totalCleanSheets = teams.reduce((s, t) => s + (t.cleanSheets ?? 0), 0)
+  const totalGoals = computedTeams.reduce((s, t) => s + t.goalsFor, 0)
+  const totalMatches = computedTeams.reduce((s, t) => s + t.played, 0) / 2
+  const totalCleanSheets = computedTeams.reduce((s, t) => s + (t.cleanSheets ?? 0), 0)
   const avgGoalsPerMatch = totalMatches > 0 ? (totalGoals / totalMatches).toFixed(1) : '0.0'
+
+  // Excel/CSV Export Handler
+  const handleExportExcel = () => {
+    const headers = ['Rank', 'Team Name', 'Matches Played', 'Wins', 'Draws', 'Losses', 'Goals For', 'Goals Against', 'Goal Difference', 'Points', 'Clean Sheets']
+    const rows = rankedTeams.map((t, idx) => [
+      idx + 1,
+      t.teamName,
+      t.played,
+      t.won,
+      t.drawn,
+      t.lost,
+      t.goalsFor,
+      t.goalsAgainst,
+      t.goalDiff,
+      t.points,
+      t.cleanSheets ?? 0
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `${(tournamentName || 'Tournament').replace(/\s+/g, '_')}_Stats_${activeTab}_${activeRoundLimit.replace(/\s+/g, '_')}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // Image Sharing capture logic
+  const handleShareImage = async () => {
+    if (!snapshotRef.current || sharing) return
+    setSharing(true)
+    try {
+      const dataUrl = await captureTableAsPng(snapshotRef.current)
+      const blob = await (await fetch(dataUrl)).blob()
+      const file = new File([blob], `${activeTab}-stats-leaderboard.png`, { type: 'image/png' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${tournamentName || 'TFC'} — ${activeTabData.label} Leaderboard` })
+      } else {
+        await handleDownloadImage()
+        return
+      }
+      setShareDone(true)
+      setTimeout(() => setShareDone(false), 2500)
+    } catch (err) {
+      console.error('Share error:', err)
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  const handleDownloadImage = async () => {
+    if (!snapshotRef.current || downloading) return
+    setDownloading(true)
+    try {
+      const dataUrl = await captureTableAsPng(snapshotRef.current)
+      const blob = await (await fetch(dataUrl)).blob()
+      const blobUrl = URL.createObjectURL(blob)
+      
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `${(tournamentName || 'TFC').replace(/\s+/g, '-').toLowerCase()}-${activeTab}-leaderboard.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
+      setDownloadDone(true)
+      setTimeout(() => setDownloadDone(false), 2500)
+    } catch (err) {
+      console.error('Download error:', err)
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
+      {/* Off-screen Image Render Container */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', overflow: 'hidden' }}>
+        <div
+          ref={snapshotRef}
+          style={{
+            background: 'radial-gradient(circle at top left, #121e1a, #070707)',
+            padding: '48px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            width: '800px',
+            boxSizing: 'border-box',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          {/* Header */}
+          <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '20px' }}>
+            <div>
+              <div style={{ color: activeTabData.accentColor, fontSize: 13, fontWeight: 900, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>
+                {seasonName || 'Season'} · {activeRoundLimit}
+              </div>
+              <div style={{ color: '#FFFFFF', fontSize: 34, fontWeight: 900, letterSpacing: '-0.5px', marginBottom: 4 }}>
+                {tournamentName || 'Tournament Stats'}
+              </div>
+              <div style={{ color: '#A0988A', fontSize: 14, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>{activeTabData.emoji}</span>
+                <span>{activeTabData.label} Leaderboard</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: `${activeTabData.accentColor}15`, border: `1.5px solid ${activeTabData.accentColor}30`, padding: '6px 14px', borderRadius: '30px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: activeTabData.accentColor }}></div>
+                <span style={{ color: activeTabData.accentColor, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: 'uppercase' }}>LEADERBOARD</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: '#111111' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#141414', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  {['#', 'Team', activeTabData.label === 'Golden Glove' ? 'GA' : activeTabData.label === 'Golden Boot' ? 'Goals' : 'Points', 'Record'].map((h, i) => (
+                    <th key={h} style={{
+                      padding: i === 0 ? '16px 10px 16px 20px' : i === 1 ? '16px 10px' : '16px 14px',
+                      textAlign: i <= 1 ? 'left' : 'center',
+                      color: i === 2 ? activeTabData.accentColor : '#A0988A',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      letterSpacing: 1.5,
+                      textTransform: 'uppercase',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rankedTeams.slice(0, imageTeamsLimit === 'all' ? rankedTeams.length : Number(imageTeamsLimit)).map((t, idx) => {
+                  const metric = getMetric(t)
+                  const pos = idx + 1
+                  const isTop3 = pos <= 3
+                  const posBg = pos === 1 ? '#FFD700' : pos === 2 ? '#C0C0C0' : pos === 3 ? '#CD7F32' : 'rgba(255,255,255,0.06)'
+                  const posColor = pos <= 3 ? '#0a0a0a' : '#A0988A'
+
+                  return (
+                    <tr key={t.teamId} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '16px 10px 16px 20px', width: '40px' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, backgroundColor: posBg, color: posColor }}>
+                          {pos}
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px 10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontWeight: 800, color: '#F5F0E8', fontSize: 15 }}>
+                            {t.teamName}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px 14px', textAlign: 'center', fontWeight: 900, color: isTop3 ? activeTabData.accentColor : '#F5F0E8', fontSize: 16 }}>
+                        {metric.primary}
+                      </td>
+                      <td style={{ padding: '16px 14px', textAlign: 'center', color: '#A0988A', fontSize: 13, fontWeight: 600 }}>
+                        {metric.secondary}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer watermark */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#41574e', fontSize: 12, fontWeight: 700, marginTop: 24 }}>
+            <div>tfc-soccer.com</div>
+            <div>Generated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Control panel: Round Limits, Share / Export Tools */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white/5 border border-white/10 p-4 rounded-xl">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Round Filter dropdown */}
+          {roundOptions.length > 0 && (
+            <div className="flex flex-col">
+              <label className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-1">Filter Round Limit</label>
+              <select
+                value={activeRoundLimit}
+                onChange={(e) => setActiveRoundLimit(e.target.value)}
+                className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
+              >
+                {roundOptions.map(r => (
+                  <option key={r} value={r}>{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Share Limit select */}
+          <div className="flex flex-col">
+            <label className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-1">Teams in Share Card</label>
+            <select
+              value={imageTeamsLimit}
+              onChange={(e) => setImageTeamsLimit(e.target.value)}
+              className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
+            >
+              <option value="3">Top 3 Teams</option>
+              <option value="5">Top 5 Teams</option>
+              <option value="10">Top 10 Teams</option>
+              <option value="all">All Teams</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 items-end">
+          {/* Export to Excel */}
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-2 px-3.5 py-1.5 sm:py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg font-bold text-xs sm:text-sm transition-all"
+          >
+            <span className="text-sm">📥</span> Export Excel (CSV)
+          </button>
+
+          {/* Download Image */}
+          <button
+            onClick={handleDownloadImage}
+            disabled={downloading}
+            className={`flex items-center justify-center gap-2 px-3.5 py-1.5 sm:py-2 bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] rounded-lg font-bold text-xs sm:text-sm transition-all ${downloadDone ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : ''}`}
+          >
+            <span>🖼️</span> {downloadDone ? 'Downloaded!' : downloading ? 'Generating...' : 'Download Image'}
+          </button>
+
+          {/* Share Image */}
+          <button
+            onClick={handleShareImage}
+            disabled={sharing}
+            className={`flex items-center justify-center gap-2 px-3.5 py-1.5 sm:py-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold text-xs sm:text-sm transition-all ${shareDone ? 'from-emerald-500 to-emerald-400 text-white' : ''}`}
+          >
+            <span>🔗</span> {shareDone ? 'Shared!' : sharing ? 'Preparing...' : 'Share Leaderboard'}
+          </button>
+        </div>
+      </div>
+
       {/* Headline stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[

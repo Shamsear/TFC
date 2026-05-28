@@ -33,6 +33,7 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
     startDate: '',
     deadlineTime: '22:00', // Default overall deadline (10 PM)
     deadlineOffsetDays: 2, // Default deadline is 2 days after start
+    spacingType: 'CONSECUTIVE' as 'CONSECUTIVE' | 'WEEKLY', // CONSECUTIVE = no gaps, WEEKLY = weekly cycle
     matchdaysPerWeek: 6, // How many matchdays in one week (1-7)
     venue: '',
     homeAndAway: (tournament.leagueLegs || 0) === 2 || (tournament.groupLegs || 0) === 2,
@@ -109,17 +110,22 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
         fixture.matchDate = deadlineDate
       })
       
-      matchdayCount++
-      
-      // Calculate next matchday date
-      if (matchdayCount >= formData.matchdaysPerWeek) {
-        // Move to next week (skip remaining days and start Monday)
-        const daysToAdd = 7 - (matchdayCount - formData.matchdaysPerWeek)
-        currentDate = new Date(currentDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000)
-        matchdayCount = 0
-      } else {
-        // Next day in the same week
+      if (formData.spacingType === 'CONSECUTIVE') {
+        // Move to next day consecutively (no weekly gaps)
         currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000)
+      } else {
+        matchdayCount++
+        
+        // Calculate next matchday date with weekly cycle
+        if (matchdayCount >= formData.matchdaysPerWeek) {
+          // Move to next week (skip remaining days and start Monday)
+          const daysToAdd = 7 - (matchdayCount - formData.matchdaysPerWeek)
+          currentDate = new Date(currentDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000)
+          matchdayCount = 0
+        } else {
+          // Next day in the same week
+          currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000)
+        }
       }
     })
 
@@ -223,7 +229,7 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
         <h2 className="text-xl sm:text-2xl font-black text-white mb-4 sm:mb-6">Fixture Settings</h2>
         
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
                 Start Date *
@@ -272,17 +278,33 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
 
             <div>
               <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
-                Matchdays Per Week
+                Round Spacing
               </label>
-              <input
-                type="number"
-                min="1"
-                max="7"
-                value={formData.matchdaysPerWeek}
-                onChange={(e) => setFormData({ ...formData, matchdaysPerWeek: parseInt(e.target.value) || 6 })}
+              <select
+                value={formData.spacingType}
+                onChange={(e) => setFormData({ ...formData, spacingType: e.target.value as any })}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base"
-              />
+              >
+                <option value="CONSECUTIVE">Consecutive (No Gaps)</option>
+                <option value="WEEKLY">Weekly Scheduling</option>
+              </select>
             </div>
+
+            {formData.spacingType === 'WEEKLY' && (
+              <div>
+                <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                  Matchdays Per Week
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="7"
+                  value={formData.matchdaysPerWeek}
+                  onChange={(e) => setFormData({ ...formData, matchdaysPerWeek: parseInt(e.target.value) || 6 })}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base"
+                />
+              </div>
+            )}
           </div>
 
           <div>

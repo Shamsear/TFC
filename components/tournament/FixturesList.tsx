@@ -42,7 +42,25 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
   const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'live' | 'completed'>('all')
 
+  // Extract all unique rounds in the matches list and sort them numerically
+  const allRounds = Array.from(new Set(matches.map(m => m.round || 'Round 1'))).sort((a, b) => {
+    const getRoundNum = (name: string) => {
+      const num = name.match(/\d+/)
+      return num ? parseInt(num[0], 10) : 1
+    }
+    return getRoundNum(a) - getRoundNum(b)
+  })
+
+  // Find the first round with upcoming/live matches to set as default active round
+  const defaultRound = allRounds.find(roundName => 
+    matches.some(m => m.round === roundName && m.status !== 'COMPLETED')
+  ) || allRounds[0] || 'Round 1'
+
+  const [activeRound, setActiveRound] = useState<string>(defaultRound)
+
   const filteredMatches = matches.filter(match => {
+    const isSameRound = (match.round || 'Round 1') === activeRound
+    if (!isSameRound) return false
     if (filter === 'all') return true
     return match.status.toLowerCase() === filter
   })
@@ -92,21 +110,63 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
 
   return (
     <div>
-      {/* Filters */}
-      <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto scrollbar-hide">
-        {['all', 'scheduled', 'live', 'completed'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status as any)}
-            className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
-              filter === status
-                ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a]'
-                : 'bg-white/5 text-[#7A7367] hover:bg-white/10'
-            }`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </button>
-        ))}
+      {/* Filters & Pager container */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        {/* Filters */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+          {['all', 'scheduled', 'live', 'completed'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status as any)}
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
+                filter === status
+                  ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a]'
+                  : 'bg-white/5 text-[#7A7367] hover:bg-white/10'
+              }`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Round Spacing / Matchday Pager */}
+        {allRounds.length > 0 && (
+          <div className="flex items-center justify-between sm:justify-end gap-3 bg-[#111111] border border-white/10 rounded-xl p-1.5 sm:p-2 sm:min-w-[280px]">
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                const idx = allRounds.indexOf(activeRound)
+                if (idx > 0) setActiveRound(allRounds[idx - 1])
+              }}
+              disabled={allRounds.indexOf(activeRound) === 0}
+              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ◀ Prev
+            </button>
+
+            <select
+              value={activeRound}
+              onChange={(e) => setActiveRound(e.target.value)}
+              className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
+            >
+              {allRounds.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                const idx = allRounds.indexOf(activeRound)
+                if (idx < allRounds.length - 1) setActiveRound(allRounds[idx + 1])
+              }}
+              disabled={allRounds.indexOf(activeRound) === allRounds.length - 1}
+              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Next ▶
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Matches List */}

@@ -68,16 +68,16 @@ export default function TournamentTable({ standings, myTeamId, teamLinkBase = '/
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="px-2 py-3 text-left text-[10px] font-bold text-[#7A7367] uppercase tracking-wider w-8">#</th>
-                  <th className="px-2 py-3 text-left text-[10px] font-bold text-[#7A7367] uppercase tracking-wider min-w-[100px] sm:min-w-[140px]">Team</th>
-                  <th className="px-1.5 py-3 text-center text-[10px] font-bold text-[#7A7367] uppercase tracking-wider">P</th>
-                  <th className="px-1.5 py-3 text-center text-[10px] font-bold text-[#7A7367] uppercase tracking-wider">W</th>
-                  <th className="px-1.5 py-3 text-center text-[10px] font-bold text-[#7A7367] uppercase tracking-wider">D</th>
-                  <th className="px-1.5 py-3 text-center text-[10px] font-bold text-[#7A7367] uppercase tracking-wider">L</th>
-                  <th className="hidden sm:table-cell px-1.5 py-3 text-center text-[10px] font-bold text-[#7A7367] uppercase tracking-wider">GF</th>
-                  <th className="hidden sm:table-cell px-1.5 py-3 text-center text-[10px] font-bold text-[#7A7367] uppercase tracking-wider">GA</th>
-                  <th className="px-1.5 py-3 text-center text-[10px] font-bold text-[#7A7367] uppercase tracking-wider">GD</th>
-                  <th className="px-3 py-3 text-center text-[10px] font-bold text-[#E8A800] uppercase tracking-wider">Pts</th>
+                  <th className="px-2 py-3 sm:px-5 sm:py-4 text-left text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider w-8">#</th>
+                  <th className="px-2 py-3 sm:px-5 sm:py-4 text-left text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider min-w-[100px] sm:min-w-[160px]">Team</th>
+                  <th className="px-1.5 py-3 sm:px-3 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider">P</th>
+                  <th className="px-1.5 py-3 sm:px-3 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider">W</th>
+                  <th className="px-1.5 py-3 sm:px-3 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider">D</th>
+                  <th className="px-1.5 py-3 sm:px-3 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider">L</th>
+                  <th className="hidden sm:table-cell px-1.5 py-3 sm:px-3 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider">GF</th>
+                  <th className="hidden sm:table-cell px-1.5 py-3 sm:px-3 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider">GA</th>
+                  <th className="px-1.5 py-3 sm:px-3 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#7A7367] uppercase tracking-wider">GD</th>
+                  <th className="px-3 py-3 sm:px-5 sm:py-4 text-center text-[10px] sm:text-xs font-bold text-[#E8A800] uppercase tracking-wider">Pts</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,48 +97,48 @@ export default function TournamentTable({ standings, myTeamId, teamLinkBase = '/
                         isMe ? 'bg-[#E8A800]/8' : 'hover:bg-white/[0.02]'
                       }`}
                     >
-                      <td className="px-2 py-2.5">
-                        <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${posColor}`}>
+                      <td className="px-2 py-2.5 sm:px-5 sm:py-4">
+                        <div className={`w-5 h-5 sm:w-8 sm:h-8 rounded sm:rounded-md flex items-center justify-center text-[10px] sm:text-sm font-black ${posColor}`}>
                           {pos}
                         </div>
                       </td>
-                      <td className="px-2 py-2.5">
+                      <td className="px-2 py-2.5 sm:px-5 sm:py-4">
                         <Link
                           href={`${teamLinkBase}/${row.seasonTeam.team.id}`}
-                          className={`flex items-center gap-1.5 sm:gap-2.5 group/link`}
+                          className={`flex items-center gap-1.5 sm:gap-3 group/link`}
                         >
-                          <div className="relative w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
+                          <div className="relative w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 rounded-md overflow-hidden">
                             {row.seasonTeam.team.logoUrl ? (
                               <Image
                                 src={row.seasonTeam.team.logoUrl}
                                 alt={row.seasonTeam.team.name}
                                 fill
                                 className="object-contain"
-                                sizes="24px"
+                                sizes="(max-width: 640px) 24px, 40px"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[#7A7367] text-[9px] font-bold bg-white/5">
+                              <div className="w-full h-full flex items-center justify-center text-[#7A7367] text-[9px] sm:text-xs font-bold bg-white/5">
                                 {row.seasonTeam.team.name.slice(0, 2).toUpperCase()}
                               </div>
                             )}
                           </div>
-                          <span className={`font-bold text-xs sm:text-sm group-hover/link:text-[#E8A800] transition-colors truncate max-w-[80px] sm:max-w-none ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
+                          <span className={`font-bold text-xs sm:text-base group-hover/link:text-[#E8A800] transition-colors truncate max-w-[80px] sm:max-w-none ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
                             {row.seasonTeam.team.name}
                             {isMe && <span className="ml-1 text-[8px] font-black text-[#E8A800]/60 uppercase sm:inline hidden">You</span>}
                           </span>
                         </Link>
                       </td>
-                      <td className="px-1.5 py-2.5 text-center text-[#D4CCBB] font-medium text-xs sm:text-sm">{row.played}</td>
-                      <td className="px-1.5 py-2.5 text-center text-emerald-400 font-bold text-xs sm:text-sm">{row.won}</td>
-                      <td className="px-1.5 py-2.5 text-center text-[#D4CCBB] font-medium text-xs sm:text-sm">{row.drawn}</td>
-                      <td className="px-1.5 py-2.5 text-center text-red-400 font-bold text-xs sm:text-sm">{row.lost}</td>
-                      <td className="hidden sm:table-cell px-1.5 py-2.5 text-center text-[#D4CCBB] text-xs sm:text-sm">{row.goalsFor}</td>
-                      <td className="hidden sm:table-cell px-1.5 py-2.5 text-center text-[#D4CCBB] text-xs sm:text-sm">{row.goalsAgainst}</td>
-                      <td className={`px-1.5 py-2.5 text-center font-bold text-xs sm:text-sm ${row.goalDiff > 0 ? 'text-emerald-400' : row.goalDiff < 0 ? 'text-red-400' : 'text-[#7A7367]'}`}>
+                      <td className="px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-[#D4CCBB] font-medium text-xs sm:text-base">{row.played}</td>
+                      <td className="px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-emerald-400 font-bold text-xs sm:text-base">{row.won}</td>
+                      <td className="px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-[#D4CCBB] font-medium text-xs sm:text-base">{row.drawn}</td>
+                      <td className="px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-red-400 font-bold text-xs sm:text-base">{row.lost}</td>
+                      <td className="hidden sm:table-cell px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-[#D4CCBB] text-xs sm:text-base">{row.goalsFor}</td>
+                      <td className="hidden sm:table-cell px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-[#D4CCBB] text-xs sm:text-base">{row.goalsAgainst}</td>
+                      <td className={`px-1.5 py-2.5 sm:px-3 sm:py-4 text-center font-bold text-xs sm:text-base ${row.goalDiff > 0 ? 'text-emerald-400' : row.goalDiff < 0 ? 'text-red-400' : 'text-[#7A7367]'}`}>
                         {row.goalDiff > 0 ? '+' : ''}{row.goalDiff}
                       </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <span className={`font-black text-sm sm:text-base ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
+                      <td className="px-3 py-2.5 sm:px-5 sm:py-4 text-center">
+                        <span className={`font-black text-sm sm:text-lg ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
                           {row.points}
                         </span>
                       </td>

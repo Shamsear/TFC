@@ -38,20 +38,60 @@ interface TournamentMatchesProps {
   teamLinkBase?: string
 }
 
+import { useState } from 'react'
+
 export default function TournamentMatches({
   matches,
   myTeamId,
   teamLinkBase = '/teams',
 }: TournamentMatchesProps) {
-  const completedMatches = matches.filter(m => m.status === 'COMPLETED')
-  const liveMatches = matches.filter(m => m.status === 'LIVE')
-  const upcomingMatches = matches.filter(m => m.status === 'SCHEDULED')
+  const [filter, setFilter] = useState<'all' | 'scheduled' | 'live' | 'completed'>('all')
+
+  // Extract all unique rounds in the matches list and sort them numerically
+  const allRounds = Array.from(new Set(matches.map(m => m.round || 'Round 1'))).sort((a, b) => {
+    const getRoundNum = (name: string) => {
+      const num = name.match(/\d+/)
+      return num ? parseInt(num[0], 10) : 1
+    }
+    return getRoundNum(a) - getRoundNum(b)
+  })
+
+  // Find the first round with upcoming/live matches to set as default active round
+  const defaultRound = allRounds.find(roundName => 
+    matches.some(m => m.round === roundName && m.status !== 'COMPLETED')
+  ) || allRounds[0] || 'Round 1'
+
+  const [activeRound, setActiveRound] = useState<string>(defaultRound)
+
+  // Filter matches based on selected round and status
+  const filteredMatches = matches.filter(match => {
+    const isSameRound = (match.round || 'Round 1') === activeRound
+    if (!isSameRound) return false
+    if (filter === 'all') return true
+    return match.status === (filter === 'scheduled' ? 'SCHEDULED' : filter === 'live' ? 'LIVE' : 'COMPLETED')
+  })
 
   const formatDate = (d: Date) =>
     new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   
   const formatTime = (d: Date) =>
     new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+
+  const getRoundDates = (deadlineDate: Date) => {
+    const deadline = new Date(deadlineDate)
+    // Assume started is 2 days before the deadline (matching the default 2-day offset)
+    const started = new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
+    
+    const formatFull = (d: Date) => 
+      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
+      ' at ' + 
+      d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+
+    return {
+      startedStr: formatFull(started),
+      deadlineStr: formatFull(deadline)
+    }
+  }
 
   const statusStyle = (s: string) => {
     if (s === 'COMPLETED') return 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]'
@@ -61,77 +101,108 @@ export default function TournamentMatches({
 
   return (
     <div className="space-y-6">
-      {/* Live Matches */}
-      {liveMatches.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-[#FFB347] animate-pulse" />
-            <h2 className="text-sm font-black text-[#FFB347] uppercase tracking-wider">Live Now</h2>
+      {/* Filters & Pager Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Filters */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+          {['all', 'scheduled', 'live', 'completed'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status as any)}
+              className={`px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${
+                filter === status
+                  ? 'bg-[#E8A800] text-[#0a0a0a]'
+                  : 'bg-white/5 text-[#7A7367] hover:bg-white/10 hover:text-[#D4CCBB]'
+              }`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Round Spacing / Matchday Pager */}
+        {allRounds.length > 0 && (
+          <div className="flex items-center justify-between sm:justify-end gap-3 bg-[#111111] border border-white/10 rounded-xl p-1.5 sm:p-2 sm:min-w-[280px]">
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                const idx = allRounds.indexOf(activeRound)
+                if (idx > 0) setActiveRound(allRounds[idx - 1])
+              }}
+              disabled={allRounds.indexOf(activeRound) === 0}
+              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ◀ Prev
+            </button>
+
+            <select
+              value={activeRound}
+              onChange={(e) => setActiveRound(e.target.value)}
+              className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
+            >
+              {allRounds.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                const idx = allRounds.indexOf(activeRound)
+                if (idx < allRounds.length - 1) setActiveRound(allRounds[idx + 1])
+              }}
+              disabled={allRounds.indexOf(activeRound) === allRounds.length - 1}
+              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Next ▶
+            </button>
           </div>
-          <div className="space-y-2.5">
-            {liveMatches.map(m => (
-              <MatchCard
-                key={m.id}
-                match={m}
-                myTeamId={myTeamId}
-                teamLinkBase={teamLinkBase}
-                statusStyle={statusStyle}
-                formatDate={formatDate}
-                formatTime={formatTime}
-              />
-            ))}
+        )}
+      </div>
+
+      {/* Active Round Schedule Info Banner */}
+      {filteredMatches.length > 0 && (
+        <div className="rounded-xl border border-[#E8A800]/25 bg-[#E8A800]/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs sm:text-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base sm:text-lg">📅</span>
+            <div>
+              <span className="font-bold text-[#7A7367] uppercase tracking-wider text-[10px]">Round Active:</span>{' '}
+              <span className="text-[#F5F0E8] font-bold block sm:inline">{getRoundDates(filteredMatches[0].matchDate).startedStr}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className="text-base sm:text-lg">🚨</span>
+            <div>
+              <span className="font-black text-[#E8A800] uppercase tracking-wider text-[10px]">Submission Deadline:</span>{' '}
+              <span className="font-extrabold text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]">{getRoundDates(filteredMatches[0].matchDate).deadlineStr}</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Upcoming Matches */}
-      {upcomingMatches.length > 0 && (
-        <div>
-          <h2 className="text-sm font-black text-[#D4CCBB] uppercase tracking-wider mb-3">Upcoming Matches</h2>
-          <div className="space-y-2.5">
-            {upcomingMatches.map(m => (
-              <MatchCard
-                key={m.id}
-                match={m}
-                myTeamId={myTeamId}
-                teamLinkBase={teamLinkBase}
-                statusStyle={statusStyle}
-                formatDate={formatDate}
-                formatTime={formatTime}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Main List Rows */}
+      <div className="space-y-3">
+        {filteredMatches.map(m => (
+          <MatchCard
+            key={m.id}
+            match={m}
+            myTeamId={myTeamId}
+            teamLinkBase={teamLinkBase}
+            statusStyle={statusStyle}
+            formatDate={formatDate}
+            formatTime={formatTime}
+          />
+        ))}
 
-      {/* Results / Completed Matches */}
-      {completedMatches.length > 0 && (
-        <div>
-          <h2 className="text-sm font-black text-[#D4CCBB] uppercase tracking-wider mb-3">Results & Completed</h2>
-          <div className="space-y-2.5">
-            {completedMatches.map(m => (
-              <MatchCard
-                key={m.id}
-                match={m}
-                myTeamId={myTeamId}
-                teamLinkBase={teamLinkBase}
-                statusStyle={statusStyle}
-                formatDate={formatDate}
-                formatTime={formatTime}
-              />
-            ))}
+        {filteredMatches.length === 0 && (
+          <div className="rounded-xl bg-white/[0.02] border border-white/10 p-12 text-center">
+            <svg className="w-12 h-12 text-[#7A7367] mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-[#7A7367] font-bold text-sm">No matches found for {activeRound} under this filter</p>
           </div>
-        </div>
-      )}
-
-      {matches.length === 0 && (
-        <div className="rounded-xl bg-white/[0.02] border border-white/10 p-12 text-center">
-          <svg className="w-12 h-12 text-[#7A7367] mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p className="text-[#7A7367] font-medium">No matches scheduled yet</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -173,14 +244,14 @@ function MatchCard({
 
   return (
     <div
-      className={`rounded-xl border p-4 transition-all ${
+      className={`rounded-xl border p-4 sm:p-6 lg:p-7 transition-all ${
         isMyMatch
           ? 'bg-[#E8A800]/[0.03] border-[#E8A800]/20 hover:border-[#E8A800]/30 shadow-md'
           : 'bg-[#111111] border-white/10 hover:border-white/20'
       }`}
     >
       {/* Top line: Round & Date */}
-      <div className="flex items-center justify-between mb-3 text-[11px] font-bold text-[#7A7367] tracking-wider uppercase">
+      <div className="flex items-center justify-between mb-3 text-[11px] sm:text-xs font-bold text-[#7A7367] tracking-wider uppercase">
         <div className="flex items-center gap-2">
           {match.round && <span>Round {match.round}</span>}
           {resultBadge}
@@ -197,18 +268,18 @@ function MatchCard({
         {/* Home Team */}
         <Link
           href={`${teamLinkBase}/${match.homeTeam.team.id}`}
-          className="col-span-3 flex items-center justify-end gap-2 text-right group"
+          className="col-span-3 flex items-center justify-end gap-2 sm:gap-3 lg:gap-4 text-right group"
         >
-          <span className={`font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors truncate ${
+          <span className={`font-bold text-xs sm:text-sm md:text-base lg:text-lg group-hover:text-[#E8A800] transition-colors truncate ${
             isHome ? 'text-[#E8A800]' : 'text-[#F5F0E8]'
           }`}>
             {match.homeTeam.team.name}
           </span>
-          <div className="relative w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
+          <div className="relative w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex-shrink-0 rounded-md overflow-hidden">
             {match.homeTeam.team.logoUrl ? (
-              <Image src={match.homeTeam.team.logoUrl} alt={match.homeTeam.team.name} fill className="object-contain" sizes="24px" />
+              <Image src={match.homeTeam.team.logoUrl} alt={match.homeTeam.team.name} fill className="object-contain" sizes="(max-width: 640px) 24px, 40px" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5">
+              <div className="w-full h-full flex items-center justify-center text-[9px] sm:text-xs font-black text-[#7A7367] bg-white/5">
                 {match.homeTeam.team.name.slice(0, 2).toUpperCase()}
               </div>
             )}
@@ -218,22 +289,22 @@ function MatchCard({
         {/* Score or Status display */}
         <div className="col-span-1 flex flex-col items-center justify-center">
           {match.status === 'COMPLETED' ? (
-            <div className="flex items-center gap-1 font-black text-sm sm:text-base text-[#F5F0E8] bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+            <div className="flex items-center gap-1 font-black text-sm sm:text-base md:text-lg lg:text-xl text-[#F5F0E8] bg-white/5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-lg border border-white/5">
               <span>{match.homeScore}</span>
-              <span className="text-[#7A7367] text-xs font-normal">:</span>
+              <span className="text-[#7A7367] text-xs sm:text-sm font-normal">:</span>
               <span>{match.awayScore}</span>
             </div>
           ) : match.status === 'LIVE' ? (
             <div className="flex flex-col items-center gap-0.5">
-              <div className="flex items-center gap-1 font-black text-sm sm:text-base text-[#FFB347] bg-[#FFB347]/10 px-2 py-0.5 rounded-lg border border-[#FFB347]/20">
+              <div className="flex items-center gap-1 font-black text-sm sm:text-base md:text-lg lg:text-xl text-[#FFB347] bg-[#FFB347]/10 px-2 py-0.5 sm:px-3 sm:py-1 rounded-lg border border-[#FFB347]/20">
                 <span>{match.homeScore ?? 0}</span>
-                <span className="text-[#7A7367] text-xs font-normal">:</span>
+                <span className="text-[#7A7367] text-xs sm:text-sm font-normal">:</span>
                 <span>{match.awayScore ?? 0}</span>
               </div>
               <span className="text-[8px] font-black text-[#FFB347] tracking-wider uppercase animate-pulse">LIVE</span>
             </div>
           ) : (
-            <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black tracking-wider uppercase ${statusStyle(match.status)}`}>
+            <span className={`px-2 py-0.5 sm:px-3.5 sm:py-1 rounded-full border text-[9px] sm:text-[10px] font-black tracking-wider uppercase ${statusStyle(match.status)}`}>
               VS
             </span>
           )}
@@ -242,18 +313,18 @@ function MatchCard({
         {/* Away Team */}
         <Link
           href={`${teamLinkBase}/${match.awayTeam.team.id}`}
-          className="col-span-3 flex items-center justify-start gap-2 text-left group"
+          className="col-span-3 flex items-center justify-start gap-2 sm:gap-3 lg:gap-4 text-left group"
         >
-          <div className="relative w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
+          <div className="relative w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex-shrink-0 rounded-md overflow-hidden">
             {match.awayTeam.team.logoUrl ? (
-              <Image src={match.awayTeam.team.logoUrl} alt={match.awayTeam.team.name} fill className="object-contain" sizes="24px" />
+              <Image src={match.awayTeam.team.logoUrl} alt={match.awayTeam.team.name} fill className="object-contain" sizes="(max-width: 640px) 24px, 40px" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5">
+              <div className="w-full h-full flex items-center justify-center text-[9px] sm:text-xs font-black text-[#7A7367] bg-white/5">
                 {match.awayTeam.team.name.slice(0, 2).toUpperCase()}
               </div>
             )}
           </div>
-          <span className={`font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors truncate ${
+          <span className={`font-bold text-xs sm:text-sm md:text-base lg:text-lg group-hover:text-[#E8A800] transition-colors truncate ${
             isAway ? 'text-[#E8A800]' : 'text-[#F5F0E8]'
           }`}>
             {match.awayTeam.team.name}

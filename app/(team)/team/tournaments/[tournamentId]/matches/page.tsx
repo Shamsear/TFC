@@ -52,7 +52,7 @@ export default async function TeamTournamentMatchesPage({
         },
       },
     },
-    orderBy: { matchDate: 'desc' },
+    orderBy: { matchDate: 'asc' },
   })
 
   return (

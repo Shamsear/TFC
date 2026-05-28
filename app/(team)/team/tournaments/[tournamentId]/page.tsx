@@ -95,7 +95,7 @@ export default async function TournamentDetailsPage({
         },
       },
     },
-    orderBy: { matchDate: 'desc' },
+    orderBy: { matchDate: 'asc' },
     take: 30,
   })
 

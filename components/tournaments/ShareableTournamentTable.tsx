@@ -164,7 +164,7 @@ function TableSnapshot({
 
       {/* Footer watermark */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#5A5347', fontSize: 12, fontWeight: 700, marginTop: 16 }}>
-        <div>tfc-soccer.com</div>
+        <div>turfcats.vercel.app</div>
         <div>Generated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
       </div>
     </div>

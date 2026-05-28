@@ -365,7 +365,7 @@ export default function TournamentStats({
 
           {/* Footer watermark */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#41574e', fontSize: 12, fontWeight: 700, marginTop: 24 }}>
-            <div>tfc-soccer.com</div>
+            <div>turfcats.vercel.app</div>
             <div>Generated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
           </div>
         </div>

@@ -419,7 +419,7 @@ function PosterSnapshot({
             borderTop: '1px solid rgba(255,255,255,0.05)',
           }}
         >
-          <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>tfc-soccer.com</div>
+          <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>turfcats.vercel.app</div>
           <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700 }}>
             Generated on{' '}
             {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}

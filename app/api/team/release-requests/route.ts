@@ -31,42 +31,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No active release window found' }, { status: 400 })
     }
 
-    const MAX_RELEASES_PER_TEAM = 3
+    const MAX_RELEASES_PER_TEAM = activeWindow.releaseLimit || 3
 
-    // Check total release requests (all statuses)
+    // Check total release requests (all statuses) in the current window
     const totalRequestsCount = await prisma.release_requests.count({
       where: {
         seasonId,
         teamId,
+        releaseWindowId: activeWindow.id,
       },
     })
 
-    // Check if adding these releases would exceed the total request limit
+    // Check if adding these releases would exceed the total request limit for the window
     if (totalRequestsCount + releases.length > MAX_RELEASES_PER_TEAM) {
       const remaining = MAX_RELEASES_PER_TEAM - totalRequestsCount
       return NextResponse.json(
         { 
-          error: `You can only submit ${MAX_RELEASES_PER_TEAM} release requests per season. You have ${remaining} request${remaining !== 1 ? 's' : ''} remaining.` 
+          error: `You can only submit ${MAX_RELEASES_PER_TEAM} release requests per window. You have ${remaining} request${remaining !== 1 ? 's' : ''} remaining.` 
         },
         { status: 400 }
       )
     }
 
-    // Also check approved releases count
+    // Also check approved releases count in the current window
     const approvedReleasesCount = await prisma.release_requests.count({
       where: {
         seasonId,
         teamId,
+        releaseWindowId: activeWindow.id,
         status: 'approved',
       },
     })
 
-    // Check if adding these releases would exceed the approved limit
+    // Check if adding these releases would exceed the approved limit for the window
     if (approvedReleasesCount + releases.length > MAX_RELEASES_PER_TEAM) {
       const remaining = MAX_RELEASES_PER_TEAM - approvedReleasesCount
       return NextResponse.json(
         { 
-          error: `You can only have ${MAX_RELEASES_PER_TEAM} approved releases per season. You have ${remaining} approval${remaining !== 1 ? 's' : ''} remaining.` 
+          error: `You can only have ${MAX_RELEASES_PER_TEAM} approved releases per window. You have ${remaining} approval${remaining !== 1 ? 's' : ''} remaining.` 
         },
         { status: 400 }
       )

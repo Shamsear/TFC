@@ -241,15 +241,28 @@ function PosterSnapshot({
                 width: 56,
                 height: 56,
                 borderRadius: 14,
-                background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`,
+                background: winner.logoUrl ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
                 boxShadow: `0 4px 20px ${theme.glow}`,
+                overflow: 'hidden',
+                border: `1.5px solid ${theme.accent}40`,
               }}
             >
-              <span style={{ fontSize: 26 }}>{theme.emoji}</span>
+              {winner.logoUrl ? (
+                <img
+                  src={winner.logoUrl}
+                  alt={winner.teamName}
+                  crossOrigin="anonymous"
+                  style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+                />
+              ) : (
+                <span style={{ fontSize: 18, fontWeight: 900, color: '#0a0a0a' }}>
+                  {winner.teamName.slice(0, 2).toUpperCase()}
+                </span>
+              )}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ color: '#8a8278', fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 4 }}>
@@ -344,6 +357,34 @@ function PosterSnapshot({
                   >
                     {pos}
                   </div>
+                </div>
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginRight: 10,
+                    background: team.logoUrl ? 'transparent' : 'rgba(255,255,255,0.06)',
+                    border: team.logoUrl ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  {team.logoUrl ? (
+                    <img
+                      src={team.logoUrl}
+                      alt={team.teamName}
+                      crossOrigin="anonymous"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 10, fontWeight: 800, color: '#7A7367' }}>
+                      {team.teamName.slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontWeight: 800, color: '#F5F0E8', fontSize: 14 }}>{team.teamName}</span>

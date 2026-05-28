@@ -153,7 +153,15 @@ export default async function TournamentDetailsPage({
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-bold text-[#FFB347] uppercase tracking-wider">
-                    {tournament.tournamentType.replace(/_/g, ' ')}
+                    {tournament.tournamentType === 'LEAGUE_PLAYOFF'
+                      ? 'League with Playoff'
+                      : tournament.tournamentType === 'LEAGUE_ONLY'
+                      ? 'League Only'
+                      : tournament.tournamentType === 'GROUP_KNOCKOUT'
+                      ? 'Group Stage + Knockout'
+                      : tournament.tournamentType === 'KNOCKOUT_ONLY'
+                      ? 'Knockout Only'
+                      : tournament.tournamentType.replace(/_/g, ' ')}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">{tournament.name}</h1>

@@ -54,7 +54,17 @@ export default async function TeamTournamentTablePage({
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold text-[#FFB347] uppercase tracking-wider">{data.tournament.tournamentType.replace(/_/g, ' ')}</span>
+              <span className="text-xs font-bold text-[#FFB347] uppercase tracking-wider">
+                {data.tournament.tournamentType === 'LEAGUE_PLAYOFF'
+                  ? 'League with Playoff'
+                  : data.tournament.tournamentType === 'LEAGUE_ONLY'
+                  ? 'League Only'
+                  : data.tournament.tournamentType === 'GROUP_KNOCKOUT'
+                  ? 'Group Stage + Knockout'
+                  : data.tournament.tournamentType === 'KNOCKOUT_ONLY'
+                  ? 'Knockout Only'
+                  : data.tournament.tournamentType.replace(/_/g, ' ')}
+              </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1">Table</h1>
             <p className="text-[#D4CCBB]">{data.tournament.name} · {data.tournament.season.name}</p>

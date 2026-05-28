@@ -111,6 +111,15 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Round Prominent Display */}
+        {match.round && (
+          <div className="flex items-center gap-2 mb-4 bg-gradient-to-r from-[#E8A800]/10 to-transparent border-l-4 border-[#E8A800] p-3.5 rounded-r-xl">
+            <span className="text-sm sm:text-base font-black text-white uppercase tracking-widest">
+              Round: <span className="text-[#E8A800]">{match.round}</span>
+            </span>
+          </div>
+        )}
+
         {/* Round Active Info & Deadline Banner */}
         {match.round && (
           <div className="rounded-xl border border-[#E8A800]/25 bg-[#E8A800]/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs sm:text-sm mb-6">
@@ -271,7 +280,7 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
         </div>
 
         {/* Match Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           {/* Venue */}
           {match.venue && (
             <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
@@ -283,21 +292,6 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
                   </svg>
                 </div>
                 <div className="text-[#D4CCBB] font-bold text-sm sm:text-base">{match.venue}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Round */}
-          {match.round && (
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-black text-white mb-3">Round</h3>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 border border-[#E8A800]/30 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="text-[#D4CCBB] font-bold text-sm sm:text-base">{match.round}</div>
               </div>
             </div>
           )}
@@ -318,7 +312,15 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
             <div>
               <div className="text-[#7A7367] text-xs sm:text-sm mb-1 font-medium">Type</div>
               <div className="text-white font-black text-sm sm:text-base">
-                {match.tournament.tournamentType.replace(/_/g, " ")}
+                {match.tournament.tournamentType === 'LEAGUE_PLAYOFF'
+                  ? 'League with Playoff'
+                  : match.tournament.tournamentType === 'LEAGUE_ONLY'
+                  ? 'League Only'
+                  : match.tournament.tournamentType === 'GROUP_KNOCKOUT'
+                  ? 'Group Stage + Knockout'
+                  : match.tournament.tournamentType === 'KNOCKOUT_ONLY'
+                  ? 'Knockout Only'
+                  : match.tournament.tournamentType.replace(/_/g, " ")}
               </div>
             </div>
           </div>

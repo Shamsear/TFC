@@ -63,6 +63,7 @@ model season_teams {
   id                 String             @id
   seasonId           String
   teamId             String
+  managerName        String?
   currentBudget      Int
   finalBudget        Int?
   trophiesWon        Int                @default(0)

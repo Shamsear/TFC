@@ -7,6 +7,8 @@ import { createTiebreakers } from '@/lib/auction/tiebreaker';
 import { Prisma } from '@prisma/client';
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server';
 
+export const maxDuration = 60;
+
 /**
  * POST /api/admin/rounds/[id]/finalize - Finalize a round
  */

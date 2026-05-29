@@ -18,7 +18,10 @@ export async function GET(
     const { teamId } = await params
     
     const team = await prisma.teams.findUnique({
-      where: { id: teamId }
+      where: { id: teamId },
+      include: {
+        unlockedBadges: true
+      }
     })
 
     if (!team) {

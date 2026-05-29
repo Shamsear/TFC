@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
+import { evaluateTeamAchievements } from '@/lib/achievements-engine'
 
 export async function PATCH(
   request: NextRequest,
@@ -84,6 +85,10 @@ export async function PATCH(
 
           // Apply new scores
           await updateStandings(tx, { ...match, homeTeam: existingMatch.homeTeam, awayTeam: existingMatch.awayTeam, group: existingMatch.group }, false)
+
+          // Automatically trigger achievements and XP evaluation for both teams
+          await evaluateTeamAchievements(existingMatch.homeTeam.teamId, tx)
+          await evaluateTeamAchievements(existingMatch.awayTeam.teamId, tx)
         }
       }
 

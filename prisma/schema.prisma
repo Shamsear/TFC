@@ -239,6 +239,7 @@ model seasons {
   tournaments           tournaments[]
   transferHistory       transfer_history[]
   sub_admin_seasons     sub_admin_seasons[]
+  teamBadges            team_badges[]
 }
 
 model release_windows {
@@ -328,6 +329,10 @@ model teams {
   teamSquads                 team_squads[]
   transferHistory            transfer_history[]
   teamManagers               users[]                        @relation("TeamManager")
+  xp                         Int                            @default(0)
+  level                      Int                            @default(1)
+  unlockedBadges             team_badges[]
+  xpHistory                  team_xp_history[]
 }
 
 model team_squads {
@@ -1042,3 +1047,37 @@ model sub_admin_seasons {
   @@index([userId])
   @@index([seasonId])
 }
+
+model team_badges {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  teamId      String   @map("team_id")
+  badgeKey    String   @map("badge_key") // e.g. "IRON_CURTAIN", "GALE_FORCE"
+  badgeName   String   @map("badge_name")
+  tier        String   // "BRONZE", "SILVER", "GOLD", "PLATINUM"
+  seasonId    String?  @map("season_id") // Optional: links to season if earned seasonally
+  unlockedAt  DateTime @default(now()) @map("unlocked_at")
+
+  // Relations
+  team        teams    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  season      seasons? @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, badgeKey, seasonId]) // Prevent duplicate badge awards for the same season
+}
+
+model team_xp_history {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  teamId      String   @map("team_id")
+  amount      Int      // e.g. 20, 100, 50
+  xpType      String   @map("xp_type") // e.g. "MATCH_PLAYED", "MATCH_WON", "GOAL_SCORED", "BADGE_UNLOCKED"
+  description String   // Detailed description, e.g. "Played match vs Arsenal (1-1)", "Unlocked 'Iron Curtain' badge"
+  matchId     String?  @map("match_id") // Optional link to match
+  badgeKey    String?  @map("badge_key") // Optional link to badge key
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  team        teams    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([createdAt])
+}
+

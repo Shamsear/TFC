@@ -502,7 +502,8 @@ export async function applyBulkFinalizationResults(
     });
     console.log(`      ✓ Round status updated`);
   }, {
-    timeout: 15000 // Increase timeout to 15 seconds for large bulk rounds
+    maxWait: 10000,
+    timeout: 30000 // Increase timeout to 30 seconds for large bulk rounds
   });
 
   console.log(`\n✅ Database transaction complete!`);

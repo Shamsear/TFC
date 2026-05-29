@@ -434,9 +434,26 @@ export default async function TeamDashboardPage() {
               <p className="text-[#D4CCBB] text-sm sm:text-base">Manager: {team.managerName}</p>
             </div>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg">
-            <span className="text-[#E8A800] font-medium text-xs sm:text-sm">Current Season:</span>
-            <span className="text-white font-bold text-xs sm:text-sm">{activeSeason.name}</span>
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg">
+              <span className="text-[#E8A800] font-medium text-xs sm:text-sm">Current Season:</span>
+              <span className="text-white font-bold text-xs sm:text-sm">{activeSeason.name}</span>
+            </div>
+            
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+              <span className="text-purple-400 font-medium text-xs sm:text-sm">XP:</span>
+              <span className="text-white font-bold text-xs sm:text-sm">{team.xp}</span>
+            </div>
+
+            <Link
+              href={`/teams/${team.id}/achievements`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFD573] text-xs sm:text-sm font-black text-black rounded-lg hover:scale-[1.03] transition-all shadow-[0_0_20px_rgba(232,168,0,0.25)] hover:shadow-[0_0_30px_rgba(232,168,0,0.4)]"
+            >
+              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12M4 7h16M4 7v3a4 4 0 004 4h8a4 4 0 004-4V7M4 7a2 2 0 012-2h12a2 2 0 012 2" />
+              </svg>
+              Achievements Cabinet
+            </Link>
           </div>
         </div>
       </div>
@@ -724,7 +741,7 @@ export default async function TeamDashboardPage() {
         {/* Quick Actions */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-10 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
             <Link
               href="/team/auction"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/50 hover:bg-white/[0.07] transition-all text-center group"
@@ -834,6 +851,17 @@ export default async function TeamDashboardPage() {
                 </svg>
               </div>
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Tournaments</div>
+            </Link>
+            <Link
+              href={`/teams/${team.id}/achievements`}
+              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-purple-500/50 hover:bg-white/[0.07] transition-all text-center group"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mx-auto mb-2 sm:mb-3 group-hover:bg-purple-500/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12M4 7h16M4 7v3a4 4 0 004 4h8a4 4 0 004-4V7M4 7a2 2 0 012-2h12a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div className="text-white font-bold text-xs sm:text-sm group-hover:text-purple-400 transition-colors">Badges</div>
             </Link>
           </div>
         </div>

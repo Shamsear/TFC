@@ -73,13 +73,14 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
       ]
     : inactiveSeasonNavigation
 
-  const moreNavigation = isInActiveSeason
+    const moreNavigation = isInActiveSeason
     ? [
         { name: "Starred", href: "/team/starred" },
         { name: "Teams", href: "/team/teams" },
         { name: "Tournaments", href: "/team/tournaments" },
         { name: "Calendar", href: "/team/calendar" },
         { name: "Finances", href: "/team/finances" },
+        { name: "Achievements", href: team ? `/teams/${team.id}/achievements` : "#" },
       ]
     : []
 
@@ -207,6 +208,20 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
                   </svg>
                   View Profile
                 </Link>
+                {team && (
+                  <Link
+                    href={`/teams/${team.id}/achievements`}
+                    onClick={() => setUserMenuOpen(false)}
+                    className="w-full text-left block px-4 py-3 text-sm text-[#7A7367] hover:bg-white/5 hover:text-white border-b border-white/10 transition-all flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25c0-1.657-1.343-3-3-3H15m-6 0H7.5c-1.657 0-3 1.343-3 3 0 2.222 1.385 4.099 3.32 4.792a6.002 6.002 0 0010.36 0c1.935-.693 3.32-2.57 3.32-4.792z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.25v2.25M9 21.75h6" />
+                    </svg>
+                    Achievements Showcase
+                  </Link>
+                )}
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="w-full text-left px-4 py-3 text-sm text-[#7A7367] hover:bg-white/5 hover:text-white transition-all flex items-center gap-2"
@@ -266,6 +281,20 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
                   </div>
                 </div>
 
+                {team && (
+                  <Link
+                    href={`/teams/${team.id}/achievements`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-bold text-[#E8A800] hover:text-[#FFC93A] transition-colors mb-2"
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25c0-1.657-1.343-3-3-3H15m-6 0H7.5c-1.657 0-3 1.343-3 3 0 2.222 1.385 4.099 3.32 4.792a6.002 6.002 0 0010.36 0c1.935-.693 3.32-2.57 3.32-4.792z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.25v2.25M9 21.75h6" />
+                    </svg>
+                    Achievements Showcase
+                  </Link>
+                )}
                 <Link
                   href="/team/profile"
                   onClick={() => setMobileMenuOpen(false)}

@@ -65,18 +65,13 @@ export const authConfig: NextAuthConfig = {
       }
 
       // Protect and restrict team routes
-      if (pathname.startsWith("/team")) {
+      if (pathname === "/team" || pathname.startsWith("/team/")) {
         if (!isLoggedIn) return false
         if (userRole !== "TEAM_MANAGER") return false
         return true
       }
 
-      // Public pages - only allow if NOT logged in
-      if (isLoggedIn) {
-        return false // Logged-in users cannot access public pages
-      }
-
-      return true // Allow unauthenticated users to access public pages
+      return true // Allow all users (including logged-in) to access public pages
     }
   },
   pages: {

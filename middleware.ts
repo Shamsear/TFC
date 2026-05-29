@@ -66,8 +66,11 @@ export default auth((req) => {
       return NextResponse.next()
     }
 
-    // Redirect authenticated users trying to access public pages to their respective dashboard
-    return NextResponse.redirect(new URL(userHomeRoute, req.url))
+    // Redirect authenticated users trying to access the home page to their respective dashboard
+    if (pathname === "/") {
+      return NextResponse.redirect(new URL(userHomeRoute, req.url))
+    }
+    return NextResponse.next()
   }
 
   // Protect team manager routes from unauthenticated access

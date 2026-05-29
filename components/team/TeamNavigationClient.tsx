@@ -258,7 +258,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
                 </Link>
                 {team && (
                   <Link
-                    href={`/teams/${team.id}/achievements`}
+                    href="/team/achievements"
                     onClick={() => setUserMenuOpen(false)}
                     className="w-full text-left block px-4 py-3 text-sm text-[#7A7367] hover:bg-white/5 hover:text-white border-b border-white/10 transition-all flex items-center gap-2"
                   >
@@ -332,7 +332,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
 
                 {team && (
                   <Link
-                    href={`/teams/${team.id}/achievements`}
+                    href="/team/achievements"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-bold text-[#E8A800] hover:text-[#FFC93A] transition-colors mb-2"
                   >

@@ -202,7 +202,10 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
                   Lvl {level} • {rank.title}
                 </span>
               </div>
-              <p className="text-sm text-gray-400 mb-6">Manager: {team.managerName}</p>
+              <p className="text-sm text-gray-400 mb-2">Manager: {team.managerName}</p>
+              <p className="text-xs text-gray-500 mb-6 max-w-xl">
+                Earn XP from match results, clean sheets, high scores, and badge unlocks to level up your franchise!
+              </p>
 
               {/* Progress Bar Container */}
               <div className="max-w-2xl">

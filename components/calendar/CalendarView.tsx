@@ -93,12 +93,22 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
       // Assume 1 hour duration
       const end = formatICSDate(new Date(new Date(matchDateStr).getTime() + 1 * 60 * 60 * 1000))
 
+      let summary = `${match.homeTeam.team.name} vs ${match.awayTeam.team.name} (${match.tournament.name})`
+      if (match.status === 'WALKOVER') {
+        const winner = match.homeScore! > match.awayScore! ? match.homeTeam.team.name : match.awayTeam.team.name
+        summary = `[W/O] ${match.homeTeam.team.name} vs ${match.awayTeam.team.name} - Winner: ${winner}`
+      } else if (match.status === 'VOID') {
+        summary = `[VOID] ${match.homeTeam.team.name} vs ${match.awayTeam.team.name}`
+      } else if (match.status === 'COMPLETED' && match.homeScore !== null && match.awayScore !== null) {
+        summary = `${match.homeTeam.team.name} ${match.homeScore}-${match.awayScore} ${match.awayTeam.team.name}`
+      }
+
       icsContent.push(
         'BEGIN:VEVENT',
         `UID:match-${match.id}@turfcats.app`,
         `DTSTART:${start}`,
         `DTEND:${end}`,
-        `SUMMARY:${match.homeTeam.team.name} vs ${match.awayTeam.team.name} (${match.tournament.name})`,
+        `SUMMARY:${summary}`,
         `DESCRIPTION:Tournament: ${match.tournament.name}\\nRound: ${match.round || 'N/A'}\\nStatus: ${match.status}`,
         'END:VEVENT'
       )
@@ -466,7 +476,15 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                             <div key={mIdx} className="flex items-center gap-1.5">
                               <span className="text-[#7A7367]">•</span>
                               <span className="truncate">{m.homeTeam.team.name} vs {m.awayTeam.team.name}</span>
-                              {m.homeScore !== null && m.awayScore !== null && (
+                              {m.status === 'WALKOVER' ? (
+                                <span className="text-purple-400 font-bold whitespace-nowrap text-[10px]">
+                                  (W/O)
+                                </span>
+                              ) : m.status === 'VOID' ? (
+                                <span className="text-slate-400 font-bold whitespace-nowrap text-[10px]">
+                                  (VOID)
+                                </span>
+                              ) : m.homeScore !== null && m.awayScore !== null && (
                                 <span className="text-[#FFB347] font-bold whitespace-nowrap text-[10px]">
                                   {m.homeScore}-{m.awayScore}
                                 </span>
@@ -680,7 +698,11 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                             <div key={idx} className="flex items-center gap-2">
                               <span className="text-[#7A7367]">•</span>
                               <span>{m.homeTeam.team.name} vs {m.awayTeam.team.name}</span>
-                              {m.homeScore !== null && m.awayScore !== null && (
+                              {m.status === 'WALKOVER' ? (
+                                <span className="text-purple-400 font-bold">(W/O)</span>
+                              ) : m.status === 'VOID' ? (
+                                <span className="text-slate-400 font-bold">(VOID)</span>
+                              ) : m.homeScore !== null && m.awayScore !== null && (
                                 <span className="text-[#E8A800] font-bold">({m.homeScore}-{m.awayScore})</span>
                               )}
                             </div>

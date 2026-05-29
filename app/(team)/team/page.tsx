@@ -446,7 +446,7 @@ export default async function TeamDashboardPage() {
             </div>
 
             <Link
-              href={`/teams/${team.id}/achievements`}
+              href="/team/achievements"
               className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFD573] text-xs sm:text-sm font-black text-black rounded-lg hover:scale-[1.03] transition-all shadow-[0_0_20px_rgba(232,168,0,0.25)] hover:shadow-[0_0_30px_rgba(232,168,0,0.4)]"
             >
               <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -853,7 +853,7 @@ export default async function TeamDashboardPage() {
               <div className="text-white font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors">Tournaments</div>
             </Link>
             <Link
-              href={`/teams/${team.id}/achievements`}
+              href="/team/achievements"
               className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-purple-500/50 hover:bg-white/[0.07] transition-all text-center group"
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mx-auto mb-2 sm:mb-3 group-hover:bg-purple-500/20 transition-colors">

@@ -54,6 +54,8 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
       case 'COMPLETED': return 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]'
       case 'LIVE': return 'bg-[#FFB347]/10 border-[#FFB347]/30 text-[#FFB347]'
       case 'SCHEDULED': return 'bg-white/5 border-white/20 text-[#D4CCBB]'
+      case 'WALKOVER': return 'bg-purple-500/15 border-purple-500/30 text-purple-400'
+      case 'VOID': return 'bg-slate-500/15 border-slate-500/30 text-slate-400'
       default: return 'bg-white/5 border-white/10 text-[#7A7367]'
     }
   }
@@ -107,7 +109,19 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
               <div className="text-xs text-[#7A7367] mb-0.5">HOME</div>
               <div className="text-base font-black text-[#F5F0E8] truncate">{match.homeTeam.team.name}</div>
             </div>
-            {match.homeScore !== null && (
+            {match.status === 'WALKOVER' ? (
+              <div className={`text-xs px-2.5 py-1 rounded font-black border uppercase tracking-wider ${
+                match.homeScore! > match.awayScore!
+                  ? 'bg-purple-500/10 border-purple-500/20 text-purple-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}>
+                {match.homeScore! > match.awayScore! ? 'W/O WIN' : 'W/O LOSS'}
+              </div>
+            ) : match.status === 'VOID' ? (
+              <div className="text-xs px-2.5 py-1 rounded font-black border border-slate-500/20 bg-slate-500/10 text-slate-400 uppercase tracking-wider">
+                VOID
+              </div>
+            ) : match.homeScore !== null && (
               <div className="text-3xl font-black text-[#E8A800]">{match.homeScore}</div>
             )}
           </Link>
@@ -130,7 +144,19 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
               <div className="text-xs text-[#7A7367] mb-0.5">AWAY</div>
               <div className="text-base font-black text-[#F5F0E8] truncate">{match.awayTeam.team.name}</div>
             </div>
-            {match.awayScore !== null && (
+            {match.status === 'WALKOVER' ? (
+              <div className={`text-xs px-2.5 py-1 rounded font-black border uppercase tracking-wider ${
+                match.awayScore! > match.homeScore!
+                  ? 'bg-purple-500/10 border-purple-500/20 text-purple-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}>
+                {match.awayScore! > match.homeScore! ? 'W/O WIN' : 'W/O LOSS'}
+              </div>
+            ) : match.status === 'VOID' ? (
+              <div className="text-xs px-2.5 py-1 rounded font-black border border-slate-500/20 bg-slate-500/10 text-slate-400 uppercase tracking-wider">
+                VOID
+              </div>
+            ) : match.awayScore !== null && (
               <div className="text-3xl font-black text-[#E8A800]">{match.awayScore}</div>
             )}
           </Link>
@@ -153,12 +179,34 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
             </div>
             <div className="text-xs text-[#7A7367] mb-1">HOME</div>
             <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8] mb-2">{match.homeTeam.team.name}</div>
-            {match.homeScore !== null && (
+            {match.status === 'WALKOVER' ? (
+              <div className={`inline-flex text-xs px-3 py-1 rounded font-black border uppercase tracking-wider ${
+                match.homeScore! > match.awayScore!
+                  ? 'bg-purple-500/10 border-purple-500/20 text-purple-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}>
+                {match.homeScore! > match.awayScore! ? 'Walkover Winner' : 'Walkover Loss'}
+              </div>
+            ) : match.status === 'VOID' ? (
+              <div className="inline-flex text-xs px-3 py-1 rounded font-black border border-slate-500/20 bg-slate-500/10 text-slate-400 uppercase tracking-wider">
+                Voided Match
+              </div>
+            ) : match.homeScore !== null && (
               <div className="text-4xl sm:text-5xl font-black text-[#E8A800]">{match.homeScore}</div>
             )}
           </Link>
 
-          <div className="text-2xl font-black text-[#7A7367]">VS</div>
+          <div className="text-2xl font-black text-[#7A7367]">
+            {match.status === 'WALKOVER' ? (
+              <div className="px-3 py-1.5 rounded bg-purple-500/10 border border-purple-500/20 text-sm font-black uppercase text-purple-400 tracking-widest">
+                W/O
+              </div>
+            ) : match.status === 'VOID' ? (
+              <div className="px-3 py-1.5 rounded bg-slate-500/10 border border-slate-500/20 text-sm font-black uppercase text-slate-400 tracking-widest">
+                VOID
+              </div>
+            ) : 'VS'}
+          </div>
 
           <Link
             href={`/teams/${match.awayTeam.team.id}`}
@@ -175,7 +223,19 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
             </div>
             <div className="text-xs text-[#7A7367] mb-1">AWAY</div>
             <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8] mb-2">{match.awayTeam.team.name}</div>
-            {match.awayScore !== null && (
+            {match.status === 'WALKOVER' ? (
+              <div className={`inline-flex text-xs px-3 py-1 rounded font-black border uppercase tracking-wider ${
+                match.awayScore! > match.homeScore!
+                  ? 'bg-purple-500/10 border-purple-500/20 text-purple-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}>
+                {match.awayScore! > match.homeScore! ? 'Walkover Winner' : 'Walkover Loss'}
+              </div>
+            ) : match.status === 'VOID' ? (
+              <div className="inline-flex text-xs px-3 py-1 rounded font-black border border-slate-500/20 bg-slate-500/10 text-slate-400 uppercase tracking-wider">
+                Voided Match
+              </div>
+            ) : match.awayScore !== null && (
               <div className="text-4xl sm:text-5xl font-black text-[#E8A800]">{match.awayScore}</div>
             )}
           </Link>

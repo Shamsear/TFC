@@ -170,6 +170,8 @@ export default function TournamentMatches({
   const statusStyle = (s: string) => {
     if (s === 'COMPLETED') return 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]'
     if (s === 'LIVE') return 'bg-[#FFB347]/10 border-[#FFB347]/30 text-[#FFB347]'
+    if (s === 'WALKOVER') return 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+    if (s === 'VOID') return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
     return 'bg-white/5 border-white/20 text-[#D4CCBB]'
   }
 
@@ -298,7 +300,7 @@ function MatchCard({
 
   // Determine win / loss / draw badge for completed match relative to 'myTeamId'
   let resultBadge = null
-  if (match.status === 'COMPLETED' && isMyMatch && match.homeScore !== null && match.awayScore !== null) {
+  if ((match.status === 'COMPLETED' || match.status === 'WALKOVER') && isMyMatch && match.homeScore !== null && match.awayScore !== null) {
     if (match.homeScore === match.awayScore) {
       resultBadge = <span className="px-2 py-0.5 rounded text-[10px] font-black bg-white/10 text-[#D4CCBB]">D</span>
     } else {
@@ -360,7 +362,15 @@ function MatchCard({
 
         {/* Score or Status display */}
         <div className="col-span-1 flex flex-col items-center justify-center">
-          {match.status === 'COMPLETED' ? (
+          {match.status === 'WALKOVER' ? (
+            <div className="px-2 py-0.5 sm:px-3.5 sm:py-1 rounded bg-purple-500/10 border border-purple-500/20 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-purple-400">
+              W/O
+            </div>
+          ) : match.status === 'VOID' ? (
+            <div className="px-2 py-0.5 sm:px-3.5 sm:py-1 rounded bg-slate-500/10 border border-slate-500/20 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-400">
+              VOID
+            </div>
+          ) : match.status === 'COMPLETED' ? (
             <div className="flex items-center gap-1 font-black text-sm sm:text-base md:text-lg lg:text-xl text-[#F5F0E8] bg-white/5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-lg border border-white/5">
               <span>{match.homeScore}</span>
               <span className="text-[#7A7367] text-xs sm:text-sm font-normal">:</span>

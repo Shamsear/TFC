@@ -69,26 +69,37 @@ export async function PATCH(
         }
       })
 
-      // Update standings if match is completed and has scores
-      if (status === 'COMPLETED' && homeScore !== null && awayScore !== null) {
-        // Only update if this is a new completion or scores changed
+      // Update standings if match is completed or walkover and has scores
+      const isCounted = status === 'COMPLETED' || status === 'WALKOVER'
+      const wasCounted = existingMatch.status === 'COMPLETED' || existingMatch.status === 'WALKOVER'
+
+      if (isCounted && homeScore !== null && awayScore !== null) {
+        // Only update if this is a new completion, status changed, or scores changed
         const shouldUpdateStandings = 
-          existingMatch.status !== 'COMPLETED' ||
+          !wasCounted ||
+          existingMatch.status !== status ||
           existingMatch.homeScore !== homeScore ||
           existingMatch.awayScore !== awayScore
 
         if (shouldUpdateStandings) {
-          // Revert old scores if match was previously completed
-          if (existingMatch.status === 'COMPLETED' && existingMatch.homeScore !== null && existingMatch.awayScore !== null) {
+          // Revert old scores if match was previously completed/walkover
+          if (wasCounted && existingMatch.homeScore !== null && existingMatch.awayScore !== null) {
             await updateStandings(tx, existingMatch, true) // Revert
           }
 
           // Apply new scores
           await updateStandings(tx, { ...match, homeTeam: existingMatch.homeTeam, awayTeam: existingMatch.awayTeam, group: existingMatch.group }, false)
 
-          // Automatically trigger achievements and XP evaluation for both teams
-          await evaluateTeamAchievements(existingMatch.homeTeam.teamId, tx)
-          await evaluateTeamAchievements(existingMatch.awayTeam.teamId, tx)
+          // Automatically trigger achievements and XP evaluation for both teams ONLY if completed normally
+          if (status === 'COMPLETED') {
+            await evaluateTeamAchievements(existingMatch.homeTeam.teamId, tx)
+            await evaluateTeamAchievements(existingMatch.awayTeam.teamId, tx)
+          }
+        }
+      } else {
+        // If it was counted previously, but now changed to uncounted (like VOID, SCHEDULED, POSTPONED, etc.)
+        if (wasCounted && existingMatch.homeScore !== null && existingMatch.awayScore !== null) {
+          await updateStandings(tx, existingMatch, true) // Revert
         }
       }
 
@@ -204,6 +215,11 @@ async function updateStandings(tx: any, match: any, revert: boolean) {
     awayDrawn = 1
   }
 
+  // If walkover, goals are NOT counted in standings
+  const isWalkover = match.status === 'WALKOVER'
+  const homeGoals = isWalkover ? 0 : homeScore
+  const awayGoals = isWalkover ? 0 : awayScore
+
   // Update home team standing
   const homeStanding = await tx.standings.findFirst({
     where: {
@@ -221,9 +237,9 @@ async function updateStandings(tx: any, match: any, revert: boolean) {
         won: { increment: homeWon * multiplier },
         drawn: { increment: homeDrawn * multiplier },
         lost: { increment: homeLost * multiplier },
-        goalsFor: { increment: homeScore * multiplier },
-        goalsAgainst: { increment: awayScore * multiplier },
-        goalDiff: { increment: (homeScore - awayScore) * multiplier },
+        goalsFor: { increment: homeGoals * multiplier },
+        goalsAgainst: { increment: awayGoals * multiplier },
+        goalDiff: { increment: (homeGoals - awayGoals) * multiplier },
         points: { increment: homePoints * multiplier }
       }
     })
@@ -246,9 +262,9 @@ async function updateStandings(tx: any, match: any, revert: boolean) {
         won: { increment: awayWon * multiplier },
         drawn: { increment: awayDrawn * multiplier },
         lost: { increment: awayLost * multiplier },
-        goalsFor: { increment: awayScore * multiplier },
-        goalsAgainst: { increment: homeScore * multiplier },
-        goalDiff: { increment: (awayScore - homeScore) * multiplier },
+        goalsFor: { increment: awayGoals * multiplier },
+        goalsAgainst: { increment: homeGoals * multiplier },
+        goalDiff: { increment: (awayGoals - homeGoals) * multiplier },
         points: { increment: awayPoints * multiplier }
       }
     })

@@ -41,7 +41,7 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
       const teamId = standing.teamId
       
       const relevantMatches = tournament.matches.filter((m: any) => {
-        if (m.status !== 'COMPLETED') return false
+        if (m.status !== 'COMPLETED' && m.status !== 'WALKOVER') return false
         if (activeRoundLimit !== 'All Matchdays') {
           const getRoundNum = (name: string) => {
             const num = name.match(/\d+/)
@@ -69,8 +69,12 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
 
         if (myScore !== null && oppScore !== null) {
           played++
-          goalsFor += myScore
-          goalsAgainst += oppScore
+          
+          // Exclude goals for WALKOVER matches
+          if (m.status !== 'WALKOVER') {
+            goalsFor += myScore
+            goalsAgainst += oppScore
+          }
 
           if (myScore > oppScore) {
             won++

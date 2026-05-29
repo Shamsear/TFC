@@ -149,7 +149,9 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
       LIVE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse',
       COMPLETED: 'bg-[#7A7367]/20 text-[#7A7367] border-[#7A7367]/30',
       POSTPONED: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      CANCELLED: 'bg-red-500/20 text-red-400 border-red-500/30'
+      CANCELLED: 'bg-red-500/20 text-red-400 border-red-500/30',
+      WALKOVER: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      VOID: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
     }
     return colors[status] || colors.SCHEDULED
   }
@@ -247,7 +249,7 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
       <div className="space-y-3 sm:space-y-4">
         {filteredMatches.map((match) => {
           // Determine winner/loser
-          const hasScore = match.homeScore !== null && match.awayScore !== null
+          const hasScore = match.homeScore !== null && match.awayScore !== null && match.status !== 'VOID'
           const homeWin = hasScore && match.homeScore! > match.awayScore!
           const awayWin = hasScore && match.awayScore! > match.homeScore!
           const isDraw = hasScore && match.homeScore === match.awayScore
@@ -305,7 +307,15 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
 
                   {/* Score */}
                   <div className="flex items-center justify-center gap-2 sm:gap-3">
-                    {hasScore ? (
+                    {match.status === 'WALKOVER' ? (
+                      <div className="px-3 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-xs font-black uppercase tracking-wider text-purple-400">
+                        W/O
+                      </div>
+                    ) : match.status === 'VOID' ? (
+                      <div className="px-3 py-1 rounded bg-slate-500/10 border border-slate-500/20 text-xs font-black uppercase tracking-wider text-slate-400">
+                        VOID
+                      </div>
+                    ) : hasScore ? (
                       <>
                         <div className={`text-2xl sm:text-3xl font-black ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
                           {match.homeScore}
@@ -392,7 +402,15 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
 
                   {/* Score or VS */}
                   <div className="col-span-1 flex flex-col items-center justify-center">
-                    {hasScore ? (
+                    {match.status === 'WALKOVER' ? (
+                      <span className="px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[9px] font-black uppercase tracking-wider text-purple-400">
+                        W/O
+                      </span>
+                    ) : match.status === 'VOID' ? (
+                      <span className="px-1.5 py-0.5 rounded bg-slate-500/10 border border-slate-500/20 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                        VOID
+                      </span>
+                    ) : hasScore ? (
                       <div className="flex items-center gap-1 font-black text-xs text-[#F5F0E8] bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
                         <span>{match.homeScore}</span>
                         <span className="text-[#7A7367] text-[10px] font-normal">:</span>

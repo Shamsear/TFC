@@ -379,19 +379,20 @@ export default function TournamentStats({
       </div>
 
       {/* Control panel: Round Limits, Share / Export Tools */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white/5 border border-white/10 p-4 rounded-xl">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white/[0.01] border border-white/5 p-4 sm:p-5 rounded-2xl backdrop-blur-xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8A800]/[0.01] rounded-full blur-2xl pointer-events-none" />
+        <div className="flex flex-wrap items-center gap-4 relative z-10">
           {/* Round Filter dropdown */}
           {roundOptions.length > 0 && (
             <div className="flex flex-col">
-              <label className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-1">Filter Round Limit</label>
+              <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Filter Round Limit</label>
               <select
                 value={activeRoundLimit}
                 onChange={(e) => setActiveRoundLimit(e.target.value)}
-                className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
               >
                 {roundOptions.map(r => (
-                  <option key={r} value={r}>{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
+                  <option key={r} value={r} className="bg-[#0a0a0a] text-white">{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
                 ))}
               </select>
             </div>
@@ -399,34 +400,34 @@ export default function TournamentStats({
 
           {/* Share Limit select */}
           <div className="flex flex-col">
-            <label className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-1">Teams in Share Card</label>
+            <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Teams in Share Card</label>
             <select
               value={imageTeamsLimit}
               onChange={(e) => setImageTeamsLimit(e.target.value)}
-              className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
+              className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
             >
-              <option value="3">Top 3 Teams</option>
-              <option value="5">Top 5 Teams</option>
-              <option value="10">Top 10 Teams</option>
-              <option value="all">All Teams</option>
+              <option value="3" className="bg-[#0a0a0a] text-white">Top 3 Teams</option>
+              <option value="5" className="bg-[#0a0a0a] text-white">Top 5 Teams</option>
+              <option value="10" className="bg-[#0a0a0a] text-white">Top 10 Teams</option>
+              <option value="all" className="bg-[#0a0a0a] text-white">All Teams</option>
             </select>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 items-end">
+        <div className="flex flex-wrap gap-2 items-end relative z-10">
           {/* Export to Excel */}
           <button
             onClick={handleExportExcel}
-            className="flex items-center justify-center gap-2 px-3.5 py-1.5 sm:py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg font-bold text-xs sm:text-sm transition-all"
+            className="group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer"
           >
-            <span className="text-sm">📥</span> Export Excel (CSV)
+            <span>📥</span> Export Excel (CSV)
           </button>
 
           {/* Download Image */}
           <button
             onClick={handleDownloadImage}
             disabled={downloading}
-            className={`flex items-center justify-center gap-2 px-3.5 py-1.5 sm:py-2 bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] rounded-lg font-bold text-xs sm:text-sm transition-all ${downloadDone ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : ''}`}
+            className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-gray-300 hover:text-white rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${downloadDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}`}
           >
             <span>🖼️</span> {downloadDone ? 'Downloaded!' : downloading ? 'Generating...' : 'Download Image'}
           </button>
@@ -435,7 +436,7 @@ export default function TournamentStats({
           <button
             onClick={handleShareImage}
             disabled={sharing}
-            className={`flex items-center justify-center gap-2 px-3.5 py-1.5 sm:py-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold text-xs sm:text-sm transition-all ${shareDone ? 'from-emerald-500 to-emerald-400 text-white' : ''}`}
+            className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-black rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${shareDone ? 'from-emerald-500 to-emerald-400 text-white' : ''}`}
           >
             <span>🔗</span> {shareDone ? 'Shared!' : sharing ? 'Preparing...' : 'Share Leaderboard'}
           </button>
@@ -453,17 +454,17 @@ export default function TournamentStats({
       />
 
       {/* Headline stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { icon: '⚽', value: Math.round(totalMatches), label: 'Matches Played' },
-          { icon: '🥅', value: totalGoals, label: 'Total Goals' },
-          { icon: '📊', value: avgGoalsPerMatch, label: 'Avg Goals / Match' },
-          { icon: '🧤', value: totalCleanSheets, label: 'Clean Sheets' },
-        ].map(({ icon, value, label }) => (
-          <div key={label} className="rounded-xl bg-[#111111] border border-white/10 p-2.5 sm:p-4 text-center min-w-0">
-            <div className="text-xl sm:text-2xl mb-1">{icon}</div>
-            <div className="text-lg sm:text-xl font-black text-[#F5F0E8]">{value}</div>
-            <div className="text-[9px] sm:text-[10px] text-[#7A7367] uppercase tracking-normal sm:tracking-wider line-clamp-2">{label}</div>
+          { icon: '⚽', value: Math.round(totalMatches), label: 'Matches Played', color: 'bg-blue-500/[0.02] border-blue-500/10 text-blue-400' },
+          { icon: '🥅', value: totalGoals, label: 'Total Goals', color: 'bg-emerald-500/[0.02] border-emerald-500/10 text-emerald-400' },
+          { icon: '📊', value: avgGoalsPerMatch, label: 'Avg Goals / Match', color: 'bg-[#E8A800]/[0.02] border-[#E8A800]/10 text-[#E8A800]' },
+          { icon: '🧤', value: totalCleanSheets, label: 'Clean Sheets', color: 'bg-purple-500/[0.02] border-purple-500/10 text-purple-400' },
+        ].map(({ icon, value, label, color }) => (
+          <div key={label} className={`relative rounded-2xl p-4 text-center backdrop-blur-xl shadow-xl overflow-hidden ${color} border`}>
+            <div className="text-2xl mb-1">{icon}</div>
+            <div className="text-xl sm:text-2xl font-black text-white">{value}</div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-1 leading-snug">{label}</div>
           </div>
         ))}
       </div>
@@ -477,27 +478,27 @@ export default function TournamentStats({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+              className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border text-left transition-all duration-300 transform hover:scale-[1.01] active:scale-95 cursor-pointer backdrop-blur-md relative overflow-hidden group ${
                 isActive
-                  ? 'border-[var(--accent)]/40 bg-[var(--accent)]/8 shadow-lg shadow-[var(--accent)]/10'
-                  : 'border-white/10 bg-[#111111] hover:border-white/20 hover:bg-[#141414]'
+                  ? 'border-white/10 bg-white/[0.03] shadow-xl'
+                  : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
               }`}
               style={{ '--accent': tab.accentColor } as React.CSSProperties}
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-all"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-all duration-300"
                 style={{
-                  background: isActive ? `${tab.accentColor}20` : 'rgba(255,255,255,0.05)',
-                  border: `1.5px solid ${isActive ? `${tab.accentColor}50` : 'rgba(255,255,255,0.1)'}`,
+                  background: isActive ? `${tab.accentColor}20` : 'rgba(255,255,255,0.02)',
+                  border: `1.5px solid ${isActive ? `${tab.accentColor}50` : 'rgba(255,255,255,0.05)'}`,
                 }}
               >
                 {tab.emoji}
               </div>
               <div className="min-w-0">
-                <div className={`font-black text-sm transition-colors ${isActive ? 'text-[#F5F0E8]' : 'text-[#7A7367]'}`}>
+                <div className={`font-black text-xs uppercase tracking-wider transition-colors ${isActive ? 'text-white' : 'text-gray-500'}`}>
                   {tab.label}
                 </div>
-                <div className="text-[10px] text-[#7A7367] truncate">
+                <div className="text-[10px] text-gray-400 font-semibold mt-0.5 truncate">
                   {winner ? winner.teamName : '—'}
                 </div>
               </div>
@@ -510,53 +511,52 @@ export default function TournamentStats({
       </div>
 
       {/* Full ranked list */}
-      <div className="rounded-xl border bg-[#111111] overflow-hidden" style={{ borderColor: `${activeTabData.accentColor}25` }}>
+      <div className="rounded-2xl border bg-white/[0.01] backdrop-blur-xl shadow-2xl overflow-hidden" style={{ borderColor: `${activeTabData.accentColor}30` }}>
         {/* List header */}
         <div
           className="px-5 py-4 border-b flex items-center gap-3"
           style={{ borderColor: `${activeTabData.accentColor}15`, background: `${activeTabData.accentColor}06` }}
         >
-          <span className="text-xl">{activeTabData.emoji}</span>
+          <span className="text-xl animate-pulse">{activeTabData.emoji}</span>
           <div>
-            <div className="font-black text-sm text-[#F5F0E8]">{activeTabData.label}</div>
-            <div className="text-[11px] text-[#7A7367]">{activeTabData.sublabel} — All {rankedTeams.length} teams ranked</div>
+            <div className="font-black text-sm text-white uppercase tracking-wider">{activeTabData.label}</div>
+            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">{activeTabData.sublabel} — All {rankedTeams.length} teams ranked</div>
           </div>
         </div>
 
         {/* Rows */}
-        <div className="divide-y divide-white/[0.04]">
+        <div className="divide-y divide-white/5">
           {rankedTeams.map((team, idx) => {
             const isMe = myTeamId && team.teamId === myTeamId
             const metric = getMetric(team)
             const pos = idx + 1
             const posStyle =
-              pos === 1 ? { bg: '#FFD700', text: '#0a0a0a' } :
-              pos === 2 ? { bg: '#C0C0C0', text: '#0a0a0a' } :
-              pos === 3 ? { bg: '#CD7F32', text: '#0a0a0a' } :
-              { bg: 'rgba(255,255,255,0.05)', text: '#7A7367' }
+              pos === 1 ? { bg: 'bg-[#FFD700] text-black shadow-[0_0_10px_rgba(255,215,0,0.3)]' } :
+              pos === 2 ? { bg: 'bg-slate-300 text-black' } :
+              pos === 3 ? { bg: 'bg-amber-600 text-black' } :
+              { bg: 'bg-white/[0.03] text-gray-400 border border-white/5' }
 
             return (
               <Link
                 key={team.teamId}
                 href={`${teamLinkBase}/${team.teamId}`}
-                className={`flex items-center gap-2 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 transition-colors group ${
-                  isMe ? 'bg-[#E8A800]/[0.06]' : 'hover:bg-white/[0.02]'
+                className={`flex items-center gap-2 px-3 py-3.5 sm:gap-4 sm:px-5 sm:py-4 transition-all duration-300 group ${
+                  isMe ? 'bg-[#E8A800]/[0.05] border-y border-[#E8A800]/10' : 'hover:bg-white/[0.02]'
                 }`}
               >
                 {/* Position */}
                 <div
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
-                  style={{ background: posStyle.bg, color: posStyle.text }}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 transition-transform group-hover:scale-105 ${posStyle.bg}`}
                 >
                   {pos}
                 </div>
 
                 {/* Logo */}
-                <div className="relative w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-md overflow-hidden">
+                <div className="relative w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-lg overflow-hidden bg-white/[0.02] border border-white/5">
                   {team.logoUrl ? (
-                    <Image src={team.logoUrl} alt={team.teamName} fill className="object-contain" sizes="36px" />
+                    <Image src={team.logoUrl} alt={team.teamName} fill className="object-contain p-1" sizes="36px" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-[#7A7367] bg-white/5">
+                    <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-gray-500">
                       {team.teamName.slice(0, 2).toUpperCase()}
                     </div>
                   )}
@@ -564,18 +564,18 @@ export default function TournamentStats({
 
                 {/* Team name */}
                 <div className="flex-1 min-w-0">
-                  <div className={`font-bold text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors truncate ${isMe ? 'text-[#E8A800]' : 'text-[#F5F0E8]'}`}>
+                  <div className={`font-black text-xs sm:text-sm group-hover:text-[#E8A800] transition-colors truncate ${isMe ? 'text-[#E8A800]' : 'text-white'}`}>
                     {team.teamName}
-                    {isMe && <span className="ml-1.5 text-[8px] font-black text-[#E8A800]/60 uppercase sm:inline hidden">You</span>}
+                    {isMe && <span className="ml-1.5 px-1.5 py-0.5 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded text-[8px] font-black text-[#E8A800] uppercase sm:inline hidden">You</span>}
                   </div>
-                  <div className="text-[10px] sm:text-[11px] text-[#7A7367] truncate">{metric.secondary}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 font-semibold mt-0.5 truncate">{metric.secondary}</div>
                 </div>
 
                 {/* Bar */}
                 <div className="hidden sm:flex flex-col items-end gap-1 w-28 flex-shrink-0">
                   <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${rankedTeams[0] && getMetric(rankedTeams[0]).primary > 0
                           ? Math.max(4, (metric.primary / getMetric(rankedTeams[0]).primary) * 100)
@@ -591,11 +591,11 @@ export default function TournamentStats({
                 <div className="text-right flex-shrink-0 w-14">
                   <div
                     className="text-lg font-black"
-                    style={{ color: pos <= 3 ? activeTabData.accentColor : isMe ? '#E8A800' : '#F5F0E8' }}
+                    style={{ color: pos <= 3 ? activeTabData.accentColor : isMe ? '#E8A800' : '#FFFFFF' }}
                   >
                     {metric.primary}
                   </div>
-                  <div className="text-[10px] text-[#7A7367] uppercase">{metric.primaryLabel}</div>
+                  <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">{metric.primaryLabel}</div>
                 </div>
               </Link>
             )

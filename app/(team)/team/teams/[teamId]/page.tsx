@@ -6,6 +6,11 @@ import Image from 'next/image'
 import TeamDetailTabs from '@/components/team/TeamDetailTabs'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import { checkTeamSeasonParticipation } from '@/lib/team-auth'
+import { 
+  getCumulativeXPForLevel, 
+  getXPForNextLevel, 
+  getRankDetails 
+} from '@/lib/achievements-math'
 
 interface TeamDetailPageProps {
   params: Promise<{
@@ -84,7 +89,7 @@ async function getTeamData(teamId: string, seasonId: string) {
     }
   }) : []
 
-  // Get historical data (all seasons)
+  // Get historical data (all seasons) with standings
   const allSeasonTeams = await prisma.season_teams.findMany({
     where: { teamId },
     include: {
@@ -94,7 +99,8 @@ async function getTeamData(teamId: string, seasonId: string) {
           name: true,
           startingPurse: true
         }
-      }
+      },
+      standings: true
     },
     orderBy: {
       season: {
@@ -148,14 +154,33 @@ async function getTeamData(teamId: string, seasonId: string) {
       formation: teamSquad?.formation || null,
       tournaments: standings
     },
-    historicalSeasons: allSeasonTeams.map(st => ({
-      seasonId: st.season.id,
-      seasonName: st.season.name,
-      startingPurse: st.season.startingPurse,
-      finalBudget: st.finalBudget,
-      currentBudget: st.currentBudget,
-      trophiesWon: st.trophiesWon
-    }))
+    historicalSeasons: allSeasonTeams.map(st => {
+      const played = st.standings.reduce((sum, s) => sum + s.played, 0)
+      const won = st.standings.reduce((sum, s) => sum + s.won, 0)
+      const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0)
+      const lost = st.standings.reduce((sum, s) => sum + s.lost, 0)
+      const goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0)
+      const goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0)
+      const goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0)
+      const points = st.standings.reduce((sum, s) => sum + s.points, 0)
+
+      return {
+        seasonId: st.season.id,
+        seasonName: st.season.name,
+        startingPurse: st.season.startingPurse,
+        finalBudget: st.finalBudget,
+        currentBudget: st.currentBudget,
+        trophiesWon: st.trophiesWon,
+        played,
+        won,
+        drawn,
+        lost,
+        goalsFor,
+        goalsAgainst,
+        goalDiff,
+        points
+      }
+    })
   }
 }
 
@@ -182,6 +207,17 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   const { team, seasonTeam, currentSeason, historicalSeasons } = teamData
 
+  // Level Progression Math
+  const level = team.level
+  const currentXP = team.xp
+  const levelStartXP = getCumulativeXPForLevel(level)
+  const xpInCurrentLevel = currentXP - levelStartXP
+  const xpNeededForNextLevel = getXPForNextLevel(level)
+  const progressPercent = Math.min(100, Math.max(0, (xpInCurrentLevel / xpNeededForNextLevel) * 100))
+
+  // Rank Details
+  const rank = getRankDetails(level)
+
   const formatCurrency = (amount: number) => {
     return `£${amount.toLocaleString()}`
   }
@@ -201,60 +237,126 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         </Link>
 
         {/* Team Header */}
-        <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8 mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            {/* Team Logo */}
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-4 ring-white/10 flex items-center justify-center">
-              {team.logoUrl ? (
+        <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6 sm:p-8 mb-8 relative overflow-hidden shadow-2xl backdrop-blur-xl">
+          <div 
+            className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[120px] opacity-20 pointer-events-none transition-all duration-1000"
+            style={{ backgroundColor: rank.color }}
+          ></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-600/10 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+            {/* Team Logo & Rank Overlay */}
+            <div className="relative flex-shrink-0">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-black/40 ring-4 ring-white/5 flex items-center justify-center shadow-xl">
+                {team.logoUrl ? (
+                  <Image
+                    src={team.logoUrl}
+                    alt={team.name}
+                    fill
+                    className="object-contain p-3"
+                    priority
+                    unoptimized
+                  />
+                ) : (
+                  <svg className="w-12 h-12 sm:w-16 sm:h-16 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                  </svg>
+                )}
+              </div>
+              
+              {/* Floating Rank Badge Emblem Overlay */}
+              <div 
+                className="absolute -bottom-2 -right-2 h-10 w-10 sm:h-12 sm:w-12 rounded-full border bg-[#0d0d10] p-1.5 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center backdrop-blur-xl hover:scale-110 transition-transform duration-200"
+                title={`${rank.title} Emblem`}
+                style={{ borderColor: `${rank.color}30` }}
+              >
                 <Image
-                  src={team.logoUrl}
-                  alt={team.name}
-                  fill
-                  className="object-contain p-3"
-                  priority
-                  unoptimized
+                  src={rank.badgePath}
+                  alt={rank.title}
+                  width={40}
+                  height={40}
+                  className="object-contain animate-[pulse_4s_infinite]"
                 />
-              ) : (
-                <svg className="w-12 h-12 sm:w-16 sm:h-16 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                </svg>
-              )}
+              </div>
             </div>
 
             {/* Team Info */}
-            <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-2">
-                {team.name}
-              </h1>
-              <p className="text-[#D4CCBB] text-lg mb-4">
+            <div className="flex-1 text-center sm:text-left w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center sm:justify-start mb-2">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
+                  {team.name}
+                </h1>
+                
+                {/* Level Tag with Micro Rank Emblem */}
+                <span 
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mx-auto sm:mx-0 border w-fit"
+                  style={{ 
+                    borderColor: `${rank.color}30`, 
+                    color: rank.color,
+                    backgroundColor: `${rank.color}0a`
+                  }}
+                >
+                  <Image
+                    src={rank.badgePath}
+                    alt={rank.title}
+                    width={14}
+                    height={14}
+                    className="object-contain"
+                  />
+                  Lvl {level} • {rank.title}
+                </span>
+              </div>
+              <p className="text-gray-400 text-lg mb-4">
                 Manager: {team.managerName}
               </p>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-emerald-400">
+              {/* Progress Bar */}
+              <div className="max-w-xl mb-6 mx-auto sm:mx-0">
+                <div className="flex justify-between text-xs text-gray-400 mb-1.5 font-mono">
+                  <span>Level Progress</span>
+                  <span className="text-cyan-400 font-bold">{xpInCurrentLevel} / {xpNeededForNextLevel} XP</span>
+                </div>
+                <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                  <div 
+                    className="h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                    style={{ 
+                      width: `${progressPercent}%`,
+                      backgroundImage: `linear-gradient(90deg, ${rank.color}, #06b6d4)`
+                    }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-gray-500 mt-1 font-mono">
+                  <span>Lvl {level}</span>
+                  <span>{team.xp} Total XP</span>
+                  <span>Lvl {level + 1}</span>
+                </div>
+              </div>
+
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-white/5 pt-6 mt-6">
+                <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-emerald-500/20 transition-all duration-300">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Players</div>
+                  <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
                     {currentSeason.playerCount}
                   </div>
-                  <div className="text-xs text-[#7A7367]">Players</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-[#FFB347]">
+                <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-[#FFB347]/20 transition-all duration-300">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Spent</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#FFB347] font-mono">
                     {formatCurrency(currentSeason.totalSpent)}
                   </div>
-                  <div className="text-xs text-[#7A7367]">Spent</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-[#E8A800]">
-                    {currentSeason.averageRating}
+                <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-[#E8A800]/20 transition-all duration-300">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Avg Rating</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#E8A800] font-mono">
+                    {currentSeason.averageRating} <span className="text-xs font-normal text-gray-500">OVR</span>
                   </div>
-                  <div className="text-xs text-[#7A7367]">Avg Rating</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-purple-400">
+                <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-purple-500/20 transition-all duration-300">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Remaining</div>
+                  <div className="text-xl sm:text-2xl font-black text-purple-400 font-mono">
                     {formatCurrency(currentSeason.remainingBudget)}
                   </div>
-                  <div className="text-xs text-[#7A7367]">Remaining</div>
                 </div>
               </div>
             </div>

@@ -20,7 +20,12 @@ export async function GET(
     const team = await prisma.teams.findUnique({
       where: { id: teamId },
       include: {
-        unlockedBadges: true
+        unlockedBadges: true,
+        xpHistory: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
       }
     })
 
@@ -31,12 +36,96 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(team)
+    // 1. Fetch seasons participated
+    const seasonTeams = await prisma.season_teams.findMany({
+      where: { teamId },
+      include: {
+        season: {
+          select: {
+            id: true,
+            name: true,
+            startingPurse: true
+          }
+        },
+        standings: true
+      },
+      orderBy: {
+        season: {
+          createdAt: 'desc'
+        }
+      }
+    })
+
+    // 2. Fetch transfer history with basePlayer details
+    const transferHistory = await prisma.transfer_history.findMany({
+      where: { teamId, status: 'ACTIVE' },
+      include: {
+        basePlayer: true
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // 3. Compute all-time stats
+    const totalTrophies = seasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0)
+    const highestSigning = transferHistory.reduce((max, t) => Math.max(max, t.soldPrice), 0)
+    const seasonsParticipated = seasonTeams.length
+
+    // 4. Format seasonal data with aggregated standing stats
+    const seasonalData = seasonTeams.map(st => {
+      const played = st.standings.reduce((sum, s) => sum + s.played, 0)
+      const won = st.standings.reduce((sum, s) => sum + s.won, 0)
+      const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0)
+      const lost = st.standings.reduce((sum, s) => sum + s.lost, 0)
+      const goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0)
+      const goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0)
+      const goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0)
+      const points = st.standings.reduce((sum, s) => sum + s.points, 0)
+
+      return {
+        seasonId: st.season.id,
+        seasonName: st.season.name,
+        currentBudget: st.currentBudget,
+        finalBudget: st.finalBudget,
+        trophiesWon: st.trophiesWon,
+        played,
+        won,
+        drawn,
+        lost,
+        goalsFor,
+        goalsAgainst,
+        goalDiff,
+        points
+      }
+    })
+
+    // 5. Format transfer history
+    const formattedTransferHistory = transferHistory.map(t => ({
+      id: t.id,
+      playerId: t.basePlayerId,
+      playerName: t.basePlayer.name,
+      seasonId: t.seasonId,
+      seasonName: seasonTeams.find(st => st.seasonId === t.seasonId)?.season.name || "Unknown Season",
+      soldPrice: t.soldPrice,
+      createdAt: t.createdAt.toISOString()
+    }))
+
+    const responseData = {
+      ...team,
+      allTimeStats: {
+        totalTrophies,
+        highestSigning,
+        seasonsParticipated
+      },
+      seasonalData,
+      transferHistory: formattedTransferHistory
+    }
+
+    return NextResponse.json(responseData)
   } catch (error) {
-    logError("Failed to fetch team", error, extractRequestContext(request))
+    logError("Failed to fetch team details", error, extractRequestContext(request))
     
     return NextResponse.json(
-      { error: "Failed to fetch team. Please try again later." },
+      { error: "Failed to fetch team details. Please try again later." },
       { status: 500 }
     )
   }

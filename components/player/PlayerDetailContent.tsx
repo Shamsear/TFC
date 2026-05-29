@@ -379,51 +379,64 @@ export default function PlayerDetailContent({
   }
 
   // Stat component for clean display
-  const StatBar = ({ label, value }: { label: string; value: number | null }) => (
-    <div className="flex items-center gap-4">
-      <div className="flex-1 min-w-0">
-        <div className="text-sm text-gray-400 mb-1.5 font-medium">{label}</div>
-        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-          <div
-            className={`h-full ${getStatBarColor(value)} transition-all duration-300`}
-            style={{ width: `${value || 0}%` }}
-          />
+  const StatBar = ({ label, value }: { label: string; value: number | null }) => {
+    const getStatBarGradient = (val: number | null) => {
+      if (val === null) return 'from-gray-600 to-gray-500 shadow-none'
+      if (val >= 90) return 'from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+      if (val >= 80) return 'from-green-500 to-emerald-400'
+      if (val >= 70) return 'from-[#E8A800] to-yellow-400'
+      if (val >= 60) return 'from-orange-500 to-amber-400'
+      return 'from-red-500 to-orange-400'
+    }
+
+    return (
+      <div className="flex items-center gap-4 bg-white/[0.01] hover:bg-white/[0.03] p-2.5 rounded-xl border border-white/5 transition-all duration-200">
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-gray-400 mb-1.5 font-bold uppercase tracking-wider">{label}</div>
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+            <div
+              className={`h-full bg-gradient-to-r ${getStatBarGradient(value)} transition-all duration-500`}
+              style={{ width: `${value || 0}%` }}
+            />
+          </div>
+        </div>
+        <div className={`text-xl font-black w-12 text-right ${getStatColor(value)}`}>
+          {value || '-'}
         </div>
       </div>
-      <div className={`text-xl font-bold w-14 text-right ${getStatColor(value)}`}>
-        {value || '-'}
-      </div>
-    </div>
-  )
+    )
+  }
 
 
   return (
     <>
       <div className="min-h-screen bg-[#0a0a0a] text-white">
-        {/* Back Button */}
-        <div className="border-b border-white/10 bg-[#0f0f0f]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        {/* Back Button Header */}
+        <div className="border-b border-white/5 bg-white/[0.01] backdrop-blur-md sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
             <Link
               href={backLink || `/sub-admin/${seasonId}/all-players`}
-              className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all font-semibold text-sm cursor-pointer"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
-              <span className="font-medium">Back</span>
+              <span>Back</span>
             </Link>
+            <div className="text-xs text-[#7A7367] font-bold uppercase tracking-wider">Player Detail Profile</div>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 lg:py-4">
           {/* Desktop Layout */}
-          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8">
+          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8 mt-6">
             {/* Left Sidebar - Player Card */}
             <div className="lg:col-span-3">
-              <div className="sticky top-20 max-h-[calc(100vh-5rem)] overflow-visible">
+              <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-visible">
+                <div className="absolute -inset-1 bg-gradient-to-tr from-[#E8A800]/20 via-transparent to-emerald-500/20 rounded-2xl blur-xl opacity-50 pointer-events-none" />
                 <button
                   onClick={() => setIsCardModalOpen(true)}
-                  className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-2xl hover:scale-105 transition-transform cursor-pointer mb-4"
+                  className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 shadow-2xl hover:scale-[1.03] hover:border-[#E8A800]/40 hover:shadow-[0_12px_36px_rgba(0,0,0,0.6)] transition-all duration-300 cursor-pointer mb-4 group/card"
                 >
                   <PlayerCardImage
                     playerCardId={playerCardId}
@@ -436,132 +449,136 @@ export default function PlayerDetailContent({
                 <div className="flex gap-2">
                   <button
                     onClick={handleShareCard}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 hover:scale-105 active:scale-95 transition-all text-sm font-bold shadow-[0_0_12px_rgba(59,130,246,0.05)] cursor-pointer"
+                    title="Share Card"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                     </svg>
                   </button>
                   <button
                     onClick={handleDownloadCard}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/20 transition-colors text-sm font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/20 hover:scale-105 active:scale-95 transition-all text-sm font-bold shadow-[0_0_12px_rgba(232,168,0,0.05)] cursor-pointer"
+                    title="Download Card"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                   </button>
                 </div>
               </div>
             </div>
-
+ 
             {/* Main Content */}
             <div className="lg:col-span-9">
               {/* Player Header */}
-              <div className="mb-8">
+              <div className="mb-6 rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/[0.02] rounded-full blur-3xl pointer-events-none" />
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h1 className="text-4xl font-black text-white mb-2">{basePlayer.name}</h1>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="px-3 py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-sm font-bold uppercase">
-                        {stats.position}
-                      </span>
+                    <h1 className="text-4xl font-black text-white mb-3 tracking-tight group-hover:text-[#E8A800] transition-colors">{basePlayer.name}</h1>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      {(() => {
+                        const getPositionColor = (pos: string) => {
+                          const p = pos.toUpperCase()
+                          if (p === 'GK') return 'border-[#E8A800]/30 bg-[#E8A800]/10 text-[#E8A800]'
+                          if (['CB', 'LB', 'RB'].includes(p)) return 'border-blue-500/30 bg-blue-500/10 text-blue-400'
+                          if (['DMF', 'CMF', 'LMF', 'RMF', 'AMF'].includes(p)) return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                          if (['SS', 'LWF', 'RWF', 'CF'].includes(p)) return 'border-red-500/30 bg-red-500/10 text-red-400'
+                          return 'border-gray-500/30 bg-gray-500/10 text-gray-400'
+                        }
+                        return (
+                          <span className={`px-3 py-1 rounded-lg border text-xs font-black tracking-wider uppercase ${getPositionColor(stats.position)}`}>
+                            {stats.position}
+                          </span>
+                        )
+                      })()}
                       <PositionGroupBadge position={stats.position} group={stats.position_group} size="md" />
                       {stats.playingStyle && (
-                        <span className="px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 text-sm font-medium">
+                        <span className="px-3 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-wider">
                           {stats.playingStyle}
                         </span>
                       )}
                       {stats.realWorldClub && (
-                        <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium">
+                        <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-xs font-bold uppercase tracking-wider">
                           {stats.realWorldClub}
                         </span>
                       )}
                     </div>
                   </div>
                   
-                  {/* Overall Rating */}
+                  {/* Overall Rating Circular Dial */}
                   <button
                     onClick={() => setShowMaxOverall(!showMaxOverall)}
-                    className="flex flex-col items-center hover:scale-105 transition-transform cursor-pointer"
+                    className="flex flex-col items-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer p-4 rounded-2xl bg-white/[0.02] border border-[#E8A800]/20 hover:border-[#E8A800]/50 shadow-[0_0_20px_rgba(232,168,0,0.05)] hover:shadow-[0_0_25px_rgba(232,168,0,0.15)] relative overflow-hidden group/dial min-w-[90px]"
                     title={showMaxOverall ? 'Click to show current overall' : 'Click to show max overall'}
                   >
-                    <div className="text-5xl font-black text-[#E8A800] mb-1">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#E8A800]/10 to-transparent opacity-0 group-hover/dial:opacity-100 transition-opacity" />
+                    <div className="text-5xl font-black bg-gradient-to-r from-[#E8A800] via-[#FFB347] to-[#E8A800] bg-clip-text text-transparent mb-1 drop-shadow-[0_0_8px_rgba(232,168,0,0.3)] select-none">
                       {displayOverall || '-'}
                     </div>
-                    <div className="text-xs text-gray-400 uppercase tracking-wider">
-                      {showMaxOverall ? 'Max Overall' : 'Overall'}
+                    <div className="text-[10px] text-gray-400 uppercase tracking-widest font-black select-none group-hover/dial:text-[#E8A800] transition-colors">
+                      {showMaxOverall ? 'Max OVR' : 'Overall'}
                     </div>
                   </button>
                 </div>
-
-                {/* Player Info */}
-                <div className="flex flex-wrap gap-2">
+ 
+                {/* Player Info Row */}
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
                   {stats.nationality && (
-                    <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                      </svg>
-                      {stats.nationality}
+                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
+                      <span className="text-gray-500 font-bold">NAT:</span>
+                      <span>{stats.nationality}</span>
                     </div>
                   )}
                   {stats.height && (
-                    <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                      {stats.height}cm
+                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
+                      <span className="text-gray-500 font-bold">HT:</span>
+                      <span>{stats.height}cm</span>
                     </div>
                   )}
                   {stats.weight && (
-                    <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                      </svg>
-                      {stats.weight}kg
+                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
+                      <span className="text-gray-500 font-bold">WT:</span>
+                      <span>{stats.weight}kg</span>
                     </div>
                   )}
                   {stats.age && (
-                    <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {stats.age} years
+                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
+                      <span className="text-gray-500 font-bold">AGE:</span>
+                      <span>{stats.age} yrs</span>
                     </div>
                   )}
                   {stats.foot && (
-                    <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      {stats.foot}
+                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
+                      <span className="text-gray-500 font-bold">FOOT:</span>
+                      <span>{stats.foot}</span>
                     </div>
                   )}
                   {stats.weakFootUsage && (
-                    <div className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium">
-                      Weak Foot: {stats.weakFootUsage}
+                    <div className="px-3 py-1.5 rounded-xl bg-blue-500/5 border border-blue-500/10 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+                      WF: {stats.weakFootUsage}
                     </div>
                   )}
                   {stats.weakFootAccuracy && (
-                    <div className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium">
-                      Accuracy: {stats.weakFootAccuracy}
+                    <div className="px-3 py-1.5 rounded-xl bg-blue-500/5 border border-blue-500/10 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+                      WF ACC: {stats.weakFootAccuracy}
                     </div>
                   )}
                   {stats.injuryResistance && (
-                    <div className="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                      {stats.injuryResistance}
+                    <div className="px-3 py-1.5 rounded-xl bg-green-500/5 border border-green-500/10 text-green-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                      <span>INJ RES: {stats.injuryResistance}</span>
                     </div>
                   )}
                 </div>
               </div>
-
+ 
               {/* Current Team Banner */}
               {currentTeam && (
-                <div className="rounded-xl bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/10 border-2 border-[#E8A800]/30 p-6 mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-800 flex-shrink-0 border-2 border-[#E8A800]/50">
+                <div className="rounded-2xl bg-gradient-to-br from-emerald-950/40 via-white/[0.01] to-[#E8A800]/10 border border-[#E8A800]/30 p-6 mb-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-b from-[#E8A800]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 border border-[#E8A800]/30 shadow-[0_0_15px_rgba(232,168,0,0.1)] group-hover:scale-105 transition-transform duration-300">
                       <img
                         src={currentTeam.logoUrl}
                         alt={currentTeam.name}
@@ -569,17 +586,15 @@ export default function PlayerDetailContent({
                       />
                     </div>
                     <div className="flex-1">
-                      <div className="text-xs text-[#E8A800] mb-1 font-bold uppercase tracking-wider">Current Team</div>
+                      <div className="text-xs text-[#E8A800] mb-1 font-black uppercase tracking-widest">Franchise Assignment</div>
                       <div className="text-2xl font-black text-white mb-2">{currentTeam.name}</div>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-emerald-400 font-black text-xl">${currentTeam.soldPrice.toLocaleString()}</span>
+                      <div className="flex items-center gap-3 flex-wrap text-sm">
+                        <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-xl shadow-[0_0_10px_rgba(16,185,129,0.05)]">
+                          <span className="text-emerald-500 font-black">Acquired:</span>
+                          <span className="text-emerald-400 font-black text-base">£{currentTeam.soldPrice.toLocaleString()}</span>
                         </div>
-                        <div className="text-gray-400">•</div>
-                        <div className="text-gray-300 font-medium">{season.name}</div>
+                        <div className="text-gray-600">•</div>
+                        <div className="text-gray-400 font-bold uppercase tracking-wider">{season.name}</div>
                       </div>
                     </div>
                   </div>
@@ -683,10 +698,10 @@ export default function PlayerDetailContent({
 
                     {/* Playing Attributes */}
                     {activeAttributes.length > 0 && (
-                      <div className="rounded-xl bg-[#1a1a1a] border-2 border-amber-500/30 p-6">
+                      <div className="rounded-xl bg-white/[0.01] border border-[#E8A800]/30 p-6 shadow-[0_4px_20px_rgba(232,168,0,0.03)] relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-6">
-                          <div className="w-10 h-10 rounded-lg bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                          <div className="w-10 h-10 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-[#E8A800]" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                           </div>
@@ -696,7 +711,7 @@ export default function PlayerDetailContent({
                           {activeAttributes.map((attr) => (
                             <div
                               key={attr}
-                              className="px-4 py-2.5 rounded-lg bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border-2 border-amber-500/40 text-amber-300 text-sm font-bold uppercase tracking-wide"
+                              className="px-4 py-2.5 rounded-xl bg-white/[0.01] border border-[#E8A800]/30 text-amber-300 text-sm font-bold uppercase tracking-wider shadow-[0_4px_12px_rgba(232,168,0,0.05)] hover:border-[#E8A800]/50 hover:bg-[#E8A800]/5 hover:scale-105 transition-all duration-300 cursor-default"
                             >
                               {formatSkillName(attr)}
                             </div>
@@ -707,7 +722,7 @@ export default function PlayerDetailContent({
 
                     {/* Skills */}
                     {activeSkills.length > 0 && (
-                      <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-6">
+                      <div className="rounded-xl bg-white/[0.01] border border-white/10 p-6 backdrop-blur-md">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
@@ -729,7 +744,7 @@ export default function PlayerDetailContent({
                                 {activeSkills.filter(s => ['scissorsFeint', 'doubleTouch', 'flipFlap', 'marseilleTurn', 'sombrero', 'chopTurn', 'cutBehindTurn', 'scotchMove', 'soleControl', 'momentumDribbling', 'accelerationBurst', 'magneticFeet'].includes(s)).map((skill) => (
                                   <span
                                     key={skill}
-                                    className="px-3 py-2 rounded-lg bg-gradient-to-br from-orange-500/20 to-red-500/10 border border-orange-500/30 text-orange-300 text-sm font-medium"
+                                    className="px-3 py-2 rounded-xl bg-white/[0.01] border border-orange-500/20 text-orange-300 hover:border-orange-500/40 hover:bg-orange-500/5 text-sm font-semibold transition-all hover:scale-105 duration-200"
                                   >
                                     {formatSkillName(skill)}
                                   </span>
@@ -749,7 +764,7 @@ export default function PlayerDetailContent({
                                 {activeSkills.filter(s => ['headingSkill', 'bulletHeader'].includes(s)).map((skill) => (
                                   <span
                                     key={skill}
-                                    className="px-3 py-2 rounded-lg bg-gradient-to-br from-gray-500/20 to-gray-500/10 border border-gray-500/30 text-gray-300 text-sm font-medium"
+                                    className="px-3 py-2 rounded-xl bg-white/[0.01] border border-gray-500/20 text-gray-300 hover:border-gray-500/40 hover:bg-white/5 text-sm font-semibold transition-all hover:scale-105 duration-200"
                                   >
                                     {formatSkillName(skill)}
                                   </span>
@@ -769,7 +784,7 @@ export default function PlayerDetailContent({
                                 {activeSkills.filter(s => ['longRangeCurler', 'blitzCurler', 'chipShotControl', 'knuckleShot', 'dippingShot', 'risingShot', 'longRangeShooting', 'lowScreamer', 'acrobaticFinishing', 'heelTrick', 'firstTimeShot', 'phenomenalFinishing', 'willpower'].includes(s)).map((skill) => (
                                   <span
                                     key={skill}
-                                    className="px-3 py-2 rounded-lg bg-gradient-to-br from-red-500/20 to-red-500/10 border border-red-500/30 text-red-300 text-sm font-medium"
+                                    className="px-3 py-2 rounded-xl bg-white/[0.01] border border-red-500/20 text-red-300 hover:border-red-500/40 hover:bg-red-500/5 text-sm font-semibold transition-all hover:scale-105 duration-200"
                                   >
                                     {formatSkillName(skill)}
                                   </span>
@@ -789,7 +804,7 @@ export default function PlayerDetailContent({
                                 {activeSkills.filter(s => ['oneTouchPass', 'throughPassing', 'weightedPass', 'pinpointCrossing', 'edgedCrossing', 'outsideCurler', 'rabona', 'noLookPass', 'gameChangingPass', 'visionaryPass', 'phenomenalPass', 'lowLoftedPass'].includes(s)).map((skill) => (
                                   <span
                                     key={skill}
-                                    className="px-3 py-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/10 border border-blue-500/30 text-blue-300 text-sm font-medium"
+                                    className="px-3 py-2 rounded-xl bg-white/[0.01] border border-blue-500/20 text-blue-300 hover:border-blue-500/40 hover:bg-blue-500/5 text-sm font-semibold transition-all hover:scale-105 duration-200"
                                   >
                                     {formatSkillName(skill)}
                                   </span>
@@ -809,7 +824,7 @@ export default function PlayerDetailContent({
                                 {activeSkills.filter(s => ['gkLowPunt', 'gkHighPunt', 'longThrow', 'gkLongThrow', 'penaltySpecialist', 'gkPenaltySaver', 'gkDirectingDefence', 'gkSpiritRoar', 'gamesmanship'].includes(s)).map((skill) => (
                                   <span
                                     key={skill}
-                                    className="px-3 py-2 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-sm font-medium"
+                                    className="px-3 py-2 rounded-xl bg-white/[0.01] border border-yellow-500/20 text-yellow-300 hover:border-yellow-500/40 hover:bg-yellow-500/5 text-sm font-semibold transition-all hover:scale-105 duration-200"
                                   >
                                     {formatSkillName(skill)}
                                   </span>
@@ -829,7 +844,7 @@ export default function PlayerDetailContent({
                                 {activeSkills.filter(s => ['manMarking', 'trackBack', 'interception', 'blocker', 'aerialSuperiority', 'slidingTackle', 'longReachTackle', 'fortress', 'acrobaticClearance', 'aerialFort'].includes(s)).map((skill) => (
                                   <span
                                     key={skill}
-                                    className="px-3 py-2 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30 text-green-300 text-sm font-medium"
+                                    className="px-3 py-2 rounded-xl bg-white/[0.01] border border-green-500/20 text-green-300 hover:border-green-500/40 hover:bg-green-500/5 text-sm font-semibold transition-all hover:scale-105 duration-200"
                                   >
                                     {formatSkillName(skill)}
                                   </span>
@@ -849,7 +864,7 @@ export default function PlayerDetailContent({
                                 {activeSkills.filter(s => ['captaincy', 'attackTrigger', 'superSub', 'fightingSpirit'].includes(s)).map((skill) => (
                                   <span
                                     key={skill}
-                                    className="px-3 py-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-500/10 border border-amber-500/30 text-amber-300 text-sm font-medium"
+                                    className="px-3 py-2 rounded-xl bg-white/[0.01] border border-amber-500/20 text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/5 text-sm font-semibold transition-all hover:scale-105 duration-200"
                                   >
                                     {formatSkillName(skill)}
                                   </span>
@@ -985,9 +1000,9 @@ export default function PlayerDetailContent({
 
             {/* Current Team Banner */}
             {currentTeam && (
-              <div className="rounded-xl bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/10 border-2 border-[#E8A800]/30 p-4 mb-6">
+              <div className="rounded-2xl bg-gradient-to-br from-emerald-950/40 via-white/[0.01] to-[#E8A800]/10 border border-[#E8A800]/20 p-4 mb-6 backdrop-blur-xl shadow-lg">
                 <div className="flex items-center gap-3">
-                  <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 border-2 border-[#E8A800]/50">
+                  <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-black/40 flex-shrink-0 border border-[#E8A800]/30">
                     <img
                       src={currentTeam.logoUrl}
                       alt={currentTeam.name}
@@ -995,13 +1010,11 @@ export default function PlayerDetailContent({
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-[#E8A800] mb-1 font-bold uppercase tracking-wider">Current Team</div>
-                    <div className="text-lg font-black text-white mb-1">{currentTeam.name}</div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-emerald-400 font-black text-base">${currentTeam.soldPrice.toLocaleString()}</span>
+                    <div className="text-[10px] text-[#E8A800] mb-0.5 font-black uppercase tracking-wider">Current Team</div>
+                    <div className="text-base font-black text-white mb-0.5 truncate">{currentTeam.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-emerald-500 font-bold text-xs">Acquired:</span>
+                      <span className="text-emerald-400 font-black text-sm">£{currentTeam.soldPrice.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

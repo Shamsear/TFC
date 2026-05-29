@@ -8,75 +8,78 @@ export default function TeamFooter() {
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null)
 
   return (
-    <footer className="border-t border-white/10 bg-[#0a0a0a]/50">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
+    <footer className="relative border-t border-white/[0.06] bg-black/40 backdrop-blur-md overflow-hidden z-10">
+      {/* Decorative Foot Spotlight */}
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-emerald-500/[0.03] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-[#E8A800]/[0.03] rounded-full blur-[80px] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link href="/team" className="flex items-center gap-3 mb-4">
-              <div className="relative w-12 h-12 rounded-xl overflow-hidden ring-2 ring-[#E8A800]/20">
+            <Link href="/team" className="flex items-center gap-3 mb-4 group">
+              <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-white/10 group-hover:border-[#E8A800]/30 transition-colors shadow-2xl">
                 <Image
                   src="/logo.jpeg"
                   alt="Turf Cats"
                   fill
-                  className="object-cover"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
               <div>
-                <div className="text-xl font-black bg-gradient-to-r from-[#FFC93A] to-[#E8A800] bg-clip-text text-transparent">
+                <div className="text-xl font-black bg-gradient-to-r from-[#FFC93A] via-[#FFD066] to-[#E8A800] bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(232,168,0,0.15)]">
                   Turf Cats
                 </div>
-                <div className="text-xs text-[#7A7367] font-medium">
-                  Team Manager
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                  Team Manager Workspace
                 </div>
               </div>
             </Link>
-            <p className="text-[#D4CCBB] leading-relaxed max-w-md">
+            <p className="text-gray-400 font-medium leading-relaxed max-w-md text-sm mt-3">
               The premier eFootball tournament management platform. Build your dynasty through strategic auctions, player retention, and real-time team management.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-[#F5F0E8] font-bold mb-4">Quick Links</h3>
-            <nav className="flex flex-col gap-3">
-              <Link href="/team" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                Dashboard
-              </Link>
-              <Link href="/team/squad" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                Squad
-              </Link>
-              <Link href="/team/matches" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                Matches
-              </Link>
-              <Link href="/team/tournaments" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                Tournaments
-              </Link>
-              <Link href="/team/finances" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                Finances
-              </Link>
-              <Link href="/team/profile" className="text-[#D4CCBB] hover:text-[#E8A800] transition-colors text-sm">
-                Profile
-              </Link>
+            <h3 className="text-xs font-black uppercase tracking-widest text-[#F5F0E8] mb-5">Quick Links</h3>
+            <nav className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {[
+                { label: 'Dashboard', href: '/team' },
+                { label: 'Squad', href: '/team/squad' },
+                { label: 'Matches', href: '/team/matches' },
+                { label: 'Tournaments', href: '/team/tournaments' },
+                { label: 'Finances', href: '/team/finances' },
+                { label: 'Profile', href: '/team/profile' }
+              ].map(link => (
+                <Link 
+                  key={link.label} 
+                  href={link.href} 
+                  className="text-gray-400 hover:text-[#E8A800] transition-colors text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 group"
+                >
+                  <span className="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-[#E8A800] transition-colors" />
+                  {link.label}
+                </Link>
+              ))}
             </nav>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[#7A7367] text-sm">
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-gray-500 text-xs font-semibold tracking-wider uppercase">
             © {new Date().getFullYear()} Turf Cats. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <button
               onClick={() => setModalType('privacy')}
-              className="text-[#7A7367] hover:text-[#E8A800] transition-colors text-sm font-medium"
+              className="text-gray-500 hover:text-[#E8A800] transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
             >
               Privacy Policy
             </button>
             <button
               onClick={() => setModalType('terms')}
-              className="text-[#7A7367] hover:text-[#E8A800] transition-colors text-sm font-medium"
+              className="text-gray-500 hover:text-[#E8A800] transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
             >
               Terms of Service
             </button>
@@ -87,7 +90,7 @@ export default function TeamFooter() {
       {/* Premium Glassmorphic Modal Overlay */}
       {modalType && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-all duration-300">
-          <div className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl bg-gradient-to-br from-gray-900 via-[#0f0f0f] to-black border border-white/10 p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl bg-[#0d0d10]/95 border border-white/10 p-6 sm:p-8 shadow-[0_0_80px_rgba(0,0,0,0.8)] backdrop-blur-2xl animate-in fade-in zoom-in duration-200">
             {/* Close button */}
             <button
               onClick={() => setModalType(null)}

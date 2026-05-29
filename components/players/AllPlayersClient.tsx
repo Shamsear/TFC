@@ -106,13 +106,13 @@ function CustomSelect({
 
   return (
     <div className="relative" ref={containerRef}>
-      <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">{label}</label>
+      <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8]/70 mb-2 tracking-wide uppercase">{label}</label>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base text-left"
+        className="w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-white/[0.02] border border-white/10 text-white hover:bg-white/[0.05] hover:border-white/20 focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base text-left backdrop-blur-md"
       >
-        <span className="truncate">
+        <span className="truncate font-semibold">
           {displayValue ? displayValue(value) : value}
         </span>
         <svg
@@ -126,7 +126,7 @@ function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-20 mt-2 w-full rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] focus:outline-none">
+        <div className="absolute z-20 mt-2 w-full rounded-xl bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus:outline-none overflow-hidden">
           {/* Search Input */}
           {enableSearch && (
             <div className="p-2 border-b border-white/10">
@@ -1106,19 +1106,23 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Corner blurs for premium aesthetic */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/[0.02] rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-80 right-20 w-80 h-80 bg-[#E8A800]/[0.02] rounded-full blur-3xl pointer-events-none" />
+
       {/* Filters */}
-      <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+      <div className="rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/10 p-4 sm:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
-            <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Search Players</label>
+            <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8]/70 mb-2 tracking-wide uppercase">Search Players</label>
             <div className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, club, team, or position..."
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 pl-10 sm:pl-12 rounded-lg sm:rounded-xl bg-black/50 border border-white/10 text-white placeholder-[#7A7367] focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pl-10 sm:pl-12 rounded-lg sm:rounded-xl bg-white/[0.02] hover:bg-white/[0.04] focus:bg-black/60 border border-white/10 text-white placeholder-[#7A7367] focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base font-semibold"
                 autoComplete="off"
               />
               <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#7A7367]">
@@ -1187,7 +1191,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       </div>
 
       {/* Results count */}
-      <div className="flex items-center justify-between text-xs sm:text-sm text-[#D4CCBB] font-medium">
+      <div className="flex items-center justify-between text-xs sm:text-sm text-[#D4CCBB] font-medium bg-white/[0.01] border border-white/5 rounded-xl p-3 sm:px-4 backdrop-blur-sm">
         <span>
           {loading
             ? 'Loading...'
@@ -1195,14 +1199,14 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             ? 'No players found'
             : `Showing ${((currentPage - 1) * 24) + 1}–${Math.min(currentPage * 24, totalPlayers)} of ${totalPlayers} players`}
           {searchQuery && !loading && (
-            <span className="text-[#E8A800] ml-2">• Searching for "{searchQuery}"</span>
+            <span className="text-[#E8A800] ml-2 font-semibold">• Searching for "{searchQuery}"</span>
           )}
         </span>
         <div className="flex items-center gap-4">
           {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || groupFilter !== 'ALL' || starredFilter !== 'all') && (
             <button
               onClick={handleClearFilters}
-              className="text-[#E8A800] hover:text-[#FFC93A] transition-colors text-xs"
+              className="text-[#E8A800] hover:text-[#FFC93A] transition-all text-xs font-semibold hover:underline"
             >
               Clear Filters
             </button>
@@ -1218,7 +1222,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
               })
               setShowExportModal(true)
             }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 font-bold transition-all text-xs"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 font-bold transition-all text-xs shadow-[0_0_12px_rgba(16,185,129,0.05)] hover:shadow-[0_0_16px_rgba(16,185,129,0.15)] hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             📊 Export to Excel
           </button>
@@ -1227,7 +1231,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
 
       {/* Error state */}
       {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-red-400 text-sm text-center">
+        <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-red-400 text-sm text-center font-bold">
           {error}
         </div>
       )}
@@ -1235,18 +1239,18 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       {/* Players Grid */}
       <div className={`transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
         {!loading && players.length === 0 && !error ? (
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4">
+          <div className="rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/10 p-8 sm:p-12 text-center backdrop-blur-md">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4 shadow-[0_0_20px_rgba(232,168,0,0.1)]">
               <SearchIcon />
             </div>
-            <div className="text-[#D4CCBB] text-sm sm:text-base">No players found matching your filters</div>
+            <div className="text-[#D4CCBB] font-semibold text-sm sm:text-base">No players found matching your filters</div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {/* Skeleton cards while loading */}
             {loading && players.length === 0
               ? Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 animate-pulse">
+                  <div key={i} className="rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/10 p-4 sm:p-6 animate-pulse">
                     <div className="flex items-start gap-3 mb-4">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-white/10 flex-shrink-0" />
                       <div className="flex-1 space-y-2 pt-1">
@@ -1263,26 +1267,37 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                 ))
               : players.map((player) => {
                   const playerPath = basePath ? `${basePath}/${player.id}` : `/sub-admin/${seasonId}/all-players/${player.id}`
+                  
+                  // Premium position border colors based on standard guidelines
+                  const getPositionColor = (pos: string) => {
+                    const p = pos.toUpperCase()
+                    if (p === 'GK') return 'border-[#E8A800]/30 bg-[#E8A800]/10 text-[#E8A800]'
+                    if (['CB', 'LB', 'RB'].includes(p)) return 'border-blue-500/30 bg-blue-500/10 text-blue-400'
+                    if (['DMF', 'CMF', 'LMF', 'RMF', 'AMF'].includes(p)) return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                    if (['SS', 'LWF', 'RWF', 'CF'].includes(p)) return 'border-red-500/30 bg-red-500/10 text-red-400'
+                    return 'border-gray-500/30 bg-gray-500/10 text-gray-400'
+                  }
+
                   return (
                     <Link
                       key={player.id}
                       href={playerPath}
-                      className="group rounded-xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/10 p-4 transition-all relative"
+                      className="group rounded-xl bg-white/[0.02] border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.06] p-4 transition-all duration-300 hover:-translate-y-1 relative backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_12px_24px_rgba(232,168,0,0.08)] flex flex-col justify-between"
                     >
                       {/* Star Button */}
                       {enableStarring && (
                         <button
                           onClick={(e) => toggleStar(player.id, e)}
                           disabled={starringInProgress.has(player.id)}
-                          className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-black/50 hover:bg-black/70 transition-all disabled:opacity-50"
+                          className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-black/60 hover:bg-[#E8A800]/20 hover:scale-110 border border-white/5 hover:border-[#E8A800]/30 transition-all disabled:opacity-50"
                           title={starredPlayerIds.has(player.id) ? 'Unstar player' : 'Star player'}
                         >
                           {starredPlayerIds.has(player.id) ? (
-                            <svg className="w-5 h-5 text-[#E8A800] fill-current" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-[#E8A800] fill-current drop-shadow-[0_0_4px_rgba(232,168,0,0.5)]" viewBox="0 0 24 24">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                           ) : (
-                            <svg className="w-5 h-5 text-gray-400 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 text-gray-400 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                             </svg>
                           )}
@@ -1292,33 +1307,35 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                       {/* Player Card - Horizontal Layout */}
                       <div className="flex gap-4">
                         {/* Player Photo - Left Side */}
-                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
+                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 border border-white/10 group-hover:border-[#E8A800]/30 transition-all duration-300">
                           <img
                             src={player.photoUrl}
                             alt={player.name}
                             loading="eager"
                             decoding="async"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
+                          {/* Radial blur behind player photo */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         </div>
 
                         {/* Player Info - Right Side */}
                         <div className="flex-1 min-w-0 space-y-2">
                           <div>
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/30 bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              <span className={`px-2 py-0.5 rounded-full border text-[10px] font-black tracking-wider uppercase ${getPositionColor(player.position)}`}>
                                 {player.position}
                               </span>
                               <PositionGroupBadge position={player.position} group={player.position_group} size="sm" />
-                              <span className="px-2 py-0.5 rounded-full border border-[#FFB347]/30 bg-[#FFB347]/20 text-[#FFB347] text-xs font-bold">
+                              <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/30 bg-gradient-to-r from-[#E8A800]/20 to-[#FFB347]/20 text-[#FFB347] text-[10px] font-black shadow-[0_0_8px_rgba(232,168,0,0.1)]">
                                 {player.overallRating}
                               </span>
                             </div>
                             <h3 className="text-base font-black text-white mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-1">
                               {player.name}
                             </h3>
-                            <div className="text-xs text-gray-400 truncate">{player.realWorldClub}</div>
+                            <div className="text-xs text-gray-400 font-medium truncate">{player.realWorldClub}</div>
                           </div>
                         </div>
                       </div>
@@ -1326,8 +1343,8 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                       {/* Team or Free Agent */}
                       <div className="mt-3">
                         {player.team ? (
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                            <div className="relative w-5 h-5 rounded overflow-hidden bg-gray-800 flex-shrink-0">
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 group-hover:border-emerald-500/30 transition-all">
+                            <div className="relative w-5 h-5 rounded overflow-hidden bg-gray-800 flex-shrink-0 border border-white/10">
                               <img
                                 src={player.team.logoUrl}
                                 alt={player.team.name}
@@ -1340,15 +1357,15 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-bold text-white truncate">{player.team.name}</div>
                               {player.soldPrice && player.soldPrice > 0 && (
-                                <div className="text-xs font-bold text-emerald-400">
-                                  ${player.soldPrice.toLocaleString()}
+                                <div className="text-xs font-bold text-[#E8A800] drop-shadow-[0_0_4px_rgba(232,168,0,0.2)]">
+                                  £{player.soldPrice.toLocaleString()}
                                 </div>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
-                            <div className="text-xs text-blue-400 font-bold">Free Agent</div>
+                          <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/10 text-center group-hover:border-blue-500/20 transition-all">
+                            <div className="text-xs text-blue-400 font-bold tracking-wide uppercase">Free Agent</div>
                           </div>
                         )}
                       </div>

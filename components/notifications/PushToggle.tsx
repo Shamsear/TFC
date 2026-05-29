@@ -202,44 +202,49 @@ export default function PushToggle() {
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/[0.02] rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/[0.04] transition-colors" />
+      
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
         <div>
-          <h3 className="text-lg font-bold text-white">Push Notifications</h3>
-          <p className="text-xs text-gray-400">Receive real-time draft notifications and transaction updates</p>
+          <h3 className="text-lg font-black text-white tracking-tight">Push Notifications</h3>
+          <p className="text-xs text-gray-400 font-semibold mt-1">Receive real-time draft notifications and transaction updates</p>
         </div>
         <button
           onClick={handleSubscribe}
           disabled={loading || isSubscribed}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 transform active:scale-95 shadow-lg ${
             isSubscribed 
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
-              : 'bg-[#E8A800] hover:bg-[#FFC93A] text-black'
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 cursor-default'
+              : 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-black font-black'
           }`}
         >
-          {loading ? 'Processing...' : isSubscribed ? 'Active' : 'Enable Alerts'}
+          {loading ? 'Processing...' : isSubscribed ? '✓ Active' : 'Enable Alerts'}
         </button>
       </div>
 
       {devices.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">My Devices</h4>
-          {devices.map(dev => (
-            <div key={dev.id} className="flex items-center justify-between bg-black/40 border border-white/5 rounded-lg p-3 text-sm">
-              <div>
-                <div className="font-bold text-white">{dev.deviceName} ({dev.deviceType})</div>
-                <div className="text-xs text-gray-500">Registered: {new Date(dev.lastUsedAt).toLocaleDateString()}</div>
+        <div className="space-y-3 relative z-10">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">My Registered Devices</h4>
+          <div className="space-y-2">
+            {devices.map(dev => (
+              <div key={dev.id} className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-xl p-3 sm:p-4 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300">
+                <div>
+                  <div className="font-extrabold text-white text-sm">{dev.deviceName} ({dev.deviceType})</div>
+                  <div className="text-[10px] text-gray-500 font-semibold mt-1">Registered: {new Date(dev.lastUsedAt).toLocaleDateString()}</div>
+                </div>
+                <button
+                  onClick={() => handleRevokeDevice(dev.id)}
+                  className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/30 rounded-xl transition-all duration-300 transform active:scale-95 cursor-pointer"
+                  title="Revoke Device"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={() => handleRevokeDevice(dev.id)}
-                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

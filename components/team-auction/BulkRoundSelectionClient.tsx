@@ -532,20 +532,25 @@ export default function BulkRoundSelectionClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 overflow-x-hidden relative">
+      {/* Background spotlights */}
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-500/[0.02] rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-1/3 right-0 w-[600px] h-[600px] bg-[#E8A800]/[0.02] rounded-full blur-[150px] pointer-events-none z-0" />
+      <div className="absolute bottom-0 left-1/4 w-[700px] h-[700px] bg-cyan-500/[0.02] rounded-full blur-[180px] pointer-events-none z-0" />
+
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
+      <div className="border-b border-white/5 bg-white/[0.02] backdrop-blur-md mb-6 relative z-10 shadow-lg shadow-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between mb-4 gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-black text-white mb-1 truncate">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-1 truncate bg-gradient-to-r from-white via-[#E8A800] to-emerald-400 bg-clip-text text-transparent">
                 Round {round.roundNumber} - Bulk Selection
               </h1>
-              <p className="text-sm text-[#D4CCBB]">
+              <p className="text-sm text-[#D4CCBB] font-medium">
                 {season.name} {round.position && (
                   <>
                     {' — '}
-                    <span className="truncate max-w-[200px] sm:max-w-none inline-block align-bottom">
+                    <span className="truncate max-w-[200px] sm:max-w-none inline-block align-bottom px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs">
                       {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
                     </span>
                   </>
@@ -553,37 +558,44 @@ export default function BulkRoundSelectionClient({
               </p>
             </div>
             {timeRemaining && (
-              <div className="px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0">
-                <div className="text-xs text-emerald-400 mb-0.5">Remaining</div>
-                <div className="text-base font-bold text-emerald-300">{timeRemaining}</div>
+              <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-glow flex-shrink-0 flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <div>
+                  <div className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-wider mb-0.5">Remaining</div>
+                  <div className="text-base font-extrabold text-emerald-400 tracking-wider font-mono">{timeRemaining}</div>
+                </div>
               </div>
             )}
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Current Squad</div>
-              <div className="text-lg sm:text-xl font-bold text-white">
-                {squadSize} <span className="text-xs text-[#7A7367] font-normal">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div className="rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 p-3 sm:p-4 transition-all duration-300 backdrop-blur-md shadow-lg shadow-black/20 group">
+              <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Current Squad</div>
+              <div className="text-lg sm:text-xl font-black text-white">
+                {squadSize} <span className="text-xs text-[#7A7367] font-semibold">
                   {minSquadSize === maxSquadSize ? `(${minSquadSize} req)` : `(${minSquadSize}–${maxSquadSize})`}
                 </span>
               </div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Selected</div>
-              <div className="text-lg sm:text-xl font-bold text-white">
-                {selections.length} / {targetSlots}
-                <span className="text-xs text-[#7A7367] font-normal"> ({isBelowMin ? 'needed' : 'max'})</span>
+            <div className="rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 p-3 sm:p-4 transition-all duration-300 backdrop-blur-md shadow-lg shadow-black/20 group">
+              <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Selected</div>
+              <div className="text-lg sm:text-xl font-black text-[#E8A800] drop-shadow-[0_0_8px_rgba(232,168,0,0.2)]">
+                {selections.length} <span className="text-white/40">/</span> {targetSlots}
+                <span className="text-xs text-[#7A7367] font-semibold"> ({isBelowMin ? 'needed' : 'max'})</span>
               </div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Price Each</div>
-              <div className="text-lg sm:text-xl font-bold text-white">£{round.basePrice?.toLocaleString() || 0}</div>
+            <div className="rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 p-3 sm:p-4 transition-all duration-300 backdrop-blur-md shadow-lg shadow-black/20 group">
+              <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Price Each</div>
+              <div className="text-lg sm:text-xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.2)]">£{round.basePrice?.toLocaleString() || 0}</div>
             </div>
-            <div className="rounded-lg bg-white/5 border border-white/10 p-3 sm:p-4">
-              <div className="text-xs text-[#7A7367] mb-1">Status</div>
-              <div className={`text-lg sm:text-xl font-bold ${submitted ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <div className="rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 p-3 sm:p-4 transition-all duration-300 backdrop-blur-md shadow-lg shadow-black/20 group">
+              <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Status</div>
+              <div className={`text-lg sm:text-xl font-black flex items-center gap-1.5 ${submitted ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.2)]' : 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.2)]'}`}>
+                <span className={`w-2.5 h-2.5 rounded-full ${submitted ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
                 {submitted ? 'Submitted' : 'Draft'}
               </div>
             </div>
@@ -594,26 +606,26 @@ export default function BulkRoundSelectionClient({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Selected Players Section */}
         {selections.length > 0 && (
-          <div className="mb-6">
+          <div className="mb-6 relative z-10">
             <button
               onClick={() => setShowSelectedPlayers(!showSelectedPlayers)}
-              className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-[#E8A800]/30 transition-all backdrop-blur-md shadow-lg shadow-black/20"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/30 flex items-center justify-center shadow-inner">
                   <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <h3 className="font-bold text-white">Your Selections ({selections.length})</h3>
-                  <p className="text-xs text-[#D4CCBB]">
-                    {selections.length} / {targetSlots} {isBelowMin ? 'needed' : 'max allowed'}
+                  <h3 className="font-bold text-white tracking-wide">Your Selections ({selections.length})</h3>
+                  <p className="text-xs text-[#D4CCBB] font-medium">
+                    {selections.length} <span className="text-[#E8A800]">/</span> {targetSlots} {isBelowMin ? 'needed' : 'max allowed'}
                   </p>
                 </div>
               </div>
               <svg 
-                className={`w-5 h-5 text-[#D4CCBB] transition-transform ${showSelectedPlayers ? 'rotate-180' : ''}`} 
+                className={`w-5 h-5 text-[#D4CCBB] transition-transform duration-300 ${showSelectedPlayers ? 'rotate-180 text-[#E8A800]' : ''}`} 
                 fill="none" 
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
@@ -628,36 +640,55 @@ export default function BulkRoundSelectionClient({
                   const player = players.find(p => p.id === playerId)
                   if (!player) return null
 
+                  // GK: gold, DEF: blue, MID: emerald, FWD: red
+                  let posBadgeColor = 'border-amber-500/30 text-amber-400 bg-amber-500/10'
+                  if (player.position.includes('GK')) {
+                    posBadgeColor = 'border-[#E8A800]/30 text-[#E8A800] bg-[#E8A800]/10'
+                  } else if (player.position.includes('DF') || player.position.includes('DEF')) {
+                    posBadgeColor = 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                  } else if (player.position.includes('MD') || player.position.includes('MID')) {
+                    posBadgeColor = 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                  } else if (player.position.includes('FW') || player.position.includes('FWD') || player.position.includes('ST')) {
+                    posBadgeColor = 'border-red-500/30 text-red-400 bg-red-500/10'
+                  }
+
                   return (
                     <div
                       key={playerId}
-                      className="rounded-lg bg-white/5 border border-white/10 p-4"
+                      className="rounded-xl bg-white/[0.01] border border-white/5 hover:border-white/10 p-4 transition-all duration-200 backdrop-blur-md flex items-center justify-between gap-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 border border-white/10 relative group">
                           <img
                             src={player.photoUrl}
                             alt={player.name}
                             loading="eager"
                             decoding="async"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
                             onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-white">{player.name}</h4>
-                          <p className="text-xs text-[#D4CCBB]">
-                            {player.position} • OVR {player.overall}
-                          </p>
+                        <div>
+                          <h4 className="font-bold text-white text-sm tracking-wide">{player.name}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-0.5 rounded border text-[10px] font-bold ${posBadgeColor}`}>
+                              {player.position}
+                            </span>
+                            <span className="text-xs text-[#D4CCBB] font-semibold">
+                              OVR {player.overall}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-right mr-2">
-                          <div className="text-sm font-bold text-white">£{round.basePrice?.toLocaleString() || 0}</div>
-                          <div className="text-xs text-[#7A7367]">Base Price</div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-sm font-bold text-emerald-400">£{round.basePrice?.toLocaleString() || 0}</div>
+                          <div className="text-[10px] text-[#7A7367] font-semibold uppercase tracking-wider">Base Price</div>
                         </div>
                         {!submitted && (
                           <button
                             onClick={() => handleToggleSelection(playerId)}
-                            className="px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"
+                            className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer"
                             title="Remove selection"
                           >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -680,70 +711,75 @@ export default function BulkRoundSelectionClient({
           const isBelowMin = squadInfo.currentSquadSize < squadInfo.minSquadSize;
 
           return (
-            <div className={`mb-6 rounded-xl border p-6 ${
+            <div className={`mb-6 rounded-2xl border p-5 backdrop-blur-md relative overflow-hidden transition-all duration-300 z-10 ${
               isBelowMin
-                ? 'bg-amber-500/10 border-amber-500/30'
-                : 'bg-blue-500/10 border-blue-500/30'
+                ? 'bg-amber-500/5 border-amber-500/20 shadow-lg shadow-amber-950/10'
+                : 'bg-emerald-500/5 border-emerald-500/20 shadow-lg shadow-emerald-950/10'
             }`}>
-              <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              {/* Radial glow background */}
+              <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-[80px] pointer-events-none -mr-16 -mt-16 ${
+                isBelowMin ? 'bg-amber-500/10' : 'bg-emerald-500/10'
+              }`} />
+
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                   isBelowMin
-                    ? 'bg-amber-500/20 text-amber-300'
-                    : 'bg-blue-500/20 text-blue-300'
+                    ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
+                    : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
                 }`}>
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div className="flex-1">
-                  <h3 className={`text-lg font-bold mb-2 ${
-                    isBelowMin ? 'text-amber-300' : 'text-blue-300'
+                <div className="flex-1 min-w-0">
+                  <h3 className={`text-base font-extrabold mb-1 tracking-wide uppercase ${
+                    isBelowMin ? 'text-amber-400' : 'text-emerald-400'
                   }`}>
                     Squad Size Status
                   </h3>
-                  <div className="space-y-2 text-sm text-white/80">
+                  <div className="space-y-2 text-sm text-[#D4CCBB]">
                     {isMinEqualsMax ? (
                       <>
-                        <p>
-                          <strong>Current Squad:</strong> {squadInfo.currentSquadSize} / {squadInfo.minSquadSize} (required)
+                        <p className="font-medium text-white">
+                          Current Squad: <span className="font-extrabold text-[#E8A800]">{squadInfo.currentSquadSize}</span> <span className="text-[#7A7367]">/</span> <span className="font-bold text-white/90">{squadInfo.minSquadSize} (required)</span>
                         </p>
                         {isBelowMin ? (
                           <>
-                            <p className="text-amber-300 font-medium">
+                            <p className="text-amber-300 font-semibold flex items-center gap-1">
                               ⚠️ You must select exactly <strong>{squadInfo.slotsToMin} player{squadInfo.slotsToMin !== 1 ? 's' : ''}</strong> to reach the required squad size.
                             </p>
-                            <p className="text-white/60 text-xs">
+                            <p className="text-[#7A7367] text-xs font-medium">
                               Teams must have exactly {squadInfo.minSquadSize} players in their squad.
                             </p>
                           </>
                         ) : (
                           <>
-                            <p className="text-blue-300 font-medium">
-                              ✅ Required squad size reached! You have {squadInfo.currentSquadSize} players in your squad.
+                            <p className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                              ✓ Required squad size reached! You have {squadInfo.currentSquadSize} players in your squad.
                             </p>
                           </>
                         )}
                       </>
                     ) : (
                       <>
-                        <p>
-                          <strong>Current Squad:</strong> {squadInfo.currentSquadSize} / {squadInfo.minSquadSize} (min) - {squadInfo.maxSquadSize} (max)
+                        <p className="font-medium text-white">
+                          Current Squad: <span className="font-extrabold text-[#E8A800]">{squadInfo.currentSquadSize}</span> <span className="text-[#7A7367]">/</span> <span className="font-bold text-white/90">{squadInfo.minSquadSize} (min) – {squadInfo.maxSquadSize} (max)</span>
                         </p>
                         {isBelowMin ? (
                           <>
-                            <p className="text-amber-300 font-medium">
+                            <p className="text-amber-300 font-semibold flex items-center gap-1.5">
                               ⚠️ You must select exactly <strong>{squadInfo.slotsToMin} player{squadInfo.slotsToMin !== 1 ? 's' : ''}</strong> to reach the minimum squad size.
                             </p>
-                            <p className="text-white/60 text-xs">
+                            <p className="text-[#7A7367] text-xs font-medium">
                               Teams must reach the minimum squad size ({squadInfo.minSquadSize} players) before they can optionally acquire up to {squadInfo.maxSquadSize} players.
                             </p>
                           </>
                         ) : (
                           <>
-                            <p className="text-blue-300 font-medium">
-                              ✅ Minimum squad size reached! You can select 0-{squadInfo.slotsToMax} more player{squadInfo.slotsToMax !== 1 ? 's' : ''} (optional).
+                            <p className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                              ✓ Minimum squad size reached! You can select 0–{squadInfo.slotsToMax} more player{squadInfo.slotsToMax !== 1 ? 's' : ''} (optional).
                             </p>
-                            <p className="text-white/60 text-xs">
+                            <p className="text-[#7A7367] text-xs font-medium">
                               You've reached the minimum squad size. Additional players are optional up to the maximum of {squadInfo.maxSquadSize} players.
                             </p>
                           </>
@@ -757,30 +793,40 @@ export default function BulkRoundSelectionClient({
           );
         })()}
 
-        {/* Search */}
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Search players..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]"
-          />
+        {/* Search & Filters */}
+        <div className="mb-6 relative z-10 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-3 relative">
+            <input
+              type="text"
+              placeholder="Search players by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/20 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] focus:ring-1 focus:ring-[#E8A800] focus:shadow-[0_0_12px_rgba(232,168,0,0.15)] transition-all duration-300 font-medium"
+            />
+            <svg className="w-5 h-5 absolute left-4 top-3.5 text-[#7A7367]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
         </div>
 
         {/* Position Tabs */}
-        <div className="mb-3">
-          <div className="text-xs text-[#7A7367] mb-2 font-medium uppercase tracking-wide">Position</div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="mb-5 relative z-10">
+          <div className="text-[10px] text-[#7A7367] mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+            Filter by Position
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
             <button
               onClick={() => setPositionFilter('all')}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+              className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide uppercase transition-all duration-300 shadow-sm ${
                 positionFilter === 'all'
-                  ? 'bg-[#E8A800] text-black'
-                  : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-[#E8A800] to-[#FFC533] text-black hover:shadow-[#E8A800]/25'
+                  : 'bg-white/[0.02] border border-white/5 text-white hover:bg-white/10 hover:border-white/20'
               }`}
             >
-              All
+              All Positions
             </button>
             {positions.map(pos => {
               const count = players.filter(p => p.position === pos).length
@@ -788,13 +834,13 @@ export default function BulkRoundSelectionClient({
                 <button
                   key={pos}
                   onClick={() => setPositionFilter(pos)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide uppercase transition-all duration-300 shadow-sm ${
                     positionFilter === pos
-                      ? 'bg-[#E8A800] text-black'
-                      : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                      ? 'bg-gradient-to-r from-[#E8A800] to-[#FFC533] text-black hover:shadow-[#E8A800]/25'
+                      : 'bg-white/[0.02] border border-white/5 text-white hover:bg-white/10 hover:border-white/20'
                   }`}
                 >
-                  {pos} <span className="opacity-60 text-xs">({count})</span>
+                  {pos} <span className={`text-[10px] font-bold ${positionFilter === pos ? 'text-black/60' : 'text-[#7A7367]'}`}>({count})</span>
                 </button>
               )
             })}
@@ -803,15 +849,20 @@ export default function BulkRoundSelectionClient({
 
         {/* Playing Style Tabs */}
         {playingStyles.length > 0 && (
-          <div className="mb-5">
-            <div className="text-xs text-[#7A7367] mb-2 font-medium uppercase tracking-wide">Playing Style</div>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="mb-5 relative z-10">
+            <div className="text-[10px] text-[#7A7367] mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Filter by Playing Style
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
               <button
                 onClick={() => setPlayingStyleFilter('all')}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide uppercase transition-all duration-300 shadow-sm ${
                   playingStyleFilter === 'all'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:shadow-purple-500/25'
+                    : 'bg-white/[0.02] border border-white/5 text-white hover:bg-white/10 hover:border-white/20'
                 }`}
               >
                 All Styles
@@ -824,13 +875,13 @@ export default function BulkRoundSelectionClient({
                   <button
                     key={style}
                     onClick={() => setPlayingStyleFilter(style)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide uppercase transition-all duration-300 shadow-sm ${
                       playingStyleFilter === style
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                        ? 'bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:shadow-purple-500/25'
+                        : 'bg-white/[0.02] border border-white/5 text-white hover:bg-white/10 hover:border-white/20'
                     }`}
                   >
-                    {style} <span className="opacity-60 text-xs">({count})</span>
+                    {style} <span className={`text-[10px] font-bold ${playingStyleFilter === style ? 'text-white/60' : 'text-[#7A7367]'}`}>({count})</span>
                   </button>
                 )
               })}
@@ -839,42 +890,49 @@ export default function BulkRoundSelectionClient({
         )}
 
         {/* Starred Players Filter */}
-        <div className="mb-5">
-          <label className="flex items-center gap-2 cursor-pointer w-fit">
-            <input
-              type="checkbox"
-              checked={showStarredOnly}
-              onChange={(e) => setShowStarredOnly(e.target.checked)}
-              className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0"
-            />
-            <span className="text-sm text-[#D4CCBB] flex items-center gap-1">
-              <svg className="w-4 h-4 text-[#E8A800]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
+        <div className="mb-6 relative z-10">
+          <label className="flex items-center gap-3 cursor-pointer w-fit group">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={showStarredOnly}
+                onChange={(e) => setShowStarredOnly(e.target.checked)}
+                className="sr-only"
+              />
+              <div className={`w-10 h-6 rounded-full transition-colors duration-300 ${showStarredOnly ? 'bg-amber-500/25 border border-amber-500/40' : 'bg-white/5 border border-white/10'}`} />
+              <div className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform duration-300 flex items-center justify-center ${showStarredOnly ? 'transform translate-x-4 bg-[#E8A800]' : 'bg-gray-500'}`}>
+                {showStarredOnly && (
+                  <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                )}
+              </div>
+            </div>
+            <span className="text-sm font-semibold text-[#D4CCBB] group-hover:text-white transition-colors flex items-center gap-1.5">
               Show only starred players
             </span>
           </label>
         </div>
 
         {/* Pagination - Top */}
-        {filteredPlayers.length > playersPerPage && <PaginationControls />}
+        {filteredPlayers.length > playersPerPage && <div className="relative z-10"><PaginationControls /></div>}
 
         {/* Actions - Top */}
         {round.status === 'active' && (
-          <div className="flex gap-4 my-6">
+          <div className="flex gap-4 my-6 relative z-10">
             {!submitted ? (
               <>
                 <button
                   onClick={handleSaveDraft}
                   disabled={saving}
-                  className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
+                  className="flex-1 px-6 py-3.5 rounded-xl bg-white/[0.02] border border-white/10 text-white hover:bg-white/10 hover:border-white/20 active:scale-[0.98] transition-all disabled:opacity-50 font-extrabold uppercase tracking-wider text-xs cursor-pointer shadow-lg shadow-black/20"
                 >
                   {saving ? 'Saving...' : 'Save Draft'}
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || selections.length === 0}
-                  className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                  className="flex-1 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-extrabold uppercase tracking-wider text-xs active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-emerald-950/20"
                 >
                   {submitting ? 'Submitting...' : 'Submit Selections'}
                 </button>
@@ -883,7 +941,7 @@ export default function BulkRoundSelectionClient({
               <button
                 onClick={handleUnlockSelections}
                 disabled={unlocking}
-                className="flex-1 px-6 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all disabled:opacity-50 font-medium"
+                className="flex-1 px-6 py-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 active:scale-[0.98] transition-all disabled:opacity-50 font-extrabold uppercase tracking-wider text-xs cursor-pointer shadow-lg"
               >
                 {unlocking ? 'Unlocking...' : 'Edit Selections'}
               </button>
@@ -892,87 +950,119 @@ export default function BulkRoundSelectionClient({
         )}
 
         {/* Players Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6 relative z-10">
           {paginatedPlayers.map(player => {
             const isSelected = selections.includes(player.id)
             const limitReached = !isSelected && selections.length >= targetSlots
 
+            // Position specific colors
+            let posBadgeColor = 'border-amber-500/30 text-amber-400 bg-amber-500/5'
+            if (player.position.includes('GK')) {
+              posBadgeColor = 'border-[#E8A800]/30 text-[#E8A800] bg-[#E8A800]/5'
+            } else if (player.position.includes('DF') || player.position.includes('DEF')) {
+              posBadgeColor = 'border-blue-500/30 text-blue-400 bg-blue-500/5'
+            } else if (player.position.includes('MD') || player.position.includes('MID')) {
+              posBadgeColor = 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5'
+            } else if (player.position.includes('FW') || player.position.includes('FWD') || player.position.includes('ST')) {
+              posBadgeColor = 'border-red-500/30 text-red-400 bg-red-500/5'
+            }
+
             return (
               <div
                 key={player.id}
-                className={`rounded-xl border p-4 transition-all relative ${
+                className={`rounded-2xl border p-4 transition-all duration-300 relative overflow-hidden group backdrop-blur-md shadow-lg ${
                   isSelected
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                    ? 'bg-emerald-500/[0.04] border-emerald-500/30 hover:border-emerald-500/50 shadow-emerald-950/10'
+                    : 'bg-white/[0.02] border-white/5 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-black/30 hover:-translate-y-0.5'
                 }`}
               >
+                {/* Radial glow background on selection */}
+                {isSelected && (
+                  <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-emerald-500/10 blur-[50px] pointer-events-none -mr-10 -mt-10" />
+                )}
+
                 {/* Star Button */}
                 <button
                   onClick={(e) => toggleStar(player.id, e)}
                   disabled={starringInProgress.has(player.id)}
-                  className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-black/50 hover:bg-black/70 transition-all disabled:opacity-50"
+                  className="absolute top-3 right-3 z-20 p-2 rounded-xl bg-black/40 hover:bg-black/70 border border-white/5 active:scale-90 transition-all cursor-pointer"
                   title={starredPlayerIds.has(player.id) ? 'Unstar player' : 'Star player'}
                 >
                   {starredPlayerIds.has(player.id) ? (
-                    <svg className="w-4 h-4 text-[#E8A800] fill-current" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[#E8A800] fill-current drop-shadow-[0_0_6px_rgba(232,168,0,0.5)]" viewBox="0 0 24 24">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4 text-gray-400 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-gray-400 group-hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                   )}
                 </button>
 
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                <div className="flex items-center gap-3.5 mb-4 relative z-10">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-white/5 border border-white/10 relative flex-shrink-0">
+                    {/* Glowing highlight in background */}
+                    <div className={`absolute inset-0 bg-gradient-to-tr transition-opacity duration-300 opacity-20 group-hover:opacity-40 ${
+                      isSelected ? 'from-emerald-500 to-transparent' : 'from-[#E8A800] to-transparent'
+                    }`} />
                     <img
                       src={player.photoUrl}
                       alt={player.name}
-                      loading="eager"
+                      loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover relative z-10 transition-transform duration-300 group-hover:scale-110"
                       onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                     />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-white text-sm leading-tight">{player.name}</h3>
-                    <p className="text-xs text-[#D4CCBB]">
-                      {player.position} • OVR {player.overall}
-                      {player.playing_style && <span className="text-purple-400"> • {player.playing_style}</span>}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-white text-sm leading-snug truncate group-hover:text-[#E8A800] transition-colors">{player.name}</h3>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded border text-[10px] font-extrabold uppercase tracking-wide ${posBadgeColor}`}>
+                        {player.position}
+                      </span>
+                      {player.playing_style && (
+                        <span className="px-2 py-0.5 rounded border border-purple-500/20 text-purple-400 bg-purple-500/5 text-[10px] font-extrabold uppercase tracking-wide">
+                          {player.playing_style}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {isSelected && (
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                  
+                  {/* Hexagonal overall rating shield */}
+                  <div className="w-11 h-11 relative flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                    <div className="absolute inset-0 bg-[#E8A800]/10 border border-[#E8A800]/30 rounded-xl rotate-45 group-hover:rotate-90 transition-transform duration-500" />
+                    <span className="relative font-black text-sm text-[#E8A800] font-mono drop-shadow-[0_0_4px_rgba(232,168,0,0.4)]">{player.overall}</span>
+                  </div>
+                </div>
+
+                <div className="relative z-10">
+                  {!limitReached && !submitted && (
+                    <button
+                      onClick={() => handleToggleSelection(player.id)}
+                      className={`w-full px-4 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider active:scale-95 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
+                          : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                      }`}
+                    >
+                      {isSelected ? 'Remove Selection' : 'Select Player'}
+                    </button>
+                  )}
+                  {limitReached && !submitted && (
+                    <div className="w-full px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-[#7A7367] text-center text-xs font-bold uppercase tracking-wider">
+                      Selection Limit Reached
+                    </div>
+                  )}
+                  {submitted && (
+                    <div className={`w-full px-4 py-2.5 rounded-xl border text-center text-xs font-extrabold uppercase tracking-wider ${
+                      isSelected 
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                        : 'bg-white/[0.01] border-white/5 text-[#7A7367]'
+                    }`}>
+                      {isSelected ? '✓ Selected' : 'Not Selected'}
                     </div>
                   )}
                 </div>
-
-                {!limitReached && !submitted && (
-                  <button
-                    onClick={() => handleToggleSelection(player.id)}
-                    className={`w-full px-4 py-2 rounded-lg font-medium transition-all ${
-                      isSelected
-                        ? 'bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20'
-                        : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                    }`}
-                  >
-                    {isSelected ? 'Remove' : 'Select'}
-                  </button>
-                )}
-                {limitReached && !submitted && (
-                  <div className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[#7A7367] text-center text-sm">
-                    Selection limit reached
-                  </div>
-                )}
-                {submitted && (
-                  <div className="w-full px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-center text-sm font-medium">
-                    {isSelected ? '✓ Selected' : 'Not Selected'}
-                  </div>
-                )}
               </div>
             )
           })}
@@ -980,27 +1070,27 @@ export default function BulkRoundSelectionClient({
 
         {/* Pagination - Bottom */}
         {filteredPlayers.length > playersPerPage && (
-          <div className="mb-6">
+          <div className="mb-6 relative z-10">
             <PaginationControls />
           </div>
         )}
 
         {/* Actions */}
         {round.status === 'active' && (
-          <div className="flex gap-4">
+          <div className="flex gap-4 relative z-10">
             {!submitted ? (
               <>
                 <button
                   onClick={handleSaveDraft}
                   disabled={saving}
-                  className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
+                  className="flex-1 px-6 py-3.5 rounded-xl bg-white/[0.02] border border-white/10 text-white hover:bg-white/10 hover:border-white/20 active:scale-[0.98] transition-all disabled:opacity-50 font-extrabold uppercase tracking-wider text-xs cursor-pointer shadow-lg shadow-black/20"
                 >
                   {saving ? 'Saving...' : 'Save Draft'}
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || selections.length === 0}
-                  className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                  className="flex-1 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-extrabold uppercase tracking-wider text-xs active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-emerald-950/20"
                 >
                   {submitting ? 'Submitting...' : 'Submit Selections'}
                 </button>
@@ -1009,7 +1099,7 @@ export default function BulkRoundSelectionClient({
               <button
                 onClick={handleUnlockSelections}
                 disabled={unlocking}
-                className="flex-1 px-6 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all disabled:opacity-50 font-medium"
+                className="flex-1 px-6 py-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 active:scale-[0.98] transition-all disabled:opacity-50 font-extrabold uppercase tracking-wider text-xs cursor-pointer shadow-lg"
               >
                 {unlocking ? 'Unlocking...' : 'Edit Selections'}
               </button>
@@ -1020,18 +1110,22 @@ export default function BulkRoundSelectionClient({
 
       {/* Custom Modal */}
       {modalConfig.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className={`text-xl font-bold mb-3 ${modalConfig.isError ? 'text-red-400' : 'text-white'}`}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-all duration-300 animate-fadeIn">
+          <div className="bg-[#0f0f0f]/90 border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            {/* Spotlights inside modal */}
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#E8A800]/5 blur-[35px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-emerald-500/5 blur-[35px] pointer-events-none" />
+
+            <h3 className={`text-lg font-extrabold mb-3 tracking-wide uppercase relative z-10 ${modalConfig.isError ? 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'text-white'}`}>
               {modalConfig.title}
             </h3>
-            <p className="text-[#D4CCBB] mb-6 whitespace-pre-wrap">{modalConfig.message}</p>
-            <div className="flex justify-end gap-3">
+            <p className="text-[#D4CCBB] text-sm font-semibold mb-6 whitespace-pre-wrap leading-relaxed relative z-10">{modalConfig.message}</p>
+            <div className="flex justify-end gap-3 relative z-10">
               {modalConfig.onConfirm ? (
                 <>
                   <button
                     onClick={closeModal}
-                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors font-medium"
+                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/20 active:scale-95 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer"
                   >
                     {modalConfig.cancelText || 'Cancel'}
                   </button>
@@ -1040,10 +1134,10 @@ export default function BulkRoundSelectionClient({
                       closeModal()
                       modalConfig.onConfirm!()
                     }}
-                    className={`px-4 py-2 rounded-lg font-bold transition-all ${
+                    className={`px-4 py-2 rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer active:scale-95 ${
                       modalConfig.isError 
-                        ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/50' 
-                        : 'bg-[#E8A800] text-black hover:bg-[#E8A800]/90'
+                        ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30' 
+                        : 'bg-gradient-to-r from-[#E8A800] to-[#FFC533] text-black hover:shadow-lg hover:shadow-[#E8A800]/20'
                     }`}
                   >
                     {modalConfig.confirmText || 'Confirm'}
@@ -1052,7 +1146,7 @@ export default function BulkRoundSelectionClient({
               ) : (
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 rounded-lg bg-[#E8A800] text-black hover:bg-[#E8A800]/90 font-bold transition-colors"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFC533] text-black hover:shadow-lg hover:shadow-[#E8A800]/20 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   OK
                 </button>

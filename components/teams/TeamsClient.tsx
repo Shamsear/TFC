@@ -54,9 +54,9 @@ export default function TeamsClient({
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(1)}M`
+      return `£${(amount / 1000000).toFixed(1)}M`
     }
-    return `${(amount / 1000).toFixed(0)}K`
+    return `£${(amount / 1000).toFixed(0)}K`
   }
 
   const currentTeams = selectedView === 'overall' ? overallTeams : (seasonTeams[selectedView] || [])
@@ -64,17 +64,21 @@ export default function TeamsClient({
   const isOverallView = selectedView === 'overall'
 
   return (
-    <>
-      {/* Filter Tabs */}
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="relative">
+      {/* Decorative Spotlights */}
+      <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-[#E8A800]/[0.02] blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] rounded-full bg-emerald-500/[0.02] blur-[150px] pointer-events-none" />
+
+      {/* Filter Tabs (Glass capsule style) */}
+      <div className="mb-8">
+        <div className="inline-flex gap-1.5 p-1.5 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-xl max-w-full overflow-x-auto scrollbar-none">
           {/* Overall Tab */}
           <button
             onClick={() => setSelectedView('overall')}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-sm sm:text-base whitespace-nowrap transition-all ${
+            className={`px-5 py-2.5 rounded-xl font-extrabold text-xs whitespace-nowrap transition-all duration-300 transform active:scale-95 cursor-pointer ${
               selectedView === 'overall'
-                ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-lg'
-                : 'bg-[#111111] text-[#7A7367] border border-white/10 hover:border-[#E8A800]/30 hover:text-[#F5F0E8]'
+                ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-[0_0_20px_rgba(232,168,0,0.25)]'
+                : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/[0.02]'
             }`}
           >
             Overall
@@ -85,15 +89,15 @@ export default function TeamsClient({
             <button
               key={season.id}
               onClick={() => setSelectedView(season.id)}
-              className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-sm sm:text-base whitespace-nowrap transition-all flex items-center gap-2 ${
+              className={`px-5 py-2.5 rounded-xl font-extrabold text-xs whitespace-nowrap transition-all duration-300 transform active:scale-95 cursor-pointer flex items-center gap-2 ${
                 selectedView === season.id
-                  ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-lg'
-                  : 'bg-[#111111] text-[#7A7367] border border-white/10 hover:border-[#E8A800]/30 hover:text-[#F5F0E8]'
+                  ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-[0_0_20px_rgba(232,168,0,0.25)]'
+                  : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/[0.02]'
               }`}
             >
               {season.name}
               {season.isActive && (
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
               )}
             </button>
           ))}
@@ -101,30 +105,32 @@ export default function TeamsClient({
       </div>
 
       {/* Header with Stats */}
-      <div className="mb-6 sm:mb-10">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
+      <div className="mb-8 relative z-10 border-b border-white/5 pb-6">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1 sm:mb-2">
-              {isOverallView ? 'All Teams' : seasons.find(s => s.id === selectedView)?.name}
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(232,168,0,0.15)]">
+                {isOverallView ? 'All Teams' : seasons.find(s => s.id === selectedView)?.name}
+              </span>
             </h1>
-            <p className="text-sm sm:text-base text-[#D4CCBB]">
+            <p className="text-xs sm:text-sm text-gray-400 font-semibold mt-1 uppercase tracking-wider">
               {isOverallView ? 'Overall statistics across all seasons' : 'Season-specific team statistics'}
             </p>
           </div>
           
-          {/* Inline Stats */}
-          <div className="flex items-center gap-4 sm:gap-8">
+          {/* Inline Stats Header */}
+          <div className="flex items-center gap-6 sm:gap-10">
             <div>
-              <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8]">{currentStats.totalTeams}</div>
-              <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase tracking-wider">Teams</div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">{currentStats.totalTeams}</div>
+              <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Teams</div>
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8]">{currentStats.totalPlayers}</div>
-              <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase tracking-wider">Players</div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">{currentStats.totalPlayers}</div>
+              <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Players</div>
             </div>
-            <div className="hidden sm:block">
-              <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8]">{formatCurrency(currentStats.totalSpent)}</div>
-              <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase tracking-wider">Total Spent</div>
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">{formatCurrency(currentStats.totalSpent)}</div>
+              <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold font-sans">Total Spent</div>
             </div>
           </div>
         </div>
@@ -132,17 +138,17 @@ export default function TeamsClient({
 
       {/* Teams Grid */}
       {currentTeams.length === 0 ? (
-        <div className="text-center py-12 sm:py-16 rounded-xl bg-white/[0.02] border border-white/10">
-          <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#7A7367] mx-auto mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-12 text-center backdrop-blur-xl relative overflow-hidden">
+          <svg className="w-12 h-12 text-gray-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          <h3 className="text-lg sm:text-xl font-bold text-[#F5F0E8] mb-2">No Teams Found</h3>
-          <p className="text-sm sm:text-base text-[#D4CCBB]">
-            {isOverallView ? 'No teams available' : 'No teams in this season'}
+          <h3 className="text-xl font-black text-white mb-1">No Teams Found</h3>
+          <p className="text-gray-400 text-xs uppercase tracking-wider">
+            {isOverallView ? 'No teams available' : 'No teams registered in this season'}
           </p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {currentTeams.map((team) => {
             const players = isOverallView ? team.totalPlayers : team.seasonPlayers!
             const spent = isOverallView ? team.totalSpent : team.seasonSpent!
@@ -154,54 +160,56 @@ export default function TeamsClient({
               <Link
                 key={team.id}
                 href={`/teams/${team.id}`}
-                className="group rounded-xl bg-[#111111] border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-[#181818] transition-all"
+                className="relative block rounded-2xl bg-[#0d0d0d]/40 backdrop-blur-xl border border-white/5 p-5 hover:border-amber-500/30 hover:bg-white/[0.01] hover:shadow-[0_0_30px_rgba(232,168,0,0.05)] transition-all duration-300 group cursor-pointer overflow-hidden shadow-xl"
               >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] via-transparent to-transparent pointer-events-none" />
+
                 {/* Team Header with Logo */}
-                <div className="mb-3 sm:mb-5">
-                  <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                    <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="md" />
+                <div className="mb-5 relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-black/40 p-1 flex-shrink-0 shadow-lg ring-2 ring-white/5 group-hover:ring-amber-500/20 transition-all flex items-center justify-center">
+                      <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="sm" />
+                    </div>
                     
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-xl font-black text-[#F5F0E8] mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-1">
+                      <h3 className="text-base sm:text-lg font-black text-white mb-0.5 group-hover:text-[#FFB347] transition-colors truncate">
                         {team.name}
                       </h3>
-                      <div className="text-xs text-[#7A7367] truncate">{team.managerName}</div>
+                      <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">{team.managerName}</div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-[#7A7367]">
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="flex items-center gap-3 text-xs text-[#7A7367]">
+                    <div className="flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      <span>{players} players</span>
+                      <span className="font-extrabold uppercase text-[10px] tracking-wider text-gray-400">{players} players</span>
                     </div>
-                    <span className="hidden sm:inline">•</span>
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                      </svg>
-                      <span className="text-[#FFB347]">{wins} wins</span>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-amber-500">★</span>
+                      <span className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">{wins} wins</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="mb-3 sm:mb-5">
-                  <div className="flex items-center justify-between text-xs sm:text-sm mb-1.5 sm:mb-2">
-                    <span className="text-[#D4CCBB]">Total Spent</span>
-                    <span className="text-[#F5F0E8] font-bold">{formatCurrency(spent)}</span>
+                {/* Stats Ledger */}
+                <div className="mb-4 relative z-10">
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="text-gray-500 font-extrabold uppercase tracking-widest text-[9px]">Total Invested</span>
+                    <span className="text-emerald-400 font-black font-mono">{formatCurrency(spent)}</span>
                   </div>
                   {!isOverallView && budget > 0 && (
                     <>
-                      <div className="h-1.5 sm:h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-[#FFC93A] to-[#E8A800] rounded-full transition-all"
                           style={{ width: `${100 - spentPercentage}%` }}
                         ></div>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] sm:text-xs text-[#7A7367] mt-1 sm:mt-1.5">
-                        <span>Remaining Budget: {formatCurrency(budget)}</span>
+                      <div className="flex items-center justify-between text-[8px] text-gray-600 mt-1 font-bold font-mono">
+                        <span>REMAINING: {formatCurrency(budget)}</span>
                         <span>{spentPercentage.toFixed(0)}%</span>
                       </div>
                     </>
@@ -210,23 +218,20 @@ export default function TeamsClient({
 
                 {/* Seasons Badge (Overall view only) */}
                 {isOverallView && (
-                  <div className="mb-3 sm:mb-4">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E8A800]/10 border border-[#E8A800]/20">
-                      <svg className="w-3 h-3 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-xs font-bold text-[#E8A800]">{team.seasonsCount} {team.seasonsCount === 1 ? 'Season' : 'Seasons'}</span>
+                  <div className="mb-4 relative z-10">
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider text-amber-400">
+                      📅 {team.seasonsCount} {team.seasonsCount === 1 ? 'Season' : 'Seasons'}
                     </div>
                   </div>
                 )}
 
                 {/* View Link */}
-                <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-white/10">
-                  <span className="text-xs sm:text-sm font-bold text-[#E8A800] group-hover:text-[#FFC93A] transition-colors">
+                <div className="flex items-center justify-between pt-3 border-t border-white/5 relative z-10">
+                  <span className="text-xs font-bold text-[#E8A800] group-hover:text-[#FFC93A] transition-colors uppercase tracking-wider">
                     View Team
                   </span>
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#E8A800] group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  <svg className="w-4 h-4 text-[#E8A800] group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
               </Link>
@@ -234,6 +239,6 @@ export default function TeamsClient({
           })}
         </div>
       )}
-    </>
+    </div>
   )
 }

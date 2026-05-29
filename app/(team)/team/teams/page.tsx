@@ -25,18 +25,21 @@ export default async function TeamTeamsPage() {
 
   if (!activeSeason) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
-        <main className="pt-24 pb-16 px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center py-12 sm:py-16 rounded-xl bg-white/[0.02] border border-white/10">
-              <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#7A7367] mx-auto mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h2 className="text-xl sm:text-2xl font-black text-white mb-2">No Active Season</h2>
-              <p className="text-gray-400 text-sm sm:text-base">There is no active season at the moment.</p>
-            </div>
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Spotlights */}
+        <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-[#E8A800]/[0.02] blur-[120px] pointer-events-none" />
+        
+        <div className="max-w-md w-full text-center relative z-10">
+          <div className="w-20 h-20 rounded-3xl bg-white/[0.02] border border-white/5 shadow-2xl backdrop-blur-xl flex items-center justify-center text-amber-400 mx-auto mb-6">
+            <svg className="w-10 h-10 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
-        </main>
+          <h2 className="text-2xl font-black text-white tracking-tight mb-2">No Active Season</h2>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            There is currently no active season registered. Team listings will become available once the season starts.
+          </p>
+        </div>
       </div>
     )
   }
@@ -130,167 +133,206 @@ export default async function TeamTeamsPage() {
     return `£${amount.toLocaleString()}`
   }
 
+  const getPositionColor = (pos: string) => {
+    switch (pos.toUpperCase()) {
+      case 'GK': return 'bg-yellow-500/10 border-yellow-500/25 text-yellow-400'
+      case 'CB': return 'bg-blue-500/10 border-blue-500/25 text-blue-400'
+      case 'LB': return 'bg-blue-400/10 border-blue-400/25 text-blue-300'
+      case 'RB': return 'bg-blue-400/10 border-blue-400/25 text-blue-300'
+      case 'DMF': return 'bg-green-600/10 border-green-600/25 text-green-500'
+      case 'CMF': return 'bg-green-500/10 border-green-500/25 text-green-400'
+      case 'LMF': return 'bg-green-400/10 border-green-400/25 text-green-300'
+      case 'RMF': return 'bg-green-400/10 border-green-400/25 text-green-300'
+      case 'AMF': return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+      case 'SS': return 'bg-orange-500/10 border-orange-500/25 text-orange-400'
+      case 'LWF': return 'bg-red-400/10 border-red-400/25 text-red-300'
+      case 'RWF': return 'bg-red-400/10 border-red-400/25 text-red-300'
+      case 'CF': return 'bg-red-500/10 border-red-500/25 text-red-400'
+      default: return 'bg-gray-500/10 border-gray-500/25 text-gray-400'
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 pb-16 relative overflow-hidden">
+      {/* Spotlights */}
+      <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-[#E8A800]/[0.02] blur-[150px] pointer-events-none" />
+      <div className="absolute top-[20%] right-[10%] w-[700px] h-[700px] rounded-full bg-emerald-500/[0.02] blur-[180px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[5%] w-[500px] h-[500px] rounded-full bg-cyan-500/[0.02] blur-[120px] pointer-events-none" />
+
+      {/* Brand Header */}
+      <div className="relative border-b border-white/5 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-md mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
           <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                All Teams
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] border border-white/10 rounded-full text-xs font-semibold text-[#D4CCBB] mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Active Season
+            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-none">
+              <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(232,168,0,0.15)]">
+                League
               </span>
+              <span className="text-white"> Franchises</span>
             </h1>
-            <p className="text-[#D4CCBB] text-sm sm:text-base">
-              {season.name} - Complete team overview with budgets and squad details
+            <p className="text-xs sm:text-sm text-gray-400 font-semibold mt-1.5 uppercase tracking-wider">
+              {season.name} • COMPLETE OVERVIEW AND ACTIVE BUDGET LEDGER
             </p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        {/* Stats Summary */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Teams</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{season.seasonTeams.length}</div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Metric Cards Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-lg overflow-hidden group">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Registered Teams</div>
+            <div className="text-xl sm:text-2xl font-black text-white tracking-tight">{season.seasonTeams.length}</div>
           </div>
 
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Starting Purse</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#E8A800]">
+          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-lg overflow-hidden group">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Starting Purse</div>
+            <div className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFB347] tracking-tight">
               {formatCurrency(season.startingPurse)}
             </div>
           </div>
 
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Players</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">
+          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-lg overflow-hidden group">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Active Roster Players</div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tight">
               {teamsWithDetails.reduce((sum, t) => sum + t.playerCount, 0)}
             </div>
           </div>
 
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Spent</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">
+          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-lg overflow-hidden group">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Total Invested</div>
+            <div className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 tracking-tight">
               {formatCurrency(teamsWithDetails.reduce((sum, t) => sum + t.totalSpent, 0))}
             </div>
           </div>
         </div>
 
-        {/* Teams Grid */}
+        {/* Teams Listing Grid */}
         {season.seasonTeams.length === 0 ? (
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4">
-              <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-12 sm:p-16 text-center backdrop-blur-xl relative overflow-hidden">
+            <div className="w-20 h-20 rounded-3xl bg-white/[0.02] border border-white/5 shadow-2xl backdrop-blur-xl flex items-center justify-center text-[#E8A800] mx-auto mb-6">
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             </div>
-            <div className="text-lg sm:text-xl font-black text-white mb-2">No Teams Assigned</div>
-            <p className="text-[#D4CCBB] text-sm sm:text-base mb-6">
-              Assign teams to this season to get started with the league
+            <h2 className="text-2xl font-black text-white mb-2">No Active Teams</h2>
+            <p className="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
+              No franchises have been registered for this season yet. Contact the league administrator.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6">
-            {teamsWithDetails.map((teamDetail) => (
-              <Link
-                key={teamDetail.id}
-                href={`/team/teams/${teamDetail.team.id}`}
-                className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-4 sm:p-6 cursor-pointer group"
-              >
-                <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-                  {/* Team Logo */}
-                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-br from-gray-700 to-gray-900 flex-shrink-0 ring-2 ring-white/10 flex items-center justify-center">
-                    {teamDetail.team.logoUrl ? (
-                      <Image
-                        src={teamDetail.team.logoUrl}
-                        alt={teamDetail.team.name}
-                        fill
-                        className="object-contain p-2"
-                        unoptimized
-                      />
-                    ) : (
-                      <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                      </svg>
-                    )}
-                  </div>
+          <div className="grid grid-cols-1 gap-5">
+            {teamsWithDetails.map((teamDetail) => {
+              const isMyTeam = teamDetail.team.id === session.user.teamId
+              return (
+                <Link
+                  key={teamDetail.id}
+                  href={`/team/teams/${teamDetail.team.id}`}
+                  className={`relative block rounded-2xl p-5 sm:p-6 backdrop-blur-xl shadow-xl overflow-hidden group transition-all duration-300 border ${
+                    isMyTeam
+                      ? 'bg-emerald-500/[0.01] border-emerald-500/20 shadow-[0_0_35px_rgba(16,185,129,0.05)]'
+                      : 'bg-[#0d0d0d]/40 border-white/5 hover:border-amber-500/30 hover:bg-white/[0.01]'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] via-transparent to-transparent pointer-events-none" />
 
-                  {/* Team Info */}
-                  <div className="flex-1 w-full">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-[#E8A800] mb-1 transition-colors">
-                          {teamDetail.team.name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-[#7A7367]">
-                          Manager: {teamDetail.team.managerName}
-                        </p>
-                      </div>
-                      {teamDetail.trophiesWon > 0 && (
-                        <div className="flex items-center gap-2 px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] self-start">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                          </svg>
-                          <span className="font-bold text-sm">{teamDetail.trophiesWon}</span>
-                        </div>
+                  <div className="flex flex-col md:flex-row md:items-center gap-5 relative z-10">
+                    {/* Team Logo Frame */}
+                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-black/40 p-1.5 flex-shrink-0 group-hover:scale-[1.02] ring-4 ring-white/5 transition-all flex items-center justify-center shadow-lg">
+                      {teamDetail.team.logoUrl ? (
+                        <Image
+                          src={teamDetail.team.logoUrl}
+                          alt={teamDetail.team.name}
+                          fill
+                          className="object-contain p-2 rounded-xl"
+                          unoptimized
+                        />
+                      ) : (
+                        <svg className="w-8 h-8 text-white/25" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                        </svg>
                       )}
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
-                      <div className="rounded-lg sm:rounded-xl bg-black/30 border border-white/5 p-2 sm:p-3">
-                        <div className="text-xs text-[#7A7367] mb-1">Current Budget</div>
-                        <div className="text-sm sm:text-base font-black text-emerald-400">
-                          {formatCurrency(teamDetail.currentBudget)}
+                    {/* Team Details */}
+                    <div className="flex-1 w-full min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                          <h3 className={`text-xl font-black tracking-tight flex items-center gap-2 group-hover:text-[#FFB347] transition-colors truncate`}>
+                            {teamDetail.team.name}
+                            {isMyTeam && (
+                              <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                Your Club
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">
+                            Manager: {teamDetail.team.managerName}
+                          </p>
+                        </div>
+
+                        {teamDetail.trophiesWon > 0 && (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-wider self-start sm:self-center shadow-inner animate-[pulse_4s_infinite]">
+                            🏆 {teamDetail.trophiesWon} Trophy{teamDetail.trophiesWon !== 1 ? 'ies' : ''}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mini Stats Ledger Grid */}
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                        <div className="rounded-xl bg-black/40 border border-white/5 p-3">
+                          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Available budget</div>
+                          <div className="text-sm font-black text-emerald-400">
+                            {formatCurrency(teamDetail.currentBudget)}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-black/40 border border-white/5 p-3">
+                          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Total Spent</div>
+                          <div className="text-sm font-black text-[#FFB347]">
+                            {formatCurrency(teamDetail.totalSpent)}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-black/40 border border-white/5 p-3">
+                          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Roster players</div>
+                          <div className="text-sm font-black text-cyan-400">
+                            {teamDetail.playerCount}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-black/40 border border-white/5 p-3">
+                          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Remaining</div>
+                          <div className="text-sm font-black text-purple-400">
+                            {formatCurrency(teamDetail.currentBudget)}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="rounded-lg sm:rounded-xl bg-black/30 border border-white/5 p-2 sm:p-3">
-                        <div className="text-xs text-[#7A7367] mb-1">Total Spent</div>
-                        <div className="text-sm sm:text-base font-black text-[#FFB347]">
-                          {formatCurrency(teamDetail.totalSpent)}
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg sm:rounded-xl bg-black/30 border border-white/5 p-2 sm:p-3">
-                        <div className="text-xs text-[#7A7367] mb-1">Players</div>
-                        <div className="text-sm sm:text-base font-black text-cyan-400">
-                          {teamDetail.playerCount}
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg sm:rounded-xl bg-black/30 border border-white/5 p-2 sm:p-3">
-                        <div className="text-xs text-[#7A7367] mb-1">Remaining</div>
-                        <div className="text-sm sm:text-base font-black text-purple-400">
-                          {formatCurrency(teamDetail.currentBudget)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Squad Composition */}
-                    {Object.keys(teamDetail.playersByPosition).length > 0 && (
-                      <div>
-                        <div className="text-xs text-[#7A7367] mb-2 font-medium">Squad Composition</div>
-                        <div className="flex flex-wrap gap-1 sm:gap-2">
+                      {/* Squad Breakdown */}
+                      {Object.keys(teamDetail.playersByPosition).length > 0 && (
+                        <div className="border-t border-white/5 pt-3 mt-3 flex flex-wrap items-center gap-2">
+                          <span className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mr-1">Roster Breakdown</span>
                           {Object.entries(teamDetail.playersByPosition)
                             .sort(([a], [b]) => a.localeCompare(b))
                             .map(([position, count]) => (
                               <div
                                 key={position}
-                                className="px-2 sm:px-3 py-1 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold"
+                                className={`px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase tracking-wider ${getPositionColor(position)}`}
                               >
                                 {position}: {count}
                               </div>
                             ))}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

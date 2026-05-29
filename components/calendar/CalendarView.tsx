@@ -292,33 +292,33 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
   }, [calendarDays, auctions, matches, currentDate])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative z-10">
       {/* Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             onClick={previousMonth}
-            className="p-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg transition-all"
+            className="p-2.5 bg-white/[0.02] border border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-95 rounded-xl transition-all cursor-pointer shadow-md"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <button
             onClick={today}
-            className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg font-bold text-sm transition-all"
+            className="px-4 py-2 bg-white/[0.02] border border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-95 rounded-xl font-extrabold uppercase tracking-wider text-xs transition-all cursor-pointer shadow-md"
           >
             Today
           </button>
           <button
             onClick={nextMonth}
-            className="p-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg transition-all"
+            className="p-2.5 bg-white/[0.02] border border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-95 rounded-xl transition-all cursor-pointer shadow-md"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
-          <div className="text-xl font-black text-white ml-2">
+          <div className="text-xl font-black text-white ml-2 tracking-tight">
             {formatDate(currentDate, 'MMMM yyyy')}
           </div>
         </div>
@@ -326,32 +326,32 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportICal}
-            className="px-4 py-2 bg-gradient-to-r from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 hover:border-[#E8A800]/50 text-[#E8A800] rounded-lg font-bold text-sm transition-all flex items-center gap-1.5 hover:scale-105"
+            className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/50 hover:bg-emerald-500/25 text-emerald-400 rounded-xl font-extrabold uppercase tracking-wider text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-950/10"
             title="Download iCal calendar feed (.ics) for Google/Apple Calendar"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Export (.ics)
           </button>
 
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-1.5 p-1 bg-white/[0.02] border border-white/5 rounded-xl backdrop-blur-md shadow-inner">
             <button
               onClick={() => setView('month')}
-              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+              className={`px-4 py-2 rounded-lg font-extrabold uppercase tracking-wider text-xs transition-all cursor-pointer ${
                 view === 'month'
-                  ? 'bg-[#E8A800] text-[#0a0a0a]'
-                  : 'bg-white/5 border border-white/10 text-[#7A7367] hover:bg-white/10'
+                  ? 'bg-[#E8A800] text-[#0a0a0a] shadow-md shadow-[#E8A800]/25'
+                  : 'bg-transparent text-gray-500 hover:text-white'
               }`}
             >
               Month
             </button>
             <button
               onClick={() => setView('list')}
-              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+              className={`px-4 py-2 rounded-lg font-extrabold uppercase tracking-wider text-xs transition-all cursor-pointer ${
                 view === 'list'
-                  ? 'bg-[#E8A800] text-[#0a0a0a]'
-                  : 'bg-white/5 border border-white/10 text-[#7A7367] hover:bg-white/10'
+                  ? 'bg-[#E8A800] text-[#0a0a0a] shadow-md shadow-[#E8A800]/25'
+                  : 'bg-transparent text-gray-500 hover:text-white'
               }`}
             >
               List
@@ -361,43 +361,43 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
       </div>
 
       {/* Legend - Desktop Only */}
-      <div className="hidden sm:flex flex-wrap items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/10">
+      <div className="hidden sm:flex flex-wrap items-center gap-4 p-4 rounded-xl bg-white/[0.01] border border-white/5 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#E8A800]"></div>
-          <span className="text-sm text-[#D4CCBB]">Auctions ({auctions.length})</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]"></div>
+          <span className="text-xs font-bold text-[#D4CCBB] uppercase tracking-wider">Auctions ({auctions.length})</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#FFB347]"></div>
-          <span className="text-sm text-[#D4CCBB]">Matches ({matches.length})</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+          <span className="text-xs font-bold text-[#D4CCBB] uppercase tracking-wider">Matches ({matches.length})</span>
         </div>
       </div>
 
       {/* Mobile: Vertical Calendar List */}
-      <div className="sm:hidden space-y-2">
+      <div className="sm:hidden space-y-3 relative z-10">
         {mobileCalendarDays.map((day, index) => (
           <div
             key={day.date.toISOString()}
-            className={`rounded-lg border overflow-hidden ${
+            className={`rounded-2xl border backdrop-blur-md overflow-hidden transition-all duration-200 ${
               day.isToday 
-                ? 'bg-[#E8A800]/5 border-[#E8A800]/30' 
+                ? 'bg-emerald-500/[0.03] border-emerald-500/30 shadow-lg shadow-emerald-950/10' 
                 : day.isCurrentMonth 
-                  ? 'bg-white/[0.02] border-white/10' 
-                  : 'bg-white/[0.01] border-white/5'
+                  ? 'bg-white/[0.02] border-white/5 hover:border-white/15' 
+                  : 'bg-white/[0.005] border-white/5 opacity-55'
             }`}
           >
-            <div className="flex gap-3 p-3">
+            <div className="flex gap-3 p-4">
               {/* Left: Day Number */}
-              <div className="flex-shrink-0 text-center w-12">
-                <div className={`text-2xl font-black leading-none ${
+              <div className="flex-shrink-0 text-center w-12 flex flex-col justify-center">
+                <div className={`text-2xl font-black leading-none font-mono tracking-tight ${
                   day.isToday 
-                    ? 'text-[#E8A800]' 
+                    ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]' 
                     : day.isCurrentMonth 
                       ? 'text-[#F5F0E8]' 
                       : 'text-[#7A7367]'
                 }`}>
                   {formatDate(day.date, 'd')}
                 </div>
-                <div className={`text-[10px] uppercase mt-0.5 font-bold ${
+                <div className={`text-[9px] font-extrabold uppercase mt-1 tracking-wider ${
                   day.isCurrentMonth ? 'text-[#7A7367]' : 'text-[#3A342E]'
                 }`}>
                   {formatDate(day.date, 'MMM')}
@@ -407,39 +407,39 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
               {/* Right: Event Details or Empty State */}
               <div className="flex-1 min-w-0">
                 {day.hasEvents ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {/* Auctions */}
                     {day.auctions.map(auction => (
                       <Link
                         key={auction.id}
                         href={`${basePath}/auctions?auctionId=${auction.id}&from=calendar`}
-                        className="block p-2 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 hover:bg-[#E8A800]/20 transition-all"
+                        className="block p-3 rounded-xl bg-[#E8A800]/5 border border-[#E8A800]/20 hover:border-[#E8A800]/40 transition-all"
                       >
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#E8A800]"></div>
-                          <span className="text-[10px] font-bold text-[#E8A800] uppercase">Auction</span>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E8A800] animate-pulse" />
+                          <span className="text-[9px] font-extrabold text-[#E8A800] uppercase tracking-wider">Auction</span>
                         </div>
-                        <div className="text-[#F5F0E8] font-bold text-sm mb-1">
+                        <div className="text-[#F5F0E8] font-extrabold text-sm mb-1">
                           {auction.description || 'Auction Round'}
                         </div>
-                        <div className="text-xs text-[#D4CCBB] mb-1">
+                        <div className="text-xs text-[#D4CCBB] font-semibold mb-1 font-mono">
                           {formatDate(new Date(auction.auctionDate), 'h:mm a')}
                         </div>
                         {auction.endDate && (
-                          <div className="text-[10px] text-red-400 mb-1.5 flex items-center gap-1">
+                          <div className="text-[10px] text-red-400 mb-2 flex items-center gap-1 font-semibold">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span>Deadline: {formatDate(new Date(auction.endDate), 'h:mm a')}</span>
                           </div>
                         )}
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1.5">
                           {auction.auctionSlots.map((slot, idx) => {
                             const isBulk = slot.roundType === 'bulk';
                             const displayPosition = slot.positionHidden ? '???' : slot.position;
                             const displayGroup = slot.positionHidden ? '' : (slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : '');
                             return (
-                              <span key={idx} className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                              <span key={idx} className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold border transition-all ${
                                 isBulk 
                                   ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]' 
                                   : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
@@ -459,19 +459,19 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                       <Link
                         key={`${group.tournamentId}-${group.round}-${idx}`}
                         href={`${basePath}/tournaments/${group.tournamentId}?round=${encodeURIComponent(group.round)}`}
-                        className="block p-2 rounded bg-[#FFB347]/10 border border-[#FFB347]/20 hover:bg-[#FFB347]/20 transition-all"
+                        className="block p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/40 transition-all"
                       >
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#FFB347]"></div>
-                          <span className="text-[10px] font-bold text-[#FFB347] uppercase">Matches</span>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="text-[9px] font-extrabold text-[#34D399] uppercase tracking-wider">Matches</span>
                         </div>
-                        <div className="text-[#F5F0E8] font-bold text-sm mb-0.5">
+                        <div className="text-[#F5F0E8] font-extrabold text-sm mb-0.5">
                           {group.tournament}
                         </div>
-                        <div className="text-xs text-[#D4CCBB] mb-1.5">
+                        <div className="text-xs text-[#D4CCBB] font-semibold mb-2">
                           {group.round} • {group.matches.length} {group.matches.length === 1 ? 'match' : 'matches'}
                         </div>
-                        <div className="text-xs text-[#F5F0E8] space-y-0.5">
+                        <div className="text-xs text-[#F5F0E8] space-y-1">
                           {group.matches.slice(0, 2).map((m, mIdx) => (
                             <div key={mIdx} className="flex items-center gap-1.5">
                               <span className="text-[#7A7367]">•</span>
@@ -485,14 +485,14 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                                   (VOID)
                                 </span>
                               ) : m.homeScore !== null && m.awayScore !== null && (
-                                <span className="text-[#FFB347] font-bold whitespace-nowrap text-[10px]">
-                                  {m.homeScore}-{m.awayScore}
+                                <span className="text-emerald-400 font-extrabold whitespace-nowrap text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 px-1 rounded">
+                                  {m.homeScore}–{m.awayScore}
                                 </span>
                               )}
                             </div>
                           ))}
                           {group.matches.length > 2 && (
-                            <div className="text-[#7A7367] text-[10px]">
+                            <div className="text-[#7A7367] text-[10px] font-bold uppercase tracking-wider mt-1">
                               +{group.matches.length - 2} more
                             </div>
                           )}
@@ -502,7 +502,7 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                   </div>
                 ) : (
                   <div className="flex items-center h-full">
-                    <span className="text-xs text-[#3A342E]">No events</span>
+                    <span className="text-xs text-[#3A342E] font-medium italic">No events scheduled</span>
                   </div>
                 )}
               </div>
@@ -511,16 +511,15 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
         ))}
       </div>
 
-
-      {/* Desktop: Month/List View Toggle */}
-      <div className="hidden sm:block">
+      {/* Desktop: Month/List View Switcher */}
+      <div className="hidden sm:block relative z-10">
         {view === 'month' ? (
           /* Month View */
-          <div className="rounded-xl bg-white/[0.02] border border-white/10 overflow-hidden">
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 overflow-hidden backdrop-blur-xl shadow-xl">
             {/* Weekday Headers */}
-            <div className="grid grid-cols-7 border-b border-white/10">
+            <div className="grid grid-cols-7 border-b border-white/5 bg-white/[0.01]">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="p-3 text-center text-sm font-bold text-gray-500 border-r border-white/10 last:border-r-0">
+                <div key={day} className="p-3 text-center text-xs font-extrabold text-[#7A7367] border-r border-white/5 last:border-r-0 uppercase tracking-widest">
                   {day}
                 </div>
               ))}
@@ -537,48 +536,32 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`min-h-32 border-r border-b border-white/10 ${
+                    className={`min-h-[140px] border-r border-b border-white/5 p-2 transition-all duration-300 relative group/cell hover:bg-white/[0.02] ${
                       index % 7 === 6 ? '' : 'border-r'
                     } ${
-                      !isCurrentMonth ? 'bg-white/[0.01]' : ''
-                    } ${isToday ? 'bg-[#E8A800]/5' : ''}`}
+                      !isCurrentMonth ? 'bg-white/[0.005] opacity-50' : 'bg-transparent'
+                    } ${isToday ? 'bg-emerald-500/[0.03] shadow-[inset_0_0_15px_rgba(16,185,129,0.05)]' : ''}`}
                   >
-                    <div className="p-2">
-                      <div className={`text-sm font-bold mb-1 ${
-                        isToday ? 'text-[#E8A800]' : isCurrentMonth ? 'text-[#F5F0E8]' : 'text-[#7A7367]'
+                    <div className="h-full flex flex-col justify-between">
+                      <div className={`text-sm font-black mb-1.5 flex items-center justify-between font-mono ${
+                        isToday ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]' : isCurrentMonth ? 'text-white' : 'text-[#7A7367]'
                       }`}>
-                        {formatDate(day, 'd')}
+                        <span>{formatDate(day, 'd')}</span>
+                        {isToday && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />}
                       </div>
 
-                      {hasEvents && (
-                        <div className="space-y-1">
+                      {hasEvents ? (
+                        <div className="space-y-1.5 mt-auto">
                           {events.auctions.map(auction => (
                             <Link
                               key={auction.id}
                               href={`${basePath}/auctions?auctionId=${auction.id}&from=calendar`}
-                              className="block p-1.5 rounded bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/20 transition-all"
+                              className="block p-2 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 hover:border-[#E8A800]/50 text-[#E8A800] hover:bg-[#E8A800]/20 transition-all shadow-sm"
                               title={`Auction: ${auction.description || 'Auction Round'} - ${auction.auctionSlots.length} positions${auction.endDate ? ` - Deadline: ${formatDate(new Date(auction.endDate), 'h:mm a')}` : ''}`}
                             >
-                              <div className="font-bold truncate text-xs leading-tight">{auction.description || 'Auction'}</div>
-                              <div className="text-[10px] opacity-70 truncate">
+                              <div className="font-extrabold truncate text-[11px] leading-tight tracking-wide">{auction.description || 'Auction'}</div>
+                              <div className="text-[9px] opacity-70 truncate font-semibold font-mono mt-0.5">
                                 {formatDate(new Date(auction.auctionDate), 'h:mm a')}
-                              </div>
-                              {auction.endDate && (
-                                <div className="text-[10px] text-red-400 opacity-90 truncate flex items-center gap-0.5">
-                                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  <span>{formatDate(new Date(auction.endDate), 'h:mm a')}</span>
-                                </div>
-                              )}
-                              <div className="text-[10px] opacity-70 truncate">
-                                {auction.auctionSlots.map(s => {
-                                  const displayPosition = s.positionHidden ? '???' : s.position;
-                                  const groupPart = s.positionHidden ? '' : (s.position_group && s.position_group !== 'ALL' ? `-${s.position_group}` : '');
-                                  const typePart = s.roundType === 'bulk' ? ' (Bulk)' : '';
-                                  const hiddenPart = s.positionHidden ? ' (Hidden)' : '';
-                                  return `${displayPosition}${groupPart}${typePart}${hiddenPart}`;
-                                }).join(', ')}
                               </div>
                             </Link>
                           ))}
@@ -586,14 +569,16 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                             <Link
                               key={`${group.tournamentId}-${group.round}-${idx}`}
                               href={`${basePath}/tournaments/${group.tournamentId}?round=${encodeURIComponent(group.round)}`}
-                              className="block p-1.5 rounded bg-[#FFB347]/10 border border-[#FFB347]/20 text-[#FFB347] cursor-pointer hover:bg-[#FFB347]/20 transition-all"
+                              className="block p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/50 text-emerald-400 cursor-pointer hover:bg-emerald-500/20 transition-all shadow-sm"
                               title={`${group.tournament} - ${group.round} (${group.matches.length} matches)`}
                             >
-                              <div className="font-bold truncate text-xs leading-tight">{group.tournament}</div>
-                              <div className="text-[10px] opacity-70 truncate">{group.round}</div>
+                              <div className="font-extrabold truncate text-[11px] leading-tight tracking-wide">{group.tournament}</div>
+                              <div className="text-[9px] opacity-70 truncate font-semibold font-mono mt-0.5">{group.round}</div>
                             </Link>
                           ))}
                         </div>
+                      ) : (
+                        <div className="flex-1" />
                       )}
                     </div>
                   </div>
@@ -605,8 +590,8 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
           /* List View */
           <div className="space-y-3">
             {allEvents.length === 0 ? (
-              <div className="rounded-xl bg-white/[0.02] border border-white/10 p-12 text-center">
-                <div className="text-gray-400">No events scheduled</div>
+              <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-12 text-center backdrop-blur-xl">
+                <div className="text-gray-500 font-bold uppercase tracking-wider text-sm">No events scheduled</div>
               </div>
             ) : (
               allEvents.map((event, index) => (
@@ -614,51 +599,51 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                   <Link
                     key={`${event.type}-${index}`}
                     href={`${basePath}/auctions?auctionId=${event.data.id}&from=calendar`}
-                    className="block rounded-xl bg-white/[0.02] border border-white/10 p-6 hover:border-white/20 hover:bg-white/[0.04] transition-all"
+                    className="block rounded-2xl bg-white/[0.01] border border-white/5 hover:border-white/15 p-5 hover:bg-white/[0.03] transition-all backdrop-blur-md shadow-lg"
                   >
                     <div className="flex items-center gap-4">
                       {/* Date */}
                       <div className="flex-shrink-0">
-                        <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
-                          <div className="text-2xl font-black text-white">{formatDate(event.date, 'd')}</div>
-                          <div className="text-xs text-gray-500 uppercase">{formatDate(event.date, 'MMM')}</div>
+                        <div className="text-center p-3 rounded-xl bg-white/[0.02] border border-white/10 w-16">
+                          <div className="text-2xl font-black text-white font-mono">{formatDate(event.date, 'd')}</div>
+                          <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">{formatDate(event.date, 'MMM')}</div>
                         </div>
                       </div>
 
                       {/* Event Details */}
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-[#E8A800]"></div>
-                          <span className="text-sm font-bold text-[#E8A800]">AUCTION</span>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E8A800] animate-pulse" />
+                          <span className="text-[10px] font-extrabold text-[#E8A800] tracking-wider uppercase">AUCTION</span>
                         </div>
-                        <div className="text-[#F5F0E8] font-bold mb-1">
+                        <div className="text-white font-extrabold text-base mb-1 tracking-wide">
                           {event.data.description || 'Auction Round'}
                         </div>
-                        <div className="text-sm text-[#D4CCBB] mb-2">
+                        <div className="text-xs text-[#D4CCBB] font-semibold mb-2 font-mono">
                           {formatDate(event.date, 'h:mm a')}
                         </div>
                         {event.data.endDate && (
-                          <div className="text-sm text-red-400 mb-2 flex items-center gap-1">
+                          <div className="text-xs text-red-400 mb-3 flex items-center gap-1.5 font-semibold">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span>Deadline: {formatDate(new Date(event.data.endDate), 'h:mm a')}</span>
                           </div>
                         )}
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                           {event.data.auctionSlots.map((slot: any, idx: number) => {
                             const isBulk = slot.roundType === 'bulk';
                             const displayPosition = slot.positionHidden ? '???' : slot.position;
                             const displayGroup = slot.positionHidden ? '' : (slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : '');
                             return (
-                              <span key={idx} className={`px-2 py-1 rounded border text-xs font-bold transition-all ${
+                              <span key={idx} className={`px-2.5 py-0.5 rounded-lg border text-[10px] font-extrabold transition-all ${
                                 isBulk
                                   ? 'bg-[#A855F7]/10 border-[#A855F7]/20 text-[#A855F7]'
                                   : 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800]'
                               } ${slot.positionHidden ? 'opacity-75' : ''}`}>
                                 {displayPosition}{displayGroup}
-                                {isBulk && <span className="text-[10px] font-normal ml-1 opacity-80">(Bulk)</span>}
-                                {slot.positionHidden && <span className="text-[10px] font-normal ml-1 opacity-80">(Hidden)</span>}
+                                {isBulk && <span className="text-[9px] font-normal ml-1 opacity-80">(Bulk)</span>}
+                                {slot.positionHidden && <span className="text-[9px] font-normal ml-1 opacity-80">(Hidden)</span>}
                               </span>
                             );
                           })}
@@ -670,45 +655,47 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                   <Link
                     key={`${event.type}-${index}`}
                     href={`${basePath}/tournaments/${event.data.tournamentId}?round=${encodeURIComponent(event.data.round)}`}
-                    className="block rounded-xl bg-white/[0.02] border border-white/10 p-6 hover:border-white/20 hover:bg-white/[0.04] transition-all"
+                    className="block rounded-2xl bg-white/[0.01] border border-white/5 hover:border-white/15 p-5 hover:bg-white/[0.03] transition-all backdrop-blur-md shadow-lg"
                   >
                     <div className="flex items-center gap-4">
                       {/* Date */}
                       <div className="flex-shrink-0">
-                        <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
-                          <div className="text-2xl font-black text-white">{formatDate(event.date, 'd')}</div>
-                          <div className="text-xs text-gray-500 uppercase">{formatDate(event.date, 'MMM')}</div>
+                        <div className="text-center p-3 rounded-xl bg-white/[0.02] border border-white/10 w-16">
+                          <div className="text-2xl font-black text-white font-mono">{formatDate(event.date, 'd')}</div>
+                          <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">{formatDate(event.date, 'MMM')}</div>
                         </div>
                       </div>
 
                       {/* Event Details */}
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-[#FFB347]"></div>
-                          <span className="text-sm font-bold text-[#FFB347]">MATCHES</span>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="text-[10px] font-extrabold text-[#34D399] tracking-wider uppercase">MATCHES</span>
                         </div>
-                        <div className="text-[#F5F0E8] font-bold mb-1">
+                        <div className="text-white font-extrabold text-base mb-1 tracking-wide">
                           {event.data.tournament}
                         </div>
-                        <div className="text-sm text-[#D4CCBB] mb-2">
-                          {event.data.round} • {formatDate(event.date, 'h:mm a')} • {event.data.matches.length} {event.data.matches.length === 1 ? 'match' : 'matches'}
+                        <div className="text-xs text-[#D4CCBB] font-semibold mb-3">
+                          {event.data.round} <span className="text-white/20">•</span> <span className="font-mono">{formatDate(event.date, 'h:mm a')}</span> <span className="text-white/20">•</span> {event.data.matches.length} {event.data.matches.length === 1 ? 'match' : 'matches'}
                         </div>
-                        <div className="text-sm text-[#F5F0E8] space-y-1">
+                        <div className="text-xs text-[#F5F0E8] space-y-1.5 max-w-xl">
                           {event.data.matches.slice(0, 3).map((m: any, idx: number) => (
                             <div key={idx} className="flex items-center gap-2">
                               <span className="text-[#7A7367]">•</span>
-                              <span>{m.homeTeam.team.name} vs {m.awayTeam.team.name}</span>
+                              <span className="font-medium text-white/90">{m.homeTeam.team.name} vs {m.awayTeam.team.name}</span>
                               {m.status === 'WALKOVER' ? (
-                                <span className="text-purple-400 font-bold">(W/O)</span>
+                                <span className="text-purple-400 font-extrabold text-[10px] uppercase bg-purple-500/10 px-1 rounded">(W/O)</span>
                               ) : m.status === 'VOID' ? (
-                                <span className="text-slate-400 font-bold">(VOID)</span>
+                                <span className="text-slate-400 font-extrabold text-[10px] uppercase bg-slate-500/10 px-1 rounded">(VOID)</span>
                               ) : m.homeScore !== null && m.awayScore !== null && (
-                                <span className="text-[#E8A800] font-bold">({m.homeScore}-{m.awayScore})</span>
+                                <span className="text-emerald-400 font-extrabold text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 px-1.5 rounded">
+                                  {m.homeScore}–{m.awayScore}
+                                </span>
                               )}
                             </div>
                           ))}
                           {event.data.matches.length > 3 && (
-                            <div className="text-[#7A7367] text-xs">
+                            <div className="text-[#7A7367] text-[10px] font-bold uppercase tracking-wider mt-2">
                               +{event.data.matches.length - 3} more matches
                             </div>
                           )}

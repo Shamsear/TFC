@@ -26,11 +26,12 @@ export default async function MatchesPage() {
 
   if (!activeSeason || !seasonTeam) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-white mb-4">No Active Season</h1>
-            <p className="text-gray-400">There is no active season at the moment.</p>
+      <div className="min-h-screen bg-[#0a0a0a] py-8 relative overflow-hidden">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/[0.02] rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center py-12 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md shadow-lg">
+            <h1 className="text-2xl font-black text-white mb-2">No Active Season</h1>
+            <p className="text-gray-400 text-sm font-semibold">There is no active season calendar at the moment.</p>
           </div>
         </div>
       </div>
@@ -49,11 +50,12 @@ export default async function MatchesPage() {
 
   if (!currentSeasonTeam) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-white mb-4">Not Participating</h1>
-            <p className="text-gray-400">Your team is not participating in the current season.</p>
+      <div className="min-h-screen bg-[#0a0a0a] py-8 relative overflow-hidden">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/[0.02] rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center py-12 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md shadow-lg">
+            <h1 className="text-2xl font-black text-white mb-2">Not Participating</h1>
+            <p className="text-gray-400 text-sm font-semibold">Your team is not participating in the current season.</p>
           </div>
         </div>
       </div>
@@ -157,37 +159,43 @@ export default async function MatchesPage() {
   }).length
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              {team?.name} Matches
-            </span>
-          </h1>
-          <p className="text-[#D4CCBB] text-sm sm:text-base">{activeSeason.name}</p>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 relative overflow-hidden">
+      {/* Background blurs */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/[0.02] rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-80 right-20 w-80 h-80 bg-[#E8A800]/[0.02] rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header Sticky Strip */}
+      <div className="border-b border-white/5 bg-white/[0.01] sticky top-0 z-40 backdrop-blur-md mb-6 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <span className="bg-gradient-to-r from-[#E8A800] via-[#FFB347] to-[#E8A800] bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(232,168,0,0.15)]">
+                {team?.name} Fixtures
+              </span>
+            </h1>
+            <p className="text-[#D4CCBB] text-xs font-bold uppercase tracking-wider mt-1">{activeSeason.name}</p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Played</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{pastMatches.length}</div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 relative z-10">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-8">
+          <div className="rounded-xl sm:rounded-2xl bg-white/[0.01] border border-white/10 p-4 sm:p-5 backdrop-blur-md shadow-lg">
+            <div className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Played</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.1)]">{pastMatches.length}</div>
           </div>
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Wins</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">{wins}</div>
+          <div className="rounded-xl sm:rounded-2xl bg-emerald-500/[0.02] border border-emerald-500/20 p-4 sm:p-5 backdrop-blur-md shadow-lg">
+            <div className="text-[10px] sm:text-xs text-emerald-500/70 font-bold uppercase tracking-wider mb-1">Wins</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">{wins}</div>
           </div>
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Draws</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-yellow-400">{draws}</div>
+          <div className="rounded-xl sm:rounded-2xl bg-[#E8A800]/[0.02] border border-[#E8A800]/20 p-4 sm:p-5 backdrop-blur-md shadow-lg">
+            <div className="text-[10px] sm:text-xs text-[#E8A800]/70 font-bold uppercase tracking-wider mb-1">Draws</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#E8A800] drop-shadow-[0_0_8px_rgba(232,168,0,0.2)]">{draws}</div>
           </div>
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Losses</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-red-400">{losses}</div>
+          <div className="rounded-xl sm:rounded-2xl bg-red-500/[0.02] border border-red-500/20 p-4 sm:p-5 backdrop-blur-md shadow-lg">
+            <div className="text-[10px] sm:text-xs text-red-500/70 font-bold uppercase tracking-wider mb-1">Losses</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.2)]">{losses}</div>
           </div>
         </div>
 

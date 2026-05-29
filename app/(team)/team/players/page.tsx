@@ -65,32 +65,42 @@ export default async function TeamPlayersPage() {
   const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <main className="pt-24 pb-16 px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-16 relative overflow-hidden">
+      {/* Decorative Spotlights */}
+      <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-[#E8A800]/[0.02] blur-[150px] pointer-events-none" />
+      <div className="absolute top-[20%] right-[10%] w-[700px] h-[700px] rounded-full bg-emerald-500/[0.02] blur-[180px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[5%] w-[500px] h-[500px] rounded-full bg-cyan-500/[0.02] blur-[120px] pointer-events-none" />
+
+      <main className="relative z-10 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">
-              Player Search
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-2">
+              <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(232,168,0,0.15)]">
+                Player Search
+              </span>
             </h1>
-            <p className="text-sm sm:text-base text-gray-400">
-              Browse all players in {activeSeason.name}
+            <p className="text-sm sm:text-base text-gray-400 font-medium">
+              Browse all players in <span className="text-[#E8A800]">{activeSeason.name}</span>
             </p>
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Players</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{totalCount}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/[0.02] rounded-full blur-2xl pointer-events-none" />
+              <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-bold uppercase tracking-widest">Total Players</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-cyan-400">{totalCount}</div>
             </div>
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Sold Players</div>
+            <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/[0.02] rounded-full blur-2xl pointer-events-none" />
+              <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-bold uppercase tracking-widest">Sold Players</div>
               <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">{soldCount}</div>
             </div>
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Available Players</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">{totalCount - soldCount}</div>
+            <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group sm:col-span-2 lg:col-span-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8A800]/[0.02] rounded-full blur-2xl pointer-events-none" />
+              <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-bold uppercase tracking-widest">Available Players</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#E8A800]">{totalCount - soldCount}</div>
             </div>
           </div>
 

@@ -136,7 +136,7 @@ export default function PageLoader({ message }: { message?: string }) {
         {/* Brand name + subtitle */}
         <div
           className="text-center animate-fade-up"
-          style={{ animationDelay: '0.15s', opacity: 0 }}
+          style={{ animationDelay: '0.15s' }}
         >
           <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-[#FFC93A] via-[#E8A800] to-[#C87A00] bg-clip-text text-transparent mb-1">
             Turf Cats
@@ -149,7 +149,7 @@ export default function PageLoader({ message }: { message?: string }) {
         {/* Progress bar */}
         <div
           className="w-48 animate-fade-up"
-          style={{ animationDelay: '0.3s', opacity: 0 }}
+          style={{ animationDelay: '0.3s' }}
         >
           <div className="h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
             <div className="h-full rounded-full animate-progress bg-gradient-to-r from-[#E8A800] to-[#FFC93A]" />
@@ -166,6 +166,42 @@ export default function PageLoader({ message }: { message?: string }) {
         </div>
 
       </div>
+
+      {/* Embedded Animations and Keyframes */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes spin-ring {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes spin-ring-reverse {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
+        }
+        @keyframes fade-up {
+          from {
+            transform: translateY(16px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        @keyframes progress {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(0); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-fade-up {
+          animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-progress {
+          animation: progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        .animate-pulse-slow {
+          animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}} />
     </div>
   )
 }

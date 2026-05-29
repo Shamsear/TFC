@@ -87,14 +87,12 @@ export default function RoundResultsClient({
   }
 
   const handleCopyMyBids = () => {
-    // Get all bids made by this team
     const myBids: Array<{ playerName: string; amount: number; won: boolean }> = []
     
     Object.entries(bidsByPlayer).forEach(([playerId, bids]) => {
       const myBid = bids.find(b => b.teamId === teamId)
       if (myBid) {
         const allocation = allocations.find(a => a.basePlayerId === playerId)
-        // Try to get player name from allocation first, then from playerNameMap
         const playerName = allocation?.basePlayer.name || playerNameMap.get(playerId) || 'Unknown Player'
         const won = allocation?.teamId === teamId
         myBids.push({
@@ -110,7 +108,6 @@ export default function RoundResultsClient({
       return
     }
 
-    // Sort by amount descending
     myBids.sort((a, b) => b.amount - a.amount)
 
     const positionText = round.position || 'All Positions'
@@ -139,27 +136,47 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
     })
   }
 
+  const getPositionBadgeClass = (pos: string) => {
+    const p = pos.toUpperCase()
+    if (p.includes('GK')) return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+    if (p.includes('DEF') || p.includes('CB') || p.includes('LB') || p.includes('RB')) {
+      return 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+    }
+    if (p.includes('MID') || p.includes('CM') || p.includes('CMF') || p.includes('AMF') || p.includes('DMF') || p.includes('LM') || p.includes('RM')) {
+      return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+    }
+    return 'bg-red-500/10 text-red-400 border border-red-500/20'
+  }
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+    <div className="min-h-screen bg-[#070708] text-white pt-20 relative overflow-hidden font-sans">
+      {/* Background radial spotlights */}
+      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/3 left-10 w-[500px] h-[500px] bg-[#E8A800]/5 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Header Panel */}
+      <div className="relative border-b border-white/[0.06] bg-black/40 backdrop-blur-xl z-10 shadow-lg mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
-              <h1 className="text-3xl font-black text-white mb-1">
-                Round {round.roundNumber} Results
+              <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono">Draft Room Chambers</span>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mt-1">
+                <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(232,168,0,0.15)]">
+                  Round {round.roundNumber} Results
+                </span>
               </h1>
-              <p className="text-sm text-[#D4CCBB]">
+              <p className="text-xs sm:text-sm text-gray-400 mt-2 font-mono font-bold uppercase tracking-wider">
                 {round.season.name} {round.position && `— ${round.position}`}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+
+            <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={handleCopyMyBids}
-                className={`px-4 py-2 rounded-lg border font-medium transition-all flex items-center gap-2 ${
+                className={`px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
                   copied
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                    : 'bg-[#25D366]/10 hover:bg-[#25D366]/20 border-[#25D366]/30 text-[#25D366]'
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                    : 'bg-[#25D366]/10 hover:bg-[#25D366]/20 border-[#25D366]/20 text-[#25D366] hover:scale-[1.02]'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -169,7 +186,7 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
               </button>
               <Link
                 href="/team/auction"
-                className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-white/20 text-white hover:bg-white/[0.08] text-xs font-black uppercase tracking-wider transition-all"
               >
                 Back to Auction
               </Link>
@@ -178,41 +195,39 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        {/* Tiebreaker Alert */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 relative z-10">
+        
+        {/* Tiebreaker Warning Panel */}
         {hasTiebreakers && (
-          <div className="mb-6 p-6 rounded-xl bg-amber-500/10 border-2 border-amber-500/30">
+          <div className="mb-8 p-6 rounded-2xl bg-amber-500/5 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.06)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0 text-amber-400">
+                <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-black text-amber-300 mb-2">Tiebreaker Required</h3>
-                <p className="text-[#D4CCBB] mb-4">
-                  You are involved in {tiebreakers.length} tiebreaker{tiebreakers.length > 1 ? 's' : ''}. 
-                  The admin will resolve {tiebreakers.length > 1 ? 'these' : 'this'} and assign the player{tiebreakers.length > 1 ? 's' : ''}.
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-black text-amber-400 uppercase tracking-wider font-mono">Tiebreaker Endorsement Required</h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  You are currently tied in {tiebreakers.length} negotiation round{tiebreakers.length > 1 ? 's' : ''}. The league administrator will adjudicate remaining bids to finalize player placement.
                 </p>
-                <div className="space-y-3">
+                
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {tiebreakers.map(tie => (
-                    <div key={tie.id} className="p-4 rounded-lg bg-black/30 border border-amber-500/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                          <img
-                            src={tie.basePlayer.photoUrl}
-                            alt={tie.basePlayer.name}
-                            loading="eager"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                            onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
-                          />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-white">{tie.basePlayer.name}</h4>
-                          <p className="text-sm text-[#D4CCBB]">
-                            Base price: £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
-                          </p>
+                    <div key={tie.id} className="p-3 rounded-xl bg-black/40 border border-white/[0.04] flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-lg overflow-hidden bg-neutral-900 border border-white/[0.08] flex-shrink-0">
+                        <img
+                          src={tie.basePlayer.photoUrl}
+                          alt={tie.basePlayer.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-white text-sm truncate">{tie.basePlayer.name}</h4>
+                        <div className="text-[10px] text-gray-500 font-mono mt-0.5 uppercase">
+                          Base: £{tie.basePrice.toLocaleString()} • {tie.participants.length} Clubs Tied
                         </div>
                       </div>
                     </div>
@@ -223,36 +238,41 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
           </div>
         )}
 
-        {/* Your Acquisitions */}
+        {/* Your Acquisitions Showcase Grid */}
         {myAllocations.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-black text-white mb-4">Your Acquisitions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mb-10">
+            <h2 className="text-xl font-black text-white mb-4 uppercase tracking-wider font-mono flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              Your Signed Acquisitions
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {myAllocations.map(alloc => (
                 <div
                   key={alloc.id}
-                  className="rounded-xl bg-emerald-500/10 border-2 border-emerald-500/30 p-4"
+                  className="rounded-2xl bg-emerald-950/10 border border-emerald-500/25 p-5 shadow-[0_0_30px_rgba(16,185,129,0.05)] relative overflow-hidden"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                  <div className="flex items-center gap-4.5 mb-4">
+                    <div className="w-15 h-15 rounded-xl overflow-hidden bg-neutral-900 border border-white/[0.08] flex-shrink-0">
                       <img
                         src={alloc.basePlayer.photoUrl}
                         alt={alloc.basePlayer.name}
-                        loading="eager"
-                        decoding="async"
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                       />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-white text-lg">{alloc.basePlayer.name}</h3>
-                      <p className="text-sm text-emerald-400">Won by you</p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-white text-base truncate leading-tight">{alloc.basePlayer.name}</h3>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-wider font-mono mt-1">
+                        Contract Finalized
+                      </span>
                     </div>
                   </div>
-                  <div className="pt-3 border-t border-emerald-500/20">
-                    <div className="text-2xl font-black text-emerald-300">
+                  <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Acquisition Fee</span>
+                    <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight">
                       £{alloc.soldPrice.toLocaleString()}
-                    </div>
+                    </span>
                   </div>
                 </div>
               ))}
@@ -260,10 +280,12 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
           </div>
         )}
 
-        {/* All Results */}
+        {/* All Results Ledger List */}
         <div>
-          <h2 className="text-2xl font-black text-white mb-4">All Results</h2>
-          <div className="space-y-3">
+          <h2 className="text-xl font-black text-white mb-4 uppercase tracking-wider font-mono">
+            Full Draft Sheet Results
+          </h2>
+          <div className="space-y-3.5">
             {allocations.map(alloc => {
               const isMyTeam = alloc.teamId === teamId
               const isExpanded = expandedPlayers.has(alloc.basePlayerId)
@@ -273,110 +295,114 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
               return (
                 <div
                   key={alloc.id}
-                  className={`rounded-xl ${
+                  className={`rounded-2xl border transition-all duration-300 relative overflow-hidden ${
                     isMyTeam
-                      ? 'bg-emerald-500/10 border-2 border-emerald-500/30'
-                      : 'bg-white/5 border border-white/10'
+                      ? 'bg-[#E8A800]/5 border-[#E8A800]/25 shadow-[0_0_20px_rgba(232,168,0,0.04)]'
+                      : 'bg-neutral-900/40 border-white/[0.06] hover:border-white/10'
                   }`}
                 >
                   <div
-                    className={`p-4 ${hasBids ? 'cursor-pointer hover:bg-white/5' : ''}`}
+                    className={`p-4.5 ${hasBids ? 'cursor-pointer' : ''}`}
                     onClick={() => hasBids && togglePlayer(alloc.basePlayerId)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-neutral-900 border border-white/[0.08] flex-shrink-0">
                           <img
                             src={alloc.basePlayer.photoUrl}
                             alt={alloc.basePlayer.name}
-                            loading="eager"
-                            decoding="async"
                             className="w-full h-full object-cover"
                             onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-white">{alloc.basePlayer.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <p className={`text-sm ${isMyTeam ? 'text-emerald-400' : 'text-[#D4CCBB]'}`}>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-black text-white text-base truncate leading-tight mb-1">{alloc.basePlayer.name}</h3>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs font-bold ${isMyTeam ? 'text-[#E8A800] font-black' : 'text-gray-400'}`}>
                               {alloc.team.name}
-                            </p>
+                            </span>
                             {alloc.acquisitionType === 'auto_assigned' && (
-                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[8px] font-bold uppercase tracking-wider font-mono">
                                 Auto-assigned
                               </span>
                             )}
                             {alloc.acquisitionType === 'tiebreaker_won' && (
-                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[8px] font-bold uppercase tracking-wider font-mono">
                                 Tiebreaker
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`text-xl font-bold ${isMyTeam ? 'text-emerald-300' : 'text-white'}`}>
-                          £{alloc.soldPrice.toLocaleString()}
+                      
+                      <div className="flex items-center justify-between sm:justify-end gap-5 border-t border-white/[0.04] sm:border-t-0 pt-3 sm:pt-0">
+                        <div className="text-right">
+                          <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-0.5">Final Deal</span>
+                          <span className={`text-xl font-black font-mono tracking-tight ${isMyTeam ? 'text-[#E8A800]' : 'text-white'}`}>
+                            £{alloc.soldPrice.toLocaleString()}
+                          </span>
                         </div>
                         {hasBids && (
-                          <svg
-                            className={`w-5 h-5 text-[#7A7367] transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center flex-shrink-0 hover:bg-white/[0.08] transition-colors">
+                            <svg
+                              className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2.5}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Expanded Bid Details */}
+                  {/* Expanded Bid History details comparison ladder */}
                   {isExpanded && (
-                    <div className="border-t border-white/10 p-4 bg-black/20">
-                      {/* Acquisition Notes */}
+                    <div className="border-t border-white/[0.06] p-4.5 bg-black/40 animate-[slideDown_0.2s_ease-out]">
                       {alloc.acquisitionNotes && (
-                        <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                          <div className="flex items-start gap-2">
-                            <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="text-sm text-blue-200">{alloc.acquisitionNotes}</p>
-                          </div>
+                        <div className="mb-4.5 p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 flex items-start gap-2.5">
+                          <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p className="text-xs text-blue-300 font-medium">{alloc.acquisitionNotes}</p>
                         </div>
                       )}
 
-                      {/* Bid History */}
                       {hasBids && (
-                        <>
-                          <h4 className="text-sm font-bold text-[#D4CCBB] mb-3">All Bids</h4>
-                          <div className="space-y-2">
+                        <div>
+                          <h4 className="text-[10px] text-gray-500 uppercase tracking-widest font-extrabold mb-3">Bid Comparison Ladder</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {playerBids.map((bid, idx) => {
                               const isWinner = bid.teamId === alloc.teamId
                               return (
                                 <div
                                   key={`${bid.teamId}-${idx}`}
-                                  className={`flex items-center justify-between p-3 rounded-lg ${
+                                  className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                                     isWinner
-                                      ? 'bg-emerald-500/20 border border-emerald-500/30'
-                                      : 'bg-white/5 border border-white/10'
+                                      ? 'bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.04)]'
+                                      : 'bg-white/[0.01] border-white/[0.04]'
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <span className={`text-sm font-medium ${
-                                      isWinner ? 'text-emerald-300' : 'text-white'
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className={`font-mono text-xs font-bold shrink-0 ${isWinner ? 'text-emerald-400' : 'text-gray-600'}`}>
+                                      #{idx + 1}
+                                    </span>
+                                    <span className={`text-sm truncate font-medium ${
+                                      isWinner ? 'text-emerald-400 font-bold' : 'text-gray-300'
                                     }`}>
                                       {bid.teamName}
                                     </span>
                                     {isWinner && (
-                                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/30 text-emerald-200">
-                                        WON
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] font-black tracking-wider uppercase font-mono">
+                                        WINNER
                                       </span>
                                     )}
                                   </div>
-                                  <span className={`text-sm font-bold ${
-                                    isWinner ? 'text-emerald-300' : 'text-[#D4CCBB]'
+                                  <span className={`text-sm font-bold font-mono ${
+                                    isWinner ? 'text-emerald-400' : 'text-gray-400'
                                   }`}>
                                     £{bid.amount.toLocaleString()}
                                   </span>
@@ -384,7 +410,7 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
                               )
                             })}
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   )}
@@ -394,6 +420,13 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
           </div>
         </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes slideDown {
+          from { transform: translateY(-10px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      `}} />
     </div>
   )
 }

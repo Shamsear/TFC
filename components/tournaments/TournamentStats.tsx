@@ -37,6 +37,8 @@ interface TournamentStatsProps {
   teamsData?: any[]
   tournamentName?: string
   seasonName?: string
+  activeRoundLimit?: string
+  setActiveRoundLimit?: (limit: string) => void
 }
 
 export default function TournamentStats({ 
@@ -46,7 +48,9 @@ export default function TournamentStats({
   matches,
   teamsData,
   tournamentName,
-  seasonName
+  seasonName,
+  activeRoundLimit: externalRoundLimit,
+  setActiveRoundLimit: externalSetRoundLimit
 }: TournamentStatsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('golden-boot')
   
@@ -61,7 +65,10 @@ export default function TournamentStats({
       })
     : []
   const roundOptions = baseRounds.length > 0 ? ['All Matchdays', ...baseRounds] : []
-  const [activeRoundLimit, setActiveRoundLimit] = useState<string>('All Matchdays')
+  
+  const [internalRoundLimit, setInternalRoundLimit] = useState<string>('All Matchdays')
+  const activeRoundLimit = externalRoundLimit !== undefined ? externalRoundLimit : internalRoundLimit
+  const setActiveRoundLimit = externalSetRoundLimit !== undefined ? externalSetRoundLimit : setInternalRoundLimit
   
   // Custom Share Image Settings
   const [imageTeamsLimit, setImageTeamsLimit] = useState<string>('5')

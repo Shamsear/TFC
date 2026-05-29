@@ -34,13 +34,29 @@ export async function PATCH(
     }
 
     const oldDate = new Date(match.matchDate)
-    const newMatchDate = new Date(newDate)
+    
+    // Parse the new date string (YYYY-MM-DD) as local/UTC components to construct safely without timezone shifts
+    const [year, month, day] = newDate.split('-').map(Number)
+    
+    // Create updatedMatchDate from oldDate by safely updating year, month, and day to preserve time
+    const updatedMatchDate = new Date(match.matchDate)
+    updatedMatchDate.setDate(1) // Avoid JS date rollover bugs
+    updatedMatchDate.setMonth(month - 1)
+    updatedMatchDate.setFullYear(year)
+    updatedMatchDate.setDate(day)
+
+    // Calculate precision day difference
+    const timeDiff = updatedMatchDate.getTime() - oldDate.getTime()
+    const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24))
+    const totalShift = daysDiff + (gapDays || 0)
+
+    let updatedStartDate = null
+    if (match.startDate) {
+      updatedStartDate = new Date(match.startDate)
+      updatedStartDate.setDate(updatedStartDate.getDate() + daysDiff)
+    }
 
     if (pushSubsequent) {
-      // Calculate the difference in days
-      const daysDiff = Math.floor((newMatchDate.getTime() - oldDate.getTime()) / (1000 * 60 * 60 * 24))
-      const totalShift = daysDiff + (gapDays || 0)
-
       // Get all matches after the old date
       const subsequentMatches = await prisma.matches.findMany({
         where: {
@@ -60,7 +76,8 @@ export async function PATCH(
         await tx.matches.update({
           where: { id: matchId },
           data: {
-            matchDate: newMatchDate,
+            matchDate: updatedMatchDate,
+            ...(updatedStartDate ? { startDate: updatedStartDate } : {}),
             updatedAt: new Date()
           }
         })
@@ -70,10 +87,17 @@ export async function PATCH(
           const newSubDate = new Date(subMatch.matchDate)
           newSubDate.setDate(newSubDate.getDate() + totalShift)
           
+          let newSubStartDate = null
+          if (subMatch.startDate) {
+            newSubStartDate = new Date(subMatch.startDate)
+            newSubStartDate.setDate(newSubStartDate.getDate() + totalShift)
+          }
+
           await tx.matches.update({
             where: { id: subMatch.id },
             data: {
               matchDate: newSubDate,
+              ...(newSubStartDate ? { startDate: newSubStartDate } : {}),
               updatedAt: new Date()
             }
           })
@@ -84,7 +108,8 @@ export async function PATCH(
       await prisma.matches.update({
         where: { id: matchId },
         data: {
-          matchDate: newMatchDate,
+          matchDate: updatedMatchDate,
+          ...(updatedStartDate ? { startDate: updatedStartDate } : {}),
           updatedAt: new Date()
         }
       })
@@ -104,7 +129,7 @@ export async function PATCH(
       details: {
         matchId,
         oldDate: oldDate.toISOString(),
-        newDate: newMatchDate.toISOString(),
+        newDate: updatedMatchDate.toISOString(),
         pushSubsequent,
         gapDays,
         affectedMatches: pushSubsequent ? (await prisma.matches.count({

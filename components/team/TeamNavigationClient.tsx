@@ -29,8 +29,21 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
 
-  // Close user menu when clicking outside
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch('/api/team/notifications', { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        setUnreadCount(data.unreadCount || 0)
+      }
+    } catch (e) {
+      console.error("Failed to fetch unread notification count:", e)
+    }
+  }
+
+  // Close user menu when clicking outside and poll notifications
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -38,7 +51,21 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    
+    // Fetch count initially
+    fetchUnreadCount()
+    
+    // Listen for custom mark-as-read events from the inbox page
+    window.addEventListener('notificationsUpdated', fetchUnreadCount)
+    
+    // Polling every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      window.removeEventListener('notificationsUpdated', fetchUnreadCount)
+      clearInterval(interval)
+    }
   }, [])
 
   // Different navigation based on season participation
@@ -54,6 +81,8 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
     { name: "Tournaments", href: "/team/tournaments" },
     { name: "Calendar", href: "/team/calendar" },
     { name: "Finances", href: "/team/finances" },
+    { name: "Retentions", href: "/team/retentions" },
+    { name: "Achievements", href: "/team/achievements" },
   ]
 
   const inactiveSeasonNavigation = [
@@ -64,24 +93,25 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
   // Setup desktop vs mobile navigation
   const primaryNavigation = isInActiveSeason 
     ? [
-        { name: "Dashboard", href: "/team" },
-        { name: "Squad", href: "/team/squad" },
-        { name: "Transfers", href: "/team/transfers" },
-        { name: "Auction", href: "/team/auction" },
-        { name: "Players", href: "/team/players" },
-        { name: "Matches", href: "/team/matches" },
-      ]
+      { name: "Dashboard", href: "/team" },
+      { name: "Squad", href: "/team/squad" },
+      { name: "Transfers", href: "/team/transfers" },
+      { name: "Auction", href: "/team/auction" },
+      { name: "Players", href: "/team/players" },
+      { name: "Matches", href: "/team/matches" },
+    ]
     : inactiveSeasonNavigation
 
-    const moreNavigation = isInActiveSeason
+  const moreNavigation = isInActiveSeason
     ? [
-        { name: "Starred", href: "/team/starred" },
-        { name: "Teams", href: "/team/teams" },
-        { name: "Tournaments", href: "/team/tournaments" },
-        { name: "Calendar", href: "/team/calendar" },
-        { name: "Finances", href: "/team/finances" },
-        { name: "Achievements", href: team ? `/teams/${team.id}/achievements` : "#" },
-      ]
+      { name: "Starred", href: "/team/starred" },
+      { name: "Teams", href: "/team/teams" },
+      { name: "Tournaments", href: "/team/tournaments" },
+      { name: "Calendar", href: "/team/calendar" },
+      { name: "Finances", href: "/team/finances" },
+      { name: "Retentions", href: "/team/retentions" },
+      { name: "Achievements", href: "/team/achievements" },
+    ]
     : []
 
   const navigation = isInActiveSeason ? activeSeasonNavigation : inactiveSeasonNavigation
@@ -167,8 +197,26 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
             )}
           </nav>
 
-          {/* Team Info with Dropdown - Right Side */}
-          <div className="hidden md:block relative" ref={userMenuRef}>
+          {/* Right Side Controls */}
+          <div className="hidden md:flex items-center gap-4">
+            {/* Notification Bell */}
+            <Link
+              href="/team/notifications"
+              className="relative p-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-[#7A7367] hover:text-[#F5F0E8] rounded-xl transition-all hover:scale-105"
+              title="Notification Inbox"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#E8A800] text-[#0a0a0a] text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Team Info with Dropdown */}
+            <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
@@ -234,6 +282,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
               </div>
             )}
           </div>
+        </div>
  
           {/* Mobile Menu Button */}
           <button

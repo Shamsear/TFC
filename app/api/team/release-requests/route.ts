@@ -182,15 +182,32 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Count total requests (all statuses)
-    const totalRequestsCount = requests.length
+    // Verify there is an active release window
+    const activeWindow = await prisma.release_windows.findFirst({
+      where: { 
+        seasonId,
+        status: 'ACTIVE'
+      }
+    })
 
-    // Count approved releases
+    const maxReleases = activeWindow?.releaseLimit || 3
+
+    // Count total requests (all statuses) in the current active window if it exists, otherwise overall
+    const totalRequestsCount = await prisma.release_requests.count({
+      where: {
+        seasonId,
+        teamId: session.user.teamId,
+        ...(activeWindow && { releaseWindowId: activeWindow.id }),
+      },
+    })
+
+    // Count approved releases in the current active window if it exists, otherwise overall
     const approvedCount = await prisma.release_requests.count({
       where: {
         seasonId,
         teamId: session.user.teamId,
         status: 'approved',
+        ...(activeWindow && { releaseWindowId: activeWindow.id }),
       },
     })
 
@@ -198,9 +215,9 @@ export async function GET(request: NextRequest) {
       requests,
       totalRequestsCount,
       approvedCount,
-      maxReleases: 3,
-      remainingRequests: 3 - totalRequestsCount,
-      remainingApprovals: 3 - approvedCount,
+      maxReleases,
+      remainingRequests: Math.max(0, maxReleases - totalRequestsCount),
+      remainingApprovals: Math.max(0, maxReleases - approvedCount),
     })
   } catch (error: any) {
     console.error('Error fetching release requests:', error)

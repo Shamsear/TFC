@@ -49,6 +49,72 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'list'>('month')
 
+  const formatICSDate = (dateString: string | Date) => {
+    const d = new Date(dateString)
+    return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  }
+
+  const handleExportICal = () => {
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Turf Cats//League Calendar//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ]
+
+    // Export auctions
+    auctions.forEach((auction) => {
+      const start = formatICSDate(auction.auctionDate)
+      // Assume 2 hour duration if no end date
+      const end = auction.endDate ? formatICSDate(auction.endDate) : formatICSDate(new Date(new Date(auction.auctionDate).getTime() + 2 * 60 * 60 * 1000))
+      
+      const slots = auction.auctionSlots.map(s => {
+        const displayPosition = s.positionHidden ? '???' : s.position;
+        const displayGroup = s.positionHidden ? '' : (s.position_group && s.position_group !== 'ALL' ? `-${s.position_group}` : '');
+        return `${displayPosition}${displayGroup}${s.roundType === 'bulk' ? ' (Bulk)' : ''}`;
+      }).join(', ')
+
+      icsContent.push(
+        'BEGIN:VEVENT',
+        `UID:auction-${auction.id}@turfcats.app`,
+        `DTSTART:${start}`,
+        `DTEND:${end}`,
+        `SUMMARY:Turf Cats Auction - ${auction.description || 'Round'}`,
+        `DESCRIPTION:Auction slots: ${slots}`,
+        'END:VEVENT'
+      )
+    })
+
+    // Export matches
+    matches.forEach((match) => {
+      const matchDateStr = match.matchDate
+      const start = formatICSDate(matchDateStr)
+      // Assume 1 hour duration
+      const end = formatICSDate(new Date(new Date(matchDateStr).getTime() + 1 * 60 * 60 * 1000))
+
+      icsContent.push(
+        'BEGIN:VEVENT',
+        `UID:match-${match.id}@turfcats.app`,
+        `DTSTART:${start}`,
+        `DTEND:${end}`,
+        `SUMMARY:${match.homeTeam.team.name} vs ${match.awayTeam.team.name} (${match.tournament.name})`,
+        `DESCRIPTION:Tournament: ${match.tournament.name}\\nRound: ${match.round || 'N/A'}\\nStatus: ${match.status}`,
+        'END:VEVENT'
+      )
+    })
+
+    icsContent.push('END:VCALENDAR')
+
+    const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+    const link = document.createElement('a')
+    link.href = window.URL.createObjectURL(blob)
+    link.setAttribute('download', 'turfcats-calendar.ics')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // Helper functions for date manipulation
   const getMonthStart = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth(), 1)
@@ -247,27 +313,40 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setView('month')}
-            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-              view === 'month'
-                ? 'bg-[#E8A800] text-[#0a0a0a]'
-                : 'bg-white/5 border border-white/10 text-[#7A7367] hover:bg-white/10'
-            }`}
+            onClick={handleExportICal}
+            className="px-4 py-2 bg-gradient-to-r from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 hover:border-[#E8A800]/50 text-[#E8A800] rounded-lg font-bold text-sm transition-all flex items-center gap-1.5 hover:scale-105"
+            title="Download iCal calendar feed (.ics) for Google/Apple Calendar"
           >
-            Month
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export (.ics)
           </button>
-          <button
-            onClick={() => setView('list')}
-            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-              view === 'list'
-                ? 'bg-[#E8A800] text-[#0a0a0a]'
-                : 'bg-white/5 border border-white/10 text-[#7A7367] hover:bg-white/10'
-            }`}
-          >
-            List
-          </button>
+
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={() => setView('month')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                view === 'month'
+                  ? 'bg-[#E8A800] text-[#0a0a0a]'
+                  : 'bg-white/5 border border-white/10 text-[#7A7367] hover:bg-white/10'
+              }`}
+            >
+              Month
+            </button>
+            <button
+              onClick={() => setView('list')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                view === 'list'
+                  ? 'bg-[#E8A800] text-[#0a0a0a]'
+                  : 'bg-white/5 border border-white/10 text-[#7A7367] hover:bg-white/10'
+              }`}
+            >
+              List
+            </button>
+          </div>
         </div>
       </div>
 

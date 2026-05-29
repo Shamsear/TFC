@@ -174,15 +174,12 @@ export default async function TeamProfilePage() {
             {/* Edit Button */}
             {canEdit && (
               <div>
-                <button
-                  disabled
-                  className="px-6 py-3 bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] rounded-xl font-bold opacity-50 cursor-not-allowed"
+                <Link
+                  href="/team/profile/edit"
+                  className="inline-block px-6 py-3 bg-[#E8A800] text-[#0a0a0a] hover:bg-[#FFC93A] rounded-xl font-bold transition-all hover:scale-105 shadow-md shadow-[#E8A800]/20"
                 >
                   Edit Profile
-                </button>
-                <p className="text-xs text-[#7A7367] mt-2 text-center">
-                  Coming Soon
-                </p>
+                </Link>
               </div>
             )}
           </div>

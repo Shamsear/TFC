@@ -45,10 +45,17 @@ export async function PATCH(
         const newDate = new Date(match.matchDate)
         newDate.setDate(newDate.getDate() + gapDays)
         
+        let newStartDate = null
+        if (match.startDate) {
+          newStartDate = new Date(match.startDate)
+          newStartDate.setDate(newStartDate.getDate() + gapDays)
+        }
+        
         return prisma.matches.update({
           where: { id: match.id },
           data: {
             matchDate: newDate,
+            ...(newStartDate ? { startDate: newStartDate } : {}),
             updatedAt: new Date()
           }
         })

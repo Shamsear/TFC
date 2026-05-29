@@ -26,6 +26,7 @@ model base_players {
   swapRequestPlayers  swap_request_players[]
   tiebreakers         tiebreakers[]
   transferHistory     transfer_history[]
+  seasonAwards        season_awards[]
 
   @@index([normalized_name], map: "idx_base_players_normalized_name")
 }
@@ -241,6 +242,7 @@ model seasons {
   transferHistory       transfer_history[]
   sub_admin_seasons     sub_admin_seasons[]
   teamBadges            team_badges[]
+  seasonAwards          season_awards[]
 }
 
 model release_windows {
@@ -330,6 +332,7 @@ model teams {
   teamSquads                 team_squads[]
   transferHistory            transfer_history[]
   teamManagers               users[]                        @relation("TeamManager")
+  seasonAwards               season_awards[]
   xp                         Int                            @default(0)
   level                      Int                            @default(1)
   unlockedBadges             team_badges[]
@@ -507,7 +510,7 @@ model tournament_teams {
   groupName    String?      @map("group_name")
   seedPosition Int?         @map("seed_position")
   createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @default(now()) @map("updated_at")
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at")
   seasonTeam   season_teams @relation("TournamentTeams", fields: [teamId], references: [id], onDelete: Cascade)
   tournament   tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
@@ -855,6 +858,25 @@ model release_requests {
   @@index([status], map: "idx_release_requests_status")
   @@index([teamId], map: "idx_release_requests_team")
   @@index([windowOpenedAt], map: "idx_release_requests_window")
+}
+
+model season_awards {
+  id           String        @id @db.VarChar(36)
+  seasonId     String        @map("season_id") @db.VarChar(36)
+  awardType    String        @map("award_type") // e.g. "LEAGUE_WINNER", "GOLDEN_BOOT", "TEAM_OF_THE_SEASON"
+  teamId       String?       @map("team_id") @db.VarChar(36)
+  basePlayerId String?       @map("base_player_id") @db.VarChar(36)
+  metadata     String?       // Any extra info
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  season       seasons       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team         teams?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  basePlayer   base_players? @relation(fields: [basePlayerId], references: [id], onDelete: SetNull)
+
+  @@index([seasonId])
+  @@index([teamId])
+  @@index([basePlayerId])
 }
 
 model swap_requests {

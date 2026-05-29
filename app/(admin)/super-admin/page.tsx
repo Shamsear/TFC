@@ -127,7 +127,7 @@ export default async function SuperAdminDashboard() {
         {/* Quick Actions */}
         <div className="mb-6 sm:mb-8 lg:mb-12">
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white mb-4 sm:mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <Link
               href="/super-admin/teams/new"
               className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#E8A800] to-[#D49700] p-4 sm:p-5 lg:p-6 hover:scale-105 transition-all shadow-lg hover:shadow-[#E8A800]/50"
@@ -165,6 +165,21 @@ export default async function SuperAdminDashboard() {
                 <div className="text-base sm:text-lg font-bold text-[#0a0a0a]">Create Sub-Admin</div>
               </div>
               <div className="text-xs sm:text-sm text-[#0a0a0a]/80">Add new administrator</div>
+            </Link>
+
+            <Link
+              href="/super-admin/historical-data"
+              className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 sm:p-5 lg:p-6 hover:scale-105 transition-all shadow-lg hover:shadow-emerald-500/50"
+            >
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-black/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="text-base sm:text-lg font-bold text-white">Import History</div>
+              </div>
+              <div className="text-xs sm:text-sm text-white/80">Add past season data</div>
             </Link>
           </div>
         </div>

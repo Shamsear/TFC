@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { 
   BADGE_DEFINITIONS, 
   calculateLevelFromXP, 
@@ -92,20 +93,33 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
     }
   };
 
-  const getBadgeImageStyle = (badgeKey: string) => {
+  const getRomanNumeral = (key: string) => {
+    if (key.endsWith('_1')) return 'I';
+    if (key.endsWith('_2')) return 'II';
+    if (key.endsWith('_3')) return 'III';
+    return '';
+  };
+
+  const getBadgeImageFilter = (badgeKey: string, unlocked: boolean) => {
+    if (!unlocked) {
+      return { filter: 'grayscale(1) opacity(0.25) contrast(0.75) brightness(0.75)' };
+    }
+
+    let filter = '';
     // Silver Tier (Level 1 Streaks)
     if (badgeKey.endsWith('_1')) {
-      return 'hue-rotate-[185deg] saturate-[1.3] brightness-[1.1] contrast-[1.15]'; // Cool Metallic Cyan/Blue
+      filter = 'hue-rotate(185deg) saturate(1.4) brightness(1.1) contrast(1.1)';
     }
     // Gold Tier (Level 2 Streaks)
-    if (badgeKey.endsWith('_2')) {
-      return 'hue-rotate-[42deg] saturate-[1.6] brightness-[1.25] contrast-[1.1]'; // Warm Radiant Gold/Amber
+    else if (badgeKey.endsWith('_2')) {
+      filter = 'hue-rotate(42deg) saturate(1.8) brightness(1.2) contrast(1.1)';
     }
     // Platinum Tier (Level 3 Streaks)
-    if (badgeKey.endsWith('_3')) {
-      return 'hue-rotate-[325deg] saturate-[1.9] brightness-[1.1] contrast-[1.2]'; // Super Premium Ruby/Crimson
+    else if (badgeKey.endsWith('_3')) {
+      filter = 'hue-rotate(325deg) saturate(2) brightness(1.1) contrast(1.2)';
     }
-    return '';
+
+    return filter ? { filter } : {};
   };
 
   return (
@@ -133,16 +147,33 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-600/10 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
 
           <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-            {/* Logo */}
-            <div 
-              className="relative h-28 w-28 md:h-32 md:w-32 overflow-hidden rounded-xl border border-white/10 p-1 bg-black/40 shadow-2xl transition-all duration-300"
-              style={{ boxShadow: `0 0 40px ${rank.color}20` }}
-            >
-              <img
-                src={team.logoUrl}
-                alt={`${team.name} Logo`}
-                className="h-full w-full object-cover rounded-lg"
-              />
+            {/* Logo and Rank Emblem */}
+            <div className="relative">
+              <div 
+                className="relative h-28 w-28 md:h-32 md:w-32 overflow-hidden rounded-xl border border-white/10 p-1 bg-black/40 shadow-2xl transition-all duration-300"
+                style={{ boxShadow: `0 0 40px ${rank.color}20` }}
+              >
+                <img
+                  src={team.logoUrl}
+                  alt={`${team.name} Logo`}
+                  className="h-full w-full object-cover rounded-lg"
+                />
+              </div>
+              {/* Floating Rank Badge Emblem Overlay */}
+              <div 
+                className="absolute -bottom-3 -right-3 h-12 w-12 md:h-14 md:w-14 rounded-full border bg-[#0d0d10] p-1.5 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center backdrop-blur-xl group hover:scale-110 transition-transform duration-200"
+                title={`${rank.title} Emblem`}
+                style={{ borderColor: `${rank.color}30` }}
+              >
+                <Image
+                  src={rank.badgePath}
+                  alt={rank.title}
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                  priority
+                />
+              </div>
             </div>
 
             {/* Info and Progression */}
@@ -152,16 +183,22 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
                   {team.name}
                 </h1>
                 
-                {/* Level Tag */}
+                {/* Level Tag with Micro Rank Emblem */}
                 <span 
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mx-auto md:mx-0 border w-fit"
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mx-auto md:mx-0 border w-fit"
                   style={{ 
                     borderColor: `${rank.color}30`, 
                     color: rank.color,
                     backgroundColor: `${rank.color}0a`
                   }}
                 >
-                  <span className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: rank.color }}></span>
+                  <Image
+                    src={rank.badgePath}
+                    alt={rank.title}
+                    width={16}
+                    height={16}
+                    className="object-contain animate-[pulse_3s_infinite]"
+                  />
                   Lvl {level} • {rank.title}
                 </span>
               </div>
@@ -285,15 +322,31 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
 
                     {/* Badge Image */}
                     <div className="mb-4 relative h-16 w-16 flex items-center justify-center">
-                      <img
+                      <Image
                         src={badge.image}
                         alt={badge.name}
-                        className={`h-full w-full object-contain transition-all duration-300 ${
-                          unlocked 
-                            ? `group-hover:scale-110 ${getBadgeImageStyle(badge.key)}` 
-                            : 'grayscale opacity-25 contrast-75 brightness-75'
+                        width={64}
+                        height={64}
+                        className={`object-contain transition-all duration-300 ${
+                          unlocked ? 'group-hover:scale-110' : ''
                         }`}
+                        style={getBadgeImageFilter(badge.key, !!unlocked)}
+                        priority={badge.key.startsWith('UNSTOPPABLE') || badge.key.startsWith('INVINCIBLE')}
                       />
+                      
+                      {/* Tier Roman Numeral overlay for streak badges */}
+                      {getRomanNumeral(badge.key) && (
+                        <div className={`absolute -bottom-1.5 px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wider border backdrop-blur-md ${
+                          badge.key.endsWith('_3') 
+                            ? 'bg-red-950/80 text-red-400 border-red-500/30'
+                            : badge.key.endsWith('_2')
+                            ? 'bg-amber-950/80 text-amber-400 border-amber-500/30'
+                            : 'bg-cyan-950/80 text-cyan-400 border-cyan-500/30'
+                        }`}>
+                          TIER {getRomanNumeral(badge.key)}
+                        </div>
+                      )}
+
                       {/* Subtle hover backlight glow for unlocked badges */}
                       {unlocked && (
                         <div 
@@ -394,9 +447,13 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
 
         {/* Interactive Detail Modal Popup */}
         {isModalOpen && selectedBadge && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-md bg-black/60 transition-all duration-300">
+          <div 
+            onClick={() => setIsModalOpen(false)}
+            className="fixed inset-0 z-[9999] flex items-center justify-center px-4 backdrop-blur-md bg-black/60 transition-all duration-300 cursor-pointer animate-[fadeIn_0.2s_ease-out]"
+          >
             <div 
-              className="relative w-full max-w-md rounded-2xl bg-[#0d0d10] border border-white/10 p-6 md:p-8 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-[slideDown_0.3s_cubic-bezier(0.16,1,0.3,1)]"
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-md rounded-2xl bg-[#0d0d10] border border-white/10 p-6 md:p-8 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] cursor-default animate-[slideDown_0.3s_cubic-bezier(0.16,1,0.3,1)]"
               style={{ 
                 boxShadow: `0 0 50px ${getTierGlowColor(selectedBadge.tier)}15`,
               }}
@@ -410,7 +467,7 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
               {/* Close Button */}
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-colors duration-150"
+                className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-colors duration-150 cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -421,11 +478,25 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
               <div className="flex flex-col items-center text-center relative z-10 pt-4">
                 {/* Big Glowing Image (ALWAYS IN FULL COLOR & progression styled) */}
                 <div className="relative h-28 w-28 mb-6 flex items-center justify-center">
-                  <img
+                  <Image
                     src={selectedBadge.image}
                     alt={selectedBadge.name}
-                    className={`h-full w-full object-contain ${getBadgeImageStyle(selectedBadge.key)}`}
+                    width={112}
+                    height={112}
+                    className="object-contain"
+                    style={getBadgeImageFilter(selectedBadge.key, true)}
                   />
+                  {getRomanNumeral(selectedBadge.key) && (
+                    <div className={`absolute -bottom-2 px-3 py-1 rounded text-[10px] font-extrabold tracking-widest border backdrop-blur-md ${
+                      selectedBadge.key.endsWith('_3') 
+                        ? 'bg-red-950/80 text-red-400 border-red-500/30'
+                        : selectedBadge.key.endsWith('_2')
+                        ? 'bg-amber-950/80 text-amber-400 border-amber-500/30'
+                        : 'bg-cyan-950/80 text-cyan-400 border-cyan-500/30'
+                    }`}>
+                      TIER {getRomanNumeral(selectedBadge.key)}
+                    </div>
+                  )}
                   {unlockedMap.get(selectedBadge.key) && (
                     <div 
                       className="absolute inset-0 blur-2xl rounded-full opacity-40 pointer-events-none"

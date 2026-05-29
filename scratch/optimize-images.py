@@ -53,7 +53,7 @@ def main():
     for file_name in os.listdir(base_dir):
         file_path = os.path.join(base_dir, file_name)
         if os.path.isfile(file_path) and file_name.endswith('.png'):
-            optimize_image(file_path, max_size=256)
+            optimize_image(file_path, max_size=128)
             
     # Optimize ranks
     ranks_dir = os.path.join(base_dir, "ranks")

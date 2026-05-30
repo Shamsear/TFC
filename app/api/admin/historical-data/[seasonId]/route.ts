@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { seasonId: string } }
+  { params }: { params: Promise<{ seasonId: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,7 +12,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const { seasonId } = params;
+    const { seasonId } = await params;
 
     const season = await prisma.seasons.findUnique({
       where: { id: seasonId },

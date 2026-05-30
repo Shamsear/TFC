@@ -174,7 +174,11 @@ export default function HistoricalDataWizard({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.step) setStep(parsed.step);
-        if (parsed.season) setSeason(parsed.season);
+        if (parsed.season) {
+          const s = parsed.season;
+          if (s.startingPurse === 10000) s.startingPurse = 20000;
+          setSeason(s);
+        }
         if (parsed.seasonTeams) setSeasonTeams(parsed.seasonTeams);
         if (parsed.tournaments) setTournaments(parsed.tournaments);
         if (parsed.stats) setStats(parsed.stats);

@@ -14,7 +14,7 @@ export default function PublicLayout({
       <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] bg-[#E8A800]/[0.02] rounded-full blur-[100px] pointer-events-none" />
 
       <PublicHeader />
-      <div className="relative z-10">
+      <div className="relative">
         {children}
       </div>
       <PublicFooter />

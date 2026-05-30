@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
         where: { seasonId }
       });
 
-      const awardRecords = [];
+      const awardRecords: any[] = [];
       const pushAward = (type: string, teamTempId?: string, playerId?: string) => {
         if (!teamTempId && !playerId) return;
         awardRecords.push({

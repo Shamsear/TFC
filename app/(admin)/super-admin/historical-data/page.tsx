@@ -11,7 +11,7 @@ export default async function HistoricalDataPage() {
   }
 
   // Fetch base data for the wizard
-  const [seasons, teams, players] = await Promise.all([
+  const [seasons, teams, players, managers] = await Promise.all([
     prisma.seasons.findMany({
       orderBy: { seasonNumber: "desc" },
       select: { id: true, name: true, seasonNumber: true },
@@ -23,6 +23,11 @@ export default async function HistoricalDataPage() {
     prisma.base_players.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true, photoUrl: true },
+    }),
+    prisma.managers.findMany({
+      include: {
+        teamLinks: true,
+      },
     }),
   ]);
 
@@ -39,6 +44,7 @@ export default async function HistoricalDataPage() {
         initialSeasons={seasons}
         initialTeams={teams}
         players={players}
+        initialManagers={managers}
       />
     </div>
   );

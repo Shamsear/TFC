@@ -17,6 +17,7 @@ interface HistoricalDataWizardProps {
   initialSeasons: BaseData[];
   initialTeams: BaseData[];
   players: BaseData[];
+  initialManagers?: any[];
 }
 
 const STORAGE_KEY = "tfc_historical_wizard_bulk";
@@ -25,6 +26,7 @@ export default function HistoricalDataWizard({
   initialSeasons,
   initialTeams,
   players,
+  initialManagers = [],
 }: HistoricalDataWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -34,7 +36,7 @@ export default function HistoricalDataWizard({
 
   // Form State
   const [season, setSeason] = useState({ id: "", name: "" });
-  const [seasonTeams, setSeasonTeams] = useState<{ id: string; name: string; managerName: string; tempId: string }[]>([]);
+  const [seasonTeams, setSeasonTeams] = useState<{ id: string; name: string; managerName: string; tempId: string; isNewManager: boolean }[]>([]);
   const [tournaments, setTournaments] = useState<{ id: string; name: string; type: string; startDate: string; groupName: string }[]>([
     { id: "t_1", name: "League", type: "LEAGUE", startDate: new Date().toISOString().split("T")[0], groupName: "" }
   ]);
@@ -149,7 +151,8 @@ export default function HistoricalDataWizard({
         id: id,
         name: t?.name || "",
         managerName: t?.managerName || "",
-        tempId: `tm_${Date.now()}_${id}`
+        tempId: `tm_${Date.now()}_${id}`,
+        isNewManager: !initialManagers.some(m => m.name.toLowerCase() === (t?.managerName || "").trim().toLowerCase())
       };
     });
     setSeasonTeams([...seasonTeams, ...newTeams]);
@@ -159,7 +162,7 @@ export default function HistoricalDataWizard({
   };
 
   const addTeam = () => {
-    setSeasonTeams([...seasonTeams, { id: "", name: "", managerName: "", tempId: `tm_${Date.now()}` }]);
+    setSeasonTeams([...seasonTeams, { id: "", name: "", managerName: "", tempId: `tm_${Date.now()}`, isNewManager: true }]);
   };
   const removeTeam = (tempId: string) => {
     setSeasonTeams(seasonTeams.filter(t => t.tempId !== tempId));
@@ -203,6 +206,9 @@ export default function HistoricalDataWizard({
             updated.id = "new";
           }
         }
+        
+        // Update isNewManager status
+        updated.isNewManager = !initialManagers.some(m => m.name.toLowerCase() === updated.managerName.trim().toLowerCase());
         
         return updated;
       }
@@ -376,7 +382,24 @@ export default function HistoricalDataWizard({
             const row = teamsJson[i];
             if (row.length === 0 || !row[0]) continue;
             const teamName = String(row[0]).trim();
-            const managerName = row[1] ? String(row[1]).trim() : "";
+            let managerName = row[1] ? String(row[1]).trim() : "";
+            
+            // Smart auto-fill for managerName if missing but teamName is given
+            if (!managerName) {
+               // Try to find the team in existing database
+               const possibleTeam = initialTeams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
+               if (possibleTeam) {
+                 // Check if this team is linked to a manager in initialManagers
+                 const linkedManager = initialManagers.find(m => 
+                   m.teamLinks?.some((link: any) => link.teamId === possibleTeam.id)
+                 );
+                 if (linkedManager) {
+                   managerName = linkedManager.name;
+                 } else if (possibleTeam.managerName) {
+                   managerName = possibleTeam.managerName;
+                 }
+               }
+            }
             
             const existing = initialTeams.find(t => {
               const dbName = t.name.toLowerCase();
@@ -390,12 +413,21 @@ export default function HistoricalDataWizard({
               return false;
             });
 
+            // If we found a team by managerName fallback but the team names don't match, 
+            // we should probably just use the name they provided.
+            const resolvedTeamName = existing ? existing.name : teamName;
+            const resolvedManagerName = managerName || existing?.managerName || "";
+            
+            // Check if this manager is new
+            const isManagerNew = !initialManagers.some(m => m.name.toLowerCase() === resolvedManagerName.toLowerCase());
+
             importedSeasonTeams.push({
               id: existing ? existing.id : "new",
-              name: existing ? existing.name : teamName,
+              name: resolvedTeamName,
               originalName: teamName, // Store original input name to match subsequent sheets
-              managerName: managerName || existing?.managerName || "",
-              tempId: `tm_${Date.now()}_${i}`
+              managerName: resolvedManagerName,
+              tempId: `tm_${Date.now()}_${i}`,
+              isNewManager: isManagerNew
             });
           }
         }
@@ -667,6 +699,15 @@ export default function HistoricalDataWizard({
                     value={t.managerName}
                     onChange={(e) => updateTeam(t.tempId, "managerName", e.target.value)}
                   />
+                  <div className="mt-2">
+                    {t.managerName.trim() === "" ? (
+                      <span className="text-xs font-mono text-gray-500 bg-gray-500/10 px-2 py-1 rounded">No Manager</span>
+                    ) : t.isNewManager ? (
+                      <span className="text-xs font-mono text-green-400 bg-green-400/10 px-2 py-1 rounded">🟩 New Manager Profile</span>
+                    ) : (
+                      <span className="text-xs font-mono text-blue-400 bg-blue-400/10 px-2 py-1 rounded">🟦 Existing Manager</span>
+                    )}
+                  </div>
                 </div>
                 <button onClick={() => removeTeam(t.tempId)} className="text-red-500 hover:bg-red-500/10 p-2 sm:p-3 rounded-lg mt-6">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

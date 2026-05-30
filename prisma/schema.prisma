@@ -337,6 +337,7 @@ model teams {
   level                      Int                            @default(1)
   unlockedBadges             team_badges[]
   xpHistory                  team_xp_history[]
+  managerLinks               manager_teams[]
 
   @@unique([name, managerName])
 }
@@ -1108,3 +1109,26 @@ model team_xp_history {
   @@index([createdAt])
 }
 
+model managers {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name      String   @unique
+  photoUrl  String?  @map("photo_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  teamLinks manager_teams[]
+}
+
+model manager_teams {
+  managerId String   @map("manager_id")
+  teamId    String   @map("team_id")
+  isCurrent Boolean  @default(true) @map("is_current")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  manager   managers @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  team      teams    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([managerId, teamId])
+  @@index([managerId])
+  @@index([teamId])
+}

@@ -104,6 +104,29 @@ export async function POST(req: NextRequest) {
         },
       });
       seasonTeamIdMap.set(t.tempId, seasonTeam.id);
+
+      // Link to Manager Profile
+      if (t.managerName && t.managerName.trim() !== "") {
+        const mName = t.managerName.trim();
+        let manager = await prisma.managers.findUnique({
+          where: { name: mName },
+        });
+        if (!manager) {
+          manager = await prisma.managers.create({
+            data: { name: mName },
+          });
+        }
+        
+        await prisma.manager_teams.upsert({
+          where: { managerId_teamId: { managerId: manager.id, teamId } },
+          update: {},
+          create: {
+            managerId: manager.id,
+            teamId,
+            isCurrent: true,
+          }
+        });
+      }
     }
 
     // 3. Resolve Tournaments

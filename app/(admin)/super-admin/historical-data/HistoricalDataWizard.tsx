@@ -38,27 +38,76 @@ export default function HistoricalDataWizard({
   const [season, setSeason] = useState({ id: "", name: "" });
   const [seasonTeams, setSeasonTeams] = useState<{ id: string; name: string; managerName: string; tempId: string; isNewManager: boolean }[]>([]);
   const [tournaments, setTournaments] = useState<{ id: string; name: string; type: string; startDate: string; groupName: string }[]>([
-    { id: "t_1", name: "League", type: "LEAGUE", startDate: new Date().toISOString().split("T")[0], groupName: "" }
+    { id: "t_1", name: "League", type: "LEAGUE_ONLY", startDate: new Date().toISOString().split("T")[0], groupName: "" }
   ]);
   const [stats, setStats] = useState<Record<string, { played: number, won: number, drawn: number, lost: number, goalsFor: number, goalsAgainst: number, points: number }>>({});
   const [teamPlayers, setTeamPlayers] = useState<Record<string, string[]>>({});
+  const [activeTournTeams, setActiveTournTeams] = useState<Record<string, string[]>>({});
+  const [rawUploadedStats, setRawUploadedStats] = useState<{ tournamentName: string; teamName: string; stats: any }[]>([]);
+  
+  // Helpers for Step 4: Stats Add/Remove teams per tournament
+  const getTournTeams = (tournId: string) => {
+    return activeTournTeams[tournId] || seasonTeams.map(t => t.tempId);
+  };
+
+  const handleRemoveTeamFromTourn = (tournId: string, teamTempId: string) => {
+    const current = getTournTeams(tournId);
+    const updated = current.filter(id => id !== teamTempId);
+    setActiveTournTeams({
+      ...activeTournTeams,
+      [tournId]: updated
+    });
+    const newStats = { ...stats };
+    delete newStats[`${tournId}_${teamTempId}`];
+    setStats(newStats);
+  };
+
+  const handleAddTeamToTourn = (tournId: string, teamTempId: string) => {
+    const current = getTournTeams(tournId);
+    if (!current.includes(teamTempId)) {
+      setActiveTournTeams({
+        ...activeTournTeams,
+        [tournId]: [...current, teamTempId]
+      });
+      const key = `${tournId}_${teamTempId}`;
+      if (!stats[key]) {
+        setStats({
+          ...stats,
+          [key]: { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }
+        });
+      }
+    }
+  };
+
+  const handleMapRawStats = (tournId: string, tournName: string, teamTempId: string, excelTeamName: string) => {
+    const matched = rawUploadedStats.find(
+      r => r.tournamentName.toLowerCase() === tournName.toLowerCase() &&
+           r.teamName.toLowerCase() === excelTeamName.toLowerCase()
+    );
+    if (matched) {
+      setStats(prev => ({
+        ...prev,
+        [`${tournId}_${teamTempId}`]: { ...matched.stats }
+      }));
+    }
+  };
   
   // Awards State
   const [awards, setAwards] = useState<{
     winnerTeamId: string;
     runnerUpTeamId: string;
-    goldenBootPlayerId: string;
-    goldenGlovePlayerId: string;
-    goldenBallPlayerId: string;
-    ballonDorPlayerId: string;
+    goldenBootTeamId: string;
+    goldenGloveTeamId: string;
+    goldenBallTeamId: string;
+    ballonDorTeamId: string;
     teamOfTheSeasonPlayerIds: string[];
   }>({
     winnerTeamId: "",
     runnerUpTeamId: "",
-    goldenBootPlayerId: "",
-    goldenGlovePlayerId: "",
-    goldenBallPlayerId: "",
-    ballonDorPlayerId: "",
+    goldenBootTeamId: "",
+    goldenGloveTeamId: "",
+    goldenBallTeamId: "",
+    ballonDorTeamId: "",
     teamOfTheSeasonPlayerIds: [],
   });
   
@@ -84,6 +133,8 @@ export default function HistoricalDataWizard({
         if (parsed.stats) setStats(parsed.stats);
         if (parsed.teamPlayers) setTeamPlayers(parsed.teamPlayers);
         if (parsed.awards) setAwards(parsed.awards);
+        if (parsed.activeTournTeams) setActiveTournTeams(parsed.activeTournTeams);
+        if (parsed.rawUploadedStats) setRawUploadedStats(parsed.rawUploadedStats);
       }
     } catch (err) {
       console.error(err);
@@ -96,14 +147,16 @@ export default function HistoricalDataWizard({
   useEffect(() => {
     if (!isInitialized) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, season, seasonTeams, tournaments, stats, teamPlayers, awards }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, season, seasonTeams, tournaments, stats, teamPlayers, awards, activeTournTeams, rawUploadedStats }));
     } catch (err) {
       console.error(err);
     }
-  }, [step, season, seasonTeams, tournaments, stats, teamPlayers, awards, isInitialized]);
+  }, [step, season, seasonTeams, tournaments, stats, teamPlayers, awards, activeTournTeams, rawUploadedStats, isInitialized]);
 
   const clearDraft = () => {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    setActiveTournTeams({});
+    setRawUploadedStats([]);
   };
 
   const handleNext = () => setStep((s) => s + 1);
@@ -115,10 +168,11 @@ export default function HistoricalDataWizard({
       setSeason({ id: "", name: "" });
       // Reset everything else
       setSeasonTeams([]);
-      setTournaments([{ id: "t_1", name: "League", type: "LEAGUE", startDate: new Date().toISOString().split("T")[0], groupName: "" }]);
+      setTournaments([{ id: "t_1", name: "League", type: "LEAGUE_ONLY", startDate: new Date().toISOString().split("T")[0], groupName: "" }]);
       setStats({});
       setTeamPlayers({});
-      setAwards({ winnerTeamId: "", runnerUpTeamId: "", goldenBootPlayerId: "", goldenGlovePlayerId: "", goldenBallPlayerId: "", ballonDorPlayerId: "", teamOfTheSeasonPlayerIds: [] });
+      setActiveTournTeams({});
+      setAwards({ winnerTeamId: "", runnerUpTeamId: "", goldenBootTeamId: "", goldenGloveTeamId: "", goldenBallTeamId: "", ballonDorTeamId: "", teamOfTheSeasonPlayerIds: [] });
     } else {
       const s = initialSeasons.find(x => x.id === val);
       if (s) {
@@ -130,7 +184,21 @@ export default function HistoricalDataWizard({
             const data = await res.json();
             if (data.seasonTeams) setSeasonTeams(data.seasonTeams);
             if (data.tournaments && data.tournaments.length > 0) setTournaments(data.tournaments);
-            if (data.stats) setStats(data.stats);
+            if (data.stats) {
+              setStats(data.stats);
+              // Pre-populate activeTournTeams based on keys in stats: "tournId_teamTempId"
+              const prePopulated: Record<string, string[]> = {};
+              Object.keys(data.stats).forEach(key => {
+                const parts = key.split("_");
+                const teamTempId = parts[parts.length - 1];
+                const tournId = key.replace(`_${teamTempId}`, "");
+                if (!prePopulated[tournId]) prePopulated[tournId] = [];
+                if (!prePopulated[tournId].includes(teamTempId)) {
+                  prePopulated[tournId].push(teamTempId);
+                }
+              });
+              setActiveTournTeams(prePopulated);
+            }
             if (data.teamPlayers) setTeamPlayers(data.teamPlayers);
             if (data.awards) setAwards(prev => ({ ...prev, ...data.awards }));
           }
@@ -179,36 +247,43 @@ export default function HistoricalDataWizard({
     
     if (activePlayerTeamId === tempId) setActivePlayerTeamId("");
   };
-  const updateTeam = (tempId: string, field: string, value: string) => {
+  const updateTeam = (tempId: string, field: string, value: any) => {
     setSeasonTeams(seasonTeams.map(t => {
       if (t.tempId === tempId) {
-        const updated = { ...t, [field]: value };
+        let updated = { ...t };
         
-        if (field === "id" && value !== "new" && value !== "") {
-          const selected = initialTeams.find(it => it.id === value);
-          if (selected) {
-            updated.name = selected.name;
-            updated.managerName = selected.managerName || "";
-          }
-        } else if (field === "managerName" || field === "name") {
-          // If editing name or managerName, check if the combo exactly matches an existing team
-          const matchedTeam = initialTeams.find(
-            it => it.name.trim().toLowerCase() === updated.name.trim().toLowerCase() &&
-                  (it.managerName || "").trim().toLowerCase() === updated.managerName.trim().toLowerCase()
-          );
-          if (matchedTeam) {
-            // Revert back to the existing team ID
-            updated.id = matchedTeam.id;
-            updated.name = matchedTeam.name; // Keep correct capitalization
-            updated.managerName = matchedTeam.managerName || "";
-          } else {
-            // Diverged, force creation of new team
-            updated.id = "new";
+        if (field === "managerName" && value === "new") {
+          updated.isNewManager = true;
+          updated.managerName = "";
+          updated.id = "new";
+        } else {
+          updated = { ...updated, [field]: value };
+          
+          if (field === "id" && value !== "new" && value !== "") {
+            const selected = initialTeams.find(it => it.id === value);
+            if (selected) {
+              updated.name = selected.name;
+              updated.managerName = selected.managerName || "";
+              updated.isNewManager = !initialManagers.some(m => m.name.toLowerCase() === updated.managerName.trim().toLowerCase());
+            }
+          } else if (field === "managerName" || field === "name") {
+            if (field === "managerName") {
+              updated.isNewManager = !initialManagers.some(m => m.name.toLowerCase() === value.trim().toLowerCase());
+            }
+            
+            const matchedTeam = initialTeams.find(
+              it => it.name.trim().toLowerCase() === updated.name.trim().toLowerCase() &&
+                    (it.managerName || "").trim().toLowerCase() === updated.managerName.trim().toLowerCase()
+            );
+            if (matchedTeam) {
+              updated.id = matchedTeam.id;
+              updated.name = matchedTeam.name;
+              updated.managerName = matchedTeam.managerName || "";
+            } else {
+              updated.id = "new";
+            }
           }
         }
-        
-        // Update isNewManager status
-        updated.isNewManager = !initialManagers.some(m => m.name.toLowerCase() === updated.managerName.trim().toLowerCase());
         
         return updated;
       }
@@ -218,7 +293,7 @@ export default function HistoricalDataWizard({
 
   // --- Helpers for Step 3: Tournaments ---
   const addTournament = () => {
-    setTournaments([...tournaments, { id: `t_${Date.now()}`, name: "", type: "CUP", startDate: new Date().toISOString().split("T")[0], groupName: "" }]);
+    setTournaments([...tournaments, { id: `t_${Date.now()}`, name: "", type: "KNOCKOUT_ONLY", startDate: new Date().toISOString().split("T")[0], groupName: "" }]);
   };
   const removeTournament = (id: string) => {
     setTournaments(tournaments.filter(t => t.id !== id));
@@ -257,7 +332,7 @@ export default function HistoricalDataWizard({
   // Auto-calculate league winner based on points in LEAGUE tournaments
   useEffect(() => {
     if (step === 6) {
-      const leagueT = tournaments.find(t => t.type === "LEAGUE");
+      const leagueT = tournaments.find(t => t.type === "LEAGUE_ONLY" || t.type === "LEAGUE_PLAYOFF");
       if (leagueT) {
         const teamPoints = seasonTeams.map(t => {
           const key = `${leagueT.id}_${t.tempId}`;
@@ -275,19 +350,49 @@ export default function HistoricalDataWizard({
     }
   }, [step, tournaments, seasonTeams, stats, awards.winnerTeamId, awards.runnerUpTeamId]);
 
-  // Aggregate all assigned players for awards dropdowns
-  const assignedPlayerIds = useMemo(() => {
-    const ids = new Set<string>();
-    Object.values(teamPlayers).forEach(arr => arr.forEach(id => ids.add(id)));
-    return Array.from(ids);
-  }, [teamPlayers]);
-  
-  const assignedPlayersOptions = useMemo(() => {
-    return assignedPlayerIds.map(id => {
-      const p = players.find(x => x.id === id);
-      return { value: id, label: p?.name || id };
-    });
-  }, [assignedPlayerIds, players]);
+  // Aggregate combined stats across all tournaments for award suggestions
+  const combinedTeamStats = useMemo(() => {
+    const totals: Record<string, { tempId: string; name: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number }> = {};
+    
+    for (const team of seasonTeams) {
+      totals[team.tempId] = {
+        tempId: team.tempId,
+        name: team.name || "Unnamed",
+        played: 0, won: 0, drawn: 0, lost: 0,
+        goalsFor: 0, goalsAgainst: 0, points: 0
+      };
+    }
+    
+    for (const [key, s] of Object.entries(stats)) {
+      const teamTempId = key.split("_").pop() || "";
+      if (totals[teamTempId]) {
+        totals[teamTempId].played += s.played || 0;
+        totals[teamTempId].won += s.won || 0;
+        totals[teamTempId].drawn += s.drawn || 0;
+        totals[teamTempId].lost += s.lost || 0;
+        totals[teamTempId].goalsFor += s.goalsFor || 0;
+        totals[teamTempId].goalsAgainst += s.goalsAgainst || 0;
+        totals[teamTempId].points += s.points || 0;
+      }
+    }
+    
+    return Object.values(totals);
+  }, [seasonTeams, stats]);
+
+  // Sorted suggestions for Golden Boot (most goals scored) and Golden Glove (fewest goals conceded)
+  const goldenBootSuggestions = useMemo(() => 
+    [...combinedTeamStats].sort((a, b) => b.goalsFor - a.goalsFor), 
+    [combinedTeamStats]
+  );
+
+  const goldenGloveSuggestions = useMemo(() => 
+    [...combinedTeamStats].filter(t => t.played > 0).sort((a, b) => a.goalsAgainst - b.goalsAgainst), 
+    [combinedTeamStats]
+  );
+
+  const teamAwardOptions = useMemo(() => {
+    return seasonTeams.map(t => ({ value: t.tempId, label: t.name || "Unnamed" }));
+  }, [seasonTeams]);
 
   // --- Submit ---
   const handleSubmit = async () => {
@@ -329,20 +434,43 @@ export default function HistoricalDataWizard({
     // 2. Tournaments Sheet
     const tournamentsData = [
       ["Tournament Name", "Type", "Start Date", "Group (Optional)"],
-      ["Premier League", "LEAGUE", "2023-08-01", ""],
-      ["FA Cup", "CUP", "2023-09-01", "Group A"]
+      ["Premier League", "LEAGUE_ONLY", "2023-08-01", ""],
+      ["Champions Cup", "LEAGUE_PLAYOFF", "2023-09-01", ""],
+      ["World Cup", "GROUP_KNOCKOUT", "2023-11-01", "Group A"],
+      ["FA Cup", "KNOCKOUT_ONLY", "2023-09-01", ""],
+      ["", "", "", ""],
+      ["--- Valid Types ---", "", "", ""],
+      ["LEAGUE_ONLY", "League table only (no knockout stage)", "", ""],
+      ["LEAGUE_PLAYOFF", "League stage + knockout playoffs after", "", ""],
+      ["GROUP_KNOCKOUT", "Group stage tables + knockout stage after", "", ""],
+      ["KNOCKOUT_ONLY", "Pure knockout bracket (no stats sheet needed)", "", ""],
     ];
     const wsTournaments = XLSX.utils.aoa_to_sheet(tournamentsData);
     XLSX.utils.book_append_sheet(wb, wsTournaments, "Tournaments");
 
-    // 3. Stats Sheet
+    // 3. Stats Sheets (one per tournament that has a league/group stage)
     const statsData = [
       ["Team Name", "P", "MP", "W", "D", "L", "F", "A", "GD", "%"],
       ["Red Devils", 80, 38, 25, 5, 8, 70, 30, 40, "65%"],
-      ["Blue Eagles", 70, 38, 20, 10, 8, 60, 40, 20, "52%"]
+      ["Blue Eagles", 70, 38, 20, 10, 8, 60, 40, 20, "52%"],
+      ["", "", "", "", "", "", "", "", "", ""],
+      ["NOTE: This sheet is for the league/group stage standings only."],
+      ["Knockout results should be entered via the match fixtures UI."],
     ];
     const wsStats = XLSX.utils.aoa_to_sheet(statsData);
     XLSX.utils.book_append_sheet(wb, wsStats, "Stats - Premier League");
+
+    // Example stats sheet for group knockout
+    const groupStatsData = [
+      ["Team Name", "P", "MP", "W", "D", "L", "F", "A", "GD", "%"],
+      ["Red Devils", 9, 3, 3, 0, 0, 7, 1, 6, "100%"],
+      ["Blue Eagles", 6, 3, 2, 0, 1, 5, 3, 2, "66%"],
+      ["", "", "", "", "", "", "", "", "", ""],
+      ["NOTE: Only group stage standings go here."],
+      ["Knockout stage matches are entered separately."],
+    ];
+    const wsGroupStats = XLSX.utils.aoa_to_sheet(groupStatsData);
+    XLSX.utils.book_append_sheet(wb, wsGroupStats, "Stats - World Cup");
 
     // 4. Awards Sheet
     const awardsData = [
@@ -457,11 +585,11 @@ export default function HistoricalDataWizard({
 
         // Parse Stats
         let importedStats: any = {};
+        const rawStatsList: any[] = [];
         for (const sheetName of wb.SheetNames) {
           if (sheetName.startsWith("Stats - ")) {
             const tournName = sheetName.replace("Stats - ", "").trim();
             const tourn = importedTournaments.find(t => t.name.toLowerCase() === tournName.toLowerCase());
-            if (!tourn) continue;
 
             const wsStats = wb.Sheets[sheetName];
             const statsJson = XLSX.utils.sheet_to_json(wsStats, { header: 1 }) as any[];
@@ -470,16 +598,7 @@ export default function HistoricalDataWizard({
               const row = statsJson[i];
               if (row.length === 0 || !row[0]) continue;
               const teamName = String(row[0]).trim();
-              const team = importedSeasonTeams.find(t => 
-                t.originalName.toLowerCase() === teamName.toLowerCase() ||
-                t.name.toLowerCase() === teamName.toLowerCase()
-              );
-              if (!team) continue;
-
-              // Row indices:
-              // 0: Team Name, 1: P (Points), 2: MP (Played), 3: W, 4: D, 5: L, 6: F, 7: A, 8: GD, 9: %
-              const key = `${tourn.id}_${team.tempId}`;
-              importedStats[key] = {
+              const statsObj = {
                 points: Number(row[1] || 0),
                 played: Number(row[2] || 0),
                 won: Number(row[3] || 0),
@@ -488,6 +607,23 @@ export default function HistoricalDataWizard({
                 goalsFor: Number(row[6] || 0),
                 goalsAgainst: Number(row[7] || 0),
               };
+
+              rawStatsList.push({
+                tournamentName: tournName,
+                teamName,
+                stats: statsObj
+              });
+
+              if (tourn) {
+                const team = importedSeasonTeams.find(t => 
+                  t.originalName.toLowerCase() === teamName.toLowerCase() ||
+                  t.name.toLowerCase() === teamName.toLowerCase()
+                );
+                if (team) {
+                  const key = `${tourn.id}_${team.tempId}`;
+                  importedStats[key] = statsObj;
+                }
+              }
             }
           }
         }
@@ -504,38 +640,37 @@ export default function HistoricalDataWizard({
             const awardName = String(row[0]).trim().toLowerCase();
             const winnerName = String(row[1]).trim();
             
+            const findTeam = (name: string) => importedSeasonTeams.find(t => 
+              t.originalName.toLowerCase() === name.toLowerCase() ||
+              t.name.toLowerCase() === name.toLowerCase()
+            );
+
             if (awardName === "league winner" || awardName === "winner") {
-              const team = importedSeasonTeams.find(t => 
-                t.originalName.toLowerCase() === winnerName.toLowerCase() ||
-                t.name.toLowerCase() === winnerName.toLowerCase()
-              );
+              const team = findTeam(winnerName);
               if (team) newAwards.winnerTeamId = team.tempId;
             } else if (awardName === "runner up" || awardName === "runner-up") {
-              const team = importedSeasonTeams.find(t => 
-                t.originalName.toLowerCase() === winnerName.toLowerCase() ||
-                t.name.toLowerCase() === winnerName.toLowerCase()
-              );
+              const team = findTeam(winnerName);
               if (team) newAwards.runnerUpTeamId = team.tempId;
             } else if (awardName === "golden boot") {
-              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
-              if (player) newAwards.goldenBootPlayerId = player.id;
+              const team = findTeam(winnerName);
+              if (team) newAwards.goldenBootTeamId = team.tempId;
             } else if (awardName === "golden glove") {
-              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
-              if (player) newAwards.goldenGlovePlayerId = player.id;
+              const team = findTeam(winnerName);
+              if (team) newAwards.goldenGloveTeamId = team.tempId;
             } else if (awardName === "golden ball") {
-              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
-              if (player) newAwards.goldenBallPlayerId = player.id;
+              const team = findTeam(winnerName);
+              if (team) newAwards.goldenBallTeamId = team.tempId;
             } else if (awardName === "ballon d'or" || awardName === "ballon dor") {
-              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
-              if (player) newAwards.ballonDorPlayerId = player.id;
+              const team = findTeam(winnerName);
+              if (team) newAwards.ballonDorTeamId = team.tempId;
             } else if (awardName === "team of the season") {
               const names = winnerName.split(",").map(n => n.trim());
-              const pids: string[] = [];
+              const tids: string[] = [];
               names.forEach(n => {
-                const player = players.find(p => p.name.toLowerCase() === n.toLowerCase());
-                if (player) pids.push(player.id);
+                const team = findTeam(n);
+                if (team) tids.push(team.tempId);
               });
-              newAwards.teamOfTheSeasonPlayerIds = pids;
+              newAwards.teamOfTheSeasonPlayerIds = tids;
             }
           }
         }
@@ -543,6 +678,7 @@ export default function HistoricalDataWizard({
         if (importedSeasonTeams.length > 0) setSeasonTeams(importedSeasonTeams);
         if (importedTournaments.length > 0) setTournaments(importedTournaments);
         if (Object.keys(importedStats).length > 0) setStats(importedStats);
+        if (rawStatsList.length > 0) setRawUploadedStats(rawStatsList);
         setAwards(newAwards);
 
         setStep(2);
@@ -563,6 +699,22 @@ export default function HistoricalDataWizard({
     { value: "new", label: "+ Create New Team" },
     ...initialTeams.map(t => ({ value: t.id, label: t.name }))
   ];
+  const managerOptions = [
+    { value: "new", label: "+ Create New Manager" },
+    ...initialManagers.map(m => {
+      const teamNames = (m.teamLinks || [])
+        .map((link: any) => {
+          const team = initialTeams.find(t => t.id === link.teamId);
+          return team?.name || "";
+        })
+        .filter(Boolean)
+        .join(", ");
+      return { 
+        value: m.name, 
+        label: teamNames ? `${m.name} (${teamNames})` : m.name 
+      };
+    })
+  ];
   const seasonOptions = [
     { value: "new", label: "+ Create New Season" },
     ...initialSeasons.map(s => ({ value: s.id, label: `${s.name} (Season ${s.seasonNumber})` }))
@@ -572,12 +724,24 @@ export default function HistoricalDataWizard({
     <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 sm:p-8">
       {/* Steps Indicator */}
       <div className="flex items-center justify-between mb-8 pb-8 border-b border-white/10 overflow-x-auto custom-scrollbar">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="flex items-center shrink-0">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${step >= i ? "bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-black" : "bg-white/10 text-gray-500"}`}>
-              {i}
+        {[
+          { num: 1, label: "Season" },
+          { num: 2, label: "Teams" },
+          { num: 3, label: "Tournaments" },
+          { num: 4, label: "Stats" },
+          { num: 5, label: "Players" },
+          { num: 6, label: "Awards" },
+        ].map((s, idx) => (
+          <div key={s.num} className="flex items-center shrink-0">
+            <div className="flex flex-col items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${step >= s.num ? "bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-black" : "bg-white/10 text-gray-500"}`}>
+                {s.num}
+              </div>
+              <span className={`text-[10px] sm:text-xs mt-1 font-medium transition-colors ${step >= s.num ? "text-[#E8A800]" : "text-gray-600"}`}>
+                {s.label}
+              </span>
             </div>
-            {i < 6 && <div className={`h-1 w-6 sm:w-12 mx-1 sm:mx-2 rounded ${step > i ? "bg-[#E8A800]" : "bg-white/10"}`} />}
+            {idx < 5 && <div className={`h-1 w-6 sm:w-12 mx-1 sm:mx-2 rounded mt-[-12px] ${step > s.num ? "bg-[#E8A800]" : "bg-white/10"}`} />}
           </div>
         ))}
       </div>
@@ -691,21 +855,31 @@ export default function HistoricalDataWizard({
                   </div>
                 </div>
                 <div className="flex-1 w-full">
-                  <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Manager Name</label>
-                  <input
-                    type="text"
-                    placeholder="Manager"
-                    className="w-full bg-black/50 border border-white/10 rounded-xl p-3 sm:py-3 py-2 text-white focus:outline-none focus:border-[#E8A800] text-sm"
-                    value={t.managerName}
-                    onChange={(e) => updateTeam(t.tempId, "managerName", e.target.value)}
+                  <SearchableSelect
+                    label="Manager Name"
+                    value={t.isNewManager ? "new" : (t.managerName || "")}
+                    options={managerOptions}
+                    onChange={(val) => updateTeam(t.tempId, "managerName", val)}
+                    placeholder="Select Manager"
                   />
+                  {t.isNewManager ? (
+                    <input
+                      type="text"
+                      placeholder="New Manager Name"
+                      className="mt-2 w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#E8A800] text-sm"
+                      value={t.managerName}
+                      onChange={(e) => updateTeam(t.tempId, "managerName", e.target.value)}
+                    />
+                  ) : null}
                   <div className="mt-2">
-                    {t.managerName.trim() === "" ? (
+                    {t.isNewManager && t.managerName.trim() === "" ? (
                       <span className="text-xs font-mono text-gray-500 bg-gray-500/10 px-2 py-1 rounded">No Manager</span>
                     ) : t.isNewManager ? (
                       <span className="text-xs font-mono text-green-400 bg-green-400/10 px-2 py-1 rounded">🟩 New Manager Profile</span>
-                    ) : (
+                    ) : t.managerName ? (
                       <span className="text-xs font-mono text-blue-400 bg-blue-400/10 px-2 py-1 rounded">🟦 Existing Manager</span>
+                    ) : (
+                      <span className="text-xs font-mono text-gray-500 bg-gray-500/10 px-2 py-1 rounded">No Manager</span>
                     )}
                   </div>
                 </div>
@@ -747,8 +921,10 @@ export default function HistoricalDataWizard({
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Type</label>
                   <select className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-white text-sm" value={t.type} onChange={(e) => updateTournament(t.id, "type", e.target.value)}>
-                    <option value="LEAGUE">League</option>
-                    <option value="CUP">Cup</option>
+                    <option value="LEAGUE_ONLY">League Only</option>
+                    <option value="LEAGUE_PLAYOFF">League + Playoff</option>
+                    <option value="GROUP_KNOCKOUT">Group Stage + Knockout</option>
+                    <option value="KNOCKOUT_ONLY">Knockout Only</option>
                   </select>
                 </div>
                 <div>
@@ -769,48 +945,113 @@ export default function HistoricalDataWizard({
       {step === 4 && (
         <div className="space-y-6">
           <h2 className="text-2xl font-bold text-white mb-4">Step 4: Team Stats</h2>
-          <p className="text-gray-400 text-sm">Enter the final standings/stats for all teams in each tournament.</p>
+          <p className="text-gray-400 text-sm">Enter the final standings/stats for the teams participating in each tournament.</p>
           
-          {tournaments.map((tourn, index) => (
-            <div key={tourn.id} className="p-4 sm:p-6 bg-black/30 border border-white/10 rounded-xl overflow-x-auto">
-              <h3 className="font-bold text-[#E8A800] mb-4">{tourn.name || `Tournament ${index + 1}`}</h3>
-              <table className="w-full text-left min-w-[600px]">
-                <thead>
-                  <tr className="text-xs text-gray-400 border-b border-white/10">
-                    <th className="py-2 px-2 font-medium">Team</th>
-                    <th className="py-2 px-2 font-medium w-16 text-center">P</th>
-                    <th className="py-2 px-2 font-medium w-16 text-center">W</th>
-                    <th className="py-2 px-2 font-medium w-16 text-center">D</th>
-                    <th className="py-2 px-2 font-medium w-16 text-center">L</th>
-                    <th className="py-2 px-2 font-medium w-16 text-center">GF</th>
-                    <th className="py-2 px-2 font-medium w-16 text-center">GA</th>
-                    <th className="py-2 px-2 font-medium w-20 text-center">Pts</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {seasonTeams.map(team => {
-                    const key = `${tourn.id}_${team.tempId}`;
-                    const currentStats = stats[key] || { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
-                    return (
-                      <tr key={team.tempId}>
-                        <td className="py-2 px-2 text-sm font-bold truncate max-w-[150px]">{team.name || "Unnamed"}</td>
-                        {['played', 'won', 'drawn', 'lost', 'goalsFor', 'goalsAgainst', 'points'].map(field => (
-                          <td key={field} className="py-2 px-1">
-                            <input
-                              type="number"
-                              className={`w-full bg-black/50 border border-white/10 rounded text-center text-sm p-1 ${field === 'points' ? 'font-bold text-[#E8A800]' : 'text-white'} focus:border-[#E8A800] focus:outline-none`}
-                              value={currentStats[field as keyof typeof currentStats]}
-                              onChange={(e) => updateStat(tourn.id, team.tempId, field, e.target.value)}
-                            />
-                          </td>
+          {tournaments.map((tourn, index) => {
+            const availableTeams = seasonTeams.filter(t => !getTournTeams(tourn.id).includes(t.tempId));
+            return (
+              <div key={tourn.id} className="p-4 sm:p-6 bg-black/30 border border-white/10 rounded-xl overflow-x-auto">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                  <h3 className="font-bold text-[#E8A800] text-lg">{tourn.name || `Tournament ${index + 1}`}</h3>
+                  
+                  {availableTeams.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="bg-black/50 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-[#E8A800] cursor-pointer"
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleAddTeamToTourn(tourn.id, e.target.value);
+                          }
+                        }}
+                      >
+                        <option value="">+ Add Team to Stats</option>
+                        {availableTeams.map(t => (
+                          <option key={t.tempId} value={t.tempId}>
+                            {t.name || "Unnamed Team"}
+                          </option>
                         ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                
+                <table className="w-full text-left min-w-[670px]">
+                  <thead>
+                    <tr className="text-xs text-gray-400 border-b border-white/10">
+                      <th className="py-2 px-2 font-medium">Team</th>
+                      <th className="py-2 px-2 font-medium w-16 text-center">P</th>
+                      <th className="py-2 px-2 font-medium w-16 text-center">W</th>
+                      <th className="py-2 px-2 font-medium w-16 text-center">D</th>
+                      <th className="py-2 px-2 font-medium w-16 text-center">L</th>
+                      <th className="py-2 px-2 font-medium w-16 text-center">GF</th>
+                      <th className="py-2 px-2 font-medium w-16 text-center">GA</th>
+                      <th className="py-2 px-2 font-medium w-20 text-center">Pts</th>
+                      <th className="py-2 px-2 font-medium w-16 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {getTournTeams(tourn.id).map(teamTempId => {
+                      const team = seasonTeams.find(t => t.tempId === teamTempId);
+                      if (!team) return null;
+                      
+                      const key = `${tourn.id}_${team.tempId}`;
+                      const currentStats = stats[key] || { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
+                      return (
+                        <tr key={team.tempId}>
+                          <td className="py-2 px-2 text-sm font-bold truncate max-w-[150px]">{team.name || "Unnamed"}</td>
+                          {['played', 'won', 'drawn', 'lost', 'goalsFor', 'goalsAgainst', 'points'].map(field => (
+                            <td key={field} className="py-2 px-1">
+                              <input
+                                type="number"
+                                className={`w-full bg-black/50 border border-white/10 rounded text-center text-sm p-1 ${field === 'points' ? 'font-bold text-[#E8A800]' : 'text-white'} focus:border-[#E8A800] focus:outline-none`}
+                                value={currentStats[field as keyof typeof currentStats]}
+                                onChange={(e) => updateStat(tourn.id, team.tempId, field, e.target.value)}
+                              />
+                            </td>
+                          ))}
+                          <td className="py-2 px-2 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {rawUploadedStats.filter(r => r.tournamentName.toLowerCase() === (tourn.name || "").toLowerCase()).length > 0 && (
+                                <select
+                                  className="bg-black/50 border border-white/10 rounded-lg p-1 text-white text-xs focus:outline-none focus:border-[#E8A800] max-w-[120px] cursor-pointer"
+                                  value=""
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      handleMapRawStats(tourn.id, tourn.name, team.tempId, e.target.value);
+                                    }
+                                  }}
+                                  title="Map/link stats from Excel"
+                                >
+                                  <option value="">Map Excel Stats</option>
+                                  {rawUploadedStats
+                                    .filter(r => r.tournamentName.toLowerCase() === (tourn.name || "").toLowerCase())
+                                    .map(r => (
+                                      <option key={r.teamName} value={r.teamName}>
+                                        {r.teamName}
+                                      </option>
+                                    ))}
+                                </select>
+                              )}
+                              <button
+                                onClick={() => handleRemoveTeamFromTourn(tourn.id, team.tempId)}
+                                className="text-red-500 hover:text-red-400 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors shrink-0"
+                                title="Remove team stats"
+                              >
+                                <svg className="w-4 h-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -893,6 +1134,59 @@ export default function HistoricalDataWizard({
             <h2 className="text-2xl font-bold text-white">Step 6: Season Awards</h2>
           </div>
           
+          {/* Combined Stats Summary Table */}
+          {combinedTeamStats.length > 0 && combinedTeamStats.some(t => t.played > 0) && (
+            <div className="p-4 bg-black/30 border border-white/10 rounded-xl">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">📊 Combined Stats Across All Tournaments</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-500 text-xs border-b border-white/10">
+                      <th className="text-left py-2 px-2">Team</th>
+                      <th className="text-center py-2 px-1">MP</th>
+                      <th className="text-center py-2 px-1">W</th>
+                      <th className="text-center py-2 px-1">D</th>
+                      <th className="text-center py-2 px-1">L</th>
+                      <th className="text-center py-2 px-1 text-green-400">F</th>
+                      <th className="text-center py-2 px-1 text-red-400">A</th>
+                      <th className="text-center py-2 px-1">GD</th>
+                      <th className="text-center py-2 px-1 text-[#E8A800]">P</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...combinedTeamStats].sort((a, b) => b.points - a.points).map((t, i) => (
+                      <tr key={t.tempId} className={`border-b border-white/5 ${i === 0 ? "text-[#E8A800]" : "text-gray-300"}`}>
+                        <td className="py-2 px-2 font-medium">{t.name}</td>
+                        <td className="text-center py-2 px-1">{t.played}</td>
+                        <td className="text-center py-2 px-1">{t.won}</td>
+                        <td className="text-center py-2 px-1">{t.drawn}</td>
+                        <td className="text-center py-2 px-1">{t.lost}</td>
+                        <td className="text-center py-2 px-1 text-green-400 font-bold">{t.goalsFor}</td>
+                        <td className="text-center py-2 px-1 text-red-400">{t.goalsAgainst}</td>
+                        <td className="text-center py-2 px-1">{t.goalsFor - t.goalsAgainst}</td>
+                        <td className="text-center py-2 px-1 text-[#E8A800] font-bold">{t.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Suggestions */}
+          {goldenBootSuggestions.length > 0 && goldenBootSuggestions[0].goalsFor > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
+                <p className="text-xs text-green-400 font-bold uppercase tracking-wider mb-1">⚽ Golden Boot Suggestion (Most Goals)</p>
+                <p className="text-white font-bold">{goldenBootSuggestions[0].name} <span className="text-green-400">({goldenBootSuggestions[0].goalsFor} goals)</span></p>
+              </div>
+              <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                <p className="text-xs text-blue-400 font-bold uppercase tracking-wider mb-1">🧤 Golden Glove Suggestion (Fewest Conceded)</p>
+                <p className="text-white font-bold">{goldenGloveSuggestions[0]?.name} <span className="text-blue-400">({goldenGloveSuggestions[0]?.goalsAgainst} conceded)</span></p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 bg-black/30 border border-white/10 rounded-xl space-y-4">
               <h3 className="text-[#E8A800] font-bold border-b border-white/10 pb-2 mb-4">Team Awards</h3>
@@ -900,61 +1194,61 @@ export default function HistoricalDataWizard({
               <SearchableSelect
                 label="🏆 League Winner"
                 value={awards.winnerTeamId}
-                options={[{value: "", label: "-- Select Winner --"}, ...seasonTeams.map(t => ({value: t.tempId, label: t.name}))]}
+                options={[{value: "", label: "-- Select Winner --"}, ...teamAwardOptions]}
                 onChange={(val) => setAwards({...awards, winnerTeamId: val})}
               />
 
               <SearchableSelect
                 label="🥈 Runner Up"
                 value={awards.runnerUpTeamId}
-                options={[{value: "", label: "-- Select Runner Up --"}, ...seasonTeams.map(t => ({value: t.tempId, label: t.name}))]}
+                options={[{value: "", label: "-- Select Runner Up --"}, ...teamAwardOptions]}
                 onChange={(val) => setAwards({...awards, runnerUpTeamId: val})}
               />
             </div>
             
             <div className="p-6 bg-black/30 border border-white/10 rounded-xl space-y-4">
-              <h3 className="text-[#E8A800] font-bold border-b border-white/10 pb-2 mb-4">Player Awards</h3>
+              <h3 className="text-[#E8A800] font-bold border-b border-white/10 pb-2 mb-4">Individual Awards (Team)</h3>
               
               <SearchableSelect
                 label="⚽ Golden Boot"
-                value={awards.goldenBootPlayerId}
-                options={[{value: "", label: "-- Select Golden Boot --"}, ...assignedPlayersOptions]}
-                onChange={(val) => setAwards({...awards, goldenBootPlayerId: val})}
+                value={awards.goldenBootTeamId}
+                options={[{value: "", label: "-- Select Golden Boot --"}, ...teamAwardOptions]}
+                onChange={(val) => setAwards({...awards, goldenBootTeamId: val})}
               />
               
               <SearchableSelect
                 label="🧤 Golden Glove"
-                value={awards.goldenGlovePlayerId}
-                options={[{value: "", label: "-- Select Golden Glove --"}, ...assignedPlayersOptions]}
-                onChange={(val) => setAwards({...awards, goldenGlovePlayerId: val})}
+                value={awards.goldenGloveTeamId}
+                options={[{value: "", label: "-- Select Golden Glove --"}, ...teamAwardOptions]}
+                onChange={(val) => setAwards({...awards, goldenGloveTeamId: val})}
               />
 
               <SearchableSelect
                 label="🌟 Golden Ball"
-                value={awards.goldenBallPlayerId}
-                options={[{value: "", label: "-- Select Golden Ball --"}, ...assignedPlayersOptions]}
-                onChange={(val) => setAwards({...awards, goldenBallPlayerId: val})}
+                value={awards.goldenBallTeamId}
+                options={[{value: "", label: "-- Select Golden Ball --"}, ...teamAwardOptions]}
+                onChange={(val) => setAwards({...awards, goldenBallTeamId: val})}
               />
 
               <SearchableSelect
                 label="✨ Ballon d'Or"
-                value={awards.ballonDorPlayerId}
-                options={[{value: "", label: "-- Select Ballon d'Or --"}, ...assignedPlayersOptions]}
-                onChange={(val) => setAwards({...awards, ballonDorPlayerId: val})}
+                value={awards.ballonDorTeamId}
+                options={[{value: "", label: "-- Select Ballon d'Or --"}, ...teamAwardOptions]}
+                onChange={(val) => setAwards({...awards, ballonDorTeamId: val})}
               />
             </div>
             
             <div className="p-6 bg-black/30 border border-white/10 rounded-xl space-y-4 md:col-span-2">
               <h3 className="text-[#E8A800] font-bold border-b border-white/10 pb-2 mb-4">Team of the Season</h3>
-              <p className="text-xs text-gray-400 mb-2">Select the players that made it into the Team of the Season.</p>
+              <p className="text-xs text-gray-400 mb-2">Select the teams that made it into the Team of the Season.</p>
               
               <div className="flex flex-wrap gap-2 mb-4">
-                {awards.teamOfTheSeasonPlayerIds.map(pid => {
-                  const p = players.find(x => x.id === pid);
+                {awards.teamOfTheSeasonPlayerIds.map(tid => {
+                  const t = seasonTeams.find(x => x.tempId === tid);
                   return (
-                    <div key={pid} className="bg-[#E8A800]/20 text-[#E8A800] text-sm px-3 py-1 rounded-full flex items-center gap-2">
-                      {p?.name || pid}
-                      <button onClick={() => setAwards({...awards, teamOfTheSeasonPlayerIds: awards.teamOfTheSeasonPlayerIds.filter(x => x !== pid)})} className="hover:text-white">&times;</button>
+                    <div key={tid} className="bg-[#E8A800]/20 text-[#E8A800] text-sm px-3 py-1 rounded-full flex items-center gap-2">
+                      {t?.name || tid}
+                      <button onClick={() => setAwards({...awards, teamOfTheSeasonPlayerIds: awards.teamOfTheSeasonPlayerIds.filter(x => x !== tid)})} className="hover:text-white">&times;</button>
                     </div>
                   );
                 })}
@@ -962,7 +1256,7 @@ export default function HistoricalDataWizard({
 
               <SearchableSelect
                 value=""
-                options={[{value: "", label: "-- Add Player to TOTS --"}, ...assignedPlayersOptions.filter(opt => !awards.teamOfTheSeasonPlayerIds.includes(opt.value))]}
+                options={[{value: "", label: "-- Add Team to TOTS --"}, ...teamAwardOptions.filter(opt => !awards.teamOfTheSeasonPlayerIds.includes(opt.value))]}
                 onChange={(val) => {
                   if (val && !awards.teamOfTheSeasonPlayerIds.includes(val)) {
                     setAwards({...awards, teamOfTheSeasonPlayerIds: [...awards.teamOfTheSeasonPlayerIds, val]});

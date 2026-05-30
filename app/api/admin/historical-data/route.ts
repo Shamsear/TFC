@@ -265,27 +265,27 @@ export async function POST(req: NextRequest) {
       });
 
       const awardRecords: any[] = [];
-      const pushAward = (type: string, teamTempId?: string, playerId?: string) => {
-        if (!teamTempId && !playerId) return;
+      const pushAward = (type: string, teamTempId?: string) => {
+        if (!teamTempId) return;
         awardRecords.push({
           id: crypto.randomUUID(),
           seasonId,
           awardType: type,
-          teamId: teamTempId ? globalTeamIdMap.get(teamTempId) || null : null,
-          basePlayerId: playerId || null,
+          teamId: globalTeamIdMap.get(teamTempId) || null,
+          basePlayerId: null,
         });
       };
 
       if (awards.winnerTeamId) pushAward("LEAGUE_WINNER", awards.winnerTeamId);
       if (awards.runnerUpTeamId) pushAward("LEAGUE_RUNNER_UP", awards.runnerUpTeamId);
-      if (awards.goldenBootPlayerId) pushAward("GOLDEN_BOOT", undefined, awards.goldenBootPlayerId);
-      if (awards.goldenGlovePlayerId) pushAward("GOLDEN_GLOVE", undefined, awards.goldenGlovePlayerId);
-      if (awards.goldenBallPlayerId) pushAward("GOLDEN_BALL", undefined, awards.goldenBallPlayerId);
-      if (awards.ballonDorPlayerId) pushAward("BALLON_D_OR", undefined, awards.ballonDorPlayerId);
+      if (awards.goldenBootTeamId) pushAward("GOLDEN_BOOT", awards.goldenBootTeamId);
+      if (awards.goldenGloveTeamId) pushAward("GOLDEN_GLOVE", awards.goldenGloveTeamId);
+      if (awards.goldenBallTeamId) pushAward("GOLDEN_BALL", awards.goldenBallTeamId);
+      if (awards.ballonDorTeamId) pushAward("BALLON_D_OR", awards.ballonDorTeamId);
       
       if (awards.teamOfTheSeasonPlayerIds && Array.isArray(awards.teamOfTheSeasonPlayerIds)) {
-        for (const pid of awards.teamOfTheSeasonPlayerIds) {
-          pushAward("TEAM_OF_THE_SEASON", undefined, pid);
+        for (const tid of awards.teamOfTheSeasonPlayerIds) {
+          pushAward("TEAM_OF_THE_SEASON", tid);
         }
       }
 

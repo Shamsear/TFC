@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 interface SearchableSelectProps {
   label?: string
   value: string
-  options: string[] | { value: string; label: string }[]
+  options: string[] | { value: string; label: string; disabled?: boolean }[]
   onChange: (value: string) => void
   placeholder?: string
   className?: string
@@ -34,7 +34,7 @@ export default function SearchableSelect({
 
   // Normalize options to array of objects
   const normalizedOptions = options.map(opt => 
-    typeof opt === 'string' ? { value: opt, label: opt } : opt
+    typeof opt === 'string' ? { value: opt, label: opt, disabled: false } : { ...opt, disabled: opt.disabled || false }
   )
 
   useEffect(() => {
@@ -156,16 +156,25 @@ export default function SearchableSelect({
                   <button
                     key={`${option.value}-${index}`}
                     type="button"
+                    disabled={option.disabled}
                     onClick={() => {
-                      onChange(option.value)
-                      setIsOpen(false)
-                      setSearchQuery('')
+                      if (!option.disabled) {
+                        onChange(option.value)
+                        setIsOpen(false)
+                        setSearchQuery('')
+                      }
                     }}
-                    className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
-                      isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
+                    className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors ${
+                      option.disabled 
+                        ? 'opacity-50 cursor-not-allowed text-gray-500' 
+                        : isSelected 
+                          ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold hover:bg-[#E8A800]/10' 
+                          : 'text-gray-300 hover:bg-[#E8A800]/10 hover:text-[#E8A800]'
                     }`}
                   >
-                    <span className="truncate">{option.label}</span>
+                    <span className="truncate">
+                      {option.label}
+                    </span>
                     {isSelected && (
                       <svg className="w-4 h-4 text-[#E8A800] flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

@@ -395,6 +395,8 @@ model users {
   isActive                 Boolean                   @default(true) @map("is_active")
   teamId                   String?                   @map("team_id")
   mustChangePassword       Boolean                   @default(false) @map("must_change_password")
+  managerId                String?                   @unique @map("manager_id")
+  manager                  managers?                 @relation(fields: [managerId], references: [id])
   subAdminSeasons          sub_admin_seasons[]
   updatedCalendars         auction_calendar[]        @relation("CalendarUpdatedBy")
   auditLogs                audit_logs[]
@@ -1117,6 +1119,7 @@ model managers {
   updatedAt DateTime @updatedAt @map("updated_at")
   
   teamLinks manager_teams[]
+  user      users?
 }
 
 model manager_teams {

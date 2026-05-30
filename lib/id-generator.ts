@@ -32,6 +32,7 @@ export const ID_PREFIXES = {
   ROUND: 'TFCRD',
   RELEASE_WINDOW: 'TFCRW',
   SWAP_WINDOW: 'TFCSW',
+  MANAGER: 'TFCMGR',
 } as const
 
 type IDPrefix = typeof ID_PREFIXES[keyof typeof ID_PREFIXES]
@@ -236,6 +237,13 @@ export async function generateStandingId(): Promise<string> {
  */
 export async function generateRoundId(): Promise<string> {
   return generateId(ID_PREFIXES.ROUND)
+}
+
+/**
+ * Generate a manager ID
+ */
+export async function generateManagerId(): Promise<string> {
+  return generateId(ID_PREFIXES.MANAGER)
 }
 
 /**

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/auth/SessionProvider";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import PWARegistry from "@/components/PWARegistry";
 import { AutoRefresh } from "@/components/AutoRefresh";
@@ -30,15 +29,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased">
-        <ErrorBoundary>
-          <SessionProvider>
-            <ToastProvider>
-              <PWARegistry />
-              <AutoRefresh />
-              {children}
-            </ToastProvider>
-          </SessionProvider>
-        </ErrorBoundary>
+        <SessionProvider>
+          <ToastProvider>
+            <PWARegistry />
+            <AutoRefresh />
+            {children}
+          </ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { generateUserId } from "@/lib/id-generator";
+import { 
+  generateUserId, 
+  generateSeasonId, 
+  generateTeamId, 
+  generateSeasonTeamId, 
+  generateTournamentId, 
+  generateTournamentTeamId,
+  generateStandingId,
+  generateTransferId,
+  generateAuditId,
+  generateManagerId
+} from "@/lib/id-generator";
 import { generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator";
 import { hash } from "bcryptjs";
 
@@ -13,80 +24,112 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = await req.json();
-    const { season, seasonTeams, tournaments, stats, teamPlayers, awards } = payload;
+    const { 
+      season, 
+      seasonTeams = [], 
+      tournaments = [], 
+      activeTournTeams = {}, 
+      stats = {}, 
+      teamPlayers = {}, 
+      awards = null 
+    } = payload;
 
-    if (!seasonTeams || seasonTeams.length === 0) {
-      return NextResponse.json({ error: "No teams provided for the season" }, { status: 400 });
-    }
+    const sTeams = seasonTeams;
+
+    let counts = {
+      season: 0,
+      teams: 0,
+      tournaments: 0,
+      stats: 0,
+      players: 0,
+      awards: 0
+    };
+    let logs: string[] = [];
 
     // 1. Resolve Season
     let seasonId = season.id;
     if (!seasonId && season.name) {
+      let targetNumber: number | null = null;
+      const match = season.name.match(/\d+/);
+      if (match) {
+        targetNumber = parseInt(match[0], 10);
+      }
+
+      let generatedSeasonId = await generateSeasonId();
       const maxSeason = await prisma.seasons.findFirst({ orderBy: { seasonNumber: "desc" } });
-      const nextNumber = (maxSeason?.seasonNumber || 0) + 1;
+      let generatedSeasonNumber = (maxSeason?.seasonNumber || 0) + 1;
+
+      // If user typed "Season 1", try to use TFCS-1 and seasonNumber=1
+      if (targetNumber !== null) {
+        const potentialId = `TFCS-${targetNumber}`;
+        const existing = await prisma.seasons.findUnique({ where: { id: potentialId } });
+        const existingNum = await prisma.seasons.findUnique({ where: { seasonNumber: targetNumber } });
+        
+        if (!existing && !existingNum) {
+          generatedSeasonId = potentialId;
+          generatedSeasonNumber = targetNumber;
+          // Synchronize the counter so we don't accidentally generate this ID later if the counter is behind
+          await prisma.$executeRaw`
+            INSERT INTO id_counters (prefix, counter, updated_at)
+            VALUES ('TFCS', ${targetNumber}, NOW())
+            ON CONFLICT (prefix) 
+            DO UPDATE SET 
+              counter = GREATEST(id_counters.counter, ${targetNumber}),
+              updated_at = NOW()
+          `;
+        }
+      }
+
       const newSeason = await prisma.seasons.create({
         data: {
-          id: crypto.randomUUID(),
+          id: generatedSeasonId,
           name: season.name,
-          startingPurse: 100000000,
-          seasonNumber: nextNumber,
+          startingPurse: 20000,
+          seasonNumber: generatedSeasonNumber,
           isActive: false,
           updatedAt: new Date(),
         },
       });
       seasonId = newSeason.id;
+      counts.season = 1;
+      logs.push(`Created New Season '${newSeason.name}' with ID ${newSeason.id}`);
     } else if (!seasonId) {
       return NextResponse.json({ error: "Season ID or Name is required" }, { status: 400 });
     }
 
-    // Maps to track created/resolved IDs
-    // tempId -> global Team ID
-    const globalTeamIdMap = new Map<string, string>();
-    // tempId -> season_team ID
-    const seasonTeamIdMap = new Map<string, string>();
-    // tempTournId -> dbTournId
-    const tournIdMap = new Map<string, string>();
+    // Maps for cross-referencing
+    const globalTeamIdMap = new Map<string, string>(); // tempId -> global team.id
+    const seasonTeamIdMap = new Map<string, string>(); // tempId -> season_team.id
 
     // 2. Resolve Teams & Upsert season_teams
-    for (const t of seasonTeams) {
+    for (const t of sTeams) {
+      counts.teams++;
       let teamId = t.id;
-      if (!teamId && t.name) {
-        // Create new global team and user credentials
-        const teamIdStr = crypto.randomUUID();
-        
-        const email = await generateUniqueEmail(t.name.trim(), async (email) => {
-          const existing = await prisma.users.findUnique({ where: { email } });
-          return !!existing;
+      if ((!teamId || teamId === "new") && t.name) {
+        let existingTeam = await prisma.teams.findFirst({
+          where: { name: { equals: t.name.trim(), mode: "insensitive" } }
         });
-        const password = generatePasswordFromTeamName(t.name.trim());
-        const passwordHash = await hash(password, 10);
-        const userId = await generateUserId();
-
-        const [newTeam, newUser] = await prisma.$transaction([
-          prisma.teams.create({
+        
+        if (existingTeam) {
+          teamId = existingTeam.id;
+          logs.push(`Linked Existing Global Team '${t.name}' (ID: ${teamId})`);
+        } else {
+          // Create new global team
+          const teamIdStr = await generateTeamId();
+          const newTeam = await prisma.teams.create({
             data: {
               id: teamIdStr,
-              name: t.name,
+              name: t.name.trim(),
               managerName: t.managerName || "Manager",
               logoUrl: "/team-logos/default.png",
               updatedAt: new Date(),
             },
-          }),
-          prisma.users.create({
-            data: {
-              id: userId,
-              email,
-              name: t.managerName || "Manager",
-              passwordHash,
-              role: "TEAM_MANAGER",
-              teamId: teamIdStr,
-              createdBy: session.user.id,
-              isActive: true,
-              assignedSeasons: [seasonId]
-            }
-          })
-        ]);
-        teamId = newTeam.id;
+          });
+          teamId = newTeam.id;
+          logs.push(`Created New Team '${newTeam.name}' with ID ${newTeam.id}`);
+        }
+      } else {
+        logs.push(`Linked Existing Team '${t.name}' (ID: ${teamId})`);
       }
       globalTeamIdMap.set(t.tempId, teamId);
 
@@ -95,28 +138,31 @@ export async function POST(req: NextRequest) {
         where: { seasonId_teamId: { seasonId, teamId } },
         update: { managerName: t.managerName, updatedAt: new Date() },
         create: {
-          id: crypto.randomUUID(),
+          id: await generateSeasonTeamId(),
           seasonId,
           teamId,
           managerName: t.managerName,
-          currentBudget: 100000000,
+          currentBudget: 20000,
           updatedAt: new Date(),
         },
       });
       seasonTeamIdMap.set(t.tempId, seasonTeam.id);
 
-      // Link to Manager Profile
+      // Link to Manager Profile & Resolve User Identity
       if (t.managerName && t.managerName.trim() !== "") {
         const mName = t.managerName.trim();
-        let manager = await prisma.managers.findUnique({
-          where: { name: mName },
+        let manager = await prisma.managers.findFirst({
+          where: { name: { equals: mName, mode: "insensitive" } },
         });
         if (!manager) {
+          const newManagerId = await generateManagerId();
           manager = await prisma.managers.create({
-            data: { name: mName },
+            data: { id: newManagerId, name: mName },
           });
+          logs.push(`Created New Manager '${manager.name}' (ID: ${manager.id})`);
         }
         
+        // Link Team to Manager
         await prisma.manager_teams.upsert({
           where: { managerId_teamId: { managerId: manager.id, teamId } },
           update: {},
@@ -126,40 +172,113 @@ export async function POST(req: NextRequest) {
             isCurrent: true,
           }
         });
+
+        // Resolve User Identity
+        const existingUser = await prisma.users.findFirst({ where: { managerId: manager.id } });
+        if (!existingUser) {
+          const normalizedManagerName = mName.toLowerCase().replace(/[^a-z0-9]/g, "");
+          const email = await generateUniqueEmail(normalizedManagerName, async (email) => {
+            const existing = await prisma.users.findUnique({ where: { email } });
+            return !!existing;
+          });
+          const password = generatePasswordFromTeamName(normalizedManagerName);
+          const passwordHash = await hash(password, 10);
+          const userId = await generateUserId();
+
+          await prisma.users.create({
+            data: {
+              id: userId,
+              email,
+              name: mName,
+              passwordHash,
+              role: "TEAM_MANAGER",
+              teamId: teamId, // Initial active context
+              managerId: manager.id,
+              createdBy: session.user.id,
+              isActive: true,
+            }
+          });
+          logs.push(`Created New User for Manager '${mName}' (Email: ${email})`);
+        }
       }
     }
 
     // 3. Resolve Tournaments
+    const tournIdMap = new Map<string, string>();
     for (const t of tournaments) {
+      counts.tournaments++;
       let dbTournId = t.id;
-      if (t.id.startsWith("t_")) {
+      
+      // Safety check: if it's a real ID, ensure it actually belongs to the target season.
+      // If it belongs to another season (e.g. from a dirty draft), force it to be treated as new.
+      if (!dbTournId.startsWith("t_") && dbTournId) {
+        const verifyT = await prisma.tournaments.findUnique({ where: { id: dbTournId } });
+        if (verifyT && verifyT.seasonId !== seasonId) {
+          dbTournId = `t_dirty_${dbTournId}`;
+        }
+      }
+
+      if (dbTournId.startsWith("t_")) {
         // Look up by name first
         let existingT = await prisma.tournaments.findUnique({
           where: { seasonId_name: { seasonId, name: t.name } },
         });
         if (!existingT) {
-          existingT = await prisma.tournaments.create({
+          let safeType = "KNOCKOUT_ONLY";
+          if (t.type === "LEAGUE_ONLY" || t.type === "LEAGUE_PLAYOFF" || t.type === "GROUP_KNOCKOUT" || t.type === "KNOCKOUT_ONLY") {
+            safeType = t.type;
+          } else if (t.type && typeof t.type === "string") {
+            const up = t.type.toUpperCase();
+            if (up.includes("LEAGUE")) safeType = "LEAGUE_ONLY";
+            else if (up.includes("GROUP")) safeType = "GROUP_KNOCKOUT";
+            else safeType = "KNOCKOUT_ONLY";
+          }
+
+          const newTourn = await prisma.tournaments.create({
             data: {
-              id: crypto.randomUUID(),
+              id: await generateTournamentId(),
               seasonId,
               name: t.name,
-              tournamentType: t.type || "LEAGUE",
+              tournamentType: safeType as any,
               startDate: new Date(t.startDate || new Date()),
               updatedAt: new Date(),
             },
           });
+          dbTournId = newTourn.id;
+          logs.push(`Created New Tournament '${newTourn.name}' with ID ${newTourn.id}`);
+        } else {
+          dbTournId = existingT.id;
+          logs.push(`Linked Existing Tournament '${t.name}' (ID: ${dbTournId})`);
         }
-        dbTournId = existingT.id;
       }
       tournIdMap.set(t.id, dbTournId);
 
-      // Link all resolved teams to this tournament
-      for (const [tempId, seasonTeamId] of seasonTeamIdMap.entries()) {
-        await prisma.tournament_teams.upsert({
-          where: { tournamentId_teamId: { tournamentId: dbTournId, teamId: seasonTeamId } },
-          update: {},
-          create: { id: crypto.randomUUID(), tournamentId: dbTournId, teamId: seasonTeamId },
-        });
+      // Clear existing tournament_teams for this tournament first
+      await prisma.tournament_teams.deleteMany({
+        where: { tournamentId: dbTournId }
+      });
+
+      // Link specific teams to this tournament if activeTournTeams is provided
+      if (activeTournTeams && activeTournTeams[t.id] && activeTournTeams[t.id].length > 0) {
+        for (const tempId of activeTournTeams[t.id]) {
+          const seasonTeamId = seasonTeamIdMap.get(tempId);
+          if (seasonTeamId) {
+            await prisma.tournament_teams.upsert({
+              where: { tournamentId_teamId: { tournamentId: dbTournId, teamId: seasonTeamId } },
+              update: {},
+              create: { id: await generateTournamentTeamId(), tournamentId: dbTournId, teamId: seasonTeamId },
+            });
+          }
+        }
+      } else if (!activeTournTeams) {
+        // Fallback for older payloads without activeTournTeams: link all teams
+        for (const [tempId, seasonTeamId] of seasonTeamIdMap.entries()) {
+          await prisma.tournament_teams.upsert({
+            where: { tournamentId_teamId: { tournamentId: dbTournId, teamId: seasonTeamId } },
+            update: {},
+            create: { id: await generateTournamentTeamId(), tournamentId: dbTournId, teamId: seasonTeamId },
+          });
+        }
       }
     }
 
@@ -167,11 +286,18 @@ export async function POST(req: NextRequest) {
     if (stats) {
       for (const [key, statData] of Object.entries(stats)) {
         // key is `${tournId}_${teamTempId}`
-        const parts = key.split("_");
-        // Reconstruct tournId in case it contained underscores (e.g., t_1)
-        const teamTempId = parts[parts.length - 1]; // last part is tempId like tm_1234
-        // Extract original tournament ID key
-        const tournKey = key.replace(`_${teamTempId}`, "");
+        let tournKey = "";
+        let teamTempId = "";
+        if (key.includes("_tm_")) {
+          const parts = key.split("_tm_");
+          tournKey = parts[0];
+          teamTempId = "tm_" + parts[1];
+        } else {
+          // fallback
+          const parts = key.split("_");
+          teamTempId = parts[parts.length - 1];
+          tournKey = key.replace(`_${teamTempId}`, "");
+        }
         
         const dbTournId = tournIdMap.get(tournKey) || tournKey;
         const seasonTeamId = seasonTeamIdMap.get(teamTempId);
@@ -201,7 +327,7 @@ export async function POST(req: NextRequest) {
               updatedAt: new Date(),
             },
             create: {
-              id: crypto.randomUUID(),
+              id: await generateStandingId(),
               tournamentId: dbTournId,
               teamId: seasonTeamId,
               groupName,
@@ -215,20 +341,24 @@ export async function POST(req: NextRequest) {
               updatedAt: new Date(),
             },
           });
+          counts.stats++;
         }
       }
+      if (counts.stats > 0) logs.push(`Saved ${counts.stats} standing/stats records for season`);
     }
 
     // 5. Assign Players
     if (teamPlayers) {
-      for (const [teamTempId, playerIds] of Object.entries(teamPlayers)) {
-        const pIds = playerIds as string[];
-        if (pIds.length === 0) continue;
+      for (const [teamTempId, players] of Object.entries(teamPlayers)) {
+        const pList = players as any[];
+        if (pList.length === 0) continue;
         
         const globalTeamId = globalTeamIdMap.get(teamTempId);
         const seasonTeamId = seasonTeamIdMap.get(teamTempId);
         
         if (!globalTeamId || !seasonTeamId) continue;
+
+        const pIds = pList.map(p => typeof p === 'string' ? p : p.id);
 
         // Check existing to avoid duplicates
         const existingTransfers = await prisma.transfer_history.findMany({
@@ -236,22 +366,32 @@ export async function POST(req: NextRequest) {
         });
         const existingSet = new Set(existingTransfers.map(tx => tx.basePlayerId));
 
-        const newTransfers = pIds
-          .filter(pid => !existingSet.has(pid))
-          .map(pid => ({
-            id: crypto.randomUUID(),
-            basePlayerId: pid,
-            seasonId,
-            teamId: globalTeamId,
-            seasonTeamId,
-            soldPrice: 0,
-            acquisitionType: "historical_import",
-            acquisitionNotes: "Imported via bulk Historical Data Wizard",
-            status: "ACTIVE" as any,
-          }));
+        const newTransfers = pList
+          .filter(p => {
+            const pid = typeof p === 'string' ? p : p.id;
+            return !existingSet.has(pid);
+          })
+          .map(p => {
+            const pid = typeof p === 'string' ? p : p.id;
+            const price = typeof p === 'string' ? 0 : (p.price || 0);
+            
+            return {
+              id: crypto.randomUUID(),
+              basePlayerId: pid,
+              seasonId,
+              teamId: globalTeamId,
+              seasonTeamId,
+              soldPrice: price,
+              acquisitionType: "historical_import",
+              acquisitionNotes: "Imported via bulk Historical Data Wizard",
+              status: "ACTIVE" as any,
+            };
+          });
 
         if (newTransfers.length > 0) {
           await prisma.transfer_history.createMany({ data: newTransfers });
+          counts.players += newTransfers.length;
+          logs.push(`Assigned ${newTransfers.length} players to Team ID ${globalTeamId}`);
         }
       }
     }
@@ -268,7 +408,7 @@ export async function POST(req: NextRequest) {
       const pushAward = (type: string, teamTempId?: string) => {
         if (!teamTempId) return;
         awardRecords.push({
-          id: crypto.randomUUID(),
+          id: crypto.randomUUID(), // Keeping UUID for awards as there is no TFCAW prefix currently
           seasonId,
           awardType: type,
           teamId: globalTeamIdMap.get(teamTempId) || null,
@@ -291,13 +431,15 @@ export async function POST(req: NextRequest) {
 
       if (awardRecords.length > 0) {
         await prisma.season_awards.createMany({ data: awardRecords });
+        counts.awards += awardRecords.length;
+        logs.push(`Saved ${awardRecords.length} season awards`);
       }
     }
 
     // Log the bulk action
     await prisma.audit_logs.create({
       data: {
-        id: crypto.randomUUID(),
+        id: await generateAuditId(),
         userId: session.user.id,
         userEmail: session.user.email!,
         userRole: session.user.role,
@@ -306,11 +448,11 @@ export async function POST(req: NextRequest) {
         entityId: seasonId,
         entityName: season.name || "Bulk Season",
         seasonId: seasonId,
-        details: `Imported historical data for ${seasonTeams.length} teams in season ${season.name || seasonId}`,
+        details: `Imported historical data for ${sTeams.length} teams in season ${season.name || seasonId}`,
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, seasonId, saved: counts, logs });
   } catch (error: any) {
     console.error("Error saving bulk historical data:", error);
     return NextResponse.json(

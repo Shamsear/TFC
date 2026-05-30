@@ -48,6 +48,26 @@ export async function GET(
       groupName: "", // Just placeholder, as we don't strictly use groupName in the UI right now for main listing
     }));
 
+    // Fetch tournament teams to populate activeTournTeams accurately
+    const tournTeamsData = await prisma.tournament_teams.findMany({
+      where: {
+        tournamentId: { in: tournamentsData.map((t) => t.id) }
+      }
+    });
+
+    const activeTournTeams: Record<string, string[]> = {};
+    tournamentsData.forEach(t => {
+      activeTournTeams[t.id] = [];
+    });
+    
+    tournTeamsData.forEach((tt) => {
+      const st = seasonTeamsData.find(x => x.id === tt.teamId);
+      if (st) {
+        if (!activeTournTeams[tt.tournamentId]) activeTournTeams[tt.tournamentId] = [];
+        activeTournTeams[tt.tournamentId].push(`tm_${st.teamId}`);
+      }
+    });
+
     // 3. Fetch Standings
     const standingsData = await prisma.standings.findMany({
       where: { 
@@ -76,17 +96,17 @@ export async function GET(
     // 4. Fetch Player Assignments (Transfer History)
     const transfersData = await prisma.transfer_history.findMany({
       where: { seasonId },
-      select: { teamId: true, basePlayerId: true }
+      select: { teamId: true, basePlayerId: true, soldPrice: true }
     });
 
-    const teamPlayers: Record<string, string[]> = {};
+    const teamPlayers: Record<string, { id: string; price: number }[]> = {};
     transfersData.forEach((tx) => {
       const tempId = `tm_${tx.teamId}`;
       if (!teamPlayers[tempId]) {
         teamPlayers[tempId] = [];
       }
-      if (!teamPlayers[tempId].includes(tx.basePlayerId)) {
-        teamPlayers[tempId].push(tx.basePlayerId);
+      if (!teamPlayers[tempId].some(p => p.id === tx.basePlayerId)) {
+        teamPlayers[tempId].push({ id: tx.basePlayerId, price: tx.soldPrice });
       }
     });
 
@@ -113,6 +133,7 @@ export async function GET(
       season: { id: season.id, name: season.name },
       seasonTeams,
       tournaments,
+      activeTournTeams,
       stats,
       teamPlayers,
       awards,

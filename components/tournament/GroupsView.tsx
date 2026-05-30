@@ -12,7 +12,9 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
         const groupStandings = standings.filter(s => s.groupName === group.name)
           .sort((a, b) => {
             if (b.points !== a.points) return b.points - a.points
-            if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff
+            const gdA = a.goalsFor - a.goalsAgainst
+            const gdB = b.goalsFor - b.goalsAgainst
+            if (gdB !== gdA) return gdB - gdA
             return b.goalsFor - a.goalsFor
           })
 
@@ -30,47 +32,50 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
             <div className="p-6">
               <h4 className="text-sm font-bold text-gray-400 mb-4">STANDINGS</h4>
               <div className="space-y-2">
-                {groupStandings.map((standing, index) => (
-                  <div
-                    key={standing.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-black/30 border border-white/5"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
-                        index === 0 ? 'bg-emerald-500/20 text-emerald-400' :
-                        index === 1 ? 'bg-teal-500/20 text-teal-400' :
-                        'bg-white/5 text-gray-400'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {standing.seasonTeam.team.logoUrl ? (
-                          <img src={standing.seasonTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-0.5" />
-                        ) : (
-                          <span className="text-xs">⚽</span>
-                        )}
-                      </div>
-                      <span className="font-bold text-white text-sm">{standing.seasonTeam.team.name}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs">
-                      <div className="text-gray-400">
-                        <span className="text-white font-bold">{standing.played}</span> P
-                      </div>
-                      <div className="text-gray-400">
-                        <span className={`font-bold ${
-                          standing.goalDiff > 0 ? 'text-green-400' :
-                          standing.goalDiff < 0 ? 'text-red-400' :
-                          'text-white'
+                {groupStandings.map((standing, index) => {
+                  const goalDiff = standing.goalsFor - standing.goalsAgainst
+                  return (
+                    <div
+                      key={standing.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-black/30 border border-white/5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
+                          index === 0 ? 'bg-emerald-500/20 text-emerald-400' :
+                          index === 1 ? 'bg-teal-500/20 text-teal-400' :
+                          'bg-white/5 text-gray-400'
                         }`}>
-                          {standing.goalDiff > 0 ? '+' : ''}{standing.goalDiff}
-                        </span> GD
+                          {index + 1}
+                        </div>
+                        <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {standing.seasonTeam.team.logoUrl ? (
+                            <img src={standing.seasonTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-0.5" />
+                          ) : (
+                            <span className="text-xs">⚽</span>
+                          )}
+                        </div>
+                        <span className="font-bold text-white text-sm">{standing.seasonTeam.team.name}</span>
                       </div>
-                      <div className="w-10 h-6 rounded bg-emerald-500/20 text-emerald-400 font-black flex items-center justify-center">
-                        {standing.points}
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className="text-gray-400">
+                          <span className="text-white font-bold">{standing.played}</span> P
+                        </div>
+                        <div className="text-gray-400">
+                          <span className={`font-bold ${
+                            goalDiff > 0 ? 'text-green-400' :
+                            goalDiff < 0 ? 'text-red-400' :
+                            'text-white'
+                          }`}>
+                            {goalDiff > 0 ? '+' : ''}{goalDiff}
+                          </span> GD
+                        </div>
+                        <div className="w-10 h-6 rounded bg-emerald-500/20 text-emerald-400 font-black flex items-center justify-center">
+                          {standing.points}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Recent Matches */}

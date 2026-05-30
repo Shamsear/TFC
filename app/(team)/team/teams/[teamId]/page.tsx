@@ -19,79 +19,58 @@ interface TeamDetailPageProps {
 }
 
 async function getTeamData(teamId: string, seasonId: string) {
+  let resolvedTeamId = teamId;
+  let resolvedManagerName: string | null = null;
+
+  // Resolve manager if teamId is a manager ID
+  const manager = await prisma.managers.findUnique({
+    where: { id: teamId }
+  });
+
+  if (manager) {
+    resolvedManagerName = manager.name;
+    // Find the linked team from manager_teams
+    const managerLink = await prisma.manager_teams.findFirst({
+      where: { managerId: manager.id },
+      orderBy: { isCurrent: 'desc' }
+    });
+    if (managerLink) {
+      resolvedTeamId = managerLink.teamId;
+    } else {
+      // Check season_teams for any season matching managerName
+      const seasonTeamLink = await prisma.season_teams.findFirst({
+        where: { managerName: { equals: manager.name, mode: 'insensitive' } }
+      });
+      if (seasonTeamLink) {
+        resolvedTeamId = seasonTeamLink.teamId;
+      }
+    }
+  }
+
   // Get team basic info
   const team = await prisma.teams.findUnique({
-    where: { id: teamId }
+    where: { id: resolvedTeamId }
   })
 
   if (!team) {
     return null
   }
 
-  // Get saved squad formation
-  const teamSquad = await prisma.team_squads.findUnique({
-    where: {
-      team_id_season_id: {
-        team_id: teamId,
-        season_id: seasonId
-      }
-    }
-  })
+  // Override manager name if we resolved a manager record
+  if (resolvedManagerName) {
+    team.managerName = resolvedManagerName;
+  }
 
-  // Get season team data
-  const seasonTeam = await prisma.season_teams.findUnique({
-    where: {
-      seasonId_teamId: {
-        seasonId,
-        teamId
-      }
-    }
-  })
-
-  // Get all ACTIVE transfers for this team in this season
-  const transfers = await prisma.transfer_history.findMany({
-    where: {
-      seasonId,
-      teamId,
-      status: 'ACTIVE',
-    },
-    include: {
-      basePlayer: {
-        include: {
-          seasonalPlayerStats: {
-            where: { seasonId }
-          }
-        }
-      }
-    },
-    orderBy: {
-      soldPrice: 'desc'
-    }
-  })
-
-  // Get tournament standings
-  const standings = seasonTeam ? await prisma.standings.findMany({
-    where: {
-      teamId: seasonTeam.id,
-      tournament: {
-        seasonId
-      }
-    },
-    include: {
-      tournament: {
-        select: {
-          id: true,
-          name: true,
-          tournamentType: true,
-          status: true
-        }
-      }
-    }
-  }) : []
-
-  // Get historical data (all seasons) with standings
+  // Get all seasons this manager or team participated in
   const allSeasonTeams = await prisma.season_teams.findMany({
-    where: { teamId },
+    where: resolvedManagerName
+      ? {
+          OR: [
+            { teamId: resolvedTeamId },
+            { managerName: resolvedManagerName }
+          ]
+        }
+      : { teamId: resolvedTeamId },
     include: {
       season: {
         select: {
@@ -100,87 +79,149 @@ async function getTeamData(teamId: string, seasonId: string) {
           startingPurse: true
         }
       },
-      standings: true
+      standings: {
+        include: {
+          tournament: true
+        }
+      }
     },
     orderBy: {
       season: {
         createdAt: 'desc'
       }
     }
-  })
+  });
 
-  // Calculate squad composition
-  const squadByPosition = transfers.reduce((acc, transfer) => {
-    const position = transfer.basePlayer.seasonalPlayerStats[0]?.position || 'N/A'
-    if (!acc[position]) {
-      acc[position] = []
-    }
-    acc[position].push({
-      id: transfer.basePlayer.id,
-      playerId: transfer.basePlayer.player_id || transfer.basePlayer.id,
-      name: transfer.basePlayer.name,
-      photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
-      position,
-      position_group: transfer.basePlayer.seasonalPlayerStats[0]?.position_group || null,
-      overallRating: transfer.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
-      realWorldClub: transfer.basePlayer.seasonalPlayerStats[0]?.realWorldClub || 'N/A',
-      soldPrice: transfer.soldPrice
-    })
-    return acc
-  }, {} as Record<string, any[]>)
+  // Get all active transfers for these teams and seasons
+  const allTransfers = allSeasonTeams.length > 0 
+    ? await prisma.transfer_history.findMany({
+        where: {
+          OR: allSeasonTeams.map(st => ({
+            seasonId: st.seasonId,
+            teamId: st.teamId,
+            status: 'ACTIVE'
+          }))
+        },
+        include: {
+          basePlayer: {
+            include: {
+              seasonalPlayerStats: true
+            }
+          }
+        },
+        orderBy: {
+          soldPrice: 'desc'
+        }
+      })
+    : [];
 
-  // Calculate team stats
-  const totalSpent = transfers.reduce((sum, t) => sum + t.soldPrice, 0)
-  const averageRating = transfers.length > 0 
-    ? Math.round(transfers.reduce((sum, t) => sum + (t.basePlayer.seasonalPlayerStats[0]?.overallRating || 0), 0) / transfers.length)
-    : 0
+  // Get all saved squad formations for these teams and seasons
+  const allSquads = allSeasonTeams.length > 0
+    ? await prisma.team_squads.findMany({
+        where: {
+          OR: allSeasonTeams.map(st => ({
+            season_id: st.seasonId,
+            team_id: st.teamId
+          }))
+        }
+      })
+    : [];
 
-  const positionCounts = Object.entries(squadByPosition).reduce((acc, [position, players]) => {
-    acc[position] = players.length
-    return acc
-  }, {} as Record<string, number>)
+  // Build the detailed seasons list
+  const detailedSeasons = allSeasonTeams.map(st => {
+    // Filter transfers for this season and team
+    const seasonTransfers = allTransfers.filter(t => t.seasonId === st.seasonId && t.teamId === st.teamId);
 
-  return {
-    team,
-    seasonTeam,
-    currentSeason: {
-      id: seasonId,
-      playerCount: transfers.length,
+    // Build squad grouped by position
+    const squadByPosition = seasonTransfers.reduce((acc, transfer) => {
+      let stats = transfer.basePlayer.seasonalPlayerStats.find(s => s.seasonId === st.seasonId);
+      if (!stats && transfer.basePlayer.seasonalPlayerStats.length > 0) {
+        stats = transfer.basePlayer.seasonalPlayerStats.find(s => s.seasonId === 'TFCS-4') || transfer.basePlayer.seasonalPlayerStats[0];
+      }
+      const position = stats?.position || 'N/A';
+      if (!acc[position]) {
+        acc[position] = [];
+      }
+      acc[position].push({
+        id: transfer.basePlayer.id,
+        playerId: transfer.basePlayer.player_id || transfer.basePlayer.id,
+        name: transfer.basePlayer.name,
+        photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
+        position,
+        position_group: stats?.position_group || null,
+        overallRating: stats?.overallRating || 0,
+        realWorldClub: stats?.realWorldClub || 'N/A',
+        soldPrice: transfer.soldPrice
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    // Count positions
+    const positionCounts = Object.entries(squadByPosition).reduce((acc, [position, players]) => {
+      acc[position] = players.length;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Calculate total spent and average rating
+    const totalSpent = seasonTransfers.reduce((sum, t) => sum + t.soldPrice, 0);
+    const averageRating = seasonTransfers.length > 0
+      ? Math.round(seasonTransfers.reduce((sum, t) => {
+          let stats = t.basePlayer.seasonalPlayerStats.find(s => s.seasonId === st.seasonId);
+          if (!stats && t.basePlayer.seasonalPlayerStats.length > 0) {
+            stats = t.basePlayer.seasonalPlayerStats.find(s => s.seasonId === 'TFCS-4') || t.basePlayer.seasonalPlayerStats[0];
+          }
+          return sum + (stats?.overallRating || 0);
+        }, 0) / seasonTransfers.length)
+      : 0;
+
+    // Find formation
+    const formationObj = allSquads.find(q => q.season_id === st.seasonId && q.team_id === st.teamId);
+
+    // Standings & Performance calculations for summary
+    const played = st.standings.reduce((sum, s) => sum + s.played, 0);
+    const won = st.standings.reduce((sum, s) => sum + s.won, 0);
+    const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0);
+    const lost = st.standings.reduce((sum, s) => sum + s.lost, 0);
+    const goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0);
+    const goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0);
+    const goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0);
+    const points = st.standings.reduce((sum, s) => sum + s.points, 0);
+
+    const startingPurse = st.season.startingPurse === 10000 ? 20000 : (st.season.startingPurse || 20000);
+
+    return {
+      seasonId: st.seasonId,
+      seasonName: st.season.name,
+      startingPurse,
+      finalBudget: st.finalBudget,
+      currentBudget: st.currentBudget,
+      trophiesWon: st.trophiesWon,
+      played,
+      won,
+      drawn,
+      lost,
+      goalsFor,
+      goalsAgainst,
+      goalDiff,
+      points,
+      // Full details:
+      playerCount: seasonTransfers.length,
       totalSpent,
       averageRating,
-      remainingBudget: seasonTeam ? seasonTeam.currentBudget : 0,
+      remainingBudget: st.currentBudget,
       positionCounts,
       squad: squadByPosition,
-      formation: teamSquad?.formation || null,
-      tournaments: standings
-    },
-    historicalSeasons: allSeasonTeams.map(st => {
-      const played = st.standings.reduce((sum, s) => sum + s.played, 0)
-      const won = st.standings.reduce((sum, s) => sum + s.won, 0)
-      const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0)
-      const lost = st.standings.reduce((sum, s) => sum + s.lost, 0)
-      const goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0)
-      const goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0)
-      const goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0)
-      const points = st.standings.reduce((sum, s) => sum + s.points, 0)
+      formation: formationObj?.formation || null,
+      tournaments: st.standings
+    };
+  });
 
-      return {
-        seasonId: st.season.id,
-        seasonName: st.season.name,
-        startingPurse: st.season.startingPurse,
-        finalBudget: st.finalBudget,
-        currentBudget: st.currentBudget,
-        trophiesWon: st.trophiesWon,
-        played,
-        won,
-        drawn,
-        lost,
-        goalsFor,
-        goalsAgainst,
-        goalDiff,
-        points
-      }
-    })
+  return JSON.parse(JSON.stringify({
+    team,
+    seasons: detailedSeasons
+  })) as {
+    team: typeof team;
+    seasons: typeof detailedSeasons;
   }
 }
 
@@ -205,7 +246,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     notFound()
   }
 
-  const { team, seasonTeam, currentSeason, historicalSeasons } = teamData
+  const { team, seasons } = teamData
 
   // Level Progression Math
   const level = team.level
@@ -217,6 +258,9 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   // Rank Details
   const rank = getRankDetails(level)
+
+  // Find the selected/current season to display in header stats
+  const activeSeasonData = seasons.find(s => s.seasonId === seasonId) || seasons[0]
 
   const formatCurrency = (amount: number) => {
     return `£${amount.toLocaleString()}`
@@ -337,25 +381,25 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                 <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-emerald-500/20 transition-all duration-300">
                   <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Players</div>
                   <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
-                    {currentSeason.playerCount}
+                    {activeSeasonData?.playerCount || 0}
                   </div>
                 </div>
                 <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-[#FFB347]/20 transition-all duration-300">
                   <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Spent</div>
                   <div className="text-xl sm:text-2xl font-black text-[#FFB347] font-mono">
-                    {formatCurrency(currentSeason.totalSpent)}
+                    {formatCurrency(activeSeasonData?.totalSpent || 0)}
                   </div>
                 </div>
                 <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-[#E8A800]/20 transition-all duration-300">
                   <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Avg Rating</div>
                   <div className="text-xl sm:text-2xl font-black text-[#E8A800] font-mono">
-                    {currentSeason.averageRating} <span className="text-xs font-normal text-gray-500">OVR</span>
+                    {activeSeasonData?.averageRating || 0} <span className="text-xs font-normal text-gray-500">OVR</span>
                   </div>
                 </div>
                 <div className="rounded-xl bg-black/30 border border-white/5 p-3 hover:border-purple-500/20 transition-all duration-300">
                   <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Remaining</div>
                   <div className="text-xl sm:text-2xl font-black text-purple-400 font-mono">
-                    {formatCurrency(currentSeason.remainingBudget)}
+                    {formatCurrency(activeSeasonData?.remainingBudget || 0)}
                   </div>
                 </div>
               </div>
@@ -364,13 +408,17 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         </div>
 
         {/* Tabs */}
-        <TeamDetailTabs
-          team={team}
-          currentSeason={currentSeason}
-          historicalSeasons={historicalSeasons}
-          seasonId={seasonId}
-          viewerRole="team"
-        />
+        {seasons.length > 0 ? (
+          <TeamDetailTabs
+            team={team}
+            seasons={seasons}
+            viewerRole="team"
+          />
+        ) : (
+          <div className="rounded-2xl bg-white/[0.01] p-8 text-center border border-white/5 shadow-md">
+            <p className="text-gray-400 text-sm">No season data registered yet for this team.</p>
+          </div>
+        )}
       </div>
     </div>
   )

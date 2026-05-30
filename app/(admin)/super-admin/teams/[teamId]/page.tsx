@@ -262,9 +262,12 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           ) : (
             <div className="space-y-3">
               {team.transferHistory.map((transfer) => {
-                const playerStats = transfer.basePlayer.seasonalPlayerStats.find(
+                let playerStats = transfer.basePlayer.seasonalPlayerStats.find(
                   s => s.seasonId === transfer.seasonId
                 )
+                if (!playerStats && transfer.basePlayer.seasonalPlayerStats.length > 0) {
+                  playerStats = transfer.basePlayer.seasonalPlayerStats.find(s => s.seasonId === 'TFCS-4') || transfer.basePlayer.seasonalPlayerStats[0];
+                }
                 
                 return (
                   <div

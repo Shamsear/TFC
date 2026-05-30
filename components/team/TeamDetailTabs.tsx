@@ -24,8 +24,22 @@ interface Player {
   soldPrice: number
 }
 
-interface CurrentSeason {
-  id: string
+interface SeasonDetail {
+  seasonId: string
+  seasonName: string
+  startingPurse: number
+  finalBudget: number | null
+  currentBudget: number
+  trophiesWon: number
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  goalsFor: number
+  goalsAgainst: number
+  goalDiff: number
+  points: number
+  // Full season details
   playerCount: number
   totalSpent: number
   averageRating: number
@@ -33,50 +47,43 @@ interface CurrentSeason {
   positionCounts: Record<string, number>
   squad: Record<string, Player[]>
   formation?: any
-  tournaments?: any[]
-}
-
-interface HistoricalSeason {
-  seasonId: string
-  seasonName: string
-  startingPurse: number
-  finalBudget: number | null
-  currentBudget: number
-  trophiesWon: number
-  played?: number
-  won?: number
-  drawn?: number
-  lost?: number
-  goalsFor?: number
-  goalsAgainst?: number
-  goalDiff?: number
-  points?: number
+  tournaments: any[]
 }
 
 interface TeamDetailTabsProps {
   team: Team
-  currentSeason: CurrentSeason
-  historicalSeasons: HistoricalSeason[]
-  seasonId: string
-  viewerRole?: 'team' | 'admin' | 'public' // Determines which routes to use for player links
+  seasons: SeasonDetail[]
+  seasonId?: string
+  viewerRole?: 'team' | 'admin' | 'public'
 }
 
-type Tab = 'season' | 'overall'
 type SeasonSubTab = 'stats' | 'squad' | 'formation' | 'tournaments'
 
 export default function TeamDetailTabs({
   team,
-  currentSeason,
-  historicalSeasons,
+  seasons,
   seasonId,
-  viewerRole = 'admin' // Default to admin for backward compatibility
+  viewerRole = 'admin'
 }: TeamDetailTabsProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('season')
+  // Sort seasons in descending order (e.g., Season 4, Season 3, Season 2, Season 1)
+  const sortedSeasons = [...seasons].sort((a, b) => {
+    const numA = parseInt(a.seasonName.match(/\d+/)?.[0] || '0', 10)
+    const numB = parseInt(b.seasonName.match(/\d+/)?.[0] || '0', 10)
+    if (numA !== numB) {
+      return numB - numA // Descending
+    }
+    return b.seasonId.localeCompare(a.seasonId)
+  })
+
+  // Default to the most recent season if available, otherwise 'overall'
+  const [activeTab, setActiveTab] = useState<string>(sortedSeasons[0]?.seasonId || 'overall')
   const [seasonSubTab, setSeasonSubTab] = useState<SeasonSubTab>('tournaments')
 
   const formatCurrency = (amount: number) => {
     return `£${amount.toLocaleString()}`
   }
+
+  const selectedSeason = seasons.find(s => s.seasonId === activeTab)
 
   // Generate player detail URL based on viewer role
   const getPlayerUrl = (playerId: string) => {
@@ -86,7 +93,8 @@ export default function TeamDetailTabs({
     if (viewerRole === 'public') {
       return `/players/${playerId}`
     }
-    return `/sub-admin/${seasonId}/all-players/${playerId}`
+    const resolvedSeasonId = ['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(activeTab) ? 'TFCS-4' : activeTab
+    return `/sub-admin/${resolvedSeasonId}/all-players/${playerId}`
   }
 
   const getPositionColor = (position: string) => {
@@ -118,23 +126,13 @@ export default function TeamDetailTabs({
 
   return (
     <div className="space-y-8 animate-[fadeIn_0.4s_ease-out]">
-      {/* Main Tabs (Glassmorphic) */}
-      <div className="flex gap-3 overflow-x-auto p-1.5 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-xl w-fit">
+      {/* Main Tabs (Glassmorphic Scrollable) */}
+      <div className="flex gap-3 overflow-x-auto p-1.5 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-xl w-full sm:w-fit custom-scrollbar">
         <button
-          onClick={() => setActiveTab('season')}
-          className={`px-5 py-2.5 rounded-xl font-extrabold text-sm whitespace-nowrap transition-all duration-300 transform active:scale-95 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'season'
-              ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-[0_0_25px_rgba(232,168,0,0.3)]'
-              : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/[0.02]'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 5a7 7 0 100 14 7 7 0 000-14z" />
-          </svg>
-          Current Season
-        </button>
-        <button
-          onClick={() => setActiveTab('overall')}
+          onClick={() => {
+            setActiveTab('overall')
+            setSeasonSubTab('tournaments')
+          }}
           className={`px-5 py-2.5 rounded-xl font-extrabold text-sm whitespace-nowrap transition-all duration-300 transform active:scale-95 cursor-pointer flex items-center gap-2 ${
             activeTab === 'overall'
               ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-[0_0_25px_rgba(232,168,0,0.3)]'
@@ -146,11 +144,31 @@ export default function TeamDetailTabs({
           </svg>
           Overall History
         </button>
+
+        {sortedSeasons.map((s) => (
+          <button
+            key={s.seasonId}
+            onClick={() => {
+              setActiveTab(s.seasonId)
+              setSeasonSubTab('tournaments')
+            }}
+            className={`px-5 py-2.5 rounded-xl font-extrabold text-sm whitespace-nowrap transition-all duration-300 transform active:scale-95 cursor-pointer flex items-center gap-2 ${
+              activeTab === s.seasonId
+                ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-[0_0_25px_rgba(232,168,0,0.3)]'
+                : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 5a7 7 0 100 14 7 7 0 000-14z" />
+            </svg>
+            {s.seasonName}
+          </button>
+        ))}
       </div>
 
       {/* Season Sub-Tabs (Pill Glass design) */}
-      {activeTab === 'season' && (
-        <div className="flex gap-2 overflow-x-auto pl-1">
+      {activeTab !== 'overall' && selectedSeason && (
+        <div className="flex gap-2 overflow-x-auto pl-1 custom-scrollbar">
           <button
             onClick={() => setSeasonSubTab('tournaments')}
             className={`px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-300 border cursor-pointer ${
@@ -169,18 +187,20 @@ export default function TeamDetailTabs({
                 : 'bg-white/[0.01] border-white/5 text-gray-400 hover:bg-white/[0.03] hover:text-white'
             }`}
           >
-            Squad List ({currentSeason.playerCount})
+            Squad List ({selectedSeason.playerCount})
           </button>
-          <button
-            onClick={() => setSeasonSubTab('formation')}
-            className={`px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-300 border cursor-pointer ${
-              seasonSubTab === 'formation'
-                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-                : 'bg-white/[0.01] border-white/5 text-gray-400 hover:bg-white/[0.03] hover:text-white'
-            }`}
-          >
-            Starting 11
-          </button>
+          {!['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(activeTab) && (
+            <button
+              onClick={() => setSeasonSubTab('formation')}
+              className={`px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-300 border cursor-pointer ${
+                seasonSubTab === 'formation'
+                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                  : 'bg-white/[0.01] border-white/5 text-gray-400 hover:bg-white/[0.03] hover:text-white'
+              }`}
+            >
+              Starting 11
+            </button>
+          )}
           <button
             onClick={() => setSeasonSubTab('stats')}
             className={`px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-300 border cursor-pointer ${
@@ -196,7 +216,7 @@ export default function TeamDetailTabs({
 
       {/* Main Panel Content (Glassmorphic Container) */}
       <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 md:p-8 backdrop-blur-xl shadow-2xl">
-        {activeTab === 'season' && seasonSubTab === 'stats' && (
+        {activeTab !== 'overall' && seasonSubTab === 'stats' && selectedSeason && (
           <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
             <h3 className="text-xl font-black text-white tracking-tight">Franchise Budget & Auction Stats</h3>
             
@@ -206,21 +226,21 @@ export default function TeamDetailTabs({
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#FFB347]/5 rounded-full blur-2xl group-hover:bg-[#FFB347]/10 transition-colors pointer-events-none"></div>
                 <div className="text-xs font-bold text-[#7A7367] uppercase tracking-wider mb-2">Total Spent</div>
                 <div className="text-3xl font-black text-[#FFB347] font-mono">
-                  {formatCurrency(currentSeason.totalSpent)}
+                  {formatCurrency(selectedSeason.totalSpent)}
                 </div>
               </div>
               <div className="rounded-2xl bg-black/40 border border-white/5 p-6 hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none"></div>
                 <div className="text-xs font-bold text-[#7A7367] uppercase tracking-wider mb-2">Remaining Budget</div>
                 <div className="text-3xl font-black text-emerald-400 font-mono">
-                  {formatCurrency(currentSeason.remainingBudget)}
+                  {formatCurrency(selectedSeason.remainingBudget)}
                 </div>
               </div>
               <div className="rounded-2xl bg-black/40 border border-white/5 p-6 hover:border-[#E8A800]/30 transition-all duration-300 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#E8A800]/5 rounded-full blur-2xl group-hover:bg-[#E8A800]/10 transition-colors pointer-events-none"></div>
                 <div className="text-xs font-bold text-[#7A7367] uppercase tracking-wider mb-2">Average Rating</div>
                 <div className="text-3xl font-black text-[#E8A800] font-mono">
-                  {currentSeason.averageRating} <span className="text-xs font-medium text-gray-500">OVR</span>
+                  {selectedSeason.averageRating} <span className="text-xs font-medium text-gray-500">OVR</span>
                 </div>
               </div>
             </div>
@@ -228,11 +248,11 @@ export default function TeamDetailTabs({
             {/* Squad Composition */}
             <div className="border-t border-white/5 pt-8">
               <h4 className="text-lg font-black text-white mb-6 tracking-tight">Squad Composition</h4>
-              {Object.keys(currentSeason.positionCounts).length === 0 ? (
+              {Object.keys(selectedSeason.positionCounts).length === 0 ? (
                 <div className="text-center py-6 text-gray-500 text-sm">No positions registered yet.</div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {Object.entries(currentSeason.positionCounts)
+                  {Object.entries(selectedSeason.positionCounts)
                     .sort(([a], [b]) => getPositionSortIndex(a) - getPositionSortIndex(b))
                     .map(([position, count]) => {
                       const posColor = getPositionColor(position).split(' ');
@@ -256,32 +276,26 @@ export default function TeamDetailTabs({
           </div>
         )}
 
-        {activeTab === 'season' && seasonSubTab === 'squad' && (
+        {activeTab !== 'overall' && seasonSubTab === 'squad' && selectedSeason && (
           <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-black text-white tracking-tight">Active Season Roster</h3>
               <span className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold border border-cyan-500/20">
-                {currentSeason.playerCount} Players
+                {selectedSeason.playerCount} Players
               </span>
             </div>
             
-            {Object.keys(currentSeason.squad).length === 0 ? (
+            {Object.keys(selectedSeason.squad).length === 0 ? (
               <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl bg-black/20">
                 <svg className="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 <div className="text-gray-400 font-bold mb-2">No players in squad</div>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">You haven&apos;t won or assigned any players to your squad roster for the current active season yet.</p>
-                <Link
-                  href={viewerRole === 'team' ? '/team/auction' : `/sub-admin/${seasonId}/auction`}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] rounded-xl font-extrabold text-sm hover:scale-[1.03] transition-all cursor-pointer shadow-lg"
-                >
-                  Go to Live Auction
-                </Link>
+                <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">There are no players won or assigned to the squad roster for this season.</p>
               </div>
             ) : (
               <div className="space-y-8">
-                {Object.entries(currentSeason.squad)
+                {Object.entries(selectedSeason.squad)
                   .sort(([a], [b]) => getPositionSortIndex(a) - getPositionSortIndex(b))
                   .map(([position, players]) => {
                     const posColor = getPositionColor(position).split(' ');
@@ -300,7 +314,7 @@ export default function TeamDetailTabs({
                             .map((player) => (
                             <Link
                               key={player.id}
-                              href={getPlayerUrl(player.playerId || player.id)}
+                              href={getPlayerUrl(player.id)}
                               className="rounded-2xl bg-black/40 border border-white/5 hover:border-cyan-500/20 hover:bg-white/[0.02] transition-all duration-300 p-4 group flex items-center gap-4 relative overflow-hidden"
                             >
                               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-900 border border-white/10 flex-shrink-0">
@@ -329,7 +343,6 @@ export default function TeamDetailTabs({
                                 </div>
                               </div>
 
-                              {/* Corner Link Hover Glow */}
                               <div className="absolute top-3 right-3 text-gray-600 group-hover:text-cyan-400 transition-colors pointer-events-none">
                                 <svg className="w-4 h-4 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -346,29 +359,29 @@ export default function TeamDetailTabs({
           </div>
         )}
 
-        {activeTab === 'season' && seasonSubTab === 'formation' && (
+        {activeTab !== 'overall' && seasonSubTab === 'formation' && !['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(activeTab) && selectedSeason && (
           <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
             <h3 className="text-xl font-black text-white tracking-tight">Starting 11 Formation</h3>
             <div className="rounded-2xl border border-white/5 bg-black/40 overflow-hidden shadow-inner">
               <ReadonlySquadFormation 
-                formation={currentSeason.formation} 
-                allPlayers={Object.values(currentSeason.squad).flat()}
+                formation={selectedSeason.formation} 
+                allPlayers={Object.values(selectedSeason.squad).flat()}
               />
             </div>
           </div>
         )}
 
-        {activeTab === 'season' && seasonSubTab === 'tournaments' && (
+        {activeTab !== 'overall' && seasonSubTab === 'tournaments' && selectedSeason && (
           <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
             <h3 className="text-xl font-black text-white tracking-tight">Tournament Standings & Performance</h3>
             
-            {!currentSeason.tournaments || currentSeason.tournaments.length === 0 ? (
+            {!selectedSeason.tournaments || selectedSeason.tournaments.length === 0 ? (
               <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl bg-black/20 text-gray-500">
-                No active tournament entries registered for this season.
+                No tournament entries registered for this season.
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {currentSeason.tournaments.map((t: any) => (
+                {selectedSeason.tournaments.map((t: any) => (
                   <div key={t.id} className="rounded-2xl bg-black/40 border border-white/5 p-6 hover:border-white/10 transition-all duration-300 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -438,89 +451,89 @@ export default function TeamDetailTabs({
           <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
             <h3 className="text-xl font-black text-white tracking-tight">Historical Franchise Cabinet</h3>
             
-            {historicalSeasons.length === 0 ? (
+            {sortedSeasons.length === 0 ? (
               <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl bg-black/20 text-gray-500">
                 No historical records registered.
               </div>
             ) : (
               <div className="space-y-6">
-                {historicalSeasons.map((season) => (
+                {sortedSeasons.map((s) => (
                   <div
-                    key={season.seasonId}
+                    key={s.seasonId}
                     className="rounded-2xl bg-black/40 border border-white/5 p-6 hover:border-white/10 transition-all duration-300"
                   >
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                       <div>
-                        <h4 className="font-extrabold text-white text-lg tracking-tight mb-1.5">{season.seasonName}</h4>
+                        <h4 className="font-extrabold text-white text-lg tracking-tight mb-1.5">{s.seasonName}</h4>
                         <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider font-mono">
-                          Starting Purse: {formatCurrency(season.startingPurse)}
+                          Starting Purse: {formatCurrency(s.startingPurse)}
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-6 flex-wrap md:flex-nowrap">
                         <div className="text-center min-w-[70px]">
                           <div className="text-sm font-extrabold text-emerald-400 font-mono">
-                            {formatCurrency(season.currentBudget)}
+                            {formatCurrency(s.currentBudget)}
                           </div>
                           <div className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">Current</div>
                         </div>
                         
-                        {season.finalBudget !== null && (
+                        {s.finalBudget !== null && (
                           <div className="text-center min-w-[70px]">
                             <div className="text-sm font-extrabold text-purple-400 font-mono">
-                              {formatCurrency(season.finalBudget)}
+                              {formatCurrency(s.finalBudget)}
                             </div>
                             <div className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">Final</div>
                           </div>
                         )}
                         
-                        {season.trophiesWon > 0 && (
+                        {s.trophiesWon > 0 && (
                           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#E8A800]/15 border border-[#E8A800]/30 text-[#E8A800] shadow-[0_0_15px_rgba(232,168,0,0.1)]">
                             <svg className="w-4 h-4 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                             </svg>
-                            <span className="font-extrabold text-sm font-mono">{season.trophiesWon} Won</span>
+                            <span className="font-extrabold text-sm font-mono">{s.trophiesWon} Won</span>
                           </div>
                         )}
                       </div>
                     </div>
 
                     {/* Standings Stats Grid */}
-                    {season.played !== undefined && season.played > 0 && (
+                    {s.played !== undefined && s.played > 0 && (
                       <div className="mt-5 grid grid-cols-4 gap-2 text-center sm:grid-cols-8 border-t border-white/5 pt-5">
                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
                           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Played</div>
-                          <div className="font-extrabold text-white text-sm font-mono">{season.played}</div>
+                          <div className="font-extrabold text-white text-sm font-mono">{s.played}</div>
                         </div>
                         <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2.5">
                           <div className="text-[10px] text-emerald-500/60 uppercase tracking-wider mb-1 font-bold">Won</div>
-                          <div className="font-extrabold text-emerald-400 text-sm font-mono">{season.won}</div>
+                          <div className="font-extrabold text-emerald-400 text-sm font-mono">{s.won}</div>
                         </div>
                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
                           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Drawn</div>
-                          <div className="font-extrabold text-white text-sm font-mono">{season.drawn}</div>
+                          <div className="font-extrabold text-white text-sm font-mono">{s.drawn}</div>
                         </div>
                         <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-2.5">
                           <div className="text-[10px] text-red-500/60 uppercase tracking-wider mb-1 font-bold">Lost</div>
-                          <div className="font-extrabold text-red-400 text-sm font-mono">{season.lost}</div>
+                          <div className="font-extrabold text-red-400 text-sm font-mono">{s.lost}</div>
                         </div>
                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
                           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">GF</div>
-                          <div className="font-extrabold text-white text-sm font-mono">{season.goalsFor}</div>
+                          <div className="font-extrabold text-white text-sm font-mono">{s.goalsFor}</div>
                         </div>
                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
                           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">GA</div>
-                          <div className="font-extrabold text-white text-sm font-mono">{season.goalsAgainst}</div>
+                          <div className="font-extrabold text-white text-sm font-mono">{s.goalsAgainst}</div>
                         </div>
                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
                           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">GD</div>
                           <div className="font-extrabold text-white text-sm font-mono">
-                            {season.goalDiff !== undefined && season.goalDiff > 0 ? `+${season.goalDiff}` : season.goalDiff}
+                            {s.goalDiff !== undefined && s.goalDiff > 0 ? `+${s.goalDiff}` : s.goalDiff}
                           </div>
                         </div>
                         <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-xl p-2.5">
                           <div className="text-[10px] text-cyan-400 uppercase tracking-wider mb-1 font-bold">Points</div>
-                          <div className="font-extrabold text-cyan-400 text-sm font-mono">{season.points}</div>
+                          <div className="font-extrabold text-cyan-400 text-sm font-mono">{s.points}</div>
                         </div>
                       </div>
                     )}

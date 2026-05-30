@@ -18,14 +18,42 @@ interface TeamDetailPageProps {
 }
 
 async function getTeamData(teamId: string) {
-  // 1. Get active season
+  let resolvedTeamId = teamId;
+  let resolvedManagerName: string | null = null;
+
+  // Resolve manager if teamId is a manager ID
+  const manager = await prisma.managers.findUnique({
+    where: { id: teamId }
+  });
+
+  if (manager) {
+    resolvedManagerName = manager.name;
+    // Find the linked team from manager_teams
+    const managerLink = await prisma.manager_teams.findFirst({
+      where: { managerId: manager.id },
+      orderBy: { isCurrent: 'desc' }
+    });
+    if (managerLink) {
+      resolvedTeamId = managerLink.teamId;
+    } else {
+      // Check season_teams for any season matching managerName
+      const seasonTeamLink = await prisma.season_teams.findFirst({
+        where: { managerName: { equals: manager.name, mode: 'insensitive' } }
+      });
+      if (seasonTeamLink) {
+        resolvedTeamId = seasonTeamLink.teamId;
+      }
+    }
+  }
+
+  // Get active season info
   const activeSeason = await prisma.seasons.findFirst({
     where: { isActive: true }
   })
 
-  // 2. Get team basic info
+  // Get team basic info
   const team = await prisma.teams.findUnique({
-    where: { id: teamId },
+    where: { id: resolvedTeamId },
     include: {
       unlockedBadges: true
     }
@@ -35,91 +63,21 @@ async function getTeamData(teamId: string) {
     return null
   }
 
-  // If there's no active season, find the most recent season
-  const season = activeSeason || await prisma.seasons.findFirst({
-    orderBy: { createdAt: 'desc' }
-  })
-
-  if (!season) {
-    return {
-      team,
-      activeSeason: null,
-      currentSeason: null,
-      historicalSeasons: [],
-      allTimeStats: {
-        totalTrophies: 0,
-        highestSigning: 0,
-        seasonsParticipated: 0
-      }
-    }
+  // Override manager name if we resolved a manager record
+  if (resolvedManagerName) {
+    team.managerName = resolvedManagerName;
   }
 
-  const seasonId = season.id
-
-  // 3. Get saved squad formation
-  const teamSquad = await prisma.team_squads.findUnique({
-    where: {
-      team_id_season_id: {
-        team_id: teamId,
-        season_id: seasonId
-      }
-    }
-  })
-
-  // 4. Get season team data
-  const seasonTeam = await prisma.season_teams.findUnique({
-    where: {
-      seasonId_teamId: {
-        seasonId,
-        teamId
-      }
-    }
-  })
-
-  // 5. Get all ACTIVE transfers for this team in this season
-  const transfers = await prisma.transfer_history.findMany({
-    where: {
-      seasonId,
-      teamId,
-      status: 'ACTIVE',
-    },
-    include: {
-      basePlayer: {
-        include: {
-          seasonalPlayerStats: {
-            where: { seasonId }
-          }
-        }
-      }
-    },
-    orderBy: {
-      soldPrice: 'desc'
-    }
-  })
-
-  // 6. Get tournament standings
-  const standings = seasonTeam ? await prisma.standings.findMany({
-    where: {
-      teamId: seasonTeam.id,
-      tournament: {
-        seasonId
-      }
-    },
-    include: {
-      tournament: {
-        select: {
-          id: true,
-          name: true,
-          tournamentType: true,
-          status: true
-        }
-      }
-    }
-  }) : []
-
-  // 7. Get historical data (all seasons) with standings
+  // Get all seasons this manager or team participated in
   const allSeasonTeams = await prisma.season_teams.findMany({
-    where: { teamId },
+    where: resolvedManagerName
+      ? {
+          OR: [
+            { teamId: resolvedTeamId },
+            { managerName: resolvedManagerName }
+          ]
+        }
+      : { teamId: resolvedTeamId },
     include: {
       season: {
         select: {
@@ -128,71 +86,120 @@ async function getTeamData(teamId: string) {
           startingPurse: true
         }
       },
-      standings: true
+      standings: {
+        include: {
+          tournament: true
+        }
+      }
     },
     orderBy: {
       season: {
         createdAt: 'desc'
       }
     }
-  })
+  });
 
-  // 8. Calculate squad composition
-  const squadByPosition = transfers.reduce((acc, transfer) => {
-    const position = transfer.basePlayer.seasonalPlayerStats[0]?.position || 'N/A'
-    if (!acc[position]) {
-      acc[position] = []
-    }
-    acc[position].push({
-      id: transfer.basePlayer.id,
-      playerId: transfer.basePlayer.player_id || transfer.basePlayer.id,
-      name: transfer.basePlayer.name,
-      photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
-      position,
-      position_group: transfer.basePlayer.seasonalPlayerStats[0]?.position_group || null,
-      overallRating: transfer.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
-      realWorldClub: transfer.basePlayer.seasonalPlayerStats[0]?.realWorldClub || 'N/A',
-      soldPrice: transfer.soldPrice
-    })
-    return acc
-  }, {} as Record<string, any[]>)
+  // Get all active transfers for these teams and seasons
+  const allTransfers = allSeasonTeams.length > 0 
+    ? await prisma.transfer_history.findMany({
+        where: {
+          OR: allSeasonTeams.map(st => ({
+            seasonId: st.seasonId,
+            teamId: st.teamId,
+            status: 'ACTIVE'
+          }))
+        },
+        include: {
+          basePlayer: {
+            include: {
+              seasonalPlayerStats: true
+            }
+          }
+        },
+        orderBy: {
+          soldPrice: 'desc'
+        }
+      })
+    : [];
 
-  const totalSpent = transfers.reduce((sum, t) => sum + t.soldPrice, 0)
-  const averageRating = transfers.length > 0 
-    ? Math.round(transfers.reduce((sum, t) => sum + (t.basePlayer.seasonalPlayerStats[0]?.overallRating || 0), 0) / transfers.length)
-    : 0
+  // Get all saved squad formations for these teams and seasons
+  const allSquads = allSeasonTeams.length > 0
+    ? await prisma.team_squads.findMany({
+        where: {
+          OR: allSeasonTeams.map(st => ({
+            season_id: st.seasonId,
+            team_id: st.teamId
+          }))
+        }
+      })
+    : [];
 
-  const positionCounts = Object.entries(squadByPosition).reduce((acc, [position, players]) => {
-    acc[position] = players.length
-    return acc
-  }, {} as Record<string, number>)
+  // Build the detailed seasons list
+  const detailedSeasons = allSeasonTeams.map(st => {
+    // Filter transfers for this season and team
+    const seasonTransfers = allTransfers.filter(t => t.seasonId === st.seasonId && t.teamId === st.teamId);
 
-  const currentSeason = {
-    id: seasonId,
-    playerCount: transfers.length,
-    totalSpent,
-    averageRating,
-    remainingBudget: seasonTeam ? seasonTeam.currentBudget : 0,
-    positionCounts,
-    squad: squadByPosition,
-    formation: teamSquad?.formation || null,
-    tournaments: standings
-  }
+    // Build squad grouped by position
+    const squadByPosition = seasonTransfers.reduce((acc, transfer) => {
+      let stats = transfer.basePlayer.seasonalPlayerStats.find(s => s.seasonId === st.seasonId);
+      if (!stats && transfer.basePlayer.seasonalPlayerStats.length > 0) {
+        stats = transfer.basePlayer.seasonalPlayerStats.find(s => s.seasonId === 'TFCS-4') || transfer.basePlayer.seasonalPlayerStats[0];
+      }
+      const position = stats?.position || 'N/A';
+      if (!acc[position]) {
+        acc[position] = [];
+      }
+      acc[position].push({
+        id: transfer.basePlayer.id,
+        playerId: transfer.basePlayer.player_id || transfer.basePlayer.id,
+        name: transfer.basePlayer.name,
+        photoUrl: getPlayerPhotoUrl(`${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`),
+        position,
+        position_group: stats?.position_group || null,
+        overallRating: stats?.overallRating || 0,
+        realWorldClub: stats?.realWorldClub || 'N/A',
+        soldPrice: transfer.soldPrice
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
 
-  const historicalSeasons = allSeasonTeams.map(st => {
-    const played = st.standings.reduce((sum, s) => sum + s.played, 0)
-    const won = st.standings.reduce((sum, s) => sum + s.won, 0)
-    const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0)
-    const lost = st.standings.reduce((sum, s) => sum + s.lost, 0)
-    const goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0)
-    const goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0)
-    const goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0)
-    const points = st.standings.reduce((sum, s) => sum + s.points, 0)
+    // Count positions
+    const positionCounts = Object.entries(squadByPosition).reduce((acc, [position, players]) => {
+      acc[position] = players.length;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Calculate total spent and average rating
+    const totalSpent = seasonTransfers.reduce((sum, t) => sum + t.soldPrice, 0);
+    const averageRating = seasonTransfers.length > 0
+      ? Math.round(seasonTransfers.reduce((sum, t) => {
+          let stats = t.basePlayer.seasonalPlayerStats.find(s => s.seasonId === st.seasonId);
+          if (!stats && t.basePlayer.seasonalPlayerStats.length > 0) {
+            stats = t.basePlayer.seasonalPlayerStats.find(s => s.seasonId === 'TFCS-4') || t.basePlayer.seasonalPlayerStats[0];
+          }
+          return sum + (stats?.overallRating || 0);
+        }, 0) / seasonTransfers.length)
+      : 0;
+
+    // Find formation
+    const formationObj = allSquads.find(q => q.season_id === st.seasonId && q.team_id === st.teamId);
+
+    // Standings & Performance calculations for summary
+    const played = st.standings.reduce((sum, s) => sum + s.played, 0);
+    const won = st.standings.reduce((sum, s) => sum + s.won, 0);
+    const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0);
+    const lost = st.standings.reduce((sum, s) => sum + s.lost, 0);
+    const goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0);
+    const goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0);
+    const goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0);
+    const points = st.standings.reduce((sum, s) => sum + s.points, 0);
+
+    const startingPurse = st.season.startingPurse === 10000 ? 20000 : (st.season.startingPurse || 20000);
 
     return {
-      seasonId: st.season.id,
+      seasonId: st.seasonId,
       seasonName: st.season.name,
-      startingPurse: st.season.startingPurse,
+      startingPurse,
       finalBudget: st.finalBudget,
       currentBudget: st.currentBudget,
       trophiesWon: st.trophiesWon,
@@ -203,22 +210,42 @@ async function getTeamData(teamId: string) {
       goalsFor,
       goalsAgainst,
       goalDiff,
-      points
-    }
-  })
+      points,
+      // Full details:
+      playerCount: seasonTransfers.length,
+      totalSpent,
+      averageRating,
+      remainingBudget: st.currentBudget,
+      positionCounts,
+      squad: squadByPosition,
+      formation: formationObj?.formation || null,
+      tournaments: st.standings
+    };
+  });
 
   // All-time stats calculation
-  const totalTrophies = allSeasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0)
-  const allTimeTransfers = await prisma.transfer_history.findMany({
-    where: { teamId, status: 'ACTIVE' }
-  })
-  const allTimeHighestSigning = allTimeTransfers.reduce((max, t) => Math.max(max, t.soldPrice), 0)
+  const totalTrophies = allSeasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0);
+  const teamSeasonPairs = allSeasonTeams.map(st => ({
+    seasonId: st.seasonId,
+    teamId: st.teamId
+  }));
+  const allTimeTransfers = teamSeasonPairs.length > 0 
+    ? await prisma.transfer_history.findMany({
+        where: {
+          OR: teamSeasonPairs.map(p => ({
+            seasonId: p.seasonId,
+            teamId: p.teamId,
+            status: 'ACTIVE'
+          }))
+        }
+      })
+    : [];
+  const allTimeHighestSigning = allTimeTransfers.reduce((max, t) => Math.max(max, t.soldPrice), 0);
 
   return {
     team,
-    activeSeason: season,
-    currentSeason,
-    historicalSeasons,
+    activeSeason,
+    seasons: detailedSeasons,
     allTimeStats: {
       totalTrophies,
       highestSigning: allTimeHighestSigning,
@@ -235,7 +262,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     notFound()
   }
 
-  const { team, activeSeason, currentSeason, historicalSeasons, allTimeStats } = teamData
+  const { team, activeSeason, seasons, allTimeStats } = teamData
 
   // Level Progression Math
   const level = team.level
@@ -426,13 +453,11 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         </div>
 
         {/* Tabbed Season View (Like Team Portal) */}
-        {currentSeason ? (
+        {seasons.length > 0 ? (
           <div className="mb-12">
             <TeamDetailTabs
               team={team}
-              currentSeason={currentSeason}
-              historicalSeasons={historicalSeasons}
-              seasonId={activeSeason ? activeSeason.id : ""}
+              seasons={seasons}
               viewerRole="public"
             />
           </div>
@@ -445,7 +470,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         {/* Achievements Showcase */}
         <div className="rounded-2xl bg-white/[0.01] border border-white/5 backdrop-blur-xl p-6 md:p-8 shadow-2xl">
           <h2 className="text-2xl font-black tracking-tight text-white mb-6 flex items-center gap-3">
-            <svg className="w-6 h-6 text-[#E8A800] shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-[#E8A800] shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25c0-1.657-1.343-3-3-3H15m-6 0H7.5c-1.657 0-3 1.343-3 3 0 2.222 1.385 4.099 3.32 4.792a6.002 6.002 0 0010.36 0c1.935-.693 3.32-2.57 3.32-4.792z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.25v2.25M9 21.75h6" />

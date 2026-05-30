@@ -78,6 +78,7 @@ export default function StandingsTable({ standings, groups }: StandingsTableProp
                     pos === 2 ? 'bg-[#C0C0C0] text-[#0a0a0a]' :
                     pos === 3 ? 'bg-[#CD7F32] text-[#0a0a0a]' :
                     'bg-white/5 text-[#7A7367]'
+                  const goalDiff = standing.goalsFor - standing.goalsAgainst
 
                   return (
                     <tr
@@ -112,11 +113,11 @@ export default function StandingsTable({ standings, groups }: StandingsTableProp
                       <td className="hidden sm:table-cell px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-[#D4CCBB] text-xs sm:text-base">{standing.goalsFor}</td>
                       <td className="hidden sm:table-cell px-1.5 py-2.5 sm:px-3 sm:py-4 text-center text-[#D4CCBB] text-xs sm:text-base">{standing.goalsAgainst}</td>
                       <td className={`px-1.5 py-2.5 sm:px-3 sm:py-4 text-center font-bold text-xs sm:text-base ${
-                        standing.goalDiff > 0 ? 'text-emerald-400' :
-                        standing.goalDiff < 0 ? 'text-red-400' :
+                        goalDiff > 0 ? 'text-emerald-400' :
+                        goalDiff < 0 ? 'text-red-400' :
                         'text-[#7A7367]'
                       }`}>
-                        {standing.goalDiff > 0 ? '+' : ''}{standing.goalDiff}
+                        {goalDiff > 0 ? '+' : ''}{goalDiff}
                       </td>
                       <td className="px-3 py-2.5 sm:px-5 sm:py-4 text-center">
                         <span className="font-black text-sm sm:text-lg text-emerald-400">

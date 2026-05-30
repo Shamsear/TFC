@@ -15,6 +15,7 @@ interface TournamentViewProps {
     startDate: Date
     endDate: Date | null
     season: {
+      id: string
       name: string
     }
     status: string
@@ -35,6 +36,7 @@ export default function TournamentView({
   teams,
 }: TournamentViewProps) {
   const [activeTab, setActiveTab] = useState<'overall' | 'matches' | 'table' | 'stats'>('overall')
+  const isHistorical = ['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(tournament.season.id)
 
   const completedMatches = matches.filter(m => m.status === 'COMPLETED')
   const liveMatches = matches.filter(m => m.status === 'LIVE')
@@ -112,7 +114,7 @@ export default function TournamentView({
           </div>
 
           {/* Meta statistics grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className={`grid gap-4 mb-6 ${isHistorical ? 'grid-cols-2 max-w-md' : 'grid-cols-2 sm:grid-cols-4'}`}>
             <div className="bg-white/[0.01] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors backdrop-blur-md shadow-lg">
               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Start Date</div>
               <div className="font-bold text-white text-sm sm:text-base">{formatDate(tournament.startDate)}</div>
@@ -123,14 +125,18 @@ export default function TournamentView({
                 <div className="font-bold text-white text-sm sm:text-base">{formatDate(tournament.endDate)}</div>
               </div>
             )}
-            <div className="bg-white/[0.01] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors backdrop-blur-md shadow-lg">
-              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Matches</div>
-              <div className="font-bold text-white text-sm sm:text-base">{matches.length}</div>
-            </div>
-            <div className="bg-white/[0.01] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors backdrop-blur-md shadow-lg">
-              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Completed</div>
-              <div className="font-bold text-[#E8A800] text-sm sm:text-base">{completedMatches.length}</div>
-            </div>
+            {!isHistorical && (
+              <>
+                <div className="bg-white/[0.01] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors backdrop-blur-md shadow-lg">
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Matches</div>
+                  <div className="font-bold text-white text-sm sm:text-base">{matches.length}</div>
+                </div>
+                <div className="bg-white/[0.01] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors backdrop-blur-md shadow-lg">
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Completed</div>
+                  <div className="font-bold text-[#E8A800] text-sm sm:text-base">{completedMatches.length}</div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Quick Actions */}
@@ -161,7 +167,7 @@ export default function TournamentView({
       <div className="flex items-center gap-1 bg-white/[0.02] border border-white/10 p-1.5 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-none backdrop-blur-md shadow-inner">
         {[
           { id: 'overall', label: 'Overall' },
-          { id: 'matches', label: 'Matches' },
+          ...(!isHistorical ? [{ id: 'matches', label: 'Matches' }] : []),
           { id: 'table', label: 'Table' },
           { id: 'stats', label: 'Stats' },
         ].map((tab) => (
@@ -183,55 +189,124 @@ export default function TournamentView({
       {activeTab === 'overall' && (
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Matches Column (Left) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Live Matches */}
-            {liveMatches.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                  <h2 className="text-sm font-black text-red-400 uppercase tracking-widest">Live Now</h2>
+          {!isHistorical ? (
+            <div className="lg:col-span-2 space-y-6">
+              {/* Live Matches */}
+              {liveMatches.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                    <h2 className="text-sm font-black text-red-400 uppercase tracking-widest">Live Now</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {liveMatches.map((m) => (
+                      <MatchCard key={m.id} match={m} statusStyle={getStatusColor} formatDate={formatDate} formatTime={formatTime} />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  {liveMatches.map((m) => (
-                    <MatchCard key={m.id} match={m} statusStyle={getStatusColor} formatDate={formatDate} formatTime={formatTime} />
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Upcoming Matches */}
-            {upcomingMatches.length > 0 && (
-              <div>
-                <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3">Upcoming Matches</h2>
-                <div className="space-y-3">
-                  {upcomingMatches.slice(0, 10).map((m) => (
-                    <MatchCard key={m.id} match={m} statusStyle={getStatusColor} formatDate={formatDate} formatTime={formatTime} />
-                  ))}
+              {/* Upcoming Matches */}
+              {upcomingMatches.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3">Upcoming Matches</h2>
+                  <div className="space-y-3">
+                    {upcomingMatches.slice(0, 10).map((m) => (
+                      <MatchCard key={m.id} match={m} statusStyle={getStatusColor} formatDate={formatDate} formatTime={formatTime} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Results */}
+              {completedMatches.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3">Recent Results</h2>
+                  <div className="space-y-3">
+                    {completedMatches.slice(0, 10).map((m) => (
+                      <MatchCard key={m.id} match={m} statusStyle={getStatusColor} formatDate={formatDate} formatTime={formatTime} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {matches.length === 0 && (
+                <div className="rounded-2xl bg-dark-100 border border-white/5 p-12 text-center shadow-lg">
+                  <svg className="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-gray-400 font-bold uppercase tracking-wider text-xs">No matches scheduled yet</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="lg:col-span-2 space-y-6">
+              {/* Historical Stats Brief Overview Card */}
+              <div className="rounded-2xl bg-dark-100 border border-white/5 p-6 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-b from-[#E8A800]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+                <div className="relative z-10">
+                  <h2 className="text-base font-black text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)] animate-pulse" />
+                    Tournament Stats Summary
+                  </h2>
+                  
+                  {/* Headline Stats Cards */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    {[
+                      { icon: '⚽', value: Math.round(standings.reduce((sum, s) => sum + (s.played || 0), 0) / 2), label: 'Matches Played', color: 'bg-blue-500/[0.02] border-blue-500/10 text-blue-400' },
+                      { icon: '🥅', value: standings.reduce((sum, s) => sum + (s.goalsFor || 0), 0), label: 'Total Goals', color: 'bg-emerald-500/[0.02] border-emerald-500/10 text-emerald-400' },
+                      { icon: '📊', value: (standings.reduce((sum, s) => sum + (s.played || 0), 0) > 0 ? (standings.reduce((sum, s) => sum + (s.goalsFor || 0), 0) / (standings.reduce((sum, s) => sum + (s.played || 0), 0) / 2)).toFixed(1) : '0.0'), label: 'Avg Goals / Match', color: 'bg-[#E8A800]/[0.02] border-[#E8A800]/10 text-[#E8A800]' },
+                      { icon: '🧤', value: teams.reduce((sum, t) => sum + (t.cleanSheets || 0), 0), label: 'Clean Sheets', color: 'bg-purple-500/[0.02] border-purple-500/10 text-purple-400' },
+                    ].map(({ icon, value, label, color }) => (
+                      <div key={label} className={`relative rounded-2xl p-4 text-center backdrop-blur-xl shadow-md overflow-hidden ${color} border`}>
+                        <div className="text-xl mb-1">{icon}</div>
+                        <div className="text-xl sm:text-2xl font-black text-white">{value}</div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-1 leading-snug">{label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Top Performers Section */}
+                  <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Top Performers</h3>
+                  <div className="space-y-3">
+                    {/* Top Scorer (Boot winner) */}
+                    {teams.length > 0 && (() => {
+                      const topScorer = [...teams].sort((a, b) => b.goalsFor - a.goalsFor)[0]
+                      return (
+                        <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">🥇</span>
+                            <div>
+                              <div className="text-xs text-gray-500 font-extrabold uppercase tracking-wider">Top Attack (Most Goals)</div>
+                              <div className="text-sm font-black text-white">{topScorer.teamName}</div>
+                            </div>
+                          </div>
+                          <span className="text-base font-black text-emerald-400">{topScorer.goalsFor} Goals</span>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Top Defense (Glove winner) */}
+                    {teams.length > 0 && (() => {
+                      const topDefense = [...teams].sort((a, b) => (a.goalsAgainst - b.goalsAgainst) || ((b.cleanSheets || 0) - (a.cleanSheets || 0)))[0]
+                      return (
+                        <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">🧤</span>
+                            <div>
+                              <div className="text-xs text-gray-500 font-extrabold uppercase tracking-wider">Top Defense (Least Conceded)</div>
+                              <div className="text-sm font-black text-white">{topDefense.teamName}</div>
+                            </div>
+                          </div>
+                          <span className="text-base font-black text-blue-400">{topDefense.goalsAgainst} GA</span>
+                        </div>
+                      )
+                    })()}
+                  </div>
                 </div>
               </div>
-            )}
-
-            {/* Recent Results */}
-            {completedMatches.length > 0 && (
-              <div>
-                <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3">Recent Results</h2>
-                <div className="space-y-3">
-                  {completedMatches.slice(0, 10).map((m) => (
-                    <MatchCard key={m.id} match={m} statusStyle={getStatusColor} formatDate={formatDate} formatTime={formatTime} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {matches.length === 0 && (
-              <div className="rounded-2xl bg-dark-100 border border-white/5 p-12 text-center shadow-lg">
-                <svg className="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-gray-400 font-bold uppercase tracking-wider text-xs">No matches scheduled yet</p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Standings Sidebar (Right) */}
           <div className="space-y-4">

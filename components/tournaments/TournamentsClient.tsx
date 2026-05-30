@@ -1,0 +1,282 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+
+interface Season {
+  id: string
+  name: string
+  isActive: boolean
+}
+
+interface Tournament {
+  id: string
+  name: string
+  tournamentType: string
+  status: string
+  startDate: string
+  endDate: string | null
+  seasonId: string
+  completedMatches: number
+  liveMatches: number
+  season: {
+    name: string
+  }
+  _count: {
+    matches: number
+  }
+}
+
+interface TournamentsClientProps {
+  seasons: Season[]
+  tournaments: Tournament[]
+  overallStats: {
+    totalTournaments: number
+    totalMatches: number
+    completedMatches: number
+  }
+  seasonStats: Record<string, {
+    totalTournaments: number
+    totalMatches: number
+    completedMatches: number
+  }>
+}
+
+export default function TournamentsClient({
+  seasons,
+  tournaments,
+  overallStats,
+  seasonStats
+}: TournamentsClientProps) {
+  // Find the active season to set as initial tab if available, else default to overall
+  const activeSeason = seasons.find(s => s.isActive)
+  const initialView = activeSeason ? activeSeason.id : 'overall'
+  const [selectedView, setSelectedView] = useState<string>(initialView)
+
+  const isOverallView = selectedView === 'overall'
+  const currentTournaments = isOverallView 
+    ? tournaments 
+    : tournaments.filter(t => t.seasonId === selectedView)
+
+  const currentStats = isOverallView 
+    ? overallStats 
+    : (seasonStats[selectedView] || { totalTournaments: 0, totalMatches: 0, completedMatches: 0 })
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  const getTournamentStatus = (tournament: Tournament) => {
+    if (tournament.status === 'COMPLETED') {
+      return { label: 'COMPLETED', color: 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800] shadow-md shadow-[#E8A800]/5' }
+    }
+    if (tournament.liveMatches > 0) {
+      return { label: 'LIVE', color: 'bg-[#00ff88]/10 border-[#00ff88]/20 text-[#00ff88] shadow-md shadow-[#00ff88]/5 animate-pulse' }
+    }
+    if (tournament.status === 'IN_PROGRESS') {
+      return { label: 'ONGOING', color: 'bg-[#ff6600]/10 border-[#ff6600]/20 text-[#ff6600] shadow-md shadow-[#ff6600]/5' }
+    }
+
+    const now = new Date()
+    const start = new Date(tournament.startDate)
+    const end = tournament.endDate ? new Date(tournament.endDate) : null
+
+    if (end && now > end) {
+      return { label: 'COMPLETED', color: 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800] shadow-md shadow-[#E8A800]/5' }
+    }
+    if (now >= start) {
+      return { label: 'ONGOING', color: 'bg-[#ff6600]/10 border-[#ff6600]/20 text-[#ff6600] shadow-md shadow-[#ff6600]/5' }
+    }
+    return { label: 'UPCOMING', color: 'bg-white/5 border-white/5 text-gray-500 font-bold uppercase' }
+  }
+
+  return (
+    <div className="relative">
+      {/* Decorative Spotlights */}
+      <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-[#E8A800]/[0.02] blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] rounded-full bg-emerald-500/[0.02] blur-[150px] pointer-events-none" />
+
+      {/* Filter Tabs (Glass capsule style) */}
+      <div className="mb-8 relative z-20">
+        <div className="inline-flex gap-1.5 p-1.5 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-xl max-w-full overflow-x-auto scrollbar-none">
+          {/* Overall Tab */}
+          <button
+            onClick={() => setSelectedView('overall')}
+            className={`px-5 py-2.5 rounded-xl font-extrabold text-xs whitespace-nowrap transition-all duration-300 transform active:scale-95 cursor-pointer ${
+              selectedView === 'overall'
+                ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-[0_0_20px_rgba(232,168,0,0.25)]'
+                : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            }`}
+          >
+            Overall
+          </button>
+
+          {/* Season Tabs */}
+          {seasons.map((season) => (
+            <button
+              key={season.id}
+              onClick={() => setSelectedView(season.id)}
+              className={`px-5 py-2.5 rounded-xl font-extrabold text-xs whitespace-nowrap transition-all duration-300 transform active:scale-95 cursor-pointer flex items-center gap-2 ${
+                selectedView === season.id
+                  ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-[0_0_20px_rgba(232,168,0,0.25)]'
+                  : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/[0.02]'
+              }`}
+            >
+              {season.name}
+              {season.isActive && (
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Header with Stats */}
+      <div className="mb-12 relative z-10 border-b border-white/5 pb-6">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+              {isOverallView ? 'All Tournaments' : seasons.find(s => s.id === selectedView)?.name}
+            </h1>
+            <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+              {isOverallView ? 'Tournaments across all historical seasons' : 'Season-specific tournaments and leagues'}
+            </p>
+          </div>
+          
+          {/* Inline Stats */}
+          <div className="flex items-center gap-6 sm:gap-8">
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-white">{currentStats.totalTournaments}</div>
+              <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest font-mono">Tournaments</div>
+            </div>
+            {!['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(selectedView) && (
+              <>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-white">{currentStats.totalMatches}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest font-mono">Matches</div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-white">{currentStats.completedMatches}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest font-mono">Completed</div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tournaments Grid */}
+      {currentTournaments.length === 0 ? (
+        <div className="text-center py-16 rounded-2xl bg-dark-100 border border-white/5 shadow-md relative z-10">
+          <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+          </svg>
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-2 uppercase tracking-wide">No Tournaments Found</h3>
+          <p className="text-sm sm:text-base text-gray-400">Tournaments will appear here once they are registered</p>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 relative z-10">
+          {currentTournaments.map((tournament) => {
+            const status = getTournamentStatus(tournament)
+            const progress = tournament._count.matches > 0 
+              ? (tournament.completedMatches / tournament._count.matches) * 100 
+              : 0
+
+            const isHistorical = ['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(tournament.seasonId)
+
+            return (
+              <Link
+                key={tournament.id}
+                href={`/tournaments/${tournament.id}`}
+                className="group rounded-2xl bg-dark-100 border border-white/5 p-5 sm:p-6 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all shadow-md hover:shadow-neon-glow duration-300 flex flex-col justify-between"
+              >
+                {/* Tournament Header */}
+                <div>
+                  <div className="mb-5">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-white/5 border-white/5 text-gray-400">
+                          {tournament.tournamentType.replace(/_/g, ' ')}
+                        </span>
+                        {isOverallView && (
+                          <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-amber-500/10 border-amber-500/20 text-amber-400">
+                            {tournament.season.name}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[9px] sm:text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-xl font-black text-white mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-2">
+                      {tournament.name}
+                    </h3>
+                    <div className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
+                      {formatDate(tournament.startDate)}
+                      {tournament.endDate && ` - ${formatDate(tournament.endDate)}`}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  {!isHistorical && (
+                    <div className="space-y-2 mb-5">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
+                        <span className="text-gray-400 font-medium">Total Matches</span>
+                        <span className="text-white font-black">{tournament._count.matches}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
+                        <span className="text-gray-400 font-medium">Completed</span>
+                        <span className="text-[#E8A800] font-black">{tournament.completedMatches}</span>
+                      </div>
+                      {tournament.liveMatches > 0 && (
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-gray-400 font-medium">Live Now</span>
+                          <span className="text-[#00ff88] font-black flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-ping"></span>
+                            {tournament.liveMatches}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Progress Bar & View Link */}
+                <div>
+                  {!isHistorical && tournament._count.matches > 0 && (
+                    <div className="mb-5">
+                      <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-1.5">
+                        <span>Progress</span>
+                        <span>{progress.toFixed(0)}%</span>
+                      </div>
+                      <div className="h-1.5 sm:h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#E8A800] to-[#FFB347] rounded-full transition-all shadow-[0_0_10px_rgba(232,168,0,0.5)]"
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* View Link */}
+                  <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-white/5">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#E8A800] group-hover:text-[#FFB347] transition-colors">
+                      View Matches
+                    </span>
+                    <svg className="w-3.5 h-3.5 text-[#E8A800] group-hover:translate-x-1 group-hover:text-[#FFB347] transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -314,7 +314,7 @@ model auction_plans {
 
 model teams {
   id                         String                         @id
-  name                       String                         @unique
+  name                       String
   managerName                String
   logoUrl                    String
   createdAt                  DateTime                       @default(now())
@@ -337,6 +337,8 @@ model teams {
   level                      Int                            @default(1)
   unlockedBadges             team_badges[]
   xpHistory                  team_xp_history[]
+
+  @@unique([name, managerName])
 }
 
 model team_squads {

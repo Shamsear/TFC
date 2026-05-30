@@ -207,6 +207,8 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
             matches={tournament.matches}
             tournamentId={tournament.id}
             seasonId={seasonId}
+            tournamentName={tournament.name}
+            seasonName={tournament.season?.name || ''}
           />
         )}
         {activeTab === 'rounds' && hasFixtures && (

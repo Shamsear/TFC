@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ShareableAdminFixtures from './ShareableAdminFixtures'
 
 // ── Custom Select Component for Matchdays Pager ──────────────────────────────
 function CustomSelect({ 
@@ -114,9 +115,11 @@ interface FixturesListProps {
   matches: Match[]
   tournamentId: string
   seasonId: string
+  tournamentName?: string
+  seasonName?: string
 }
 
-export default function FixturesList({ matches, tournamentId, seasonId }: FixturesListProps) {
+export default function FixturesList({ matches, tournamentId, seasonId, tournamentName, seasonName }: FixturesListProps) {
   const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'live' | 'completed'>('all')
 
@@ -209,9 +212,17 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
           ))}
         </div>
 
-        {/* Round Spacing / Matchday Pager */}
-        {allRounds.length > 0 && (
-          <div className="flex items-center justify-between sm:justify-end gap-3 bg-[#111111] border border-white/10 rounded-xl p-1.5 sm:p-2 sm:min-w-[280px]">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <ShareableAdminFixtures
+            matches={filteredMatches}
+            tournamentName={tournamentName || 'Tournament'}
+            seasonName={seasonName || 'Season'}
+            activeRound={activeRound}
+          />
+
+          {/* Round Spacing / Matchday Pager */}
+          {allRounds.length > 0 && (
+            <div className="flex items-center justify-between sm:justify-end gap-3 bg-[#111111] border border-white/10 rounded-xl p-1.5 sm:p-2 sm:min-w-[280px]">
             <button
               onClick={(e) => {
                 e.preventDefault()
@@ -243,6 +254,7 @@ export default function FixturesList({ matches, tournamentId, seasonId }: Fixtur
             </button>
           </div>
         )}
+        </div>
       </div>
 
       {/* Matches List */}

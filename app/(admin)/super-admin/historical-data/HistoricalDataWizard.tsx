@@ -62,6 +62,9 @@ export default function HistoricalDataWizard({
   // UI State
   const [activePlayerTeamId, setActivePlayerTeamId] = useState<string>("");
   const [playerSearch, setPlayerSearch] = useState("");
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [teamModalSearch, setTeamModalSearch] = useState("");
+  const [selectedModalTeamIds, setSelectedModalTeamIds] = useState<string[]>([]);
 
   // Load draft
   useEffect(() => {
@@ -136,6 +139,22 @@ export default function HistoricalDataWizard({
   };
 
   // --- Helpers for Step 2: Teams ---
+  const handleAddMultipleTeams = () => {
+    const newTeams = selectedModalTeamIds.map(id => {
+      const t = initialTeams.find(it => it.id === id);
+      return {
+        id: id,
+        name: t?.name || "",
+        managerName: t?.managerName || "",
+        tempId: `tm_${Date.now()}_${id}`
+      };
+    });
+    setSeasonTeams([...seasonTeams, ...newTeams]);
+    setShowTeamModal(false);
+    setSelectedModalTeamIds([]);
+    setTeamModalSearch("");
+  };
+
   const addTeam = () => {
     setSeasonTeams([...seasonTeams, { id: "", name: "", managerName: "", tempId: `tm_${Date.now()}` }]);
   };
@@ -158,13 +177,30 @@ export default function HistoricalDataWizard({
     setSeasonTeams(seasonTeams.map(t => {
       if (t.tempId === tempId) {
         const updated = { ...t, [field]: value };
+        
         if (field === "id" && value !== "new" && value !== "") {
           const selected = initialTeams.find(it => it.id === value);
           if (selected) {
             updated.name = selected.name;
             updated.managerName = selected.managerName || "";
           }
+        } else if (field === "managerName" || field === "name") {
+          // If editing name or managerName, check if the combo exactly matches an existing team
+          const matchedTeam = initialTeams.find(
+            it => it.name.trim().toLowerCase() === updated.name.trim().toLowerCase() &&
+                  (it.managerName || "").trim().toLowerCase() === updated.managerName.trim().toLowerCase()
+          );
+          if (matchedTeam) {
+            // Revert back to the existing team ID
+            updated.id = matchedTeam.id;
+            updated.name = matchedTeam.name; // Keep correct capitalization
+            updated.managerName = matchedTeam.managerName || "";
+          } else {
+            // Diverged, force creation of new team
+            updated.id = "new";
+          }
         }
+        
         return updated;
       }
       return t;
@@ -332,9 +368,14 @@ export default function HistoricalDataWizard({
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-white">Step 2: Participating Teams</h2>
-            <button onClick={addTeam} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium">
-              + Add Team
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setShowTeamModal(true)} className="px-4 py-2 bg-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/30 rounded-lg transition-colors text-sm font-medium">
+                + Add Multiple Teams
+              </button>
+              <button onClick={addTeam} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium">
+                + Add Team
+              </button>
+            </div>
           </div>
           
           <div className="space-y-4">
@@ -348,7 +389,7 @@ export default function HistoricalDataWizard({
                     onChange={(val) => updateTeam(t.tempId, "id", val)}
                     placeholder="Select Team"
                   />
-                  {t.id === "" && (
+                  {(t.id === "" || t.id === "new") && (
                     <input
                       type="text"
                       placeholder="New Team Name"
@@ -357,6 +398,13 @@ export default function HistoricalDataWizard({
                       onChange={(e) => updateTeam(t.tempId, "name", e.target.value)}
                     />
                   )}
+                  <div className="mt-2">
+                    {t.id && t.id !== "new" ? (
+                      <span className="text-xs font-mono text-green-400 bg-green-400/10 px-2 py-1 rounded">ID: {t.id} (Existing)</span>
+                    ) : (t.name || t.id === "new" ? (
+                      <span className="text-xs font-mono text-blue-400 bg-blue-400/10 px-2 py-1 rounded">Will create new team</span>
+                    ) : null)}
+                  </div>
                 </div>
                 <div className="flex-1 w-full">
                   <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8] mb-2">Manager Name</label>
@@ -665,6 +713,63 @@ export default function HistoricalDataWizard({
           </button>
         )}
       </div>
+
+      {/* Multi-Team Modal */}
+      {showTeamModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-2xl flex flex-col max-h-[80vh]">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-white">Select Multiple Teams</h3>
+              <button onClick={() => setShowTeamModal(false)} className="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <div className="p-6 border-b border-white/10">
+              <input
+                type="text"
+                placeholder="Search teams..."
+                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#E8A800]"
+                value={teamModalSearch}
+                onChange={(e) => setTeamModalSearch(e.target.value)}
+              />
+            </div>
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {initialTeams
+                  .filter(t => t.name.toLowerCase().includes(teamModalSearch.toLowerCase()))
+                  .filter(t => !seasonTeams.some(st => st.id === t.id))
+                  .map(t => {
+                    const isSelected = selectedModalTeamIds.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedModalTeamIds(prev => prev.filter(id => id !== t.id));
+                          } else {
+                            setSelectedModalTeamIds(prev => [...prev, t.id]);
+                          }
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 ${
+                          isSelected ? "bg-[#E8A800]/10 border-[#E8A800] text-white" : "bg-white/5 border-transparent hover:bg-white/10 text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${isSelected ? "border-[#E8A800] bg-[#E8A800]" : "border-gray-500"}`}>
+                          {isSelected && <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                        <span className="font-medium truncate">{t.name}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+            <div className="p-6 border-t border-white/10 flex justify-end gap-3">
+              <button onClick={() => setShowTeamModal(false)} className="px-6 py-2 rounded-xl text-gray-400 hover:text-white">Cancel</button>
+              <button onClick={handleAddMultipleTeams} disabled={selectedModalTeamIds.length === 0} className="px-6 py-2 bg-[#E8A800] text-black rounded-xl font-bold disabled:opacity-50 hover:bg-[#FFB347]">
+                Add {selectedModalTeamIds.length} Teams
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

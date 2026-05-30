@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { generateUserId } from "@/lib/id-generator";
+import { generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator";
+import { hash } from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,16 +51,41 @@ export async function POST(req: NextRequest) {
     for (const t of seasonTeams) {
       let teamId = t.id;
       if (!teamId && t.name) {
-        // Create new global team
-        const newTeam = await prisma.teams.create({
-          data: {
-            id: crypto.randomUUID(),
-            name: t.name,
-            managerName: t.managerName,
-            logoUrl: "",
-            updatedAt: new Date(),
-          },
+        // Create new global team and user credentials
+        const teamIdStr = crypto.randomUUID();
+        
+        const email = await generateUniqueEmail(t.name.trim(), async (email) => {
+          const existing = await prisma.users.findUnique({ where: { email } });
+          return !!existing;
         });
+        const password = generatePasswordFromTeamName(t.name.trim());
+        const passwordHash = await hash(password, 10);
+        const userId = await generateUserId();
+
+        const [newTeam, newUser] = await prisma.$transaction([
+          prisma.teams.create({
+            data: {
+              id: teamIdStr,
+              name: t.name,
+              managerName: t.managerName || "Manager",
+              logoUrl: "/team-logos/default.png",
+              updatedAt: new Date(),
+            },
+          }),
+          prisma.users.create({
+            data: {
+              id: userId,
+              email,
+              name: t.managerName || "Manager",
+              passwordHash,
+              role: "TEAM_MANAGER",
+              teamId: teamIdStr,
+              createdBy: session.user.id,
+              isActive: true,
+              assignedSeasons: [seasonId]
+            }
+          })
+        ]);
         teamId = newTeam.id;
       }
       globalTeamIdMap.set(t.tempId, teamId);

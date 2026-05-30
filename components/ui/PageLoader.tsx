@@ -3,12 +3,24 @@
 import { useEffect } from 'react'
 import Image from 'next/image'
 
-export default function PageLoader({ message }: { message?: string }) {
+export default function PageLoader({ 
+  message,
+  fullScreen = true
+}: { 
+  message?: string
+  fullScreen?: boolean
+}) {
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
-  }, [])
+    if (fullScreen) {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  }, [fullScreen])
   return (
-    <div className="fixed inset-0 z-[9999] bg-[#0a0a0a] flex items-center justify-center overflow-hidden">
+    <div className={`${
+      fullScreen 
+        ? "fixed inset-0 z-[9999] bg-[#0a0a0a]" 
+        : "relative w-full min-h-[70vh] py-20 bg-[#0a0a0a]"
+    } flex items-center justify-center overflow-hidden`}>
 
       {/* Background radial glow */}
       <div

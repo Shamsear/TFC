@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import TournamentView from '@/components/tournaments/TournamentView'
+import { getTournamentTableData, getTournamentStatsData } from '@/lib/tournament-data'
+
+// Force dynamic rendering to avoid stale cache
+export const dynamic = 'force-dynamic'
 
 async function getTournamentData(tournamentId: string) {
   try {
@@ -30,10 +34,18 @@ async function getTournamentData(tournamentId: string) {
     // Get unique rounds
     const rounds = Array.from(new Set(matches.map(m => m.round).filter((r): r is string => r !== null)))
 
+    // Get table and stats data parallelly
+    const [tableRes, statsRes] = await Promise.all([
+      getTournamentTableData(tournamentId),
+      getTournamentStatsData(tournamentId)
+    ])
+
     return {
       tournament,
       matches,
-      rounds
+      rounds,
+      standings: tableRes?.standings || [],
+      teams: statsRes?.teams || []
     }
   } catch (error) {
     console.error('Error fetching tournament:', error)
@@ -57,19 +69,19 @@ export default async function TournamentPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      
-      <main className="pt-24 pb-16 px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+      <main className="pt-16 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <TournamentView
             tournament={data.tournament}
             matches={data.matches}
             rounds={data.rounds}
             initialRound={round}
+            standings={data.standings}
+            teams={data.teams}
           />
         </div>
       </main>
-
-          </div>
+    </div>
   )
 }

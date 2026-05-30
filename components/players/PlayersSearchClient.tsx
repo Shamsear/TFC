@@ -253,7 +253,7 @@ export default function PlayersSearchClient({
     <div className="space-y-6">
       {/* Stats Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
-        <div className="rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 p-4">
+        <div className="rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 p-4 shadow-[0_0_15px_rgba(232,168,0,0.05)]">
           <div className="text-2xl sm:text-3xl font-black text-white mb-1">{stats.totalPlayers}</div>
           <div className="text-xs text-gray-400">Total Players</div>
         </div>
@@ -265,11 +265,11 @@ export default function PlayersSearchClient({
           <div className="text-2xl sm:text-3xl font-black text-white mb-1">{stats.freeAgents}</div>
           <div className="text-xs text-gray-400">Free Agents</div>
         </div>
-        <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-4">
+        <div className="rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#ff6600]/10 border border-[#E8A800]/20 p-4 shadow-[0_0_15px_rgba(232,168,0,0.05)]">
           <div className="text-2xl sm:text-3xl font-black text-white mb-1">{formatCurrency(stats.totalValue)}</div>
           <div className="text-xs text-gray-400">Total Value</div>
         </div>
-        <div className="rounded-xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 p-4">
+        <div className="rounded-xl bg-gradient-to-br from-[#FFB347]/10 to-[#FFC93A]/10 border border-[#FFB347]/20 p-4">
           <div className="text-2xl sm:text-3xl font-black text-white mb-1">{stats.avgRating}</div>
           <div className="text-xs text-gray-400">Avg Rating</div>
         </div>
@@ -284,7 +284,7 @@ export default function PlayersSearchClient({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by player name, club, or nationality..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 sm:py-4 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
+            className="w-full bg-dark-100 border border-white/5 rounded-xl pl-12 pr-4 py-3 sm:py-4 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base shadow-inner"
           />
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -304,17 +304,17 @@ export default function PlayersSearchClient({
         {/* Filters Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Position Filter - Horizontal Scroll */}
-          <div className="lg:col-span-3 rounded-xl bg-white/5 border border-white/10 p-4">
-            <label className="block text-sm font-bold text-white mb-3">Position</label>
+          <div className="lg:col-span-3 rounded-2xl bg-dark-100 border border-white/5 p-4 shadow-md">
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-3 font-mono">Position</label>
             <div className="relative">
               <div className="overflow-x-auto scrollbar-hide">
                 <div className="flex gap-2 min-w-max pb-2">
                   <button
                     onClick={() => setSelectedPosition('ALL')}
-                    className={`px-4 py-2 rounded-lg font-bold transition-all text-sm whitespace-nowrap flex-shrink-0 ${
+                    className={`px-4 py-2 rounded-xl font-bold transition-all text-sm whitespace-nowrap flex-shrink-0 cursor-pointer ${
                       selectedPosition === 'ALL'
-                        ? 'bg-[#E8A800] text-[#0a0a0a]'
-                        : 'bg-black/30 text-gray-400 hover:bg-black/50'
+                        ? 'bg-[#E8A800] text-black shadow-neon-glow'
+                        : 'bg-black/40 text-gray-400 hover:bg-black/60 hover:text-white'
                     }`}
                   >
                     All Positions
@@ -323,10 +323,10 @@ export default function PlayersSearchClient({
                     <button
                       key={pos}
                       onClick={() => setSelectedPosition(pos)}
-                      className={`px-4 py-2 rounded-lg font-bold transition-all text-sm whitespace-nowrap flex-shrink-0 ${
+                      className={`px-4 py-2 rounded-xl font-bold transition-all text-sm whitespace-nowrap flex-shrink-0 cursor-pointer ${
                         selectedPosition === pos
-                          ? 'bg-[#E8A800] text-[#0a0a0a]'
-                          : 'bg-black/30 text-gray-400 hover:bg-black/50'
+                          ? 'bg-[#E8A800] text-black shadow-neon-glow'
+                          : 'bg-black/40 text-gray-400 hover:bg-black/60 hover:text-white'
                       }`}
                     >
                       {pos}
@@ -340,12 +340,12 @@ export default function PlayersSearchClient({
           </div>
 
           {/* Team Dropdown */}
-          <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <label className="block text-sm font-bold text-white mb-2">Team</label>
+          <div className="rounded-2xl bg-dark-100 border border-white/5 p-4 shadow-md">
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2 font-mono">Team</label>
             <div className="relative">
               <button
                 onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm flex items-center justify-between"
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm flex items-center justify-between cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   {getSelectedTeamLogo() && (
@@ -375,14 +375,14 @@ export default function PlayersSearchClient({
                   />
                   
                   {/* Dropdown Menu */}
-                  <div className="absolute z-20 w-full mt-2 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                  <div className="absolute z-20 w-full mt-2 bg-[#0e0e0f]/95 backdrop-blur-xl border border-white/5 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
                     <button
                       onClick={() => {
                         setSelectedTeam('ALL')
                         setIsTeamDropdownOpen(false)
                       }}
-                      className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2 ${
-                        selectedTeam === 'ALL' ? 'bg-[#E8A800]/20 text-[#E8A800]' : 'text-white'
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-white/[0.03] transition-colors flex items-center gap-2 cursor-pointer ${
+                        selectedTeam === 'ALL' ? 'bg-[#E8A800]/10 text-[#E8A800]' : 'text-white'
                       }`}
                     >
                       All Teams
@@ -392,13 +392,13 @@ export default function PlayersSearchClient({
                         setSelectedTeam('FREE_AGENT')
                         setIsTeamDropdownOpen(false)
                       }}
-                      className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2 ${
-                        selectedTeam === 'FREE_AGENT' ? 'bg-[#E8A800]/20 text-[#E8A800]' : 'text-white'
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-white/[0.03] transition-colors flex items-center gap-2 cursor-pointer ${
+                        selectedTeam === 'FREE_AGENT' ? 'bg-[#E8A800]/10 text-[#E8A800]' : 'text-white'
                       }`}
                     >
                       Free Agents
                     </button>
-                    <div className="border-t border-white/10 my-1" />
+                    <div className="border-t border-white/5 my-1" />
                     {teams.map((team) => (
                       <button
                         key={team.id}
@@ -406,8 +406,8 @@ export default function PlayersSearchClient({
                           setSelectedTeam(team.id)
                           setIsTeamDropdownOpen(false)
                         }}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2 ${
-                          selectedTeam === team.id ? 'bg-[#E8A800]/20 text-[#E8A800]' : 'text-white'
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-white/[0.03] transition-colors flex items-center gap-2 cursor-pointer ${
+                          selectedTeam === team.id ? 'bg-[#E8A800]/10 text-[#E8A800]' : 'text-white'
                         }`}
                       >
                         <div className="relative w-5 h-5 rounded overflow-hidden bg-gray-800 flex-shrink-0">
@@ -439,14 +439,14 @@ export default function PlayersSearchClient({
             onChange={setSelectedPlayingStyle}
             enableSearch={true}
             disabled={availablePlayingStyles.length === 0}
-            className="rounded-xl bg-white/5 border border-white/10 p-4"
+            className="rounded-2xl bg-dark-100 border border-white/5 p-4 shadow-md"
           />
           {availablePlayingStyles.length === 0 && (
             <div className="text-xs text-gray-500 mt-1">No styles for selected position</div>
           )}
 
           {/* Clear Filters Button */}
-          <div className="rounded-xl bg-white/5 border border-white/10 p-4 flex items-end">
+          <div className="rounded-2xl bg-dark-100 border border-white/5 p-4 flex items-end shadow-md">
             <button
               onClick={() => {
                 setSearchQuery('')
@@ -455,7 +455,7 @@ export default function PlayersSearchClient({
                 setSelectedPlayingStyle('ALL')
               }}
               disabled={searchQuery === '' && selectedPosition === 'ALL' && selectedTeam === 'ALL' && selectedPlayingStyle === 'ALL'}
-              className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white disabled:text-gray-600 rounded-lg font-bold transition-all text-sm"
+              className="w-full px-4 py-2 bg-white/5 border border-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all text-sm cursor-pointer"
             >
               Clear All
             </button>
@@ -476,7 +476,7 @@ export default function PlayersSearchClient({
               setSelectedTeam('ALL')
               setSelectedPlayingStyle('ALL')
             }}
-            className="text-sm text-[#E8A800] hover:text-[#FFC93A] font-bold transition-colors"
+            className="text-sm text-[#E8A800] hover:text-[#FFB347] font-bold transition-colors cursor-pointer"
           >
             Clear Filters
           </button>
@@ -484,12 +484,12 @@ export default function PlayersSearchClient({
       </div>
 
       {/* Players Grid */}
-      {filteredPlayers.length === 0 ? (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-12 text-center">
-          <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {filteredPlayers.length === 0 ? (
+        <div className="rounded-2xl bg-dark-100 border border-white/5 p-12 text-center shadow-md">
+          <svg className="w-16 h-16 text-gray-600 mx-auto mb-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <div className="text-xl font-bold text-white mb-2">No players found</div>
+          <div className="text-xl font-bold text-white mb-2 uppercase tracking-wide">No players found</div>
           <p className="text-gray-400 mb-4">Try adjusting your search or filters</p>
           <button
             onClick={() => {
@@ -498,7 +498,7 @@ export default function PlayersSearchClient({
               setSelectedTeam('ALL')
               setSelectedPlayingStyle('ALL')
             }}
-            className="px-6 py-2 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-all"
+            className="px-6 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-black rounded-xl font-black uppercase text-xs tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(232,168,0,0.25)] hover:scale-105 active:scale-95"
           >
             Clear All Filters
           </button>
@@ -510,7 +510,7 @@ export default function PlayersSearchClient({
               <Link
                 key={player.id}
                 href={`${basePath}/${player.id}`}
-                className="group rounded-xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/10 p-4 transition-all relative"
+                className="group rounded-2xl bg-dark-100 border border-white/5 hover:border-[#E8A800]/30 hover:bg-dark-200 p-4 transition-all duration-300 relative shadow-md hover:shadow-neon-glow"
               >
                 {/* Star Button */}
                 {enableStarring && (
@@ -549,17 +549,17 @@ export default function PlayersSearchClient({
                   <div className="flex-1 min-w-0 space-y-2">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-full border text-xs font-bold ${getPositionColor(player.position)}`}>
+                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold tracking-wider ${getPositionColor(player.position)}`}>
                           {player.position}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/20 bg-[#3D2A00] text-xs font-bold text-[#E8A800]">
+                        <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/20 bg-[#E8A800]/10 text-[10px] font-black text-[#E8A800] shadow-md shadow-[#E8A800]/5">
                           {player.overallRating}
                         </span>
                       </div>
                       <h3 className="text-base font-black text-white mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-1">
                         {player.name}
                       </h3>
-                      <div className="text-xs text-gray-400 truncate">{player.realWorldClub}</div>
+                      <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider font-mono truncate">{player.realWorldClub}</div>
                       {player.playingStyle && (
                         <div className="text-xs text-gray-500 truncate italic">{player.playingStyle}</div>
                       )}
@@ -583,7 +583,7 @@ export default function PlayersSearchClient({
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-white truncate">{player.teamName}</div>
                         {player.soldPrice && player.soldPrice > 0 && (
-                          <div className="text-xs font-bold text-[#E8A800]">
+                          <div className="text-xs font-black text-emerald-400 font-mono">
                             {formatCurrency(player.soldPrice)}
                           </div>
                         )}

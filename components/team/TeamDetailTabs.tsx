@@ -58,7 +58,7 @@ interface TeamDetailTabsProps {
   currentSeason: CurrentSeason
   historicalSeasons: HistoricalSeason[]
   seasonId: string
-  viewerRole?: 'team' | 'admin' // Determines which routes to use for player links
+  viewerRole?: 'team' | 'admin' | 'public' // Determines which routes to use for player links
 }
 
 type Tab = 'season' | 'overall'
@@ -82,6 +82,9 @@ export default function TeamDetailTabs({
   const getPlayerUrl = (playerId: string) => {
     if (viewerRole === 'team') {
       return `/team/players/${playerId}`
+    }
+    if (viewerRole === 'public') {
+      return `/players/${playerId}`
     }
     return `/sub-admin/${seasonId}/all-players/${playerId}`
   }

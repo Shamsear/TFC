@@ -87,45 +87,46 @@ export default async function TournamentsPage() {
     const end = tournament.endDate ? new Date(tournament.endDate) : null
 
     if (tournament.liveMatches > 0) {
-      return { label: 'LIVE', color: 'bg-[#FFB347]/10 border-[#FFB347]/30 text-[#FFB347]' }
+      return { label: 'LIVE', color: 'bg-[#00ff88]/10 border-[#00ff88]/20 text-[#00ff88] shadow-md shadow-[#00ff88]/5 animate-pulse' }
     }
     if (end && now > end) {
-      return { label: 'COMPLETED', color: 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]' }
+      return { label: 'COMPLETED', color: 'bg-[#E8A800]/10 border-[#E8A800]/20 text-[#E8A800] shadow-md shadow-[#E8A800]/5' }
     }
     if (now >= start) {
-      return { label: 'ONGOING', color: 'bg-[#FFC93A]/10 border-[#FFC93A]/30 text-[#FFC93A]' }
+      return { label: 'ONGOING', color: 'bg-[#ff6600]/10 border-[#ff6600]/20 text-[#ff6600] shadow-md shadow-[#ff6600]/5' }
     }
-    return { label: 'UPCOMING', color: 'bg-white/5 border-white/20 text-[#D4CCBB]' }
+    return { label: 'UPCOMING', color: 'bg-white/5 border-white/5 text-gray-500 font-bold uppercase' }
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      
-      <main className="pt-24 pb-16 px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+      <main className="pt-16 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header with Stats */}
-          <div className="mb-6 sm:mb-10">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <div className="mb-12 border-b border-white/5 pb-6">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
               <div>
-                <h1 className="text-2xl sm:text-4xl font-black text-[#F5F0E8] mb-1 sm:mb-2">Tournaments</h1>
-                <p className="text-sm sm:text-base text-[#D4CCBB]">
+                <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+                  TOURNAMENTS
+                </h1>
+                <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
                   {data.seasonName ? `${data.seasonName}` : 'All tournaments'}
                 </p>
               </div>
               
               {/* Inline Stats */}
-              <div className="flex items-center gap-4 sm:gap-8">
+              <div className="flex items-center gap-6 sm:gap-8">
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8]">{data.stats.totalTournaments}</div>
-                  <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase tracking-wider">Tournaments</div>
+                  <div className="text-2xl sm:text-3xl font-black text-white">{data.stats.totalTournaments}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest font-mono">Tournaments</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8]">{data.stats.totalMatches}</div>
-                  <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase tracking-wider">Matches</div>
+                  <div className="text-2xl sm:text-3xl font-black text-white">{data.stats.totalMatches}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest font-mono">Matches</div>
                 </div>
                 <div className="hidden sm:block">
-                  <div className="text-2xl sm:text-3xl font-black text-[#F5F0E8]">{data.stats.completedMatches}</div>
-                  <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase tracking-wider">Completed</div>
+                  <div className="text-2xl sm:text-3xl font-black text-white">{data.stats.completedMatches}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest font-mono">Completed</div>
                 </div>
               </div>
             </div>
@@ -133,15 +134,15 @@ export default async function TournamentsPage() {
 
           {/* Tournaments Grid */}
           {data.tournaments.length === 0 ? (
-            <div className="text-center py-12 sm:py-16 rounded-xl bg-white/[0.02] border border-white/10">
-              <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#7A7367] mx-auto mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="text-center py-16 rounded-2xl bg-dark-100 border border-white/5 shadow-md">
+              <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
-              <h3 className="text-lg sm:text-xl font-bold text-[#F5F0E8] mb-2">No Tournaments Found</h3>
-              <p className="text-sm sm:text-base text-[#D4CCBB]">Tournaments will appear here once the season starts</p>
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-2 uppercase tracking-wide">No Tournaments Found</h3>
+              <p className="text-sm sm:text-base text-gray-400">Tournaments will appear here once the season starts</p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {data.tournaments.map((tournament) => {
                 const status = getTournamentStatus(tournament)
                 const progress = tournament._count.matches > 0 
@@ -152,42 +153,42 @@ export default async function TournamentsPage() {
                   <Link
                     key={tournament.id}
                     href={`/tournaments/${tournament.id}`}
-                    className="group rounded-xl bg-[#111111] border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-[#181818] transition-all"
+                    className="group rounded-2xl bg-dark-100 border border-white/5 p-5 sm:p-6 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all shadow-md hover:shadow-neon-glow duration-300"
                   >
                     {/* Tournament Header */}
-                    <div className="mb-3 sm:mb-5">
-                      <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                        <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-xs font-bold bg-[#FFB347]/10 border-[#FFB347]/30 text-[#FFB347]">
-                          {tournament.tournamentType}
+                    <div className="mb-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-white/5 border-white/5 text-gray-400">
+                          {tournament.tournamentType.replace(/_/g, ' ')}
                         </span>
-                        <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-xs font-bold ${status.color}`}>
+                        <span className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${status.color}`}>
                           {status.label}
                         </span>
                       </div>
-                      <h3 className="text-base sm:text-xl font-black text-[#F5F0E8] mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-2">
+                      <h3 className="text-base sm:text-xl font-black text-white mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-2">
                         {tournament.name}
                       </h3>
-                      <div className="text-xs sm:text-sm text-[#7A7367]">
+                      <div className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                         {formatDate(tournament.startDate)}
                         {tournament.endDate && ` - ${formatDate(tournament.endDate)}`}
                       </div>
                     </div>
 
                     {/* Stats */}
-                    <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-5">
+                    <div className="space-y-2 mb-5">
                       <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="text-[#D4CCBB]">Total Matches</span>
-                        <span className="text-[#F5F0E8] font-bold">{tournament._count.matches}</span>
+                        <span className="text-gray-400 font-medium">Total Matches</span>
+                        <span className="text-white font-black">{tournament._count.matches}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="text-[#D4CCBB]">Completed</span>
-                        <span className="text-[#E8A800] font-bold">{tournament.completedMatches}</span>
+                        <span className="text-gray-400 font-medium">Completed</span>
+                        <span className="text-[#E8A800] font-black">{tournament.completedMatches}</span>
                       </div>
                       {tournament.liveMatches > 0 && (
                         <div className="flex items-center justify-between text-xs sm:text-sm">
-                          <span className="text-[#D4CCBB]">Live Now</span>
-                          <span className="text-[#FFB347] font-bold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FFB347] animate-pulse"></span>
+                          <span className="text-gray-400 font-medium">Live Now</span>
+                          <span className="text-[#00ff88] font-black flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-ping"></span>
                             {tournament.liveMatches}
                           </span>
                         </div>
@@ -196,14 +197,14 @@ export default async function TournamentsPage() {
 
                     {/* Progress Bar */}
                     {tournament._count.matches > 0 && (
-                      <div className="mb-3 sm:mb-5">
-                        <div className="flex items-center justify-between text-[10px] sm:text-xs text-[#7A7367] mb-1.5">
+                      <div className="mb-5">
+                        <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-1.5">
                           <span>Progress</span>
                           <span>{progress.toFixed(0)}%</span>
                         </div>
                         <div className="h-1.5 sm:h-2 bg-white/5 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-[#FFC93A] to-[#E8A800] rounded-full transition-all"
+                            className="h-full bg-gradient-to-r from-[#E8A800] to-[#FFB347] rounded-full transition-all shadow-[0_0_10px_rgba(232,168,0,0.5)]"
                             style={{ width: `${progress}%` }}
                           ></div>
                         </div>
@@ -211,12 +212,12 @@ export default async function TournamentsPage() {
                     )}
 
                     {/* View Link */}
-                    <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-white/10">
-                      <span className="text-xs sm:text-sm font-bold text-[#E8A800] group-hover:text-[#FFC93A] transition-colors">
+                    <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-white/5">
+                      <span className="text-xs font-black uppercase tracking-wider text-[#E8A800] group-hover:text-[#FFB347] transition-colors">
                         View Matches
                       </span>
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#E8A800] group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      <svg className="w-3.5 h-3.5 text-[#E8A800] group-hover:translate-x-1 group-hover:text-[#FFB347] transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                     </div>
                   </Link>
@@ -226,7 +227,6 @@ export default async function TournamentsPage() {
           )}
         </div>
       </main>
-
-          </div>
+    </div>
   )
 }

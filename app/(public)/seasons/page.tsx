@@ -75,117 +75,112 @@ export default async function SeasonsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      
-      <main className="pt-24 pb-16 px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+      <main className="pt-16 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-6 sm:mb-10">
-            <div className="flex items-center gap-2 mb-3">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="text-xs sm:text-sm font-bold text-[#FFB347] uppercase">All Seasons</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#F5F0E8] mb-2 sm:mb-3">Seasons</h1>
-            <p className="text-sm sm:text-base text-[#D4CCBB]">
-              Browse all seasons and their statistics
+          <div className="mb-12 border-b border-white/5 pb-6">
+            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+              SEASONS
+            </h1>
+            <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+              Browse all seasons and active rosters
             </p>
           </div>
 
           {/* Seasons Grid */}
           {seasons.length === 0 ? (
-            <div className="text-center py-12 sm:py-16 rounded-xl bg-white/[0.02] border border-white/10">
-              <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#7A7367] mx-auto mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="text-center py-16 rounded-2xl bg-dark-100 border border-white/5 shadow-md">
+              <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <h3 className="text-lg sm:text-xl font-bold text-[#F5F0E8] mb-2">No Seasons Found</h3>
-              <p className="text-sm sm:text-base text-[#D4CCBB]">Seasons will appear here once they are created</p>
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-2 uppercase tracking-wide">No Seasons Found</h3>
+              <p className="text-sm text-gray-400">Seasons will appear here once they are created</p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {seasons.map((season) => (
                 <Link
                   key={season.id}
                   href={`/seasons/${season.id}`}
-                  className="group rounded-xl sm:rounded-2xl bg-[#111111] border border-white/10 p-5 sm:p-7 hover:border-[#E8A800]/30 hover:bg-[#181818] transition-all"
+                  className="group rounded-2xl bg-dark-100 border border-white/5 p-6 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all shadow-md hover:shadow-neon-glow duration-300 flex flex-col justify-between"
                 >
                   {/* Season Header */}
-                  <div className="mb-4 sm:mb-6">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <h3 className="text-xl sm:text-2xl font-black text-[#F5F0E8] group-hover:text-[#E8A800] transition-colors">
-                        {season.name}
-                      </h3>
-                      {season.isActive && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                          <span className="text-xs font-bold text-emerald-400 uppercase">Active</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-xs sm:text-sm text-[#7A7367]">
-                      Starting Purse: <span className="font-bold text-[#E8A800]">{formatCurrency(season.startingPurse)}</span>
-                    </div>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                    <div className="text-center p-2.5 sm:p-3 rounded-lg bg-white/5">
-                      <div className="text-lg sm:text-xl font-black text-blue-400">{season.stats.totalTeams}</div>
-                      <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase">Teams</div>
-                    </div>
-                    <div className="text-center p-2.5 sm:p-3 rounded-lg bg-white/5">
-                      <div className="text-lg sm:text-xl font-black text-purple-400">{season.stats.totalPlayers}</div>
-                      <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase">Players</div>
-                    </div>
-                    <div className="text-center p-2.5 sm:p-3 rounded-lg bg-white/5">
-                      <div className="text-lg sm:text-xl font-black text-[#E8A800]">{season.stats.totalTournaments}</div>
-                      <div className="text-[10px] sm:text-xs text-[#7A7367] uppercase">Tournaments</div>
-                    </div>
-                  </div>
-
-                  {/* Additional Stats */}
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-5">
-                    <div className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-white/5">
-                      <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      <div>
-                        <div className="text-xs sm:text-sm font-bold text-[#F5F0E8]">{season.stats.totalMatches}</div>
-                        <div className="text-[10px] text-[#7A7367]">Matches</div>
+                  <div>
+                    <div className="mb-5">
+                      <div className="flex items-center justify-between gap-3 mb-2.5">
+                        <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-[#E8A800] transition-colors line-clamp-1">
+                          {season.name}
+                        </h3>
+                        {season.isActive && (
+                          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-md shadow-emerald-950/10 flex-shrink-0 animate-pulse">
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Active</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400 font-semibold uppercase tracking-wider font-mono">
+                        Starting Purse: <span className="font-bold text-[#E8A800]">£{season.startingPurse.toLocaleString()}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-white/5">
-                      <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                      </svg>
-                      <div>
-                        <div className="text-xs sm:text-sm font-bold text-[#F5F0E8]">{season.stats.totalGoals}</div>
-                        <div className="text-[10px] text-[#7A7367]">Goals</div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-2.5 mb-4">
+                      <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
+                        <div className="text-lg font-black text-blue-400 font-mono">{season.stats.totalTeams}</div>
+                        <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Teams</div>
+                      </div>
+                      <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
+                        <div className="text-lg font-black text-[#FFB347] font-mono">{season.stats.totalPlayers}</div>
+                        <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Players</div>
+                      </div>
+                      <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
+                        <div className="text-lg font-black text-[#E8A800] font-mono">{season.stats.totalTournaments}</div>
+                        <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Tourneys</div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Total Spent */}
-                  <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 mb-4 sm:mb-5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    {/* Additional Stats */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        <span className="text-xs sm:text-sm text-[#D4CCBB]">Total Spent</span>
+                        <div>
+                          <div className="text-sm font-black text-white font-mono">{season.stats.totalMatches}</div>
+                          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Matches</div>
+                        </div>
                       </div>
-                      <span className="text-base sm:text-lg font-black text-[#E8A800]">{formatCurrency(season.stats.totalSpent)}</span>
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <svg className="w-4 h-4 text-[#ff6600] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <div>
+                          <div className="text-sm font-black text-white font-mono">{season.stats.totalGoals}</div>
+                          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Goals</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Total Spent */}
+                    <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 mb-4 shadow-sm shadow-[#E8A800]/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4.5 h-4.5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider font-mono">Total Spent</span>
+                      </div>
+                      <span className="text-base font-black text-[#E8A800] font-mono">£{season.stats.totalSpent.toLocaleString()}</span>
                     </div>
                   </div>
 
                   {/* View Link */}
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <span className="text-xs sm:text-sm font-bold text-[#E8A800] group-hover:text-[#FFC93A] transition-colors">
+                  <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#E8A800] group-hover:text-[#FFB347] transition-colors">
                       View Season Details
                     </span>
-                    <svg className="w-4 h-4 text-[#E8A800] group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    <svg className="w-4 h-4 text-[#E8A800] group-hover:translate-x-1 group-hover:text-[#FFB347] transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
                   </div>
                 </Link>
@@ -194,7 +189,6 @@ export default async function SeasonsPage() {
           )}
         </div>
       </main>
-
-          </div>
+    </div>
   )
 }

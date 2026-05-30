@@ -39,6 +39,7 @@ interface TournamentStatsProps {
   seasonName?: string
   activeRoundLimit?: string
   setActiveRoundLimit?: (limit: string) => void
+  hideShareOptions?: boolean
 }
 
 export default function TournamentStats({ 
@@ -50,7 +51,8 @@ export default function TournamentStats({
   tournamentName,
   seasonName,
   activeRoundLimit: externalRoundLimit,
-  setActiveRoundLimit: externalSetRoundLimit
+  setActiveRoundLimit: externalSetRoundLimit,
+  hideShareOptions = false
 }: TournamentStatsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('golden-boot')
   
@@ -399,19 +401,21 @@ export default function TournamentStats({
           )}
 
           {/* Share Limit select */}
-          <div className="flex flex-col">
-            <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Teams in Share Card</label>
-            <select
-              value={imageTeamsLimit}
-              onChange={(e) => setImageTeamsLimit(e.target.value)}
-              className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
-            >
-              <option value="3" className="bg-[#0a0a0a] text-white">Top 3 Teams</option>
-              <option value="5" className="bg-[#0a0a0a] text-white">Top 5 Teams</option>
-              <option value="10" className="bg-[#0a0a0a] text-white">Top 10 Teams</option>
-              <option value="all" className="bg-[#0a0a0a] text-white">All Teams</option>
-            </select>
-          </div>
+          {!hideShareOptions && (
+            <div className="flex flex-col">
+              <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Teams in Share Card</label>
+              <select
+                value={imageTeamsLimit}
+                onChange={(e) => setImageTeamsLimit(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
+              >
+                <option value="3" className="bg-[#0a0a0a] text-white">Top 3 Teams</option>
+                <option value="5" className="bg-[#0a0a0a] text-white">Top 5 Teams</option>
+                <option value="10" className="bg-[#0a0a0a] text-white">Top 10 Teams</option>
+                <option value="all" className="bg-[#0a0a0a] text-white">All Teams</option>
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2 items-end relative z-10">
@@ -424,34 +428,40 @@ export default function TournamentStats({
           </button>
 
           {/* Download Image */}
-          <button
-            onClick={handleDownloadImage}
-            disabled={downloading}
-            className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-gray-300 hover:text-white rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${downloadDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}`}
-          >
-            <span>🖼️</span> {downloadDone ? 'Downloaded!' : downloading ? 'Generating...' : 'Download Image'}
-          </button>
+          {!hideShareOptions && (
+            <button
+              onClick={handleDownloadImage}
+              disabled={downloading}
+              className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-gray-300 hover:text-white rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${downloadDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}`}
+            >
+              <span>🖼️</span> {downloadDone ? 'Downloaded!' : downloading ? 'Generating...' : 'Download Image'}
+            </button>
+          )}
 
           {/* Share Image */}
-          <button
-            onClick={handleShareImage}
-            disabled={sharing}
-            className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-black rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${shareDone ? 'from-emerald-500 to-emerald-400 text-white' : ''}`}
-          >
-            <span>🔗</span> {shareDone ? 'Shared!' : sharing ? 'Preparing...' : 'Share Leaderboard'}
-          </button>
+          {!hideShareOptions && (
+            <button
+              onClick={handleShareImage}
+              disabled={sharing}
+              className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-black rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${shareDone ? 'from-emerald-500 to-emerald-400 text-white' : ''}`}
+            >
+              <span>🔗</span> {shareDone ? 'Shared!' : sharing ? 'Preparing...' : 'Share Leaderboard'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Poster Studio */}
-      <StatsPoster
-        teams={computedTeams}
-        tournamentName={tournamentName || 'Tournament'}
-        seasonName={seasonName || 'Season'}
-        roundLabel={activeRoundLimit}
-        activeAward={activeTab}
-        imageTeamsLimit={imageTeamsLimit}
-      />
+      {!hideShareOptions && (
+        <StatsPoster
+          teams={computedTeams}
+          tournamentName={tournamentName || 'Tournament'}
+          seasonName={seasonName || 'Season'}
+          roundLabel={activeRoundLimit}
+          activeAward={activeTab}
+          imageTeamsLimit={imageTeamsLimit}
+        />
+      )}
 
       {/* Headline stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import * as XLSX from "xlsx";
 
 interface BaseData {
   id: string;
@@ -65,6 +66,8 @@ export default function HistoricalDataWizard({
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [teamModalSearch, setTeamModalSearch] = useState("");
   const [selectedModalTeamIds, setSelectedModalTeamIds] = useState<string[]>([]);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load draft
   useEffect(() => {
@@ -304,6 +307,226 @@ export default function HistoricalDataWizard({
     }
   };
 
+  // --- Excel / CSV Template Export ---
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+
+    // 1. Teams Sheet
+    const teamsData = [
+      ["Team Name", "Manager Name"],
+      ["Red Devils", "John Doe"],
+      ["Blue Eagles", "Jane Smith"]
+    ];
+    const wsTeams = XLSX.utils.aoa_to_sheet(teamsData);
+    XLSX.utils.book_append_sheet(wb, wsTeams, "Teams");
+
+    // 2. Tournaments Sheet
+    const tournamentsData = [
+      ["Tournament Name", "Type", "Start Date", "Group (Optional)"],
+      ["Premier League", "LEAGUE", "2023-08-01", ""],
+      ["FA Cup", "CUP", "2023-09-01", "Group A"]
+    ];
+    const wsTournaments = XLSX.utils.aoa_to_sheet(tournamentsData);
+    XLSX.utils.book_append_sheet(wb, wsTournaments, "Tournaments");
+
+    // 3. Stats Sheet
+    const statsData = [
+      ["Team Name", "P", "MP", "W", "D", "L", "F", "A", "GD", "%"],
+      ["Red Devils", 80, 38, 25, 5, 8, 70, 30, 40, "65%"],
+      ["Blue Eagles", 70, 38, 20, 10, 8, 60, 40, 20, "52%"]
+    ];
+    const wsStats = XLSX.utils.aoa_to_sheet(statsData);
+    XLSX.utils.book_append_sheet(wb, wsStats, "Stats - Premier League");
+
+    // 4. Awards Sheet
+    const awardsData = [
+      ["Award Name", "Winner Name", "Tournament Name (Optional)"],
+      ["League Winner", "Red Devils", "Premier League"],
+      ["Runner Up", "Blue Eagles", ""],
+      ["Golden Boot", "Marcus Rashford", ""],
+      ["Golden Glove", "David De Gea", ""],
+      ["Golden Ball", "Kevin De Bruyne", ""],
+      ["Ballon d'Or", "Lionel Messi", ""],
+      ["Team of the Season", "Marcus Rashford, Kevin De Bruyne", ""]
+    ];
+    const wsAwards = XLSX.utils.aoa_to_sheet(awardsData);
+    XLSX.utils.book_append_sheet(wb, wsAwards, "Awards");
+
+    XLSX.writeFile(wb, "historical_data_template.xlsx");
+  };
+
+  // --- Excel / CSV Upload ---
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const ab = evt.target?.result as ArrayBuffer;
+        const wb = XLSX.read(ab, { type: "array" });
+
+        // Parse Teams
+        const wsTeams = wb.Sheets["Teams"];
+        let importedSeasonTeams: any[] = [];
+        if (wsTeams) {
+          const teamsJson = XLSX.utils.sheet_to_json(wsTeams, { header: 1 }) as any[];
+          for (let i = 1; i < teamsJson.length; i++) {
+            const row = teamsJson[i];
+            if (row.length === 0 || !row[0]) continue;
+            const teamName = String(row[0]).trim();
+            const managerName = row[1] ? String(row[1]).trim() : "";
+            
+            const existing = initialTeams.find(t => {
+              const dbName = t.name.toLowerCase();
+              const inputName = teamName.toLowerCase();
+              const dbManager = (t.managerName || "").trim().toLowerCase();
+              const inputManager = managerName.toLowerCase();
+              
+              if (dbName === inputName) return true;
+              if (inputManager && dbManager === inputManager) return true;
+              if (dbName.includes(inputName) || inputName.includes(dbName)) return true;
+              return false;
+            });
+
+            importedSeasonTeams.push({
+              id: existing ? existing.id : "new",
+              name: existing ? existing.name : teamName,
+              originalName: teamName, // Store original input name to match subsequent sheets
+              managerName: managerName || existing?.managerName || "",
+              tempId: `tm_${Date.now()}_${i}`
+            });
+          }
+        }
+        
+        // Parse Tournaments
+        const wsTournaments = wb.Sheets["Tournaments"];
+        let importedTournaments: any[] = [];
+        if (wsTournaments) {
+          const tournJson = XLSX.utils.sheet_to_json(wsTournaments, { header: 1 }) as any[];
+          for (let i = 1; i < tournJson.length; i++) {
+            const row = tournJson[i];
+            if (row.length === 0 || !row[0]) continue;
+            const tournName = String(row[0]).trim();
+            const type = String(row[1] || "CUP").toUpperCase().trim();
+            let startDate = row[2] ? String(row[2]).trim() : new Date().toISOString().split("T")[0];
+            const groupName = row[3] ? String(row[3]).trim() : "";
+            
+            importedTournaments.push({
+              id: `t_${Date.now()}_${i}`,
+              name: tournName,
+              type: ["LEAGUE", "CUP"].includes(type) ? type : "CUP",
+              startDate,
+              groupName
+            });
+          }
+        }
+
+        // Parse Stats
+        let importedStats: any = {};
+        for (const sheetName of wb.SheetNames) {
+          if (sheetName.startsWith("Stats - ")) {
+            const tournName = sheetName.replace("Stats - ", "").trim();
+            const tourn = importedTournaments.find(t => t.name.toLowerCase() === tournName.toLowerCase());
+            if (!tourn) continue;
+
+            const wsStats = wb.Sheets[sheetName];
+            const statsJson = XLSX.utils.sheet_to_json(wsStats, { header: 1 }) as any[];
+            
+            for (let i = 1; i < statsJson.length; i++) {
+              const row = statsJson[i];
+              if (row.length === 0 || !row[0]) continue;
+              const teamName = String(row[0]).trim();
+              const team = importedSeasonTeams.find(t => 
+                t.originalName.toLowerCase() === teamName.toLowerCase() ||
+                t.name.toLowerCase() === teamName.toLowerCase()
+              );
+              if (!team) continue;
+
+              // Row indices:
+              // 0: Team Name, 1: P (Points), 2: MP (Played), 3: W, 4: D, 5: L, 6: F, 7: A, 8: GD, 9: %
+              const key = `${tourn.id}_${team.tempId}`;
+              importedStats[key] = {
+                points: Number(row[1] || 0),
+                played: Number(row[2] || 0),
+                won: Number(row[3] || 0),
+                drawn: Number(row[4] || 0),
+                lost: Number(row[5] || 0),
+                goalsFor: Number(row[6] || 0),
+                goalsAgainst: Number(row[7] || 0),
+              };
+            }
+          }
+        }
+
+        // Parse Awards
+        const wsAwards = wb.Sheets["Awards"];
+        let newAwards = { ...awards };
+
+        if (wsAwards) {
+          const awardsJson = XLSX.utils.sheet_to_json(wsAwards, { header: 1 }) as any[];
+          for (let i = 1; i < awardsJson.length; i++) {
+            const row = awardsJson[i];
+            if (row.length === 0 || !row[0] || !row[1]) continue;
+            const awardName = String(row[0]).trim().toLowerCase();
+            const winnerName = String(row[1]).trim();
+            
+            if (awardName === "league winner" || awardName === "winner") {
+              const team = importedSeasonTeams.find(t => 
+                t.originalName.toLowerCase() === winnerName.toLowerCase() ||
+                t.name.toLowerCase() === winnerName.toLowerCase()
+              );
+              if (team) newAwards.winnerTeamId = team.tempId;
+            } else if (awardName === "runner up" || awardName === "runner-up") {
+              const team = importedSeasonTeams.find(t => 
+                t.originalName.toLowerCase() === winnerName.toLowerCase() ||
+                t.name.toLowerCase() === winnerName.toLowerCase()
+              );
+              if (team) newAwards.runnerUpTeamId = team.tempId;
+            } else if (awardName === "golden boot") {
+              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
+              if (player) newAwards.goldenBootPlayerId = player.id;
+            } else if (awardName === "golden glove") {
+              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
+              if (player) newAwards.goldenGlovePlayerId = player.id;
+            } else if (awardName === "golden ball") {
+              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
+              if (player) newAwards.goldenBallPlayerId = player.id;
+            } else if (awardName === "ballon d'or" || awardName === "ballon dor") {
+              const player = players.find(p => p.name.toLowerCase() === winnerName.toLowerCase());
+              if (player) newAwards.ballonDorPlayerId = player.id;
+            } else if (awardName === "team of the season") {
+              const names = winnerName.split(",").map(n => n.trim());
+              const pids: string[] = [];
+              names.forEach(n => {
+                const player = players.find(p => p.name.toLowerCase() === n.toLowerCase());
+                if (player) pids.push(player.id);
+              });
+              newAwards.teamOfTheSeasonPlayerIds = pids;
+            }
+          }
+        }
+
+        if (importedSeasonTeams.length > 0) setSeasonTeams(importedSeasonTeams);
+        if (importedTournaments.length > 0) setTournaments(importedTournaments);
+        if (Object.keys(importedStats).length > 0) setStats(importedStats);
+        setAwards(newAwards);
+
+        setStep(2);
+      } catch (err) {
+        console.error("Error parsing file:", err);
+        setError("Error parsing the uploaded file. Ensure it follows the template structure.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const teamOptions = [
     { value: "new", label: "+ Create New Team" },
     ...initialTeams.map(t => ({ value: t.id, label: t.name }))
@@ -336,7 +559,36 @@ export default function HistoricalDataWizard({
       {/* STEP 1: Season */}
       {step === 1 && (
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-white mb-4">Step 1: Select Season</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h2 className="text-2xl font-bold text-white">Step 1: Select Season & Import</h2>
+            <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={handleDownloadTemplate} 
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Template
+              </button>
+              <input 
+                type="file" 
+                accept=".xlsx, .xls, .csv" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="px-4 py-2 bg-[#E8A800]/20 hover:bg-[#E8A800]/30 text-[#E8A800] rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Upload Excel
+              </button>
+            </div>
+          </div>
           <div className="space-y-4">
             <SearchableSelect
               label="Season"

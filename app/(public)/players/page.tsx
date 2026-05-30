@@ -52,33 +52,32 @@ export default async function PlayersPage() {
   const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-24">
-      
-      <main className="pt-24 pb-16 px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+      <main className="pt-16 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">
-              Player Search
+          <div className="mb-12">
+            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+              PLAYER SEARCH
             </h1>
-            <p className="text-sm sm:text-base text-gray-400">
+            <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
               Browse all players in {activeSeason.name}
             </p>
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Players</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{totalCount}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <div className="rounded-2xl bg-dark-100 border border-white/5 p-6 shadow-md transition-all hover:border-[#E8A800]/20">
+              <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-2 font-mono">Total Players</div>
+              <div className="text-3xl sm:text-4xl font-black text-white">{totalCount}</div>
             </div>
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Sold Players</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">{soldCount}</div>
+            <div className="rounded-2xl bg-dark-100 border border-white/5 p-6 shadow-md transition-all hover:border-emerald-500/20">
+              <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-2 font-mono">Sold Players</div>
+              <div className="text-3xl sm:text-4xl font-black text-emerald-400">{soldCount}</div>
             </div>
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Available Players</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">{totalCount - soldCount}</div>
+            <div className="rounded-2xl bg-dark-100 border border-white/5 p-6 sm:col-span-2 lg:col-span-1 shadow-md transition-all hover:border-[#FFB347]/20">
+              <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-2 font-mono">Available Players</div>
+              <div className="text-3xl sm:text-4xl font-black text-[#FFB347]">{totalCount - soldCount}</div>
             </div>
           </div>
 
@@ -91,7 +90,6 @@ export default async function PlayersPage() {
           />
         </div>
       </main>
-
-          </div>
+    </div>
   )
 }

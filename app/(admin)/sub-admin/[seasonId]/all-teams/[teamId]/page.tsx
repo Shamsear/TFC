@@ -216,9 +216,12 @@ async function getTeamData(teamId: string, seasonId: string) {
     };
   });
 
-  return {
+  return JSON.parse(JSON.stringify({
     team,
     seasons: detailedSeasons
+  })) as {
+    team: typeof team;
+    seasons: typeof detailedSeasons;
   }
 }
 

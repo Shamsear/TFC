@@ -15,23 +15,11 @@ interface Transfer {
 interface PlayerDetailTabsProps {
   transferHistory: Transfer[]
   statsContent: React.ReactNode
-  currentTeam: {
-    id: string
-    name: string
-    logoUrl: string
-    soldPrice: number
-  } | null
-  season: {
-    id: string
-    name: string
-  }
 }
 
 export default function PlayerDetailTabs({ 
   transferHistory, 
-  statsContent, 
-  currentTeam, 
-  season
+  statsContent
 }: PlayerDetailTabsProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview')
 
@@ -64,41 +52,6 @@ export default function PlayerDetailTabs({
       {/* Tab Content */}
       {activeTab === 'overview' ? (
         <div className="space-y-6">
-          {/* Current Team Overview Block */}
-          {currentTeam ? (
-            <div className="rounded-2xl bg-gradient-to-br from-emerald-950/40 via-white/[0.01] to-[#E8A800]/10 border border-[#E8A800]/30 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-b from-[#E8A800]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="relative w-16 h-16 lg:w-20 lg:h-20 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 border border-[#E8A800]/30 shadow-[0_0_15px_rgba(232,168,0,0.1)] group-hover:scale-105 transition-transform duration-300">
-                  <img
-                    src={currentTeam.logoUrl}
-                    alt={currentTeam.name}
-                    className="w-full h-full object-contain p-2"
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs lg:text-sm text-[#E8A800] mb-1 font-black uppercase tracking-wider">Current Team</div>
-                  <div className="text-xl lg:text-2xl font-black text-white mb-2">{currentTeam.name}</div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-xl shadow-[0_0_10px_rgba(16,185,129,0.05)]">
-                      <span className="text-emerald-500 font-bold text-xs">Acquired:</span>
-                      <span className="text-emerald-400 font-black text-base lg:text-lg">£{currentTeam.soldPrice.toLocaleString()}</span>
-                    </div>
-                    <div className="text-gray-400 hidden sm:inline">•</div>
-                    <div className="text-gray-300 font-bold text-xs uppercase tracking-wider bg-white/5 border border-white/10 px-3 py-1 rounded-xl">{season.name}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-2xl bg-blue-950/20 border border-blue-500/30 p-6 text-center shadow-lg relative overflow-hidden backdrop-blur-md">
-              <div className="absolute inset-0 bg-blue-500/[0.02] rounded-full blur-2xl pointer-events-none" />
-              <div className="text-blue-400 font-black text-xs uppercase tracking-widest mb-2">Registration Status</div>
-              <div className="text-white font-black text-2xl lg:text-3xl mb-2 tracking-tight">Free Agent</div>
-              <div className="text-gray-400 text-xs font-semibold">Available for acquisition in {season.name}</div>
-            </div>
-          )}
-
           {/* Player Stats */}
           {statsContent}
         </div>

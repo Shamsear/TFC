@@ -242,7 +242,7 @@ async function getTeamData(teamId: string) {
     : [];
   const allTimeHighestSigning = allTimeTransfers.reduce((max, t) => Math.max(max, t.soldPrice), 0);
 
-  return {
+  return JSON.parse(JSON.stringify({
     team,
     activeSeason,
     seasons: detailedSeasons,
@@ -250,6 +250,15 @@ async function getTeamData(teamId: string) {
       totalTrophies,
       highestSigning: allTimeHighestSigning,
       seasonsParticipated: allSeasonTeams.length
+    }
+  })) as {
+    team: typeof team;
+    activeSeason: typeof activeSeason;
+    seasons: typeof detailedSeasons;
+    allTimeStats: {
+      totalTrophies: number;
+      highestSigning: number;
+      seasonsParticipated: number;
     }
   }
 }

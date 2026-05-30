@@ -604,8 +604,6 @@ export default function PlayerDetailContent({
               {/* Tabs */}
               <PlayerDetailTabs
                 transferHistory={transferHistory}
-                currentTeam={currentTeam}
-                season={season}
                 statsContent={
                   <div className="space-y-6">
                     {/* Attacking Stats */}
@@ -1024,8 +1022,6 @@ export default function PlayerDetailContent({
             {/* Tabs */}
             <PlayerDetailTabs
               transferHistory={transferHistory}
-              currentTeam={currentTeam}
-              season={season}
               statsContent={
                 <div className="space-y-4">
                   {/* Same stats content as desktop but with mobile spacing */}

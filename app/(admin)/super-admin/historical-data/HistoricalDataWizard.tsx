@@ -878,14 +878,15 @@ export default function HistoricalDataWizard({
 
     // 5. Awards Sheet
     const awardsData = [
-      ["Award Name", "Winner Name", "Tournament Name (Optional)"],
-      ["League Winner", "Red Devils", "Premier League"],
-      ["Runner Up", "Blue Eagles", ""],
-      ["Golden Boot", "Marcus Rashford", ""],
-      ["Golden Glove", "David De Gea", ""],
-      ["Golden Ball", "Kevin De Bruyne", ""],
-      ["Ballon d'Or", "Lionel Messi", ""],
-      ["Team of the Season", "Marcus Rashford, Kevin De Bruyne", ""]
+      ["Award Name", "Team Name", "Tournament Name"],
+      ["Winner", "Red Devils", "Premier League"],
+      ["Runner Up", "Blue Eagles", "Premier League"],
+      ["Winner", "Blue Eagles", "Champions Cup"],
+      ["Runner Up", "Red Devils", "Champions Cup"],
+      ["Golden Boot", "Red Devils", ""],
+      ["Golden Glove", "Blue Eagles", ""],
+      ["Ballon d'Or", "Red Devils", ""],
+      ["Team of the Season", "Red Devils, Blue Eagles", ""]
     ];
     const wsAwards = XLSX.utils.aoa_to_sheet(awardsData);
     XLSX.utils.book_append_sheet(wb, wsAwards, "Awards");
@@ -1138,67 +1139,80 @@ export default function HistoricalDataWizard({
         // 6. Parse Awards
         if (step === 1 || step === 5) {
           const wsAwards = wb.Sheets["Awards"];
+          // Start from existing awards so we don't wipe out data for tournaments not in the Excel
           let newAwards = {
-            winnerTeamId: "", runnerUpTeamId: "", goldenBootTeamId: "", 
-            goldenGloveTeamId: "", goldenBallTeamId: "", ballonDorTeamId: "",
-            teamOfTheSeasonPlayerIds: [] as string[],
-            tournamentAwards: {} as Record<string, { winnerTeamId: string; runnerUpTeamId: string }>
+            winnerTeamId: awards.winnerTeamId || "",
+            runnerUpTeamId: awards.runnerUpTeamId || "",
+            goldenBootTeamId: awards.goldenBootTeamId || "",
+            goldenGloveTeamId: awards.goldenGloveTeamId || "",
+            goldenBallTeamId: awards.goldenBallTeamId || "",
+            ballonDorTeamId: awards.ballonDorTeamId || "",
+            teamOfTheSeasonPlayerIds: [...(awards.teamOfTheSeasonPlayerIds || [])],
+            tournamentAwards: { ...(awards.tournamentAwards || {}) } as Record<string, { winnerTeamId: string; runnerUpTeamId: string }>
           };
           if (wsAwards) {
             const awardsJson = XLSX.utils.sheet_to_json(wsAwards, { header: 1 }) as any[];
             const findTeam = (n: string) => seasonTeams.find(t => t.originalName?.toLowerCase() === n.toLowerCase() || t.name.toLowerCase() === n.toLowerCase());
+            const findTourn = (n: string) => {
+              if (!n) return null;
+              return tournaments.find(t => t.name.toLowerCase() === n.toLowerCase());
+            };
+            
+            // Track which fields the Excel actually sets so we only overwrite those
+            let hasTotsRow = false;
+            const importedTots: string[] = [];
             
             for (let i = 1; i < awardsJson.length; i++) {
               const row = awardsJson[i];
               if (row.length === 0 || !row[0]) continue;
               const awardName = String(row[0]).trim().toLowerCase();
-              const winnerName = String(row[1]).trim();
+              const winnerName = String(row[1] || "").trim();
+              const tournamentName = String(row[2] || "").trim();
               
-              if (awardName === "winner") {
-                const team = findTeam(winnerName);
-                if (team) {
-                  newAwards.winnerTeamId = team.tempId;
-                  const firstTourn = tournaments[0];
-                  if (firstTourn) {
-                    newAwards.tournamentAwards[firstTourn.id] = {
-                      ...(newAwards.tournamentAwards[firstTourn.id] || { winnerTeamId: "", runnerUpTeamId: "" }),
-                      winnerTeamId: team.tempId
-                    };
+              // Find the team
+              const team = findTeam(winnerName);
+              
+              // Find the tournament from column 3, or fall back to first tournament
+              const matchedTourn = findTourn(tournamentName);
+              const targetTourn = matchedTourn || tournaments[0];
+              
+              if (awardName === "winner" || awardName === "league winner") {
+                if (team && targetTourn) {
+                  if (!newAwards.tournamentAwards[targetTourn.id]) {
+                    newAwards.tournamentAwards[targetTourn.id] = { winnerTeamId: "", runnerUpTeamId: "" };
                   }
+                  newAwards.tournamentAwards[targetTourn.id].winnerTeamId = team.tempId;
+                  if (!newAwards.winnerTeamId) newAwards.winnerTeamId = team.tempId;
                 }
               } else if (awardName === "runner up" || awardName === "runner-up") {
-                const team = findTeam(winnerName);
-                if (team) {
-                  newAwards.runnerUpTeamId = team.tempId;
-                  const firstTourn = tournaments[0];
-                  if (firstTourn) {
-                    newAwards.tournamentAwards[firstTourn.id] = {
-                      ...(newAwards.tournamentAwards[firstTourn.id] || { winnerTeamId: "", runnerUpTeamId: "" }),
-                      runnerUpTeamId: team.tempId
-                    };
+                if (team && targetTourn) {
+                  if (!newAwards.tournamentAwards[targetTourn.id]) {
+                    newAwards.tournamentAwards[targetTourn.id] = { winnerTeamId: "", runnerUpTeamId: "" };
                   }
+                  newAwards.tournamentAwards[targetTourn.id].runnerUpTeamId = team.tempId;
+                  if (!newAwards.runnerUpTeamId) newAwards.runnerUpTeamId = team.tempId;
                 }
               } else if (awardName === "golden boot") {
-                const team = findTeam(winnerName);
                 if (team) newAwards.goldenBootTeamId = team.tempId;
               } else if (awardName === "golden glove") {
-                const team = findTeam(winnerName);
                 if (team) newAwards.goldenGloveTeamId = team.tempId;
               } else if (awardName === "golden ball") {
-                const team = findTeam(winnerName);
                 if (team) newAwards.goldenBallTeamId = team.tempId;
               } else if (awardName === "ballon d'or" || awardName === "ballon dor") {
-                const team = findTeam(winnerName);
                 if (team) newAwards.ballonDorTeamId = team.tempId;
               } else if (awardName === "team of the season") {
+                hasTotsRow = true;
                 const names = winnerName.split(",").map(n => n.trim());
-                const tids: string[] = [];
                 names.forEach(n => {
-                  const team = findTeam(n);
-                  if (team) tids.push(team.tempId);
+                  const t = findTeam(n);
+                  if (t) importedTots.push(t.tempId);
                 });
-                newAwards.teamOfTheSeasonPlayerIds = tids;
               }
+            }
+            
+            // Only overwrite TOTS if the Excel had a TOTS row
+            if (hasTotsRow) {
+              newAwards.teamOfTheSeasonPlayerIds = importedTots;
             }
           }
           setAwards(newAwards);

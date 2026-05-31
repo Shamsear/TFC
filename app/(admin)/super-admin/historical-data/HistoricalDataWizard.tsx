@@ -83,6 +83,7 @@ export default function HistoricalDataWizard({
       delete newNames[teamTempId];
       setExcelTeamNames(newNames);
     }
+    setDirtyTournaments(prev => ({ ...prev, [tournId]: true }));
   };
 
   const handleAddTeamToTourn = (tournId: string, teamTempId: string) => {
@@ -99,6 +100,7 @@ export default function HistoricalDataWizard({
           [key]: { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }
         });
       }
+      setDirtyTournaments(prev => ({ ...prev, [tournId]: true }));
     }
   };
   
@@ -132,6 +134,7 @@ export default function HistoricalDataWizard({
       }
       return newNames;
     });
+    setDirtyTournaments(prev => ({ ...prev, [tournId]: true }));
   };
   
   // Awards State
@@ -162,6 +165,8 @@ export default function HistoricalDataWizard({
   const [selectedModalTeamIds, setSelectedModalTeamIds] = useState<string[]>([]);
   const [teamSaveStatus, setTeamSaveStatus] = useState<Record<string, { status: 'idle' | 'saving' | 'saved' | 'error', message: string }>>({});
   const [dirtyTeams, setDirtyTeams] = useState<Record<string, boolean>>({});
+  const [tournSaveStatus, setTournSaveStatus] = useState<Record<string, { status: 'idle' | 'saving' | 'saved' | 'error', message: string }>>({});
+  const [dirtyTournaments, setDirtyTournaments] = useState<Record<string, boolean>>({});
   const [teamSearch, setTeamSearch] = useState("");
   const [activeTab, setActiveTab] = useState<'teams' | 'search' | 'roster'>('teams');
   
@@ -221,8 +226,8 @@ export default function HistoricalDataWizard({
         payload.activeTournTeams = activeTournTeams;
       }
       if (step >= 4) payload.stats = stats;
-      if (step >= 5) payload.teamPlayers = teamPlayers;
-      if (step >= 6) payload.awards = awards;
+      if (step >= 5) payload.awards = awards;
+      if (step >= 6) payload.teamPlayers = teamPlayers;
       const res = await fetch("/api/admin/historical-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -443,6 +448,7 @@ export default function HistoricalDataWizard({
       ...stats,
       [key]: { ...current, [field]: Number(value) }
     });
+    setDirtyTournaments(prev => ({ ...prev, [tournId]: true }));
   };
 
   // --- Helpers for Step 5: Players ---
@@ -575,6 +581,69 @@ export default function HistoricalDataWizard({
     }
   };
 
+  const handleSaveTournamentStats = async (tournId: string) => {
+    if (!season.id) {
+      setError("Please save the Season in Step 1 first.");
+      return;
+    }
+
+    setTournSaveStatus(prev => ({
+      ...prev,
+      [tournId]: { status: 'saving', message: 'Saving tournament standings...' }
+    }));
+
+    try {
+      const activeTeams = activeTournTeams[tournId] || [];
+      const tournStats: Record<string, any> = {};
+      
+      // Filter stats for this tournament
+      Object.entries(stats).forEach(([key, value]) => {
+        if (key.startsWith(`${tournId}_`)) {
+          tournStats[key] = value;
+        }
+      });
+
+      const res = await fetch("/api/admin/historical-data/save-tournament", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seasonId: season.id,
+          tournamentId: tournId,
+          activeTeams,
+          stats: tournStats,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.details || errData.error || "Failed to save tournament stats");
+      }
+
+      setTournSaveStatus(prev => ({
+        ...prev,
+        [tournId]: { status: 'saved', message: 'Standings synced successfully!' }
+      }));
+
+      // Mark as clean
+      setDirtyTournaments(prev => ({ ...prev, [tournId]: false }));
+
+      // Clear status message after 4 seconds
+      setTimeout(() => {
+        setTournSaveStatus(prev => {
+          const next = { ...prev };
+          delete next[tournId];
+          return next;
+        });
+      }, 4000);
+    } catch (err: any) {
+      console.error(err);
+      setTournSaveStatus(prev => ({
+        ...prev,
+        [tournId]: { status: 'error', message: err.message || 'Save failed' }
+      }));
+    }
+  };
+
   useEffect(() => {
     setPlayerPage(1);
   }, [playerSearch, activePlayerTeamId]);
@@ -617,7 +686,7 @@ export default function HistoricalDataWizard({
   // --- Helpers for Step 6: Awards ---
   // Auto-calculate league winner based on points in LEAGUE tournaments
   useEffect(() => {
-    if (step === 6) {
+    if (step === 5) {
       const leagueT = tournaments.find(t => t.type === "LEAGUE_ONLY" || t.type === "LEAGUE_PLAYOFF");
       if (leagueT) {
         const teamPoints = seasonTeams.map(t => {
@@ -850,13 +919,15 @@ export default function HistoricalDataWizard({
                 const dbManager = (t.managerName || "").trim().toLowerCase();
                 const inputManager = managerName.toLowerCase();
                 
+                const isGenericManager = (m: string) => 
+                  !m || ["tbd", "n/a", "none", "vacant", "no manager", "temp", "temporary", "unassigned", "undefined", "null", "-", ""].includes(m.trim().toLowerCase());
+
                 if (dbName === inputName) return true;
-                if (inputManager && dbManager === inputManager) return true;
-                if (dbName.includes(inputName) || inputName.includes(dbName)) return true;
+                if (inputManager && !isGenericManager(inputManager) && dbManager === inputManager) return true;
                 return false;
               });
   
-              const resolvedTeamName = existing ? existing.name : teamName;
+              const resolvedTeamName = teamName;
               const resolvedManagerName = managerName || existing?.managerName || "";
               
               const isManagerNew = !initialManagers.some(m => m.name.toLowerCase() === resolvedManagerName.toLowerCase());
@@ -992,7 +1063,14 @@ export default function HistoricalDataWizard({
               }
             }
           }
-          if (Object.keys(importedActiveTournTeams).length > 0) setActiveTournTeams(importedActiveTournTeams);
+          if (Object.keys(importedActiveTournTeams).length > 0) {
+            setActiveTournTeams(importedActiveTournTeams);
+            const dirtyObj: Record<string, boolean> = {};
+            Object.keys(importedActiveTournTeams).forEach(tid => {
+              dirtyObj[tid] = true;
+            });
+            setDirtyTournaments(prev => ({ ...prev, ...dirtyObj }));
+          }
           if (Object.keys(importedStats).length > 0) setStats(importedStats);
           if (Object.keys(newExcelTeamNames).length > 0) {
             setExcelTeamNames(prev => ({ ...prev, ...newExcelTeamNames }));
@@ -1000,7 +1078,7 @@ export default function HistoricalDataWizard({
         }
 
         // 5. Parse Squads
-        if (step === 1 || step === 5) {
+        if (step === 1 || step === 6) {
           const wsSquads = wb.Sheets["Squads"];
           let importedTeamPlayers: Record<string, { id: string; price: number }[]> = {};
           let missing: string[] = [];
@@ -1034,7 +1112,7 @@ export default function HistoricalDataWizard({
         }
 
         // 6. Parse Awards
-        if (step === 1 || step === 6) {
+        if (step === 1 || step === 5) {
           const wsAwards = wb.Sheets["Awards"];
           let newAwards = {
             winnerTeamId: "", runnerUpTeamId: "", goldenBootTeamId: "", 
@@ -1150,8 +1228,8 @@ export default function HistoricalDataWizard({
           { num: 2, label: "Teams" },
           { num: 3, label: "Tournaments" },
           { num: 4, label: "Stats" },
-          { num: 5, label: "Players" },
-          { num: 6, label: "Awards" },
+          { num: 5, label: "Awards" },
+          { num: 6, label: "Players" },
         ].map((s, idx) => (
           <div key={s.num} className="flex items-center shrink-0">
             <button 
@@ -1395,34 +1473,82 @@ export default function HistoricalDataWizard({
             const availableTeams = seasonTeams.filter(t => !getTournTeams(tourn.id).includes(t.tempId));
             return (
               <div key={tourn.id} className="p-4 sm:p-6 bg-black/30 border border-white/10 rounded-xl overflow-x-auto">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                  <div>
-                    <h3 className="font-bold text-[#E8A800] text-lg">{tourn.name || `Tournament ${index + 1}`}</h3>
-                    <div className="flex items-center gap-2 mt-1 text-xs font-mono text-gray-400">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 border-b border-white/5 pb-4">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="font-bold text-[#E8A800] text-lg">{tourn.name || `Tournament ${index + 1}`}</h3>
+                      {dirtyTournaments[tourn.id] && (
+                        <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400 text-[10px] font-bold uppercase border border-yellow-500/20">
+                          Unsaved Changes
+                        </span>
+                      )}
+                      {!dirtyTournaments[tourn.id] && getTournTeams(tourn.id).length > 0 && (
+                        <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-400 text-[10px] font-bold uppercase border border-green-500/20">
+                          Synced
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5 text-xs font-mono text-gray-400">
                       <span className="bg-white/5 px-2 py-0.5 rounded">Season: {season.name || season.id || "Pending"}</span>
                       <span className="bg-white/5 px-2 py-0.5 rounded">Tournament ID: {tourn.id}</span>
                     </div>
                   </div>
                   
-                  {seasonTeams.length > 0 && (
-                    <div className="flex items-center gap-2 w-full sm:w-64">
-                      <SearchableSelect
-                        value=""
-                        placeholder="+ Add Team to Stats"
-                        onChange={(val) => {
-                          if (val) handleAddTeamToTourn(tourn.id, val);
-                        }}
-                        options={seasonTeams.map(t => {
-                          const isAlreadyIn = getTournTeams(tourn.id).includes(t.tempId);
-                          return {
-                            value: t.tempId,
-                            label: `${t.name} ${t.managerName ? `(${t.managerName})` : ""} ${isAlreadyIn ? '(Added)' : ''}`,
-                            disabled: isAlreadyIn
-                          };
-                        })}
-                      />
-                    </div>
-                  )}
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto">
+                    {/* Individual Sync Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleSaveTournamentStats(tourn.id)}
+                      disabled={!season.id || tournSaveStatus[tourn.id]?.status === 'saving' || !dirtyTournaments[tourn.id]}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                        !season.id || !dirtyTournaments[tourn.id]
+                          ? "bg-white/5 text-gray-500 border border-white/5 cursor-not-allowed"
+                          : tournSaveStatus[tourn.id]?.status === 'saving'
+                            ? "bg-[#E8A800]/20 text-[#E8A800] border border-[#E8A800]/30 cursor-wait"
+                            : tournSaveStatus[tourn.id]?.status === 'saved'
+                              ? "bg-green-500 hover:bg-green-400 text-black shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+                              : "bg-[#E8A800] hover:bg-[#FFB347] text-black font-extrabold hover:scale-105"
+                      }`}
+                    >
+                      {tournSaveStatus[tourn.id]?.status === 'saving' ? (
+                        <>
+                          <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Syncing...
+                        </>
+                      ) : tournSaveStatus[tourn.id]?.status === 'saved' ? (
+                        <>
+                          ✓ Synced!
+                        </>
+                      ) : (
+                        <>
+                          Sync Standings
+                        </>
+                      )}
+                    </button>
+
+                    {seasonTeams.length > 0 && (
+                      <div className="w-full sm:w-56 shrink-0">
+                        <SearchableSelect
+                          value=""
+                          placeholder="+ Add Team to Stats"
+                          onChange={(val) => {
+                            if (val) handleAddTeamToTourn(tourn.id, val);
+                          }}
+                          options={seasonTeams.map(t => {
+                            const isAlreadyIn = getTournTeams(tourn.id).includes(t.tempId);
+                            return {
+                              value: t.tempId,
+                              label: `${t.name} ${t.managerName ? `(${t.managerName})` : ""} ${isAlreadyIn ? '(Added)' : ''}`,
+                              disabled: isAlreadyIn
+                            };
+                          })}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <table className="w-full text-left min-w-[670px]">
@@ -1514,13 +1640,13 @@ export default function HistoricalDataWizard({
         </div>
       )}
 
-      {/* STEP 5: Assign Players */}
-      {step === 5 && (
+      {/* STEP 6: Assign Players */}
+      {step === 6 && (
         <div className="space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
             <div>
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                Step 5: Assign Players & Squads
+                Step 6: Assign Players & Squads
               </h2>
               <p className="text-gray-400 text-sm mt-1">
                 Manage individual rosters, assign prices, and sync squads directly to the database team-by-team.
@@ -2013,11 +2139,11 @@ export default function HistoricalDataWizard({
         </div>
       )}
 
-      {/* STEP 6: Awards */}
-      {step === 6 && (
+      {/* STEP 5: Awards */}
+      {step === 5 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-white">Step 6: Season Awards</h2>
+            <h2 className="text-2xl font-bold text-white">Step 5: Season Awards</h2>
             {renderUploadBtn("Awards")}
           </div>
           
@@ -2186,15 +2312,19 @@ export default function HistoricalDataWizard({
               }
               className="px-6 py-3 bg-[#E8A800] hover:bg-[#FFB347] text-black font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? "Saving..." : "Save & Continue"}
+              {isSaving 
+                ? "Saving..." 
+                : (step === 4 && tournaments.filter(t => t.type !== "KNOCKOUT_ONLY").every(t => !dirtyTournaments[t.id]))
+                  ? "Continue" 
+                  : "Save & Continue"}
             </button>
           ) : (
             <button
-              onClick={handleNext}
-              disabled={isSaving}
+              onClick={handleSubmit}
+              disabled={loading || isSaving}
               className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? "Saving..." : "Complete Setup"}
+              {loading || isSaving ? "Saving..." : "Complete Setup"}
             </button>
           )}
         </div>

@@ -61,8 +61,14 @@ WHERE id LIKE 'TFCAS-%'
 ON CONFLICT (prefix) DO UPDATE SET counter = EXCLUDED.counter;
 
 INSERT INTO id_counters (prefix, counter, updated_at)
-SELECT 'TFCR', COALESCE(MAX(CAST(SPLIT_PART(id, '-', 2) AS INTEGER)), 0), NOW()
+SELECT 'TFCRT', COALESCE(MAX(CAST(SPLIT_PART(id, '-', 2) AS INTEGER)), 0), NOW()
 FROM retentions
+WHERE id LIKE 'TFCRT-%'
+ON CONFLICT (prefix) DO UPDATE SET counter = EXCLUDED.counter;
+
+INSERT INTO id_counters (prefix, counter, updated_at)
+SELECT 'TFCR', COALESCE(MAX(CAST(SPLIT_PART(id, '-', 2) AS INTEGER)), 0), NOW()
+FROM rounds
 WHERE id LIKE 'TFCR-%'
 ON CONFLICT (prefix) DO UPDATE SET counter = EXCLUDED.counter;
 

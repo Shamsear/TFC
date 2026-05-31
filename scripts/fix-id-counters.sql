@@ -83,11 +83,11 @@ ON CONFLICT (prefix) DO UPDATE SET
   counter = EXCLUDED.counter,
   updated_at = NOW();
 
--- Retentions (TFCR)
+-- Retentions (TFCRT)
 INSERT INTO id_counters (prefix, counter, updated_at)
-SELECT 'TFCR', COALESCE(MAX(CAST(SPLIT_PART(id::TEXT, '-', 2) AS INTEGER)), 0), NOW()
+SELECT 'TFCRT', COALESCE(MAX(CAST(SPLIT_PART(id::TEXT, '-', 2) AS INTEGER)), 0), NOW()
 FROM retentions
-WHERE id::TEXT ~ '^TFCR-[0-9]+$'
+WHERE id::TEXT ~ '^TFCRT-[0-9]+$'
 ON CONFLICT (prefix) DO UPDATE SET 
   counter = EXCLUDED.counter,
   updated_at = NOW();
@@ -173,11 +173,11 @@ ON CONFLICT (prefix) DO UPDATE SET
   counter = EXCLUDED.counter,
   updated_at = NOW();
 
--- Rounds (TFCRD)
+-- Rounds (TFCR)
 INSERT INTO id_counters (prefix, counter, updated_at)
-SELECT 'TFCRD', COALESCE(MAX(CAST(SPLIT_PART(id::TEXT, '-', 2) AS INTEGER)), 0), NOW()
+SELECT 'TFCR', COALESCE(MAX(CAST(SPLIT_PART(id::TEXT, '-', 2) AS INTEGER)), 0), NOW()
 FROM rounds
-WHERE id::TEXT ~ '^TFCRD-[0-9]+$'
+WHERE id::TEXT ~ '^TFCR-[0-9]+$'
 ON CONFLICT (prefix) DO UPDATE SET 
   counter = EXCLUDED.counter,
   updated_at = NOW();

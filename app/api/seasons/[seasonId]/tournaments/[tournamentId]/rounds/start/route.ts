@@ -14,7 +14,7 @@ export async function POST(
     }
 
     // Only allow sub-admins and super-admins
-    if (!['super_admin', 'sub_admin'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'SUB_ADMIN'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

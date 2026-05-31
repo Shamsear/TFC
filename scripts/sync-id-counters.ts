@@ -15,7 +15,7 @@ const PREF_TABLE_MAP: Record<string, string> = {
   'TFCBA': 'bid_audit_logs', // Verify table name
   'TFCA': 'auction_plans', // Or auction_settings?
   'TFCAS': 'auction_slots', // Or similar
-  'TFCR': 'retentions',
+  'TFCRT': 'retentions',
   'TFCST': 'season_teams',
   'TFCPS': 'seasonal_player_stats',
   'TFCFL': 'financial_ledger',
@@ -25,7 +25,7 @@ const PREF_TABLE_MAP: Record<string, string> = {
   'TFCKP': 'knockout_pairings',
   'TFCG': 'tournament_groups', // Verify table name
   'TFCSD': 'standings',
-  'TFCRD': 'rounds',
+  'TFCR': 'rounds',
   'TFCRW': 'release_windows',
   'TFCSW': 'swap_windows',
 };

@@ -115,17 +115,59 @@ export async function GET(
       where: { seasonId },
     });
 
-    const awards: Record<string, any> = {};
+    const awards: Record<string, any> = {
+      winnerTeamId: "",
+      runnerUpTeamId: "",
+      goldenBootTeamId: "",
+      goldenGloveTeamId: "",
+      goldenBallTeamId: "",
+      ballonDorTeamId: "",
+      teamOfTheSeasonPlayerIds: [],
+      tournamentAwards: {},
+    };
     awardsData.forEach((aw) => {
-      if (aw.awardType === "LEAGUE_WINNER") awards.winnerTeamId = `tm_${aw.teamId}`;
-      if (aw.awardType === "LEAGUE_RUNNER_UP") awards.runnerUpTeamId = `tm_${aw.teamId}`;
-      if (aw.awardType === "GOLDEN_BOOT") awards.goldenBootPlayerId = aw.basePlayerId;
-      if (aw.awardType === "GOLDEN_GLOVE") awards.goldenGlovePlayerId = aw.basePlayerId;
-      if (aw.awardType === "GOLDEN_BALL") awards.goldenBallPlayerId = aw.basePlayerId;
-      if (aw.awardType === "BALLON_D_OR") awards.ballonDorPlayerId = aw.basePlayerId;
+      const teamIdVal = aw.teamId ? `tm_${aw.teamId}` : "";
+      
+      if (aw.awardType === "LEAGUE_WINNER") {
+        if (aw.metadata) {
+          if (!awards.tournamentAwards[aw.metadata]) {
+            awards.tournamentAwards[aw.metadata] = { winnerTeamId: "", runnerUpTeamId: "" };
+          }
+          awards.tournamentAwards[aw.metadata].winnerTeamId = teamIdVal;
+        }
+        if (!awards.winnerTeamId) awards.winnerTeamId = teamIdVal;
+      }
+      if (aw.awardType === "LEAGUE_RUNNER_UP") {
+        if (aw.metadata) {
+          if (!awards.tournamentAwards[aw.metadata]) {
+            awards.tournamentAwards[aw.metadata] = { winnerTeamId: "", runnerUpTeamId: "" };
+          }
+          awards.tournamentAwards[aw.metadata].runnerUpTeamId = teamIdVal;
+        }
+        if (!awards.runnerUpTeamId) awards.runnerUpTeamId = teamIdVal;
+      }
+      if (aw.awardType === "GOLDEN_BOOT") {
+        awards.goldenBootTeamId = teamIdVal;
+        awards.goldenBootPlayerId = aw.basePlayerId;
+      }
+      if (aw.awardType === "GOLDEN_GLOVE") {
+        awards.goldenGloveTeamId = teamIdVal;
+        awards.goldenGlovePlayerId = aw.basePlayerId;
+      }
+      if (aw.awardType === "GOLDEN_BALL") {
+        awards.goldenBallTeamId = teamIdVal;
+        awards.goldenBallPlayerId = aw.basePlayerId;
+      }
+      if (aw.awardType === "BALLON_D_OR") {
+        awards.ballonDorTeamId = teamIdVal;
+        awards.ballonDorPlayerId = aw.basePlayerId;
+      }
       if (aw.awardType === "TEAM_OF_THE_SEASON") {
-        if (!awards.teamOfTheSeasonPlayerIds) awards.teamOfTheSeasonPlayerIds = [];
-        awards.teamOfTheSeasonPlayerIds.push(aw.basePlayerId);
+        if (aw.basePlayerId) {
+          awards.teamOfTheSeasonPlayerIds.push(aw.basePlayerId);
+        } else if (aw.teamId) {
+          awards.teamOfTheSeasonPlayerIds.push(`tm_${aw.teamId}`);
+        }
       }
     });
 

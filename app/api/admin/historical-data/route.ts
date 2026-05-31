@@ -405,19 +405,39 @@ export async function POST(req: NextRequest) {
       });
 
       const awardRecords: any[] = [];
-      const pushAward = (type: string, teamTempId?: string) => {
+      const pushAward = (type: string, teamTempId?: string, metadataValue?: string) => {
         if (!teamTempId) return;
+        const globalTeamId = globalTeamIdMap.get(teamTempId);
+        if (!globalTeamId) return;
         awardRecords.push({
           id: crypto.randomUUID(), // Keeping UUID for awards as there is no TFCAW prefix currently
           seasonId,
           awardType: type,
-          teamId: globalTeamIdMap.get(teamTempId) || null,
+          teamId: globalTeamId,
           basePlayerId: null,
+          metadata: metadataValue || null,
         });
       };
 
-      if (awards.winnerTeamId) pushAward("LEAGUE_WINNER", awards.winnerTeamId);
-      if (awards.runnerUpTeamId) pushAward("LEAGUE_RUNNER_UP", awards.runnerUpTeamId);
+      // 6a. Push tournament-specific awards
+      if (awards.tournamentAwards && typeof awards.tournamentAwards === "object") {
+        for (const [tournTempId, tournAwardData] of Object.entries(awards.tournamentAwards)) {
+          const dbTournId = tournIdMap.get(tournTempId) || tournTempId;
+          const data = tournAwardData as { winnerTeamId?: string; runnerUpTeamId?: string };
+          if (data.winnerTeamId) {
+            pushAward("LEAGUE_WINNER", data.winnerTeamId, dbTournId);
+          }
+          if (data.runnerUpTeamId) {
+            pushAward("LEAGUE_RUNNER_UP", data.runnerUpTeamId, dbTournId);
+          }
+        }
+      } else {
+        // Fallback to legacy single season award
+        if (awards.winnerTeamId) pushAward("LEAGUE_WINNER", awards.winnerTeamId);
+        if (awards.runnerUpTeamId) pushAward("LEAGUE_RUNNER_UP", awards.runnerUpTeamId);
+      }
+
+      // 6b. Push individual awards
       if (awards.goldenBootTeamId) pushAward("GOLDEN_BOOT", awards.goldenBootTeamId);
       if (awards.goldenGloveTeamId) pushAward("GOLDEN_GLOVE", awards.goldenGloveTeamId);
       if (awards.goldenBallTeamId) pushAward("GOLDEN_BALL", awards.goldenBallTeamId);

@@ -143,9 +143,10 @@ export default function HistoricalDataWizard({
     runnerUpTeamId: string;
     goldenBootTeamId: string;
     goldenGloveTeamId: string;
-    goldenBallTeamId: string;
+    goldenBallTeamId?: string;
     ballonDorTeamId: string;
     teamOfTheSeasonPlayerIds: string[];
+    tournamentAwards: Record<string, { winnerTeamId: string; runnerUpTeamId: string }>;
   }>({
     winnerTeamId: "",
     runnerUpTeamId: "",
@@ -154,6 +155,7 @@ export default function HistoricalDataWizard({
     goldenBallTeamId: "",
     ballonDorTeamId: "",
     teamOfTheSeasonPlayerIds: [],
+    tournamentAwards: {},
   });
   
   // UI State
@@ -188,7 +190,18 @@ export default function HistoricalDataWizard({
         if (parsed.tournaments) setTournaments(parsed.tournaments);
         if (parsed.stats) setStats(parsed.stats);
         if (parsed.teamPlayers) setTeamPlayers(parsed.teamPlayers);
-        if (parsed.awards) setAwards(parsed.awards);
+        if (parsed.awards) {
+          setAwards({
+            winnerTeamId: parsed.awards.winnerTeamId || "",
+            runnerUpTeamId: parsed.awards.runnerUpTeamId || "",
+            goldenBootTeamId: parsed.awards.goldenBootTeamId || "",
+            goldenGloveTeamId: parsed.awards.goldenGloveTeamId || "",
+            goldenBallTeamId: parsed.awards.goldenBallTeamId || "",
+            ballonDorTeamId: parsed.awards.ballonDorTeamId || "",
+            teamOfTheSeasonPlayerIds: parsed.awards.teamOfTheSeasonPlayerIds || [],
+            tournamentAwards: parsed.awards.tournamentAwards || {},
+          });
+        }
         if (parsed.activeTournTeams) setActiveTournTeams(parsed.activeTournTeams);
         if (parsed.excelTeamNames) setExcelTeamNames(parsed.excelTeamNames);
         else if (parsed.unmappedStatTeams) setExcelTeamNames(parsed.unmappedStatTeams); // Fallback for backwards compat
@@ -296,7 +309,7 @@ export default function HistoricalDataWizard({
       setTeamPlayers({});
       setActiveTournTeams({});
       setExcelTeamNames({});
-      setAwards({ winnerTeamId: "", runnerUpTeamId: "", goldenBootTeamId: "", goldenGloveTeamId: "", goldenBallTeamId: "", ballonDorTeamId: "", teamOfTheSeasonPlayerIds: [] });
+      setAwards({ winnerTeamId: "", runnerUpTeamId: "", goldenBootTeamId: "", goldenGloveTeamId: "", goldenBallTeamId: "", ballonDorTeamId: "", teamOfTheSeasonPlayerIds: [], tournamentAwards: {} });
       setStep(1);
     } else {
       const s = initialSeasons.find(x => x.id === val);
@@ -330,7 +343,18 @@ export default function HistoricalDataWizard({
               setActiveTournTeams(prePopulated);
             }
             if (data.teamPlayers) setTeamPlayers(data.teamPlayers);
-            if (data.awards) setAwards(prev => ({ ...prev, ...data.awards }));
+            if (data.awards) {
+              setAwards({
+                winnerTeamId: data.awards.winnerTeamId || "",
+                runnerUpTeamId: data.awards.runnerUpTeamId || "",
+                goldenBootTeamId: data.awards.goldenBootTeamId || "",
+                goldenGloveTeamId: data.awards.goldenGloveTeamId || "",
+                goldenBallTeamId: data.awards.goldenBallTeamId || "",
+                ballonDorTeamId: data.awards.ballonDorTeamId || "",
+                teamOfTheSeasonPlayerIds: data.awards.teamOfTheSeasonPlayerIds || [],
+                tournamentAwards: data.awards.tournamentAwards || {},
+              });
+            }
           }
         } catch (e) {
           console.error("Failed to fetch season data", e);
@@ -1117,7 +1141,8 @@ export default function HistoricalDataWizard({
           let newAwards = {
             winnerTeamId: "", runnerUpTeamId: "", goldenBootTeamId: "", 
             goldenGloveTeamId: "", goldenBallTeamId: "", ballonDorTeamId: "",
-            teamOfTheSeasonPlayerIds: [] as string[]
+            teamOfTheSeasonPlayerIds: [] as string[],
+            tournamentAwards: {} as Record<string, { winnerTeamId: string; runnerUpTeamId: string }>
           };
           if (wsAwards) {
             const awardsJson = XLSX.utils.sheet_to_json(wsAwards, { header: 1 }) as any[];
@@ -1131,10 +1156,28 @@ export default function HistoricalDataWizard({
               
               if (awardName === "winner") {
                 const team = findTeam(winnerName);
-                if (team) newAwards.winnerTeamId = team.tempId;
+                if (team) {
+                  newAwards.winnerTeamId = team.tempId;
+                  const firstTourn = tournaments[0];
+                  if (firstTourn) {
+                    newAwards.tournamentAwards[firstTourn.id] = {
+                      ...(newAwards.tournamentAwards[firstTourn.id] || { winnerTeamId: "", runnerUpTeamId: "" }),
+                      winnerTeamId: team.tempId
+                    };
+                  }
+                }
               } else if (awardName === "runner up" || awardName === "runner-up") {
                 const team = findTeam(winnerName);
-                if (team) newAwards.runnerUpTeamId = team.tempId;
+                if (team) {
+                  newAwards.runnerUpTeamId = team.tempId;
+                  const firstTourn = tournaments[0];
+                  if (firstTourn) {
+                    newAwards.tournamentAwards[firstTourn.id] = {
+                      ...(newAwards.tournamentAwards[firstTourn.id] || { winnerTeamId: "", runnerUpTeamId: "" }),
+                      runnerUpTeamId: team.tempId
+                    };
+                  }
+                }
               } else if (awardName === "golden boot") {
                 const team = findTeam(winnerName);
                 if (team) newAwards.goldenBootTeamId = team.tempId;
@@ -2186,69 +2229,103 @@ export default function HistoricalDataWizard({
             </div>
           )}
 
-          {/* Suggestions */}
-          {goldenBootSuggestions.length > 0 && goldenBootSuggestions[0].goalsFor > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
-                <p className="text-xs text-green-400 font-bold uppercase tracking-wider mb-1">⚽ Golden Boot Suggestion (Most Goals)</p>
-                <p className="text-white font-bold">{goldenBootSuggestions[0].name} <span className="text-green-400">({goldenBootSuggestions[0].goalsFor} goals)</span></p>
-              </div>
-              <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-                <p className="text-xs text-blue-400 font-bold uppercase tracking-wider mb-1">🧤 Golden Glove Suggestion (Fewest Conceded)</p>
-                <p className="text-white font-bold">{goldenGloveSuggestions[0]?.name} <span className="text-blue-400">({goldenGloveSuggestions[0]?.goalsAgainst} conceded)</span></p>
-              </div>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 bg-black/30 border border-white/10 rounded-xl space-y-4">
-              <h3 className="text-[#E8A800] font-bold border-b border-white/10 pb-2 mb-4">Team Awards</h3>
+            <div className="p-6 bg-black/30 border border-white/10 rounded-xl space-y-6">
+              <h3 className="text-[#E8A800] font-bold border-b border-white/10 pb-2 mb-2">Team Awards</h3>
               
-              <SearchableSelect
-                label="🏆 League Winner"
-                value={awards.winnerTeamId}
-                options={[{value: "", label: "-- Select Winner --"}, ...teamAwardOptions]}
-                onChange={(val) => setAwards({...awards, winnerTeamId: val})}
-              />
+              {tournaments.map((t) => {
+                const tournAwards = awards.tournamentAwards?.[t.id] || { winnerTeamId: "", runnerUpTeamId: "" };
+                return (
+                  <div key={t.id} className="space-y-4 border-b border-white/5 pb-5 last:border-0 last:pb-0">
+                    <h4 className="text-white font-bold text-sm flex items-center gap-2 pl-1">
+                      ⚔️ {t.name || "Unnamed Tournament"}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <SearchableSelect
+                        label="🏆 Winner"
+                        value={tournAwards.winnerTeamId}
+                        options={[{value: "", label: "-- Select Winner --"}, ...teamAwardOptions]}
+                        onChange={(val) => {
+                          const updatedTournAwards = {
+                            ...(awards.tournamentAwards || {}),
+                            [t.id]: { ...tournAwards, winnerTeamId: val }
+                          };
+                          const firstTourn = tournaments[0];
+                          const isFirst = firstTourn?.id === t.id;
+                          setAwards({
+                            ...awards,
+                            tournamentAwards: updatedTournAwards,
+                            ...(isFirst ? { winnerTeamId: val } : {})
+                          });
+                        }}
+                      />
 
-              <SearchableSelect
-                label="🥈 Runner Up"
-                value={awards.runnerUpTeamId}
-                options={[{value: "", label: "-- Select Runner Up --"}, ...teamAwardOptions]}
-                onChange={(val) => setAwards({...awards, runnerUpTeamId: val})}
-              />
+                      <SearchableSelect
+                        label="🥈 Runner Up"
+                        value={tournAwards.runnerUpTeamId}
+                        options={[{value: "", label: "-- Select Runner Up --"}, ...teamAwardOptions]}
+                        onChange={(val) => {
+                          const updatedTournAwards = {
+                            ...(awards.tournamentAwards || {}),
+                            [t.id]: { ...tournAwards, runnerUpTeamId: val }
+                          };
+                          const firstTourn = tournaments[0];
+                          const isFirst = firstTourn?.id === t.id;
+                          setAwards({
+                            ...awards,
+                            tournamentAwards: updatedTournAwards,
+                            ...(isFirst ? { runnerUpTeamId: val } : {})
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              {tournaments.length === 0 && (
+                <p className="text-xs text-gray-500 italic">No tournaments defined. Go to Step 3 to add tournaments.</p>
+              )}
             </div>
             
             <div className="p-6 bg-black/30 border border-white/10 rounded-xl space-y-4">
               <h3 className="text-[#E8A800] font-bold border-b border-white/10 pb-2 mb-4">Individual Awards (Team)</h3>
               
-              <SearchableSelect
-                label="⚽ Golden Boot"
-                value={awards.goldenBootTeamId}
-                options={[{value: "", label: "-- Select Golden Boot --"}, ...teamAwardOptions]}
-                onChange={(val) => setAwards({...awards, goldenBootTeamId: val})}
-              />
+              <div className="space-y-1">
+                <SearchableSelect
+                  label="⚽ Golden Boot"
+                  value={awards.goldenBootTeamId}
+                  options={[{value: "", label: "-- Select Golden Boot --"}, ...teamAwardOptions]}
+                  onChange={(val) => setAwards({...awards, goldenBootTeamId: val})}
+                />
+                {goldenBootSuggestions.length > 0 && goldenBootSuggestions[0].goalsFor > 0 && (
+                  <p className="text-xs text-green-400 pl-1 font-medium animate-fadeIn">
+                    💡 Suggestion: <strong className="text-white font-semibold">{goldenBootSuggestions[0].name}</strong> ({goldenBootSuggestions[0].goalsFor} goals)
+                  </p>
+                )}
+              </div>
               
-              <SearchableSelect
-                label="🧤 Golden Glove"
-                value={awards.goldenGloveTeamId}
-                options={[{value: "", label: "-- Select Golden Glove --"}, ...teamAwardOptions]}
-                onChange={(val) => setAwards({...awards, goldenGloveTeamId: val})}
-              />
+              <div className="space-y-1">
+                <SearchableSelect
+                  label="🧤 Golden Glove"
+                  value={awards.goldenGloveTeamId}
+                  options={[{value: "", label: "-- Select Golden Glove --"}, ...teamAwardOptions]}
+                  onChange={(val) => setAwards({...awards, goldenGloveTeamId: val})}
+                />
+                {goldenGloveSuggestions.length > 0 && goldenGloveSuggestions[0]?.goalsAgainst > 0 && (
+                  <p className="text-xs text-blue-400 pl-1 font-medium animate-fadeIn">
+                    💡 Suggestion: <strong className="text-white font-semibold">{goldenGloveSuggestions[0].name}</strong> ({goldenGloveSuggestions[0].goalsAgainst} conceded)
+                  </p>
+                )}
+              </div>
 
-              <SearchableSelect
-                label="🌟 Golden Ball"
-                value={awards.goldenBallTeamId}
-                options={[{value: "", label: "-- Select Golden Ball --"}, ...teamAwardOptions]}
-                onChange={(val) => setAwards({...awards, goldenBallTeamId: val})}
-              />
-
-              <SearchableSelect
-                label="✨ Ballon d'Or"
-                value={awards.ballonDorTeamId}
-                options={[{value: "", label: "-- Select Ballon d'Or --"}, ...teamAwardOptions]}
-                onChange={(val) => setAwards({...awards, ballonDorTeamId: val})}
-              />
+              <div>
+                <SearchableSelect
+                  label="✨ Ballon d'Or"
+                  value={awards.ballonDorTeamId}
+                  options={[{value: "", label: "-- Select Ballon d'Or --"}, ...teamAwardOptions]}
+                  onChange={(val) => setAwards({...awards, ballonDorTeamId: val})}
+                />
+              </div>
             </div>
             
             <div className="p-6 bg-black/30 border border-white/10 rounded-xl space-y-4 md:col-span-2">

@@ -11,6 +11,14 @@ interface MatchRoundManagerProps {
   seasonId: string
 }
 
+const toLocalISOString = (dateVal: any) => {
+  if (!dateVal) return ''
+  const date = new Date(dateVal)
+  if (isNaN(date.getTime())) return ''
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function MatchRoundManager({ matches, tournamentId, seasonId }: MatchRoundManagerProps) {
   const router = useRouter()
   const toast = useToast()
@@ -35,7 +43,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
       const isAllCompleted = roundMatches.every(m => m.status === 'COMPLETED' || m.status === 'CANCELLED')
       
       // We assume the first match's date is representative if they vary, though they should ideally be the same
-      const defaultDate = new Date(dates[0]).toISOString().slice(0, 16)
+      const defaultDate = toLocalISOString(dates[0])
       
       return {
         name,

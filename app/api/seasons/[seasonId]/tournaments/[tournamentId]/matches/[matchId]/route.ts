@@ -89,12 +89,6 @@ export async function PATCH(
 
           // Apply new scores
           await updateStandings(tx, { ...match, homeTeam: existingMatch.homeTeam, awayTeam: existingMatch.awayTeam, group: existingMatch.group }, false)
-
-          // Automatically trigger achievements and XP evaluation for both teams ONLY if completed normally
-          if (status === 'COMPLETED') {
-            await evaluateTeamAchievements(existingMatch.homeTeam.teamId, tx)
-            await evaluateTeamAchievements(existingMatch.awayTeam.teamId, tx)
-          }
         }
       } else {
         // If it was counted previously, but now changed to uncounted (like VOID, SCHEDULED, POSTPONED, etc.)
@@ -103,8 +97,20 @@ export async function PATCH(
         }
       }
 
-      return match
+      return { match, shouldEvaluateAchievements: status === 'COMPLETED' && (
+        !wasCounted ||
+        existingMatch.status !== status ||
+        existingMatch.homeScore !== homeScore ||
+        existingMatch.awayScore !== awayScore
+      ) && homeScore !== null && awayScore !== null }
     })
+
+    // Evaluate achievements OUTSIDE the transaction — it's a heavy operation with many queries
+    // and would cause the parent transaction to time out
+    if (updatedMatch.shouldEvaluateAchievements) {
+      await evaluateTeamAchievements(existingMatch.homeTeam.teamId)
+      await evaluateTeamAchievements(existingMatch.awayTeam.teamId)
+    }
 
     // Create audit log
     await createAuditLog({

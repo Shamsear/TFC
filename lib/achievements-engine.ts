@@ -339,7 +339,7 @@ export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
   const finalLevel = calculateLevelFromXP(finalCalculatedXP);
 
   // H. Database Sync: Upsert Badges, update team level, and save chronological XP ledger transaction-safely
-  await db.$transaction(async (tx: any) => {
+  const runSync = async (tx: any) => {
     // 1. Delete all existing XP history for this team to prevent duplicates on recalculation
     await tx.team_xp_history.deleteMany({
       where: { teamId }
@@ -395,5 +395,13 @@ export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
         level: finalLevel,
       },
     });
-  });
+  };
+
+  // If we received a transaction client, we're already inside a transaction — use it directly.
+  // Otherwise wrap in a new $transaction.
+  if (txClient) {
+    await runSync(db);
+  } else {
+    await prisma.$transaction(runSync);
+  }
 }

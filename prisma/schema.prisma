@@ -317,6 +317,7 @@ model teams {
   name                       String
   managerName                String
   logoUrl                    String
+  primaryColor               String?                        @map("primary_color")
   createdAt                  DateTime                       @default(now())
   updatedAt                  DateTime
   auctionPlans               auction_plans[]

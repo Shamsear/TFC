@@ -158,8 +158,10 @@ function TeamMatchdayPosterSnapshot({
   seasonName: string
   roundLabel: string
 }) {
-  // Use team's primary color if available, otherwise use theme color
-  const teamColor = team.primaryColor || theme.accent
+  // Use team's primary color if available and valid, otherwise use theme color
+  const teamColor = (team.primaryColor && team.primaryColor !== '' && team.primaryColor.startsWith('#')) 
+    ? team.primaryColor 
+    : theme.accent
   
   // Generate background gradient based on team color
   const hexToRgb = (hex: string) => {
@@ -542,8 +544,10 @@ function PosterSnapshot({
   const displayTeams = teams.slice(0, maxTeams)
   const winner = displayTeams[0]
 
-  // Use winner's primary color if available, otherwise use theme color
-  const winnerColor = winner?.primaryColor || theme.accent
+  // Use winner's primary color if available and valid, otherwise use theme color
+  const winnerColor = (winner?.primaryColor && winner.primaryColor !== '' && winner.primaryColor.startsWith('#'))
+    ? winner.primaryColor 
+    : theme.accent
   
   // Generate background gradient based on winner's color
   const hexToRgb = (hex: string) => {

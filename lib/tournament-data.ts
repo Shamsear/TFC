@@ -58,6 +58,7 @@ export async function getTournamentStatsData(tournamentId: string) {
       points: true,
       seasonTeam: {
         select: {
+          id: true,
           team: { select: { id: true, name: true, logoUrl: true } },
         },
       },
@@ -79,6 +80,7 @@ export async function getTournamentStatsData(tournamentId: string) {
 
   const teams: TeamStatRow[] = standings.map((s) => ({
     teamId: s.seasonTeam.team.id,
+    seasonTeamId: s.seasonTeam.id,
     teamName: s.seasonTeam.team.name,
     logoUrl: s.seasonTeam.team.logoUrl,
     played: s.played,

@@ -159,7 +159,11 @@ function TeamMatchdayPosterSnapshot({
   roundLabel: string
 }) {
   // Use team's primary color if available and valid, otherwise use theme color
-  const teamColor = (team.primaryColor && team.primaryColor !== '' && team.primaryColor.startsWith('#')) 
+  // Exclude default cyan color (#00e5ff) as it's not a real team color
+  const teamColor = (team.primaryColor && 
+                     team.primaryColor !== '' && 
+                     team.primaryColor.startsWith('#') &&
+                     team.primaryColor.toLowerCase() !== '#00e5ff') 
     ? team.primaryColor 
     : theme.accent
   
@@ -573,7 +577,11 @@ function PosterSnapshot({
   const winner = displayTeams[0]
 
   // Use winner's primary color if available and valid, otherwise use theme color
-  const winnerColor = (winner?.primaryColor && winner.primaryColor !== '' && winner.primaryColor.startsWith('#'))
+  // Exclude default cyan color (#00e5ff) as it's not a real team color
+  const winnerColor = (winner?.primaryColor && 
+                       winner.primaryColor !== '' && 
+                       winner.primaryColor.startsWith('#') &&
+                       winner.primaryColor.toLowerCase() !== '#00e5ff')
     ? winner.primaryColor 
     : theme.accent
   

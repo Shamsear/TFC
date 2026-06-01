@@ -25,7 +25,7 @@ export function getGeminiModel() {
   const genAI = new GoogleGenerativeAI(apiKey);
   
   return genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-1.5-flash',
     generationConfig: {
       temperature: 0.9,
       topP: 0.95,

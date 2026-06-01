@@ -101,7 +101,7 @@ export default function TournamentTable({ standings, myTeamId, teamLinkBase = '/
                     >
                       {/* Rank Position */}
                       <td className="px-3 py-3 sm:px-5 sm:py-4">
-                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-[10px] sm:text-xs tracking-tight ${posColor}`}>
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-[10px] sm:text-xs tracking-tight overflow-hidden ${posColor}`}>
                           {pos}
                         </div>
                       </td>

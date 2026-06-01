@@ -106,7 +106,7 @@ function TableSnapshot({
                     }}
                   >
                     <td style={{ padding: '16px 10px 16px 20px', width: '40px' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, ...ps }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, overflow: 'hidden', ...ps }}>
                         {pos}
                       </div>
                     </td>

@@ -8,33 +8,100 @@ async function getLandingPageData() {
   try {
     // Get active season
     const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true }
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true
+      }
     })
 
     const seasonId = activeSeason?.id
 
     // Fetch stats counters
     const [teamsCount, playersCount, matchesCount, seasonsCount] = await Promise.all([
-      prisma.season_teams.count({ where: seasonId ? { seasonId } : {} }),
-      prisma.seasonal_player_stats.count({ where: seasonId ? { seasonId } : {} }),
-      prisma.matches.count({ where: seasonId ? { tournament: { seasonId } } : {} }),
+      seasonId 
+        ? prisma.season_teams.count({ where: { seasonId } })
+        : prisma.season_teams.count(),
+      seasonId 
+        ? prisma.seasonal_player_stats.count({ where: { seasonId } })
+        : prisma.seasonal_player_stats.count(),
+      seasonId 
+        ? prisma.matches.count({ where: { tournament: { seasonId } } })
+        : prisma.matches.count(),
       prisma.seasons.count()
     ])
 
-    // Get recent transfers
-    const recentTransfers = await prisma.transfer_history.findMany({
-      where: seasonId ? { seasonId, status: 'ACTIVE' } : { status: 'ACTIVE' },
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        basePlayer: true,
-        team: true,
-        season: true
+    // Get recent transfers with serializable data only
+    const transfersRaw = seasonId 
+      ? await prisma.transfer_history.findMany({
+          where: { seasonId, status: 'ACTIVE' },
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            soldPrice: true,
+            basePlayer: {
+              select: {
+                name: true
+              }
+            },
+            team: {
+              select: {
+                name: true
+              }
+            },
+            season: {
+              select: {
+                name: true
+              }
+            }
+          }
+        })
+      : await prisma.transfer_history.findMany({
+          where: { status: 'ACTIVE' },
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            soldPrice: true,
+            basePlayer: {
+              select: {
+                name: true
+              }
+            },
+            team: {
+              select: {
+                name: true
+              }
+            },
+            season: {
+              select: {
+                name: true
+              }
+            }
+          }
+        })
+
+    // Convert to plain objects
+    const recentTransfers = transfersRaw.map(transfer => ({
+      id: transfer.id,
+      soldPrice: Number(transfer.soldPrice),
+      basePlayer: {
+        name: transfer.basePlayer.name
+      },
+      team: {
+        name: transfer.team.name
+      },
+      season: {
+        name: transfer.season.name
       }
-    })
+    }))
 
     return {
-      activeSeason,
+      activeSeason: activeSeason ? {
+        id: activeSeason.id,
+        name: activeSeason.name
+      } : null,
       stats: {
         teams: teamsCount,
         players: playersCount,

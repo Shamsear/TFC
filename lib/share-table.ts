@@ -1,14 +1,72 @@
 import { toPng } from 'html-to-image'
 
 /**
+ * Wait for all images within an element to load
+ */
+async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
+  const images = Array.from(element.querySelectorAll('img'))
+  
+  if (images.length === 0) {
+    return Promise.resolve()
+  }
+
+  const imagePromises = images.map((img) => {
+    return new Promise<void>((resolve, reject) => {
+      // If image is already loaded
+      if (img.complete && img.naturalHeight !== 0) {
+        resolve()
+        return
+      }
+
+      // Wait for image to load
+      const onLoad = () => {
+        cleanup()
+        resolve()
+      }
+
+      const onError = () => {
+        cleanup()
+        // Resolve anyway to not block the capture
+        console.warn('Image failed to load:', img.src)
+        resolve()
+      }
+
+      const cleanup = () => {
+        img.removeEventListener('load', onLoad)
+        img.removeEventListener('error', onError)
+      }
+
+      img.addEventListener('load', onLoad)
+      img.addEventListener('error', onError)
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        cleanup()
+        console.warn('Image load timeout:', img.src)
+        resolve()
+      }, 10000)
+    })
+  })
+
+  await Promise.all(imagePromises)
+}
+
+/**
  * Captures an HTMLElement as a PNG data URL.
  * The element should be positioned off-screen (absolute, left: -9999px)
  * rather than display:none so layout calculations remain intact.
+ * Waits for all images to load before capturing.
  */
 export async function captureTableAsPng(
   element: HTMLElement,
   options?: { width?: number; backgroundColor?: string }
 ): Promise<string> {
+  // Wait for all images to load first
+  await waitForImagesToLoad(element)
+  
+  // Small delay to ensure rendering is complete
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
   return toPng(element, {
     cacheBust: true,
     width: options?.width ?? 1200,

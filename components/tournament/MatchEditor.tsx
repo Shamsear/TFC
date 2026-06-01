@@ -353,7 +353,7 @@ export default function MatchEditor({ match, seasonId, tournamentId }: MatchEdit
               <span>Saving...</span>
             </>
           ) : (
-            'Save Match'
+            'Complete Match & Save'
           )}
         </button>
       </div>

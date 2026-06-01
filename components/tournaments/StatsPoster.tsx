@@ -163,6 +163,17 @@ function TeamMatchdayPosterSnapshot({
     ? team.primaryColor 
     : theme.accent
   
+  // Lighten the team color by 20% for better visibility
+  const lightenColor = (hex: string, percent: number) => {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const r = Math.min(255, Math.floor((num >> 16) + ((255 - (num >> 16)) * percent)))
+    const g = Math.min(255, Math.floor(((num >> 8) & 0x00FF) + ((255 - ((num >> 8) & 0x00FF)) * percent)))
+    const b = Math.min(255, Math.floor((num & 0x0000FF) + ((255 - (num & 0x0000FF)) * percent)))
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+  }
+  
+  const lighterTeamColor = lightenColor(teamColor, 0.3)
+  
   // Generate background gradient based on team color
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
@@ -173,7 +184,7 @@ function TeamMatchdayPosterSnapshot({
     } : { r: 0, g: 0, b: 0 }
   }
   
-  const rgb = hexToRgb(teamColor)
+  const rgb = hexToRgb(lighterTeamColor)
   const bgGradient = `linear-gradient(145deg, rgb(${rgb.r * 0.05}, ${rgb.g * 0.05}, ${rgb.b * 0.05}), rgb(${rgb.r * 0.08}, ${rgb.g * 0.08}, ${rgb.b * 0.08}), rgb(${rgb.r * 0.12}, ${rgb.g * 0.12}, ${rgb.b * 0.12}))`
   const glowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`
   
@@ -220,6 +231,23 @@ function TeamMatchdayPosterSnapshot({
         padding: 48,
       }}
     >
+      {/* Diagonal Lines Pattern Overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.02) 10px,
+            rgba(255, 255, 255, 0.02) 20px
+          )`,
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      />
+
       {/* Background Glow */}
       <div
         style={{
@@ -245,7 +273,7 @@ function TeamMatchdayPosterSnapshot({
             transform: 'translateY(-50%)',
             width: 600,
             height: 600,
-            opacity: 0.06,
+            opacity: 0.10,
             pointerEvents: 'none',
             zIndex: 0,
           }}
@@ -265,7 +293,7 @@ function TeamMatchdayPosterSnapshot({
       )}
 
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 2 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
           <div>
@@ -282,7 +310,7 @@ function TeamMatchdayPosterSnapshot({
               }}
             >
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: theme.accent }} />
-              <span style={{ color: teamColor, fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' as const }}>
+              <span style={{ color: lighterTeamColor, fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' as const }}>
                 {roundLabel}
               </span>
             </div>
@@ -294,7 +322,7 @@ function TeamMatchdayPosterSnapshot({
             </div>
             <div
               style={{
-                color: teamColor,
+                color: lighterTeamColor,
                 fontSize: 56,
                 fontWeight: 900,
                 letterSpacing: -1.5,
@@ -373,10 +401,10 @@ function TeamMatchdayPosterSnapshot({
                   width: 4, 
                   height: 4, 
                   borderRadius: '50%', 
-                  background: teamColor 
+                  background: lighterTeamColor 
                 }} />
                 <div style={{ 
-                  color: teamColor, 
+                  color: lighterTeamColor, 
                   fontSize: 14, 
                   fontWeight: 700, 
                   letterSpacing: 1,
@@ -388,7 +416,7 @@ function TeamMatchdayPosterSnapshot({
                   width: 4, 
                   height: 4, 
                   borderRadius: '50%', 
-                  background: teamColor 
+                  background: lighterTeamColor 
                 }} />
               </div>
             )}
@@ -549,6 +577,17 @@ function PosterSnapshot({
     ? winner.primaryColor 
     : theme.accent
   
+  // Lighten the winner color by 20% for better visibility
+  const lightenColor = (hex: string, percent: number) => {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const r = Math.min(255, Math.floor((num >> 16) + ((255 - (num >> 16)) * percent)))
+    const g = Math.min(255, Math.floor(((num >> 8) & 0x00FF) + ((255 - ((num >> 8) & 0x00FF)) * percent)))
+    const b = Math.min(255, Math.floor((num & 0x0000FF) + ((255 - (num & 0x0000FF)) * percent)))
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+  }
+  
+  const lighterWinnerColor = lightenColor(winnerColor, 0.3)
+  
   // Generate background gradient based on winner's color
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
@@ -559,7 +598,7 @@ function PosterSnapshot({
     } : { r: 0, g: 0, b: 0 }
   }
   
-  const rgb = hexToRgb(winnerColor)
+  const rgb = hexToRgb(lighterWinnerColor)
   const bgGradient = `linear-gradient(145deg, rgb(${rgb.r * 0.05}, ${rgb.g * 0.05}, ${rgb.b * 0.05}), rgb(${rgb.r * 0.08}, ${rgb.g * 0.08}, ${rgb.b * 0.08}), rgb(${rgb.r * 0.12}, ${rgb.g * 0.12}, ${rgb.b * 0.12}))`
   const glowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`
   const glowColorLight = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`
@@ -576,6 +615,23 @@ function PosterSnapshot({
         overflow: 'hidden',
       }}
     >
+      {/* Diagonal Lines Pattern Overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.02) 10px,
+            rgba(255, 255, 255, 0.02) 20px
+          )`,
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      />
+
       {/* Background Glow Orbs */}
       <div
         style={{
@@ -614,7 +670,7 @@ function PosterSnapshot({
             transform: 'translateY(-50%)',
             width: 600,
             height: 600,
-            opacity: 0.06,
+            opacity: 0.10,
             pointerEvents: 'none',
             zIndex: 0,
           }}
@@ -634,7 +690,7 @@ function PosterSnapshot({
       )}
 
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 1, padding: 48 }}>
+      <div style={{ position: 'relative', zIndex: 2, padding: 48 }}>
         {/* Top Header Row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <div>
@@ -650,8 +706,8 @@ function PosterSnapshot({
                 marginBottom: 16,
               }}
             >
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: winnerColor }} />
-              <span style={{ color: winnerColor, fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' as const }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: lighterWinnerColor }} />
+              <span style={{ color: lighterWinnerColor, fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' as const }}>
                 {theme.tagline}
               </span>
             </div>
@@ -735,10 +791,10 @@ function PosterSnapshot({
               </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ color: winnerColor, fontSize: 36, fontWeight: 900, lineHeight: 1 }}>
+              <div style={{ color: lighterWinnerColor, fontSize: 36, fontWeight: 900, lineHeight: 1 }}>
                 {getMetric(winner).primary}
               </div>
-              <div style={{ color: winnerColor, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' as const, opacity: 0.7 }}>
+              <div style={{ color: lighterWinnerColor, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' as const, opacity: 0.7 }}>
                 {getMetric(winner).label}
               </div>
             </div>
@@ -766,7 +822,7 @@ function PosterSnapshot({
           >
             <span style={{ width: 40, color: '#6b6560', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' as const }}>#</span>
             <span style={{ flex: 1, color: '#6b6560', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' as const }}>TEAM</span>
-            <span style={{ width: 80, textAlign: 'center' as const, color: winnerColor, fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' as const }}>
+            <span style={{ width: 80, textAlign: 'center' as const, color: lighterWinnerColor, fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' as const }}>
               {getMetric(teams[0] || ({} as TeamStatRow)).label}
             </span>
             <span style={{ width: 180, textAlign: 'center' as const, color: '#6b6560', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' as const }}>RECORD</span>
@@ -854,7 +910,7 @@ function PosterSnapshot({
                     textAlign: 'center' as const,
                     fontWeight: 900,
                     fontSize: 18,
-                    color: isTop3 ? winnerColor : '#F5F0E8',
+                    color: isTop3 ? lighterWinnerColor : '#F5F0E8',
                   }}
                 >
                   {metric.primary}

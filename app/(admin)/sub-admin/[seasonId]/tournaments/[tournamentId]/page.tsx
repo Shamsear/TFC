@@ -128,27 +128,6 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
     cleanSheets: cleanSheetMap[s.teamId] ?? 0,
   }))
 
-  // Debug log to check primary colors
-  console.log('=== STATS TEAMS DEBUG ===')
-  console.log('Total teams:', statsTeams.length)
-  statsTeams.forEach(team => {
-    console.log(`Team: ${team.teamName}`)
-    console.log(`  - primaryColor: ${team.primaryColor}`)
-    console.log(`  - managerName: ${team.managerName}`)
-    console.log(`  - seasonTeamId: ${team.seasonTeamId}`)
-  })
-  console.log('=== END DEBUG ===')
-
-  // Also log the teams array
-  console.log('=== TEAMS ARRAY DEBUG ===')
-  console.log('Total teams:', teams.length)
-  teams.forEach(team => {
-    console.log(`Team: ${team.name}`)
-    console.log(`  - primaryColor: ${team.primaryColor}`)
-    console.log(`  - managerName: ${team.managerName}`)
-  })
-  console.log('=== END DEBUG ===')
-
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {

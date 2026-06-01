@@ -708,14 +708,26 @@ function PosterSnapshot({
             >
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: lighterWinnerColor }} />
               <span style={{ color: lighterWinnerColor, fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' as const }}>
-                {theme.tagline}
+                {roundLabel}
               </span>
             </div>
             <div style={{ color: '#8a8278', fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 6 }}>
-              {seasonName} · {roundLabel}
+              {seasonName} · {tournamentName}
             </div>
-            <div style={{ color: '#FFFFFF', fontSize: 32, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.15 }}>
-              {tournamentName}
+            <div style={{ color: '#FFFFFF', fontSize: 56, fontWeight: 900, letterSpacing: -1.5, lineHeight: 1, marginBottom: 8 }}>
+              {theme.label.toUpperCase()}
+            </div>
+            <div
+              style={{
+                color: lighterWinnerColor,
+                fontSize: 56,
+                fontWeight: 900,
+                letterSpacing: -1.5,
+                lineHeight: 1,
+                textShadow: `0 0 30px ${glowColor}`,
+              }}
+            >
+              {themeKey === 'golden_boot' ? 'RACE' : themeKey === 'ball' ? 'LEADERS' : 'STANDINGS'}
             </div>
           </div>
           <div style={{ opacity: 0.2, flexShrink: 0, marginTop: 8 }}>

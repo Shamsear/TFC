@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { AuthRedirect } from '@/components/AuthRedirect'
 
 // Force dynamic rendering to avoid stale cache
 export const dynamic = 'force-dynamic'
@@ -124,7 +125,9 @@ export default async function PublicLandingPage() {
   const data = await getLandingPageData()
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <>
+      <AuthRedirect />
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
       <main>
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-26 pb-24 sm:pt-40 sm:pb-32">
@@ -377,5 +380,6 @@ export default async function PublicLandingPage() {
         )}
       </main>
     </div>
+    </>
   )
 }

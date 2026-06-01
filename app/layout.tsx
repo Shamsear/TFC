@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import { ToastProvider } from "@/components/ui/ToastProvider";
@@ -25,12 +25,13 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'TFC',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

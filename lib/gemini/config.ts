@@ -25,12 +25,12 @@ export function getGeminiModel() {
   const genAI = new GoogleGenerativeAI(apiKey);
   
   return genAI.getGenerativeModel({ 
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     generationConfig: {
       temperature: 0.9,
       topP: 0.95,
       topK: 40,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 2048,
     }
   });
 }

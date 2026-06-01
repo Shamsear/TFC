@@ -99,6 +99,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
     { name: "Finances", href: "/team/finances" },
     { name: "Retentions", href: "/team/retentions" },
     { name: "Achievements", href: "/team/achievements" },
+    { name: "News", href: "/team/news" },
   ]
 
   const inactiveSeasonNavigation = [
@@ -127,6 +128,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
       { name: "Finances", href: "/team/finances" },
       { name: "Retentions", href: "/team/retentions" },
       { name: "Achievements", href: "/team/achievements" },
+      { name: "News", href: "/team/news" },
     ]
     : []
 

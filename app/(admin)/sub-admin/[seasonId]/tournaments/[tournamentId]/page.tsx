@@ -112,8 +112,11 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
 
   const statsTeams = tournament.standings.map((s) => ({
     teamId: s.seasonTeam.team.id,
+    seasonTeamId: s.teamId,
     teamName: s.seasonTeam.team.name,
     logoUrl: s.seasonTeam.team.logoUrl,
+    managerName: s.seasonTeam.team.managerName,
+    primaryColor: s.seasonTeam.team.primaryColor,
     played: s.played,
     won: s.won,
     drawn: s.drawn,

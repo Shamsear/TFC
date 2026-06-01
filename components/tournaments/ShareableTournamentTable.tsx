@@ -189,6 +189,7 @@ export default function ShareableTournamentTable({
     if (!snapshotRef.current || sharing) return
     setSharing(true)
     try {
+      // Show loading state while waiting for images
       const dataUrl = await getDataUrl()
       const blob = await (await fetch(dataUrl)).blob()
       const file = new File([blob], `${tournamentName.replace(/\s+/g, '-').toLowerCase()}-table.png`, { type: 'image/png' })
@@ -211,6 +212,7 @@ export default function ShareableTournamentTable({
     if (!snapshotRef.current || downloading) return
     setDownloading(true)
     try {
+      // Show loading state while waiting for images
       const dataUrl = await getDataUrl()
       const blob = await (await fetch(dataUrl)).blob()
       const blobUrl = URL.createObjectURL(blob)
@@ -251,7 +253,7 @@ export default function ShareableTournamentTable({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
-              Sharing…
+              Loading…
             </>
           ) : shareDone ? (
             <>
@@ -286,7 +288,7 @@ export default function ShareableTournamentTable({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
-              Saving…
+              Loading…
             </>
           ) : downloadDone ? (
             <>

@@ -2,6 +2,7 @@ import { toPng } from 'html-to-image'
 
 /**
  * Wait for all images within an element to load
+ * Enhanced for mobile compatibility
  */
 async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
   const images = Array.from(element.querySelectorAll('img'))
@@ -11,40 +12,61 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
   }
 
   const imagePromises = images.map((img) => {
-    return new Promise<void>((resolve, reject) => {
-      // If image is already loaded
-      if (img.complete && img.naturalHeight !== 0) {
+    return new Promise<void>((resolve) => {
+      // If image is already loaded and has valid dimensions
+      if (img.complete && img.naturalHeight !== 0 && img.naturalWidth !== 0) {
         resolve()
         return
       }
 
-      // Wait for image to load
+      // If image has no src, resolve immediately
+      if (!img.src || img.src === '') {
+        resolve()
+        return
+      }
+
+      let resolved = false
+      const cleanup = () => {
+        if (!resolved) {
+          resolved = true
+          img.removeEventListener('load', onLoad)
+          img.removeEventListener('error', onError)
+        }
+      }
+
       const onLoad = () => {
         cleanup()
-        resolve()
+        // Extra check to ensure image actually loaded
+        if (img.naturalHeight !== 0 && img.naturalWidth !== 0) {
+          resolve()
+        } else {
+          // If dimensions are still 0, wait a bit more
+          setTimeout(resolve, 100)
+        }
       }
 
       const onError = () => {
         cleanup()
-        // Resolve anyway to not block the capture
         console.warn('Image failed to load:', img.src)
-        resolve()
-      }
-
-      const cleanup = () => {
-        img.removeEventListener('load', onLoad)
-        img.removeEventListener('error', onError)
+        resolve() // Resolve anyway to not block
       }
 
       img.addEventListener('load', onLoad)
       img.addEventListener('error', onError)
 
-      // Timeout after 10 seconds
+      // Timeout after 15 seconds (increased for mobile)
       setTimeout(() => {
         cleanup()
         console.warn('Image load timeout:', img.src)
         resolve()
-      }, 10000)
+      }, 15000)
+
+      // Force reload if image is in error state
+      if (img.complete && img.naturalHeight === 0) {
+        const currentSrc = img.src
+        img.src = ''
+        img.src = currentSrc
+      }
     })
   })
 
@@ -64,8 +86,10 @@ export async function captureTableAsPng(
   // Wait for all images to load first
   await waitForImagesToLoad(element)
   
-  // Small delay to ensure rendering is complete
-  await new Promise(resolve => setTimeout(resolve, 100))
+  // Longer delay for mobile devices to ensure rendering is complete
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const delay = isMobile ? 500 : 200
+  await new Promise(resolve => setTimeout(resolve, delay))
   
   return toPng(element, {
     cacheBust: true,

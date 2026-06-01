@@ -26,7 +26,7 @@ const THEMES: Record<ThemeKey, Theme> = {
     accent: '#FFD700',
     accent2: '#FFA500',
     glow: 'rgba(255,215,0,0.35)',
-    tagline: 'GOLDEN BOOT2',
+    tagline: 'GOLDEN BOOT',
   },
   ball: {
     label: 'Match Ball',
@@ -339,11 +339,11 @@ function TeamMatchdayPosterSnapshot({
         <div
           style={{
             padding: 40,
-            marginBottom: 32,
+            marginBottom: 16,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 24,
+            gap: 20,
           }}
         >
           {/* Team Logo - No box, no background */}
@@ -425,7 +425,7 @@ function TeamMatchdayPosterSnapshot({
 
         {/* Match Results - Centered Layout */}
         {(team as any).matchDetails && (team as any).matchDetails.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32, marginBottom: 32 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 24 }}>
             {(team as any).matchDetails.map((match: any, idx: number) => (
               <div
                 key={idx}
@@ -433,7 +433,7 @@ function TeamMatchdayPosterSnapshot({
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 20,
+                  gap: 12,
                 }}
               >
                 {/* Score - Large and Centered */}

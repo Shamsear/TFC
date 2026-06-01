@@ -2,7 +2,7 @@
   "name": "TFC - Transfer & Auction Fantasy League",
   "short_name": "TFC",
   "description": "Turf Cats Tournament and Auction Management Platform",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

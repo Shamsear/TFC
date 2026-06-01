@@ -1,6 +1,5 @@
-const CACHE_NAME = 'tfc-v1.0.1';
+const CACHE_NAME = 'tfc-v1.0.2';
 const OFFLINE_ASSETS = [
-  '/',
   '/offline.html',
   '/android-chrome-192x192.png',
   '/manifest.json'
@@ -31,35 +30,53 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Prevent SW from intercepting/caching API routes or non-GET origin queries
+  const url = new URL(event.request.url);
+  
+  // Prevent SW from intercepting/caching API routes, auth routes, or non-GET requests
   if (
     event.request.method !== 'GET' || 
     !event.request.url.startsWith(self.location.origin) ||
-    event.request.url.includes('/api/')
+    event.request.url.includes('/api/') ||
+    event.request.url.includes('/auth/')
   ) {
     return;
   }
 
+  // CRITICAL: Never cache the root path to allow proper authentication redirects
+  if (url.pathname === '/') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match('/offline.html');
+      })
+    );
+    return;
+  }
+
+  // For all other requests, use network-first strategy with cache fallback
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Don't cache redirects (3xx status codes)
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Fallback to cache if network fails
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
           }
-          return networkResponse;
-        })
-        .catch(() => {
+          // If it's a navigation request and no cache, show offline page
           if (event.request.mode === 'navigate') {
             return caches.match('/offline.html');
           }
         });
-
-      return cachedResponse || fetchPromise;
-    })
+      })
   );
 });
 

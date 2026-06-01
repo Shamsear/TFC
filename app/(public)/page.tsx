@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { AuthRedirect } from '@/components/AuthRedirect'
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 // Force dynamic rendering to avoid stale cache
 export const dynamic = 'force-dynamic'
@@ -122,6 +124,21 @@ async function getLandingPageData() {
 }
 
 export default async function PublicLandingPage() {
+  // Server-side authentication check and redirect
+  const session = await auth()
+  
+  if (session?.user) {
+    const role = session.user.role
+    
+    if (role === 'SUPER_ADMIN') {
+      redirect('/super-admin')
+    } else if (role === 'SUB_ADMIN') {
+      redirect('/sub-admin')
+    } else if (role === 'TEAM_MANAGER') {
+      redirect('/team')
+    }
+  }
+
   const data = await getLandingPageData()
 
   return (

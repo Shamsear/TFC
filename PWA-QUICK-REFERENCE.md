@@ -1,44 +1,45 @@
-# PWA Fix - Quick Reference Card
+# Complete Redirect Fix - Quick Reference Card
 
 ## 🎯 What Was Fixed
-**Problem:** PWA showed "service worker redirected" error when reopening
-**Solution:** Three-layer authentication routing system
+**Problem:** Both PWA and browser users saw redirect errors when visiting root path while logged in
+**Solution:** Three-layer authentication system with server-side redirect
 
 ## 📁 Files Changed
 
-### New Files
-```
-middleware.ts                      → Server-side routing
-components/AuthRedirect.tsx        → Client-side fallback
-public/offline.html                → Offline page
-app/api/pwa-test/route.ts         → Testing endpoint
-```
-
 ### Modified Files
 ```
-public/sw.js                       → v1.0.1 → v1.0.2 (never cache root)
+middleware.ts                      → Simplified (auth only, no custom redirects)
+app/(public)/page.tsx              → Added server-side auth check + redirect
+components/AuthRedirect.tsx        → Enhanced with loading state
+public/sw.js                       → v1.0.2 (never cache root)
 public/manifest.json               → start_url: "/?source=pwa"
-app/(public)/page.tsx              → Added <AuthRedirect />
 app/layout.tsx                     → Enhanced PWA meta tags
+```
+
+### New Files
+```
+public/offline.html                → Offline page
+app/api/pwa-test/route.ts         → Testing endpoint
+BROWSER-REDIRECT-FIX.md           → Complete documentation
 ```
 
 ## 🔄 How It Works
 
 ```
-User Opens PWA
-     ↓
-Request to "/?source=pwa"
+User Visits Root Path (/)
      ↓
 Service Worker: "Not cached, fetch from server"
      ↓
-Middleware: Check authentication
+Server: Check authentication (in page component)
      ↓
 ┌─────────────────┬──────────────────┬──────────────────┐
 │ Not Logged In   │ TEAM_MANAGER     │ SUB/SUPER_ADMIN  │
 │ Show landing    │ Redirect /team   │ Redirect /admin  │
 └─────────────────┴──────────────────┴──────────────────┘
      ↓
-User sees correct page immediately
+Client-side AuthRedirect (fallback)
+     ↓
+User sees correct page (no errors!)
 ```
 
 ## 🧪 Quick Test

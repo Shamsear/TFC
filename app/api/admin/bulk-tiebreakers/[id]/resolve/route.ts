@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { generateTransferId, generateFinancialId, generateAuditId } from '@/lib/id-generator'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
+import { triggerNews } from '@/lib/news/trigger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -223,6 +224,24 @@ export async function POST(
       }
     } catch (notifErr) {
       console.warn('[Push] Bulk tiebreaker resolve notification failed (non-fatal):', notifErr);
+    }
+
+    // Trigger news for bulk tiebreaker resolution
+    try {
+      const winnerTeam = tiebreaker.participants.find(p => p.teamId === winnerId)?.team;
+      await triggerNews('bulk_tiebreaker_resolved', {
+        season_id: tiebreaker.round.seasonId,
+        season_name: tiebreaker.round.season.name,
+        metadata: {
+          player_name: tiebreaker.basePlayer.name,
+          winner_team: winnerTeam?.name || winnerId,
+          winning_bid: winningBid,
+          participant_count: tiebreaker.participants.length,
+          resolution_method: 'manual'
+        }
+      });
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate bulk tiebreaker news:', newsErr);
     }
 
     return NextResponse.json({

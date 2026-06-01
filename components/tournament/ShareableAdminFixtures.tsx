@@ -10,12 +10,15 @@ interface ShareableAdminFixturesProps {
   activeRound: string
 }
 
+type MatchFilter = 'all' | 'pending' | 'completed'
+
 function AdminFixturesSnapshot({
   matches,
   tournamentName,
   seasonName,
   activeRound,
-}: ShareableAdminFixturesProps) {
+  matchFilter,
+}: ShareableAdminFixturesProps & { matchFilter: MatchFilter }) {
   
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -40,6 +43,20 @@ function AdminFixturesSnapshot({
     return colors[status] || colors.SCHEDULED
   }
 
+  // Filter matches based on matchFilter
+  const filteredMatches = matches.filter(match => {
+    if (matchFilter === 'all') return true
+    if (matchFilter === 'completed') return match.status === 'COMPLETED' || match.status === 'WALKOVER'
+    if (matchFilter === 'pending') return match.status !== 'COMPLETED' && match.status !== 'WALKOVER'
+    return true
+  })
+
+  const getFilterLabel = () => {
+    if (matchFilter === 'completed') return 'Completed Matches'
+    if (matchFilter === 'pending') return 'Pending Matches'
+    return 'All Matches'
+  }
+
   return (
     <div
       style={{
@@ -61,7 +78,7 @@ function AdminFixturesSnapshot({
             {tournamentName}
           </div>
           <div style={{ color: '#A0988A', fontSize: 14, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-            Fixtures - {activeRound}
+            Fixtures - {activeRound} • {getFilterLabel()}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
@@ -73,7 +90,7 @@ function AdminFixturesSnapshot({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {matches.map((match) => {
+        {filteredMatches.map((match) => {
           const hasScore = match.homeScore !== null && match.awayScore !== null && match.status !== 'VOID'
           const homeWin = hasScore && match.homeScore! > match.awayScore!
           const awayWin = hasScore && match.awayScore! > match.homeScore!
@@ -167,6 +184,8 @@ export default function ShareableAdminFixtures({
   const [downloading, setDownloading] = useState(false)
   const [shareDone, setShareDone] = useState(false)
   const [downloadDone, setDownloadDone] = useState(false)
+  const [matchFilter, setMatchFilter] = useState<MatchFilter>('all')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   const getDataUrl = async () => captureTableAsPng(snapshotRef.current)
 
@@ -220,6 +239,57 @@ export default function ShareableAdminFixtures({
   return (
     <>
       <div className="flex items-center gap-2">
+        {/* Filter Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border bg-white/5 hover:bg-white/10 border-white/10 text-[#D4CCBB] hover:text-[#F5F0E8] transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            {matchFilter === 'all' ? 'All Matches' : matchFilter === 'pending' ? 'Pending' : 'Completed'}
+            <svg className={`w-3.5 h-3.5 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {isFilterOpen && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setIsFilterOpen(false)}
+              />
+              <div className="absolute z-50 mt-2 right-0 w-48 rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1">
+                {[
+                  { value: 'all', label: 'All Matches', icon: '📋' },
+                  { value: 'pending', label: 'Pending Matches', icon: '⏳' },
+                  { value: 'completed', label: 'Completed Matches', icon: '✅' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setMatchFilter(option.value as MatchFilter)
+                      setIsFilterOpen(false)
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                      matchFilter === option.value ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
+                    }`}
+                  >
+                    <span>{option.icon}</span>
+                    <span>{option.label}</span>
+                    {matchFilter === option.value && (
+                      <svg className="w-4 h-4 ml-auto text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Share */}
         <button
           onClick={handleShare}
@@ -302,6 +372,7 @@ export default function ShareableAdminFixtures({
             tournamentName={tournamentName}
             seasonName={seasonName}
             activeRound={activeRound}
+            matchFilter={matchFilter}
           />
         </div>
       </div>

@@ -74,9 +74,24 @@ export default async function SubAdminDashboard() {
     redirect("/auth/signin")
   }
 
-  // Fetch active season
+  // Get the sub-admin's assigned season IDs from the sub_admin_seasons table
+  const user = await prisma.users.findUnique({
+    where: { id: session.user.id },
+    select: { 
+      subAdminSeasons: {
+        select: { seasonId: true }
+      }
+    }
+  })
+
+  const assignedSeasonIds = user?.subAdminSeasons.map(s => s.seasonId) || []
+
+  // Fetch active season (only if assigned to this sub-admin)
   const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
+    where: { 
+      isActive: true,
+      id: { in: assignedSeasonIds }
+    },
     include: {
       seasonTeams: {
         include: { team: true }
@@ -84,8 +99,11 @@ export default async function SubAdminDashboard() {
     }
   })
 
-  // Fetch all seasons for selection
+  // Fetch only seasons assigned to this sub-admin
   const allSeasons = await prisma.seasons.findMany({
+    where: {
+      id: { in: assignedSeasonIds }
+    },
     orderBy: { createdAt: "desc" },
     include: {
       seasonTeams: {
@@ -328,9 +346,9 @@ export default async function SubAdminDashboard() {
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mx-auto mb-4 sm:mb-6">
                 <CalendarIcon />
               </div>
-              <div className="text-lg sm:text-xl font-bold text-white mb-2">No Active Season</div>
+              <div className="text-lg sm:text-xl font-bold text-white mb-2">No Active Season Assigned</div>
               <p className="text-sm sm:text-base text-gray-400">
-                There is currently no active season. Please contact a Super Admin to create and activate a season.
+                You don't have access to the currently active season. Please contact a Super Admin if you need access.
               </p>
             </div>
           </div>
@@ -339,7 +357,7 @@ export default async function SubAdminDashboard() {
         {/* All Seasons */}
         <div>
           <div className="flex items-center justify-between mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">All Seasons</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">Your Assigned Seasons</h2>
           </div>
           
           {allSeasons.length === 0 ? (
@@ -347,9 +365,9 @@ export default async function SubAdminDashboard() {
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gray-500/10 border border-gray-500/20 flex items-center justify-center text-gray-400 mx-auto mb-4 sm:mb-6">
                 <CalendarIcon />
               </div>
-              <div className="text-lg sm:text-xl font-bold text-white mb-2">No seasons created yet</div>
+              <div className="text-lg sm:text-xl font-bold text-white mb-2">No Seasons Assigned</div>
               <p className="text-sm sm:text-base text-gray-400">
-                Contact a Super Admin to create a season.
+                You haven't been assigned to any seasons yet. Contact a Super Admin to get access to a season.
               </p>
             </div>
           ) : (

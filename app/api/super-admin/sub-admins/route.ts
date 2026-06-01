@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createAuditLog } from '@/lib/audit'
 import { generateUserId } from '@/lib/id-generator'
 import bcrypt from 'bcryptjs'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,17 +37,32 @@ export async function POST(request: NextRequest) {
     // Generate clean user ID
     const userId = await generateUserId()
     
-    const newUser = await prisma.users.create({
-      data: {
-        id: userId,
-        name,
-        email,
-        passwordHash: hashedPassword,
-        role: 'SUB_ADMIN',
-        createdBy: createdBy,
-        isActive: isActive,
-        assignedSeasons: assignedSeasons
+    // Create user and season assignments in a transaction
+    const newUser = await prisma.$transaction(async (tx) => {
+      // Create the user
+      const user = await tx.users.create({
+        data: {
+          id: userId,
+          name,
+          email,
+          passwordHash: hashedPassword,
+          role: 'SUB_ADMIN',
+          createdBy: createdBy,
+          isActive: isActive
+        }
+      })
+
+      // Create season assignments
+      if (assignedSeasons && assignedSeasons.length > 0) {
+        await tx.sub_admin_seasons.createMany({
+          data: assignedSeasons.map((seasonId: string) => ({
+            userId: userId,
+            seasonId: seasonId
+          }))
+        })
       }
+
+      return user
     })
 
     // Create audit log
@@ -66,6 +82,31 @@ export async function POST(request: NextRequest) {
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Trigger news for sub-admin creation
+    if (assignedSeasons && assignedSeasons.length > 0) {
+      try {
+        for (const seasonId of assignedSeasons) {
+          const season = await prisma.seasons.findUnique({
+            where: { id: seasonId },
+            select: { name: true }
+          });
+          
+          if (season) {
+            await triggerNews('sub_admin_created', {
+              season_id: seasonId,
+              season_name: season.name,
+              metadata: {
+                admin_name: name,
+                admin_email: email
+              }
+            });
+          }
+        }
+      } catch (newsErr) {
+        console.warn('[News AI] Failed to generate sub-admin creation news:', newsErr);
+      }
+    }
 
     return NextResponse.json({ 
       success: true, 

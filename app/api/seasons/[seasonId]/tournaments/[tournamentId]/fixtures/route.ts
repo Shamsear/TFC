@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { generateIds, ID_PREFIXES } from '@/lib/id-generator'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(
   request: NextRequest,
@@ -68,6 +69,34 @@ export async function POST(
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Trigger news for match scheduling (only for first few matches to avoid spam)
+    if (fixtures.length > 0 && fixtures.length <= 5) {
+      try {
+        const tournament = await prisma.tournaments.findUnique({
+          where: { id: tournamentId },
+          select: { name: true }
+        });
+        const season = await prisma.seasons.findUnique({
+          where: { id: seasonId },
+          select: { name: true }
+        });
+
+        if (tournament && season) {
+          await triggerNews('match_scheduled', {
+            season_id: seasonId,
+            season_name: season.name,
+            metadata: {
+              tournament_name: tournament.name,
+              match_count: fixtures.length,
+              venue: venue || 'TBD'
+            }
+          });
+        }
+      } catch (newsErr) {
+        console.warn('[News AI] Failed to generate match scheduled news:', newsErr);
+      }
+    }
 
     return NextResponse.json(
       { message: `Created ${fixtures.length} fixtures` },

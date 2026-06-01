@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { hash } from "bcryptjs"
 import { z } from "zod"
 import { generateUserId, generateAuditId } from "@/lib/id-generator"
+import { triggerNews } from "@/lib/news/trigger"
 
 // Validation schema
 const createTeamManagerSchema = z.object({
@@ -113,6 +114,28 @@ export async function POST(request: NextRequest) {
         userAgent: request.headers.get("user-agent") || "unknown",
       },
     })
+
+    // Trigger news for team manager creation
+    try {
+      // Get all seasons this team is part of
+      const seasonTeams = await prisma.season_teams.findMany({
+        where: { teamId: validatedData.teamId },
+        include: { season: { select: { id: true, name: true } } }
+      });
+
+      for (const st of seasonTeams) {
+        await triggerNews('team_manager_created', {
+          season_id: st.season.id,
+          season_name: st.season.name,
+          metadata: {
+            manager_name: validatedData.name,
+            team_name: team.name
+          }
+        });
+      }
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate team manager creation news:', newsErr);
+    }
 
     return NextResponse.json({
       message: "Team manager created successfully",

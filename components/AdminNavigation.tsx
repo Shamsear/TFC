@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 
 interface AdminNavigationProps {
@@ -19,6 +19,22 @@ interface AdminNavigationProps {
 export default function AdminNavigationClient({ user, isSuperAdmin, activeSeasonId }: AdminNavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    try {
+      // Call the signOut function which will clear the session
+      await signOut({ 
+        redirect: false
+      })
+      // Force a hard redirect to clear any cached state
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Even if there's an error, redirect to home
+      window.location.href = '/'
+    }
+  }
 
   const isActive = (href: string) => {
     if (href === "/super-admin" || href === "/sub-admin") {
@@ -40,6 +56,7 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
     { name: "Passwords", href: "/super-admin/password-requests" },
     { name: "Audit Logs", href: "/super-admin/audit-logs" },
     { name: "Notifications", href: "/super-admin/notifications" },
+    { name: "News", href: "/super-admin/news" },
   ]
 
   const subAdminPrimary = [
@@ -54,6 +71,7 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
 
   const subAdminMore = [
     ...(activeSeasonId ? [
+      { name: "Achievements", href: `/sub-admin/${activeSeasonId}/achievements` },
       { name: "Release Windows", href: `/sub-admin/${activeSeasonId}/release-windows` },
       { name: "Tournaments", href: `/sub-admin/${activeSeasonId}/tournaments` },
       { name: "Calendar", href: `/sub-admin/${activeSeasonId}/calendar` },
@@ -137,7 +155,7 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
             )}
 
             <button
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={handleSignOut}
               className="px-6 py-2.5 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-all hover:scale-105 ml-2"
             >
               Sign Out
@@ -246,6 +264,15 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                   >
                     Notifications
                   </Link>
+                  <Link
+                    href="/super-admin/news"
+                    className={`text-sm font-bold transition-colors ${
+                      isActive("/super-admin/news") ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    News
+                  </Link>
                 </>
               ) : (
                 <>
@@ -297,6 +324,15 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                         Transfers
                       </Link>
                       <Link
+                        href={`/sub-admin/${activeSeasonId}/achievements`}
+                        className={`text-sm font-bold transition-colors ${
+                          isActive(`/sub-admin/${activeSeasonId}/achievements`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Achievements
+                      </Link>
+                      <Link
                         href={`/sub-admin/${activeSeasonId}/release-windows`}
                         className={`text-sm font-bold transition-colors ${
                           isActive(`/sub-admin/${activeSeasonId}/release-windows`) ? "text-[#F5F0E8]" : "text-[#7A7367] hover:text-[#F5F0E8]"
@@ -346,7 +382,7 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
                 </>
               )}
               <button
-                onClick={() => signOut({ callbackUrl: '/' })}
+                onClick={handleSignOut}
                 className="px-6 py-2.5 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold text-center transition-all"
               >
                 Sign Out

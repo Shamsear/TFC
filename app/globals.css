@@ -6,6 +6,15 @@
     color: #ffffff;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  
+  /* Hide content flash on initial load */
+  html.loading body > * {
+    visibility: hidden !important;
+  }
+  
+  html.loading {
+    overflow: hidden;
+  }
 }
 
 /* Custom Animations */

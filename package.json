@@ -28,6 +28,7 @@
   "description": "Turf Cats Tournament Management Platform",
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
+    "@google/generative-ai": "^0.21.0",
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/client": "^5.22.0",
     "@tailwindcss/postcss": "^4.2.4",

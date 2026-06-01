@@ -6,6 +6,7 @@ import { finalizeBulkRound, applyBulkFinalizationResults } from '@/lib/auction/f
 import { createTiebreakers } from '@/lib/auction/tiebreaker';
 import { Prisma } from '@prisma/client';
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server';
+import { triggerNews } from '@/lib/news/trigger';
 
 export const maxDuration = 60;
 
@@ -212,6 +213,37 @@ export async function POST(
       // Apply results
       await applyBulkFinalizationResults(roundId, result.allocations, result.conflicts);
 
+      // Get round details for news
+      const roundDetails = await prisma.rounds.findUnique({
+        where: { id: roundId },
+        select: {
+          roundNumber: true,
+          position: true,
+          seasonId: true,
+          season: { select: { name: true } }
+        }
+      });
+
+      // Trigger news for bulk round completion
+      if (roundDetails) {
+        try {
+          const totalSpent = result.allocations.reduce((sum, a) => sum + a.amount, 0);
+          await triggerNews('bulk_round_result', {
+            season_id: roundDetails.seasonId,
+            season_name: roundDetails.season.name,
+            metadata: {
+              round_number: roundDetails.roundNumber,
+              position: roundDetails.position,
+              total_spent: totalSpent,
+              player_count: result.allocations.length,
+              conflict_count: result.conflicts.length
+            }
+          });
+        } catch (newsErr) {
+          console.warn('[News AI] Failed to generate bulk round news:', newsErr);
+        }
+      }
+
       // Auto-create bulk tiebreakers for conflicts (status='pending')
       if (result.conflicts.length > 0) {
         console.log(`\n🎯 Auto-creating ${result.conflicts.length} bulk tiebreakers...`);
@@ -284,6 +316,32 @@ export async function POST(
           data: { status: 'tiebreaker_pending' }
         });
 
+        // Get round details for news
+        const roundDetails = await prisma.rounds.findUnique({
+          where: { id: roundId },
+          select: {
+            seasonId: true,
+            season: { select: { name: true } }
+          }
+        });
+
+        // Trigger news for tiebreaker creation
+        if (roundDetails && result.ties && result.ties.length > 0) {
+          try {
+            const firstTie = result.ties[0];
+            await triggerNews('tiebreaker_created', {
+              season_id: roundDetails.seasonId,
+              season_name: roundDetails.season.name,
+              metadata: {
+                player_name: firstTie.playerName,
+                participant_count: firstTie.tiedTeams.length
+              }
+            });
+          } catch (newsErr) {
+            console.warn('[News AI] Failed to generate tiebreaker creation news:', newsErr);
+          }
+        }
+
         // Notify tied teams about the tiebreaker
         try {
           for (const tie of result.ties) {
@@ -336,6 +394,36 @@ export async function POST(
         where: { id: roundId },
         data: { status: finalStatus }
       });
+
+      // Get round details for news
+      const roundDetails = await prisma.rounds.findUnique({
+        where: { id: roundId },
+        select: {
+          roundNumber: true,
+          position: true,
+          seasonId: true,
+          season: { select: { name: true } }
+        }
+      });
+
+      // Trigger news for normal round completion
+      if (roundDetails && finalStatus === 'completed') {
+        try {
+          const totalSpent = result.allocations.reduce((sum, a) => sum + a.amount, 0);
+          await triggerNews('auction_round_completed', {
+            season_id: roundDetails.seasonId,
+            season_name: roundDetails.season.name,
+            metadata: {
+              round_number: roundDetails.roundNumber,
+              position: roundDetails.position,
+              total_spent: totalSpent,
+              player_count: result.allocations.length
+            }
+          });
+        } catch (newsErr) {
+          console.warn('[News AI] Failed to generate round completion news:', newsErr);
+        }
+      }
 
       // Notify winning teams (direct finalize path)
       try {

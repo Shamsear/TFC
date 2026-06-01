@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(
   request: NextRequest,
@@ -63,6 +64,34 @@ export async function POST(
       }
     } catch (notifErr) {
       console.warn('[Push] Swap reject notification failed (non-fatal):', notifErr);
+    }
+
+    // Trigger news for swap request rejection
+    try {
+      const fullSwapRequest = await prisma.swap_requests.findUnique({
+        where: { id },
+        include: {
+          requestingTeam: { select: { name: true } },
+          targetTeam: { select: { name: true } },
+          players: true,
+          season: { select: { name: true } }
+        }
+      });
+
+      if (fullSwapRequest) {
+        await triggerNews('swap_request_rejected', {
+          season_id: swapRequest.seasonId,
+          season_name: fullSwapRequest.season.name,
+          metadata: {
+            requesting_team: fullSwapRequest.requestingTeam.name,
+            target_team: fullSwapRequest.targetTeam.name,
+            player_count: fullSwapRequest.players.length / 2,
+            rejection_reason: reason
+          }
+        });
+      }
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate swap rejection news:', newsErr);
     }
 
     return NextResponse.json({ success: true })

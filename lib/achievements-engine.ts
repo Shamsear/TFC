@@ -28,8 +28,15 @@ export type { BadgeDef };
  * Designed to be run either as a trigger on match completion, or retroactively for all teams.
  * Tracks and saves a detailed XP ledger record (team_xp_history) for every single XP gain.
  */
-export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
+export async function evaluateTeamAchievements(teamId: string, txClient?: any): Promise<{ newBadgesUnlocked: any[], leveledUp: boolean, oldLevel: number, newLevel: number } | void> {
   const db = txClient || prisma;
+
+  // 0. Get the current team level before evaluation
+  const team = await db.teams.findUnique({
+    where: { id: teamId },
+    select: { level: true },
+  });
+  const currentLevel = team?.level || 1;
 
   // 1. Get all season_teams for the base team
   const seasonTeams = await db.season_teams.findMany({
@@ -279,10 +286,16 @@ export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
   if (totalGoalsFor >= 50) badgesToAward.push({ key: 'GOAL_BARON', seasonId: null });
   if (totalGoalsFor >= 100) badgesToAward.push({ key: 'CENTURION', seasonId: null });
 
-  const totalTrophies = seasonTeams.reduce((sum: number, st: any) => sum + (st.trophiesWon || 0), 0);
-  if (totalTrophies >= 3) badgesToAward.push({ key: 'TROPHY_HOARDER', seasonId: null });
+  // TROPHY_HOARDER: Disabled - should only be awarded manually at season end
+  // const totalTrophies = seasonTeams.reduce((sum: number, st: any) => sum + (st.trophiesWon || 0), 0);
+  // if (totalTrophies >= 3) badgesToAward.push({ key: 'TROPHY_HOARDER', seasonId: null });
 
   // F. Evaluate Completed Standings/Seasonal Badges
+  // NOTE: Season-end badges (GOLDEN_BOOT, GOLDEN_GLOVE, GOLDEN_INVINCIBLES) are DISABLED
+  // These should only be awarded manually by admins when officially ending a season/tournament
+  // to prevent premature awarding during mid-season evaluations
+  
+  /* DISABLED - Season-end badges should be awarded manually
   const standingsRecords = await db.standings.findMany({
     where: { teamId: { in: seasonTeamIds } },
     include: { tournament: true },
@@ -312,6 +325,7 @@ export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
       }
     }
   }
+  */
 
   // G. Filter out duplicate badges we intend to award, keeping unique awards by [badgeKey, seasonId]
   const uniqueAwardsMap = new Map<string, { key: string; seasonId: string | null }>();
@@ -372,6 +386,7 @@ export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
     };
 
     // 4. Insert new badges only
+    const newBadgesUnlocked: any[] = [];
     for (const award of uniqueAwards) {
       if (!isDuplicate(award)) {
         const def = BADGE_DEFINITIONS[award.key];
@@ -384,6 +399,7 @@ export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
             seasonId: award.seasonId,
           },
         });
+        newBadgesUnlocked.push({ ...award, def });
       }
     }
 
@@ -395,13 +411,15 @@ export async function evaluateTeamAchievements(teamId: string, txClient?: any) {
         level: finalLevel,
       },
     });
+
+    return { newBadgesUnlocked, leveledUp: finalLevel > currentLevel, oldLevel: currentLevel, newLevel: finalLevel };
   };
 
   // If we received a transaction client, we're already inside a transaction — use it directly.
   // Otherwise wrap in a new $transaction.
   if (txClient) {
-    await runSync(db);
+    return await runSync(db);
   } else {
-    await prisma.$transaction(runSync);
+    return await prisma.$transaction(runSync);
   }
 }

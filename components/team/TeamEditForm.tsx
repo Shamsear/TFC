@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ImageKitUpload } from "@/components/upload/ImageKitUpload"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import TeamColorPicker from "./TeamColorPicker"
 
 interface TeamEditFormProps {
   team: {
@@ -12,6 +13,7 @@ interface TeamEditFormProps {
     name: string
     managerName: string
     logoUrl: string
+    primaryColor?: string
   }
 }
 
@@ -39,7 +41,8 @@ export default function TeamEditForm({ team }: TeamEditFormProps) {
   const [formData, setFormData] = useState({
     name: team.name,
     managerName: team.managerName,
-    logoUrl: team.logoUrl
+    logoUrl: team.logoUrl,
+    primaryColor: (team as any).primaryColor || '#00e5ff'
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -191,6 +194,15 @@ export default function TeamEditForm({ team }: TeamEditFormProps) {
               </div>
             )}
           </div>
+
+          {/* Team Color Picker */}
+          {formData.logoUrl && (
+            <TeamColorPicker
+              logoUrl={formData.logoUrl}
+              currentColor={formData.primaryColor}
+              onColorSelect={(color) => setFormData(prev => ({ ...prev, primaryColor: color }))}
+            />
+          )}
 
           {/* Preview Card */}
           {formData.name && formData.managerName && formData.logoUrl && (

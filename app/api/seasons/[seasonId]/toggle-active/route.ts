@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { createAuditLog } from "@/lib/audit"
+import { triggerNews } from "@/lib/news/trigger"
 
 /**
  * PATCH /api/seasons/[seasonId]/toggle-active
@@ -103,6 +104,23 @@ export async function PATCH(
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Generate AI news for season activation
+    if (newActiveStatus) {
+      try {
+        await triggerNews('season_activated', {
+          season_id: updatedSeason.id,
+          season_name: updatedSeason.name,
+          metadata: {
+            team_count: updatedSeason.seasonTeams.length,
+            player_count: updatedSeason.seasonalPlayerStats.length,
+            starting_purse: updatedSeason.startingPurse
+          }
+        });
+      } catch (newsErr) {
+        console.warn('[News AI] Failed to generate season activation news:', newsErr);
+      }
+    }
 
     return NextResponse.json(updatedSeason)
   } catch (error) {

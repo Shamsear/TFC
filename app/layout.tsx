@@ -4,6 +4,7 @@ import { SessionProvider } from "@/components/auth/SessionProvider";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import PWARegistry from "@/components/PWARegistry";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { RootLoading } from "@/components/RootLoading";
 
 export const metadata: Metadata = {
   title: "Turf Cats",
@@ -39,9 +40,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head />
       <body className="antialiased">
         <SessionProvider>
           <ToastProvider>
+            <RootLoading />
             <PWARegistry />
             <AutoRefresh />
             {children}

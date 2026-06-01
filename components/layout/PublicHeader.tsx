@@ -16,6 +16,7 @@ export default function PublicHeader() {
     { name: 'Auctions', href: '/auctions' },
     { name: 'Calendar', href: '/calendar' },
     { name: 'Tournaments', href: '/tournaments' },
+    { name: 'News', href: '/news' },
   ]
 
   const isActive = (href: string) => {

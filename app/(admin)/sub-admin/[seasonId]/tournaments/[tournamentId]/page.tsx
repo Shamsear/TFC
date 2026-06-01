@@ -92,7 +92,9 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
     id: st.id,
     teamId: st.team.id,
     name: st.team.name,
-    logoUrl: st.team.logoUrl
+    logoUrl: st.team.logoUrl,
+    managerName: st.team.managerName,
+    primaryColor: st.team.primaryColor
   }))
 
   // Fetch clean sheets for stats tab

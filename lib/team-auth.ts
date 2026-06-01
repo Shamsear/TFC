@@ -132,16 +132,20 @@ export async function canEditTeam(teamId: string): Promise<boolean> {
  * Returns array of season IDs
  */
 export async function getAssignedSeasons(userId: string): Promise<string[]> {
-  const userSeasons = await prisma.sub_admin_seasons.findMany({
-    where: { userId },
-    select: { seasonId: true }
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { 
+      subAdminSeasons: {
+        select: { seasonId: true }
+      }
+    }
   })
   
-  if (!userSeasons || userSeasons.length === 0) {
+  if (!user || !user.subAdminSeasons) {
     return []
   }
   
-  return userSeasons.map(s => s.seasonId)
+  return user.subAdminSeasons.map(s => s.seasonId)
 }
 
 /**

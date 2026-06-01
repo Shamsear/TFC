@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { generateSeasonTeamId, generateFinancialId } from '@/lib/id-generator'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function GET(
   request: NextRequest,
@@ -164,6 +165,29 @@ export async function POST(
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Trigger news for newly registered teams
+    if (teamsToAdd.length > 0) {
+      try {
+        const addedTeams = await prisma.teams.findMany({
+          where: { id: { in: teamsToAdd } },
+          select: { name: true }
+        });
+
+        for (const team of addedTeams) {
+          await triggerNews('team_registered', {
+            season_id: seasonId,
+            season_name: season.name,
+            metadata: {
+              team_name: team.name,
+              starting_budget: season.startingPurse
+            }
+          });
+        }
+      } catch (newsErr) {
+        console.warn('[News AI] Failed to generate team registration news:', newsErr);
+      }
+    }
 
     return NextResponse.json({ 
       success: true,

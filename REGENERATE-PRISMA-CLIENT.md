@@ -1,56 +1,57 @@
-# Regenerate Prisma Client Required
+# Regenerate Prisma Client After Database Changes
 
-## Issue
+After creating the `sub_admin_seasons` table, you MUST regenerate the Prisma client so it knows about the new table.
 
-You're seeing TypeScript errors about `finalizationState` not existing, even though it's in your schema:
+## Steps:
 
-```
-Object literal may only specify known properties, and 'finalizationState' does not exist
-```
+1. **Run the SQL migration** (if you haven't already):
+   ```bash
+   # Run the create table script in your database
+   psql -d your_database -f scripts/create-sub-admin-seasons-table.sql
+   ```
 
-## Cause
+2. **Regenerate Prisma Client**:
+   ```bash
+   npx prisma generate
+   ```
 
-The Prisma client TypeScript types are out of sync with your schema. This happens when:
-1. The schema is updated
-2. But `prisma generate` hasn't been run to regenerate the client types
+3. **Restart your development server**:
+   ```bash
+   # Stop the current server (Ctrl+C)
+   # Then restart it
+   npm run dev
+   ```
 
-## Solution
+## Why This Is Needed
 
-Run this command to regenerate the Prisma client:
+Prisma generates TypeScript types and client methods based on your schema. When you:
+- Add a new table to the database
+- Modify the Prisma schema file
 
-```bash
-npx prisma generate
-```
+You must run `npx prisma generate` to update the Prisma client with the new types and methods.
 
-This will:
-- Read your `prisma/schema.prisma` file
-- Generate TypeScript types that match your schema
-- Update the Prisma client with the correct types
+## Verify It's Working
 
-## After Regenerating
+After regenerating, try creating a new sub-admin through the Super Admin interface. The season assignments should now be saved to the `sub_admin_seasons` table.
 
-1. ✅ TypeScript errors will disappear
-2. ✅ `finalizationState` field will be recognized
-3. ✅ Preview mode will work correctly
-4. ✅ Tiebreaker amounts will be saved
-
-## Why This Matters
-
-The `finalizationState` field is used to:
-- Track preview mode status (`previewMode: true`)
-- Store allocated teams and players during sequential finalization
-- Preserve state when tiebreakers are created
-- Ensure tiebreaker winners are saved to preview_allocations (not applied immediately)
-
-Without regenerating, TypeScript doesn't know this field exists, causing compilation errors.
-
-## Quick Fix
-
-```bash
-# Stop your dev server (Ctrl+C)
-npx prisma generate
-# Restart your dev server
-npm run dev
+You can verify with:
+```sql
+SELECT * FROM sub_admin_seasons;
 ```
 
-That's it! 🚀
+## Troubleshooting
+
+If you still see errors:
+
+1. **Check the Prisma schema** matches the database:
+   ```bash
+   npx prisma db pull
+   ```
+   This will sync your schema with the actual database structure.
+
+2. **Then regenerate**:
+   ```bash
+   npx prisma generate
+   ```
+
+3. **Restart the dev server**

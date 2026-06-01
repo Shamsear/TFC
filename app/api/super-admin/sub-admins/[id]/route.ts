@@ -19,36 +19,65 @@ export async function PUT(
     const { name, isActive, assignedSeasons } = body
 
     // Get current user data
-    const currentUserResult = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT id, name, email, role, is_active, assigned_seasons
-      FROM users 
-      WHERE id = $1
-    `, id)
+    const currentUser = await prisma.users.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        subAdminSeasons: {
+          select: { seasonId: true }
+        }
+      }
+    })
 
-    if (!currentUserResult || currentUserResult.length === 0) {
+    if (!currentUser) {
       return NextResponse.json({ error: 'Sub-admin not found' }, { status: 404 })
     }
 
-    const currentUser = currentUserResult[0]
     if (currentUser.role !== 'SUB_ADMIN') {
       return NextResponse.json({ error: 'Can only update sub-admin accounts' }, { status: 400 })
     }
 
-    // Update sub-admin
-    await prisma.$executeRaw`
-      UPDATE users
-      SET 
-        name = ${name},
-        is_active = ${isActive},
-        assigned_seasons = ${JSON.stringify(assignedSeasons)},
-        updated_at = NOW()
-      WHERE id = ${id}
-    `
+    // Update sub-admin and season assignments in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Update user
+      await tx.users.update({
+        where: { id },
+        data: {
+          name,
+          isActive
+        }
+      })
+
+      // Delete existing season assignments
+      await tx.sub_admin_seasons.deleteMany({
+        where: { userId: id }
+      })
+
+      // Create new season assignments
+      if (assignedSeasons && assignedSeasons.length > 0) {
+        await tx.sub_admin_seasons.createMany({
+          data: assignedSeasons.map((seasonId: string) => ({
+            userId: id,
+            seasonId: seasonId
+          }))
+        })
+      }
+    })
 
     // Track changes
     const changes: any = {}
     if (currentUser.name !== name) changes.name = { from: currentUser.name, to: name }
-    if (currentUser.is_active !== isActive) changes.isActive = { from: currentUser.is_active, to: isActive }
+    if (currentUser.isActive !== isActive) changes.isActive = { from: currentUser.isActive, to: isActive }
+    
+    const oldSeasonIds = currentUser.subAdminSeasons.map(s => s.seasonId).sort()
+    const newSeasonIds = [...assignedSeasons].sort()
+    if (JSON.stringify(oldSeasonIds) !== JSON.stringify(newSeasonIds)) {
+      changes.assignedSeasons = { from: oldSeasonIds, to: newSeasonIds }
+    }
     
     // Create audit log
     await createAuditLog({
@@ -106,11 +135,10 @@ export async function DELETE(
     }
 
     // Deactivate instead of delete
-    await prisma.$executeRaw`
-      UPDATE users
-      SET is_active = false, updated_at = NOW()
-      WHERE id = ${id}
-    `
+    await prisma.users.update({
+      where: { id },
+      data: { isActive: false }
+    })
 
     // Create audit log
     await createAuditLog({

@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
 import { evaluateTeamAchievements } from '@/lib/achievements-engine'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function PATCH(
   request: NextRequest,
@@ -105,11 +106,86 @@ export async function PATCH(
       ) && homeScore !== null && awayScore !== null }
     })
 
-    // Evaluate achievements OUTSIDE the transaction — it's a heavy operation with many queries
-    // and would cause the parent transaction to time out
+    // Evaluate achievements ASYNCHRONOUSLY — don't block the response
+    // Run in background after responding to user
     if (updatedMatch.shouldEvaluateAchievements) {
-      await evaluateTeamAchievements(existingMatch.homeTeam.teamId)
-      await evaluateTeamAchievements(existingMatch.awayTeam.teamId)
+      // Fire and forget - don't await
+      (async () => {
+        try {
+          const homeResults = await evaluateTeamAchievements(existingMatch.homeTeam.teamId);
+          const awayResults = await evaluateTeamAchievements(existingMatch.awayTeam.teamId);
+
+          // Trigger news for badge unlocks
+          if (homeResults?.newBadgesUnlocked && homeResults.newBadgesUnlocked.length > 0) {
+            for (const badge of homeResults.newBadgesUnlocked) {
+              try {
+                await triggerNews('badge_unlocked', {
+                  season_id: badge.seasonId || seasonId,
+                  metadata: {
+                    team_name: existingMatch.homeTeam.team.name,
+                    badge_name: badge.def?.name || badge.key,
+                    badge_tier: badge.def?.tier || 'BRONZE',
+                    xp_earned: badge.def?.xpAward || 50
+                  }
+                });
+              } catch (newsErr) {
+                console.warn('[News AI] Failed to generate badge unlock news:', newsErr);
+              }
+            }
+          }
+
+          if (awayResults?.newBadgesUnlocked && awayResults.newBadgesUnlocked.length > 0) {
+            for (const badge of awayResults.newBadgesUnlocked) {
+              try {
+                await triggerNews('badge_unlocked', {
+                  season_id: badge.seasonId || seasonId,
+                  metadata: {
+                    team_name: existingMatch.awayTeam.team.name,
+                    badge_name: badge.def?.name || badge.key,
+                    badge_tier: badge.def?.tier || 'BRONZE',
+                    xp_earned: badge.def?.xpAward || 50
+                  }
+                });
+              } catch (newsErr) {
+                console.warn('[News AI] Failed to generate badge unlock news:', newsErr);
+              }
+            }
+          }
+
+          // Trigger news for level ups
+          if (homeResults?.leveledUp) {
+            try {
+              await triggerNews('team_level_up', {
+                season_id: seasonId,
+                metadata: {
+                  team_name: existingMatch.homeTeam.team.name,
+                  old_level: homeResults.oldLevel,
+                  new_level: homeResults.newLevel
+                }
+              });
+            } catch (newsErr) {
+              console.warn('[News AI] Failed to generate level up news:', newsErr);
+            }
+          }
+
+          if (awayResults?.leveledUp) {
+            try {
+              await triggerNews('team_level_up', {
+                season_id: seasonId,
+                metadata: {
+                  team_name: existingMatch.awayTeam.team.name,
+                  old_level: awayResults.oldLevel,
+                  new_level: awayResults.newLevel
+                }
+              });
+            } catch (newsErr) {
+              console.warn('[News AI] Failed to generate level up news:', newsErr);
+            }
+          }
+        } catch (err) {
+          console.error('[Achievements] Background evaluation failed:', err);
+        }
+      })();
     }
 
     // Create audit log
@@ -139,45 +215,98 @@ export async function PATCH(
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
 
-    // Notify both teams if the match was just completed
+    // Notify both teams if the match was just completed (async - don't block)
     if (status === 'COMPLETED' && existingMatch.status !== 'COMPLETED') {
-      try {
-        const homeManagerId = await getTeamManagerId(existingMatch.homeTeam.team.id);
-        const awayManagerId = await getTeamManagerId(existingMatch.awayTeam.team.id);
-        const matchTitle = `🏟️ Match Result Published`;
-        let matchBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`;
-        if (homePenalty !== null && awayPenalty !== null) {
-          matchBody += ` (${homePenalty}-${awayPenalty} pens)`;
+      // Fire and forget notifications
+      (async () => {
+        try {
+          const homeManagerId = await getTeamManagerId(existingMatch.homeTeam.team.id);
+          const awayManagerId = await getTeamManagerId(existingMatch.awayTeam.team.id);
+          const matchTitle = `🏟️ Match Result Published`;
+          let matchBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`;
+          if (homePenalty !== null && awayPenalty !== null) {
+            matchBody += ` (${homePenalty}-${awayPenalty} pens)`;
+          }
+          
+          if (homeManagerId) {
+            await sendPushNotificationRaw(homeManagerId, {
+              title: matchTitle,
+              body: matchBody,
+              url: `/team/matches/${matchId}`
+            }, 'general').catch(() => {});
+          }
+          if (awayManagerId) {
+            await sendPushNotificationRaw(awayManagerId, {
+              title: matchTitle,
+              body: matchBody,
+              url: `/team/matches/${matchId}`
+            }, 'general').catch(() => {});
+          }
+        } catch (notifErr) {
+          console.warn('[Push] Match result notification failed:', notifErr);
         }
         
-        if (homeManagerId) {
-          await sendPushNotificationRaw(homeManagerId, {
-            title: matchTitle,
-            body: matchBody,
-            url: `/team/matches/${matchId}`
-          }, 'general').catch(() => {});
+        // Notify admins
+        try {
+          await notifyAllAdmins({
+            title: 'Match Result Published',
+            body: `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`,
+            url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
+          }, seasonId).catch(() => {});
+        } catch (adminNotifErr) {
+          console.warn('[Push] Admin match result notification failed:', adminNotifErr);
         }
-        if (awayManagerId) {
-          await sendPushNotificationRaw(awayManagerId, {
-            title: matchTitle,
-            body: matchBody,
-            url: `/team/matches/${matchId}`
-          }, 'general').catch(() => {});
+
+        // Generate AI news for match completion
+        try {
+          const goalDiff = Math.abs(homeScore - awayScore);
+          const winner = homeScore > awayScore ? existingMatch.homeTeam.team.name : 
+                         awayScore > homeScore ? existingMatch.awayTeam.team.name : null;
+          
+          // Determine specific event type
+          let eventType: any = 'match_completed';
+          if (goalDiff >= 5) {
+            eventType = 'thrashing';
+          } else if (goalDiff === 1) {
+            eventType = 'close_match';
+          } else if (homeScore === 0 && awayScore === 0) {
+            eventType = 'boring_draw';
+          } else if ((homeScore + awayScore) >= 6) {
+            eventType = 'high_scoring';
+          }
+          
+          // Check for penalty shootout
+          if (homePenalty !== null && awayPenalty !== null) {
+            eventType = 'penalty_shootout';
+          }
+
+          // Get tournament name for news
+          const tournament = await prisma.tournaments.findUnique({
+            where: { id: tournamentId },
+            select: { name: true }
+          });
+
+          await triggerNews(eventType, {
+            season_id: seasonId,
+            metadata: {
+              home_team: existingMatch.homeTeam.team.name,
+              away_team: existingMatch.awayTeam.team.name,
+              home_score: homeScore,
+              away_score: awayScore,
+              winner,
+              goal_diff: goalDiff,
+              tournament_name: tournament?.name || 'Tournament',
+              round: round || existingMatch.round,
+              venue: venue || existingMatch.venue,
+              has_penalties: homePenalty !== null && awayPenalty !== null,
+              home_penalty: homePenalty,
+              away_penalty: awayPenalty
+            }
+          });
+        } catch (newsErr) {
+          console.warn('[News AI] Failed to generate match news:', newsErr);
         }
-      } catch (notifErr) {
-        console.warn('[Push] Match result notification failed:', notifErr);
-      }
-      
-      // Notify admins
-      try {
-        await notifyAllAdmins({
-          title: 'Match Result Published',
-          body: `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`,
-          url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
-        }, seasonId).catch(() => {});
-      } catch (adminNotifErr) {
-        console.warn('[Push] Admin match result notification failed:', adminNotifErr);
-      }
+      })();
     }
 
     return NextResponse.json(updatedMatch)

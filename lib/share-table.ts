@@ -1,6 +1,69 @@
 import { toPng } from 'html-to-image'
 
 /**
+ * Preload images by creating new Image objects
+ * This ensures images are in browser cache before capture
+ */
+async function preloadImages(element: HTMLElement): Promise<void> {
+  const images = Array.from(element.querySelectorAll('img'))
+  
+  if (images.length === 0) {
+    return Promise.resolve()
+  }
+
+  const preloadPromises = images
+    .filter(img => img.src && img.src !== '')
+    .map((img) => {
+      return new Promise<void>((resolve) => {
+        // If already loaded, resolve immediately
+        if (img.complete && img.naturalHeight > 0 && img.naturalWidth > 0) {
+          resolve()
+          return
+        }
+
+        // Create a new image to preload
+        const preloadImg = new Image()
+        preloadImg.crossOrigin = 'anonymous'
+        
+        let resolved = false
+        const cleanup = () => {
+          if (!resolved) {
+            resolved = true
+            preloadImg.onload = null
+            preloadImg.onerror = null
+          }
+        }
+
+        preloadImg.onload = () => {
+          cleanup()
+          // Update the original image src to trigger reload
+          const originalSrc = img.src
+          img.src = ''
+          img.src = originalSrc
+          // Wait a bit for the DOM to update
+          setTimeout(resolve, 50)
+        }
+
+        preloadImg.onerror = () => {
+          cleanup()
+          console.warn('Failed to preload image:', img.src)
+          resolve()
+        }
+
+        // Timeout
+        setTimeout(() => {
+          cleanup()
+          resolve()
+        }, 10000)
+
+        preloadImg.src = img.src
+      })
+    })
+
+  await Promise.all(preloadPromises)
+}
+
+/**
  * Wait for all images within an element to load
  * Enhanced for mobile compatibility
  */
@@ -14,7 +77,7 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
   const imagePromises = images.map((img) => {
     return new Promise<void>((resolve) => {
       // If image is already loaded and has valid dimensions
-      if (img.complete && img.naturalHeight !== 0 && img.naturalWidth !== 0) {
+      if (img.complete && img.naturalHeight > 0 && img.naturalWidth > 0) {
         resolve()
         return
       }
@@ -37,7 +100,7 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
       const onLoad = () => {
         cleanup()
         // Extra check to ensure image actually loaded
-        if (img.naturalHeight !== 0 && img.naturalWidth !== 0) {
+        if (img.naturalHeight > 0 && img.naturalWidth > 0) {
           resolve()
         } else {
           // If dimensions are still 0, wait a bit more
@@ -54,18 +117,20 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
       img.addEventListener('load', onLoad)
       img.addEventListener('error', onError)
 
-      // Timeout after 15 seconds (increased for mobile)
+      // Timeout after 20 seconds (increased for mobile)
       setTimeout(() => {
         cleanup()
         console.warn('Image load timeout:', img.src)
         resolve()
-      }, 15000)
+      }, 20000)
 
       // Force reload if image is in error state
       if (img.complete && img.naturalHeight === 0) {
         const currentSrc = img.src
         img.src = ''
-        img.src = currentSrc
+        setTimeout(() => {
+          img.src = currentSrc
+        }, 10)
       }
     })
   })
@@ -75,7 +140,7 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
 
 /**
  * Captures an HTMLElement as a PNG data URL.
- * The element should be positioned off-screen (absolute, left: -9999px)
+ * The element should be positioned off-screen (fixed, left: -9999px)
  * rather than display:none so layout calculations remain intact.
  * Waits for all images to load before capturing.
  */
@@ -83,12 +148,15 @@ export async function captureTableAsPng(
   element: HTMLElement,
   options?: { width?: number; backgroundColor?: string }
 ): Promise<string> {
-  // Wait for all images to load first
+  // First preload all images
+  await preloadImages(element)
+  
+  // Then wait for them to be rendered in the DOM
   await waitForImagesToLoad(element)
   
   // Longer delay for mobile devices to ensure rendering is complete
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  const delay = isMobile ? 500 : 200
+  const delay = isMobile ? 1000 : 300
   await new Promise(resolve => setTimeout(resolve, delay))
   
   return toPng(element, {
@@ -97,6 +165,7 @@ export async function captureTableAsPng(
     backgroundColor: options?.backgroundColor ?? '#0a0a0a',
     quality: 1,
     pixelRatio: 2, // retina-quality output
+    skipFonts: false,
   })
 }
 

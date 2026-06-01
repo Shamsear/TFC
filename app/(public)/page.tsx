@@ -142,9 +142,7 @@ export default async function PublicLandingPage() {
   const data = await getLandingPageData()
 
   return (
-    <>
-      <AuthRedirect />
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       <main>
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-26 pb-24 sm:pt-40 sm:pb-32">
@@ -397,6 +395,5 @@ export default async function PublicLandingPage() {
         )}
       </main>
     </div>
-    </>
   )
 }

@@ -5,6 +5,7 @@ import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
 import { generateSeasonId } from "@/lib/id-generator"
+import { triggerNews } from "@/lib/news/trigger"
 
 /**
  * GET /api/seasons
@@ -224,6 +225,23 @@ export async function POST(request: NextRequest) {
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Generate AI news for season creation
+    try {
+      await triggerNews('season_created', {
+        season_id: season.id,
+        season_name: season.name,
+        metadata: {
+          season_number: seasonNumber,
+          starting_purse: startingPurse,
+          min_squad: minSquad,
+          max_squad: maxSquad,
+          is_active: isActive ?? false
+        }
+      });
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate season creation news:', newsErr);
+    }
 
     return NextResponse.json(season, { status: 201 })
   } catch (error) {

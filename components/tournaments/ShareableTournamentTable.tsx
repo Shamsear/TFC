@@ -31,10 +31,10 @@ function TableSnapshot({
   }, {})
 
   const posStyle = (pos: number) =>
-    pos === 1 ? { background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(255,215,0,0.4)' } :
-    pos === 2 ? { background: 'linear-gradient(135deg, #E0E0E0, #9E9E9E)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(192,192,192,0.3)' } :
-    pos === 3 ? { background: 'linear-gradient(135deg, #CD7F32, #8B4513)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(205,127,50,0.3)' } :
-    { background: 'rgba(255,255,255,0.06)', color: '#A0988A' }
+    pos === 1 ? { background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(255,215,0,0.4)', overflow: 'hidden' } :
+    pos === 2 ? { background: 'linear-gradient(135deg, #E0E0E0, #9E9E9E)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(192,192,192,0.3)', overflow: 'hidden' } :
+    pos === 3 ? { background: 'linear-gradient(135deg, #CD7F32, #8B4513)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(205,127,50,0.3)', overflow: 'hidden' } :
+    { background: 'rgba(255,255,255,0.06)', color: '#A0988A', overflow: 'hidden' }
 
   return (
     <div
@@ -106,7 +106,7 @@ function TableSnapshot({
                     }}
                   >
                     <td style={{ padding: '16px 10px 16px 20px', width: '40px' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, overflow: 'hidden', ...ps }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, ...ps }}>
                         {pos}
                       </div>
                     </td>
@@ -122,6 +122,7 @@ function TableSnapshot({
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
+                          background: 'rgba(255,255,255,0.05)',
                         }}>
                           {row.seasonTeam.team.logoUrl ? (
                             <img
@@ -129,9 +130,11 @@ function TableSnapshot({
                               alt={row.seasonTeam.team.name}
                               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                               crossOrigin="anonymous"
+                              loading="eager"
+                              decoding="sync"
                             />
                           ) : (
-                            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#A0988A', background: 'rgba(255,255,255,0.05)', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#A0988A', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {row.seasonTeam.team.name.slice(0, 2).toUpperCase()}
                             </div>
                           )}
@@ -310,7 +313,15 @@ export default function ShareableTournamentTable({
 
       {/* Off-screen snapshot */}
       <div
-        style={{ position: 'absolute', left: '-9999px', top: 0, pointerEvents: 'none' }}
+        style={{ 
+          position: 'fixed', 
+          left: '-9999px', 
+          top: '-9999px',
+          width: '1200px',
+          pointerEvents: 'none',
+          visibility: 'hidden',
+          zIndex: -1
+        }}
         aria-hidden="true"
       >
         <div ref={snapshotRef}>

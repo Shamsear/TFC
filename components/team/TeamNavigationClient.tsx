@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
@@ -26,10 +26,26 @@ interface TeamNavigationClientProps {
 
 export default function TeamNavigationClient({ user, team, activeSeason, isInActiveSeason }: TeamNavigationClientProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [unreadCount, setUnreadCount] = useState(0)
+
+  const handleSignOut = async () => {
+    try {
+      // Call the signOut function which will clear the session
+      await signOut({ 
+        redirect: false
+      })
+      // Force a hard redirect to clear any cached state
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Even if there's an error, redirect to home
+      window.location.href = '/'
+    }
+  }
 
   const fetchUnreadCount = async () => {
     try {
@@ -277,7 +293,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
                     </Link>
                   )}
                   <button
-                    onClick={() => signOut({ callbackUrl: "/" })}
+                    onClick={handleSignOut}
                     className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-wider text-red-400 hover:bg-white/[0.02] hover:text-red-300 transition-all flex items-center gap-2.5 cursor-pointer"
                   >
                     <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -361,7 +377,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
                 </Link>
                 
                 <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
+                  onClick={handleSignOut}
                   className="w-full px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-xl font-black text-xs uppercase tracking-wider text-center transition-all cursor-pointer shadow-[0_0_20px_rgba(232,168,0,0.3)]"
                 >
                   Sign Out

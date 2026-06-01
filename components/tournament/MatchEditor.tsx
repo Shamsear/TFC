@@ -41,7 +41,7 @@ export default function MatchEditor({ match, seasonId, tournamentId }: MatchEdit
     match.homeScore > match.awayScore ? 'home' : 'away'
   )
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, forceComplete = false) => {
     e.preventDefault()
     setLoading(true)
     setError('')
@@ -50,12 +50,16 @@ export default function MatchEditor({ match, seasonId, tournamentId }: MatchEdit
     const finalHomeScore = isWalkover ? (walkoverWinner === 'home' ? 3 : 0) : (formData.homeScore === '' ? null : parseInt(formData.homeScore as any))
     const finalAwayScore = isWalkover ? (walkoverWinner === 'away' ? 3 : 0) : (formData.awayScore === '' ? null : parseInt(formData.awayScore as any))
 
+    // If forceComplete is true, set status to COMPLETED
+    const finalStatus = forceComplete ? 'COMPLETED' : formData.status
+
     try {
       const response = await fetch(`/api/seasons/${seasonId}/tournaments/${tournamentId}/matches/${match.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          status: finalStatus,
           homeScore: finalHomeScore,
           awayScore: finalAwayScore,
           homePenalty: formData.homePenalty === '' ? null : parseInt(formData.homePenalty as any),
@@ -343,7 +347,8 @@ export default function MatchEditor({ match, seasonId, tournamentId }: MatchEdit
           Cancel
         </button>
         <button
-          type="submit"
+          type="button"
+          onClick={(e) => handleSubmit(e as any, true)}
           disabled={loading}
           className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base flex items-center justify-center gap-2"
         >

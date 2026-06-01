@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(
   request: NextRequest,
@@ -111,6 +112,21 @@ export async function POST(
       }
     } catch (notifErr) {
       console.warn('[Push] Release approve notification failed (non-fatal):', notifErr);
+    }
+
+    // Generate AI news for release approval
+    try {
+      await triggerNews('release_request_approved', {
+        season_id: releaseRequest.seasonId,
+        season_name: releaseRequest.season.name,
+        metadata: {
+          team_name: releaseRequest.team.name,
+          player_name: releaseRequest.playerName,
+          refund_amount: releaseRequest.refundAmount
+        }
+      });
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate release approval news:', newsErr);
     }
 
     return NextResponse.json({ success: true })

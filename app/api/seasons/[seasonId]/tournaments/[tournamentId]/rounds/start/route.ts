@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(
   request: NextRequest,
@@ -115,6 +116,29 @@ export async function POST(
       }, seasonId)
     } catch (err) {
       console.warn('Failed to notify admins for round start:', err)
+    }
+
+    // Trigger news for match started
+    try {
+      const season = await prisma.seasons.findUnique({
+        where: { id: seasonId },
+        select: { name: true }
+      });
+
+      if (season) {
+        await triggerNews('match_started', {
+          season_id: seasonId,
+          season_name: season.name,
+          metadata: {
+            tournament_name: tournament.name,
+            round: round,
+            match_count: matchesInRound.length,
+            deadline: formattedDeadline
+          }
+        });
+      }
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate match started news:', newsErr);
     }
 
     return NextResponse.json({ success: true, updatedMatches: matchesInRound.length })

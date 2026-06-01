@@ -5,23 +5,32 @@ import SubAdminForm from '@/components/admin/SubAdminForm'
 
 async function getSubAdmin(id: string) {
   try {
-    const user = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT id, name, email, role, is_active, assigned_seasons
-      FROM users 
-      WHERE id = $1 AND role = 'SUB_ADMIN'
-    `, id)
+    const user = await prisma.users.findUnique({
+      where: { 
+        id,
+        role: 'SUB_ADMIN'
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isActive: true,
+        subAdminSeasons: {
+          select: { seasonId: true }
+        }
+      }
+    })
 
-    if (!user || user.length === 0) {
+    if (!user) {
       return null
     }
 
-    const userData = user[0]
     return {
-      id: userData.id,
-      name: userData.name,
-      email: userData.email,
-      isActive: userData.is_active || false,
-      assignedSeasons: userData.assigned_seasons ? JSON.parse(userData.assigned_seasons as string) : []
+      id: user.id,
+      name: user.name || '',
+      email: user.email,
+      isActive: user.isActive,
+      assignedSeasons: user.subAdminSeasons.map(s => s.seasonId)
     }
   } catch (error) {
     console.error('Error fetching sub-admin:', error)

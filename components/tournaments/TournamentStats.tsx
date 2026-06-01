@@ -8,6 +8,7 @@ import StatsPoster from './StatsPoster'
 
 export interface TeamStatRow {
   teamId: string
+  seasonTeamId: string
   teamName: string
   logoUrl?: string | null
   played: number
@@ -19,6 +20,9 @@ export interface TeamStatRow {
   goalDiff: number
   points: number
   cleanSheets?: number
+  managerName?: string
+  position?: number
+  primaryColor?: string
 }
 
 type Tab = 'golden-boot' | 'golden-ball' | 'golden-glove'
@@ -143,8 +147,11 @@ export default function TournamentStats({
 
         return {
           teamId: team.teamId || team.id,
+          seasonTeamId: team.id,
           teamName: team.name,
           logoUrl: team.logoUrl,
+          managerName: team.managerName,
+          primaryColor: team.primaryColor,
           played,
           won,
           drawn,
@@ -285,7 +292,16 @@ export default function TournamentStats({
   return (
     <div className="space-y-6">
       {/* Off-screen Image Render Container */}
-      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', overflow: 'hidden' }}>
+      <div style={{ 
+        position: 'fixed', 
+        left: '-9999px', 
+        top: '-9999px', 
+        width: '800px',
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        visibility: 'hidden',
+        zIndex: -1
+      }}>
         <div
           ref={snapshotRef}
           style={{
@@ -460,6 +476,7 @@ export default function TournamentStats({
           roundLabel={activeRoundLimit}
           activeAward={activeTab}
           imageTeamsLimit={imageTeamsLimit}
+          matches={matches}
         />
       )}
 

@@ -1,13 +1,13 @@
-// XP bounty values
+// XP bounty values - Further reduced for slower, more meaningful progression
 export const XP_VALUES = {
-  MATCH_PLAYED: 20,
-  MATCH_WON: 100,
-  MATCH_DRAWN: 40,
-  GOAL_SCORED: 10,
-  BADGE_BRONZE: 50,
-  BADGE_SILVER: 150,
-  BADGE_GOLD: 300,
-  BADGE_PLATINUM: 600,
+  MATCH_PLAYED: 5,     // Base participation
+  MATCH_WON: 25,       // Win reward
+  MATCH_DRAWN: 10,     // Draw reward
+  GOAL_SCORED: 2,      // Per goal
+  BADGE_BRONZE: 15,    // Reduced from 25
+  BADGE_SILVER: 30,    // Reduced from 50
+  BADGE_GOLD: 60,      // Reduced from 100
+  BADGE_PLATINUM: 150, // Reduced from 250
 };
 
 // Custom badge type interface
@@ -59,14 +59,14 @@ export const BADGE_DEFINITIONS: Record<string, BadgeDef> = {
 };
 
 /**
- * Calculates a team's level based on cumulative XP using the exponential curve:
- * XP Required = Level * 500
- * Cumulative XP = 250 * (Level - 1) * Level
- * Reversing this quadratic formula: Level = Math.floor((1 + Math.sqrt(1 + XP / 62.5)) / 2)
+ * Calculates a team's level based on cumulative XP using a steeper exponential curve:
+ * XP Required = Level^2 * 400
+ * This creates a more challenging progression where higher levels require significantly more XP
  */
 export function calculateLevelFromXP(xp: number): number {
   if (xp <= 0) return 1;
-  const level = Math.floor((1 + Math.sqrt(1 + xp / 62.5)) / 2);
+  // Using quadratic formula: Level = sqrt(XP / 400)
+  const level = Math.floor(Math.sqrt(xp / 400)) + 1;
   return Math.max(1, level);
 }
 
@@ -75,14 +75,16 @@ export function calculateLevelFromXP(xp: number): number {
  */
 export function getCumulativeXPForLevel(level: number): number {
   if (level <= 1) return 0;
-  return 250 * (level - 1) * level;
+  // Sum of squares formula: 400 * (level-1)^2
+  return 400 * (level - 1) * (level - 1);
 }
 
 /**
  * Returns the XP needed to progress from current level to the next level.
  */
 export function getXPForNextLevel(level: number): number {
-  return level * 500;
+  // Difference between consecutive levels
+  return getCumulativeXPForLevel(level + 1) - getCumulativeXPForLevel(level);
 }
 
 /**

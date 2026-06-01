@@ -39,24 +39,33 @@ export async function POST(request: NextRequest) {
     // Hash password with bcrypt (cost 12, $2b$ prefix)
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create sub-admin
+    // Create sub-admin and season assignments in a transaction
     const userId = await generateUserId()
     
-    await prisma.$executeRaw`
-      INSERT INTO users (id, name, email, password, role, created_by, is_active, assigned_seasons, created_at, updated_at)
-      VALUES (
-        ${userId},
-        ${name},
-        ${email},
-        ${hashedPassword},
-        'SUB_ADMIN',
-        ${createdBy},
-        true,
-        ${JSON.stringify(assignedSeasons || [])},
-        NOW(),
-        NOW()
-      )
-    `
+    await prisma.$transaction(async (tx) => {
+      // Create the user
+      await tx.users.create({
+        data: {
+          id: userId,
+          name,
+          email,
+          passwordHash: hashedPassword,
+          role: 'SUB_ADMIN',
+          createdBy: createdBy,
+          isActive: true
+        }
+      })
+
+      // Create season assignments
+      if (assignedSeasons && assignedSeasons.length > 0) {
+        await tx.sub_admin_seasons.createMany({
+          data: assignedSeasons.map((seasonId: string) => ({
+            userId: userId,
+            seasonId: seasonId
+          }))
+        })
+      }
+    })
 
     // Create audit log
     await createAuditLog({

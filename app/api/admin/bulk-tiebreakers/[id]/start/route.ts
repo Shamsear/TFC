@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server';
+import { triggerNews } from '@/lib/news/trigger';
 
 /**
  * POST /api/admin/bulk-tiebreakers/[id]/start - Start/activate a bulk tiebreaker
@@ -29,6 +30,21 @@ export async function POST(
         basePlayer: {
           select: {
             name: true
+          }
+        },
+        round: {
+          select: {
+            seasonId: true,
+            season: {
+              select: {
+                name: true
+              }
+            }
+          }
+        },
+        participants: {
+          select: {
+            teamId: true
           }
         }
       }
@@ -62,6 +78,20 @@ export async function POST(
     }
 
     console.log(`✅ Bulk tiebreaker ${tiebreakerId} activated for ${tiebreaker.basePlayer.name}`);
+
+    // Trigger news for bulk tiebreaker creation/start
+    try {
+      await triggerNews('bulk_tiebreaker_created', {
+        season_id: tiebreaker.round.seasonId,
+        season_name: tiebreaker.round.season.name,
+        metadata: {
+          player_name: tiebreaker.basePlayer.name,
+          participant_count: tiebreaker.participants.length
+        }
+      });
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate bulk tiebreaker start news:', newsErr);
+    }
 
     // Notify all participating teams that the bulk tiebreaker is now live
     try {

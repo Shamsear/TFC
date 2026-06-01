@@ -93,7 +93,6 @@ async function main() {
         passwordHash: hashedPassword,
         role: 'SUPER_ADMIN',
         isActive: true,
-        assignedSeasons: [],
         createdAt: new Date(),
         updatedAt: new Date()
       }

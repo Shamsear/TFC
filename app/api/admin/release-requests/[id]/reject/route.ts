@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(
   request: NextRequest,
@@ -57,6 +58,32 @@ export async function POST(
       }
     } catch (notifErr) {
       console.warn('[Push] Release reject notification failed (non-fatal):', notifErr);
+    }
+
+    // Trigger news for release request rejection
+    try {
+      const team = await prisma.teams.findUnique({
+        where: { id: releaseRequest.teamId },
+        select: { name: true }
+      });
+      const season = await prisma.seasons.findUnique({
+        where: { id: releaseRequest.seasonId },
+        select: { name: true }
+      });
+
+      if (team && season) {
+        await triggerNews('release_request_rejected', {
+          season_id: releaseRequest.seasonId,
+          season_name: season.name,
+          metadata: {
+            team_name: team.name,
+            player_name: releaseRequest.playerName,
+            rejection_reason: reason
+          }
+        });
+      }
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate release rejection news:', newsErr);
     }
 
     return NextResponse.json({ success: true })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(
   request: NextRequest,
@@ -145,6 +146,27 @@ export async function POST(
       }
     } catch (notifErr) {
       console.warn('[Push] Swap approve notification failed (non-fatal):', notifErr);
+    }
+
+    // Generate AI news for swap approval
+    try {
+      const playersFromReq = swapRequest.players.filter(p => p.fromTeamId === swapRequest.requestingTeamId);
+      const playersFromTgt = swapRequest.players.filter(p => p.fromTeamId === swapRequest.targetTeamId);
+      
+      await triggerNews('swap_request_approved', {
+        season_id: swapRequest.seasonId,
+        season_name: swapRequest.season.name,
+        metadata: {
+          requesting_team: swapRequest.requestingTeam.name,
+          target_team: swapRequest.targetTeam.name,
+          player_count: playersFromReq.length,
+          swap_type: `${playersFromReq.length}-for-${playersFromTgt.length}`,
+          players_out_req: playersFromReq.map(p => p.playerName).join(', '),
+          players_in_req: playersFromTgt.map(p => p.playerName).join(', ')
+        }
+      });
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate swap approval news:', newsErr);
     }
 
     return NextResponse.json({ success: true })

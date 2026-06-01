@@ -202,8 +202,7 @@ export async function POST(request: NextRequest) {
           role: "TEAM_MANAGER",
           teamId: team.id,
           createdBy: session.user.id,
-          isActive: true,
-          assignedSeasons: season ? [season.id] : []
+          isActive: true
         }
       })
 
@@ -223,7 +222,7 @@ export async function POST(request: NextRequest) {
         managerName: result.team.managerName,
         logoUrl: result.team.logoUrl,
         userEmail: email,
-        assignedSeasons: season ? [season.id] : []
+        seasonId: season?.id
       },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'

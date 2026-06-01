@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { notifyAllAdmins } from '@/lib/notifications-server'
 import { randomUUID } from 'crypto'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -136,6 +137,33 @@ export async function POST(request: NextRequest) {
       }, seasonId);
     } catch (notifErr) {
       console.warn('[Push] Admin release request notification failed:', notifErr);
+    }
+
+    // Trigger news for release request submission
+    try {
+      const teamData = await prisma.teams.findUnique({ 
+        where: { id: teamId }, 
+        select: { name: true } 
+      });
+      const season = await prisma.seasons.findUnique({
+        where: { id: seasonId },
+        select: { name: true }
+      });
+      
+      if (teamData && season) {
+        await triggerNews('release_request_submitted', {
+          season_id: seasonId,
+          season_name: season.name,
+          metadata: {
+            team_name: teamData.name,
+            player_count: requests.length,
+            player_names: requests.map(r => r.playerName).join(', '),
+            total_refund: requests.reduce((sum, r) => sum + r.refundAmount, 0)
+          }
+        });
+      }
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate release request news:', newsErr);
     }
 
     return NextResponse.json({ success: true, requests })

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { generateTournamentId, generateIds, ID_PREFIXES } from '@/lib/id-generator'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(
   request: NextRequest,
@@ -146,6 +147,29 @@ export async function POST(
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
+
+    // Generate AI news for tournament creation
+    try {
+      const season = await prisma.seasons.findUnique({
+        where: { id: seasonId },
+        select: { name: true }
+      });
+
+      await triggerNews('tournament_created', {
+        season_id: seasonId,
+        season_name: season?.name,
+        metadata: {
+          tournament_name: tournament.name,
+          tournament_type: tournamentType,
+          team_count: selectedTeams.length,
+          start_date: startDate,
+          has_groups: tournamentType === 'GROUP_KNOCKOUT',
+          num_groups: numGroups
+        }
+      });
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate tournament creation news:', newsErr);
+    }
 
     return NextResponse.json(tournament, { status: 201 })
   } catch (error) {

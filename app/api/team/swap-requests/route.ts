@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
+import { triggerNews } from '@/lib/news/trigger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -252,6 +253,38 @@ export async function POST(request: NextRequest) {
       }, seasonId);
     } catch (notifErr) {
       console.warn('[Push] Admin swap request notification failed:', notifErr);
+    }
+
+    // Trigger news for swap request submission
+    try {
+      const requestingTeamData = await prisma.teams.findUnique({
+        where: { id: requestingTeamId },
+        select: { name: true }
+      });
+      const targetTeamData = await prisma.teams.findUnique({
+        where: { id: targetTeamId },
+        select: { name: true }
+      });
+      const season = await prisma.seasons.findUnique({
+        where: { id: seasonId },
+        select: { name: true }
+      });
+
+      if (requestingTeamData && targetTeamData && season) {
+        await triggerNews('swap_request_submitted', {
+          season_id: seasonId,
+          season_name: season.name,
+          metadata: {
+            requesting_team: requestingTeamData.name,
+            target_team: targetTeamData.name,
+            player_count: players.length / 2,
+            swap_type: `${playersFromRequesting.length}-for-${playersFromTarget.length}`,
+            player_names: players.map((p: any) => p.playerName).join(', ')
+          }
+        });
+      }
+    } catch (newsErr) {
+      console.warn('[News AI] Failed to generate swap request news:', newsErr);
     }
 
     return NextResponse.json({ success: true, request: transformedRequest })

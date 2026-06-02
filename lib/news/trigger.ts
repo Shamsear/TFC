@@ -2,6 +2,7 @@ import { NewsEventType, NewsCategory, NewsGenerationInput } from './types';
 import { generateBilingualNews } from './auto-generate';
 import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
+import { generateNewsImage } from './image-generator';
 
 /**
  * Determine category from event type
@@ -50,15 +51,23 @@ export async function triggerNews(
     // Generate bilingual news content with AI
     const result = await generateBilingualNews(input);
     
-    // Create news record directly in database
+    // Create news record ID
     const newsId = `NEWS-${randomUUID()}`;
+    
+    // Generate image poster
+    let imageUrl = '';
+    try {
+      imageUrl = await generateNewsImage(newsId, eventType, data.metadata || {});
+    } catch (imgError) {
+      console.warn('[News Trigger] Image generation failed:', imgError);
+    }
     
     await prisma.$executeRawUnsafe(`
       INSERT INTO news (
         id, title_en, title_ml, content_en, content_ml, summary_en, summary_ml,
         category, event_type, season_id, season_name, tone,
         reporter_en, reporter_ml, metadata, generated_by, is_published,
-        created_at, updated_at
+        image_url, created_at, updated_at
       ) VALUES (
         '${newsId}',
         '${result.en.title.replace(/'/g, "''")}',
@@ -76,7 +85,8 @@ export async function triggerNews(
         '${result.ml.reporter}',
         ${input.metadata ? `'${JSON.stringify(input.metadata)}'::jsonb` : 'NULL'},
         'ai',
-        false,
+        true,
+        ${imageUrl ? `'${imageUrl}'` : 'NULL'},
         NOW(),
         NOW()
       )

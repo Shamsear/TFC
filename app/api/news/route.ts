@@ -38,19 +38,18 @@ export async function GET(request: NextRequest) {
       where.category = category;
     }
 
-    const news = await prisma.$queryRawUnsafe(`
-      SELECT * FROM news
-      WHERE ${Object.keys(where).length > 0 ? Object.entries(where).map(([key, value]) => 
-        typeof value === 'boolean' ? `${key} = ${value}` : `${key} = '${value}'`
-      ).join(' AND ') : '1=1'}
-      ORDER BY created_at DESC
-      LIMIT ${limit}
-    `);
+    const news = await prisma.news.findMany({
+      where,
+      orderBy: {
+        created_at: 'desc'
+      },
+      take: limit
+    });
 
     return NextResponse.json({
       success: true,
       news,
-      count: Array.isArray(news) ? news.length : 0
+      count: news.length
     });
   } catch (error: any) {
     console.error('[News API] GET error:', error);

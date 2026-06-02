@@ -54,24 +54,24 @@ ${context ? `- Additional Context: ${context}` : ''}
 TASK:
 Write a news article about this event in English. The article should be:
 1. Engaging and well-written
-2. 2-3 paragraphs (150-200 words total)
+2. 2 short paragraphs (100-150 words total - KEEP IT BRIEF)
 3. Appropriate for the ${tone} tone
 4. Focused on the key facts and story
 
-OUTPUT FORMAT (JSON):
+OUTPUT FORMAT - Return ONLY this JSON structure with NO markdown:
 {
-  "title": "Headline (under 80 characters)",
-  "content": "2-3 paragraphs of article content",
-  "summary": "One sentence summary (under 100 characters)"
+  "title": "Headline (max 70 chars)",
+  "content": "2 short paragraphs (100-150 words max)",
+  "summary": "One sentence (max 90 chars)"
 }
 
-IMPORTANT:
-- Return ONLY valid JSON, no markdown formatting
-- Title must be under 80 characters
-- Summary must be under 100 characters
-- Content should be 150-200 words
-- Match the ${tone} tone throughout
-- Be creative and unique - avoid generic phrases
+CRITICAL RULES:
+- Output ONLY the JSON object, NO markdown code blocks with backticks
+- Keep content under 150 words
+- Title under 70 characters
+- Summary under 90 characters
+- Match the ${tone} tone
+- Be concise and impactful
 ` : `
 നിങ്ങൾ ${reporter} ആണ്, TFC ലീഗ് കവർ ചെയ്യുന്ന ഒരു സ്പോർട്സ് ജേണലിസ്റ്റ്.
 
@@ -87,24 +87,24 @@ ${context ? `- അധിക സന്ദർഭം: ${context}` : ''}
 ചുമതല:
 ഈ ഇവന്റിനെക്കുറിച്ച് മലയാളത്തിൽ ഒരു വാർത്താ ലേഖനം എഴുതുക. ലേഖനം ഇങ്ങനെയായിരിക്കണം:
 1. ആകർഷകവും നന്നായി എഴുതിയതും
-2. 2-3 ഖണ്ഡികകൾ (മൊത്തം 150-200 വാക്കുകൾ)
+2. 2 ചെറിയ ഖണ്ഡികകൾ (മൊത്തം 100-150 വാക്കുകൾ - ചെറുതായി നിലനിർത്തുക)
 3. ${tone} ടോണിന് അനുയോജ്യം
 4. പ്രധാന വസ്തുതകളിലും കഥയിലും ശ്രദ്ധ കേന്ദ്രീകരിച്ചത്
 
-ഔട്ട്പുട്ട് ഫോർമാറ്റ് (JSON):
+ഔട്ട്പുട്ട് ഫോർമാറ്റ് - മാർക്ക്ഡൗൺ ഇല്ലാതെ ഈ JSON ഘടന മാത്രം തിരികെ നൽകുക:
 {
-  "title": "തലക്കെട്ട് (80 അക്ഷരങ്ങൾക്ക് താഴെ)",
-  "content": "ലേഖന ഉള്ളടക്കത്തിന്റെ 2-3 ഖണ്ഡികകൾ",
-  "summary": "ഒരു വാക്യ സംഗ്രഹം (100 അക്ഷരങ്ങൾക്ക് താഴെ)"
+  "title": "തലക്കെട്ട് (പരമാവധി 70 അക്ഷരങ്ങൾ)",
+  "content": "2 ചെറിയ ഖണ്ഡികകൾ (പരമാവധി 100-150 വാക്കുകൾ)",
+  "summary": "ഒരു വാക്യം (പരമാവധി 90 അക്ഷരങ്ങൾ)"
 }
 
-പ്രധാനം:
-- സാധുവായ JSON മാത്രം തിരികെ നൽകുക, മാർക്ക്ഡൗൺ ഫോർമാറ്റിംഗ് വേണ്ട
-- തലക്കെട്ട് 80 അക്ഷരങ്ങൾക്ക് താഴെയായിരിക്കണം
-- സംഗ്രഹം 100 അക്ഷരങ്ങൾക്ക് താഴെയായിരിക്കണം
-- ഉള്ളടക്കം 150-200 വാക്കുകൾ ആയിരിക്കണം
-- ${tone} ടോൺ മുഴുവൻ പാലിക്കുക
-- സർഗ്ഗാത്മകവും അദ്വിതീയവുമായിരിക്കുക - സാധാരണ വാക്യങ്ങൾ ഒഴിവാക്കുക
+പ്രധാന നിയമങ്ങൾ:
+- JSON ഒബ്ജക്റ്റ് മാത്രം ഔട്ട്പുട്ട് ചെയ്യുക, ബാക്ക്ടിക്കുകളുള്ള മാർക്ക്ഡൗൺ കോഡ് ബ്ലോക്കുകൾ വേണ്ട
+- ഉള്ളടക്കം 150 വാക്കുകൾക്ക് താഴെ നിലനിർത്തുക
+- തലക്കെട്ട് 70 അക്ഷരങ്ങൾക്ക് താഴെ
+- സംഗ്രഹം 90 അക്ഷരങ്ങൾക്ക് താഴെ
+- ${tone} ടോൺ പാലിക്കുക
+- സംക്ഷിപ്തവും ആഘാതകരവുമായിരിക്കുക
 `;
 
   return basePrompt.trim();

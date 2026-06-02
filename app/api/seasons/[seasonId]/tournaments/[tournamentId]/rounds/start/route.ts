@@ -118,27 +118,34 @@ export async function POST(
       console.warn('Failed to notify admins for round start:', err)
     }
 
-    // Trigger news for match started
+    // Trigger news for matchday started - ONE overview article
     try {
       const season = await prisma.seasons.findUnique({
         where: { id: seasonId },
         select: { name: true }
       });
 
-      if (season) {
-        await triggerNews('match_started', {
+      if (season && matchesInRound.length > 0) {
+        // Create list of all matches
+        const matchList = matchesInRound.map(m => 
+          `${m.homeTeam.team.name} vs ${m.awayTeam.team.name}`
+        ).join(', ');
+
+        // Generate ONE matchday overview article
+        await triggerNews('matchday_started', {
           season_id: seasonId,
           season_name: season.name,
           metadata: {
             tournament_name: tournament.name,
             round: round,
             match_count: matchesInRound.length,
-            deadline: formattedDeadline
+            deadline: formattedDeadline,
+            matches: matchList
           }
         });
       }
     } catch (newsErr) {
-      console.warn('[News AI] Failed to generate match started news:', newsErr);
+      console.warn('[News AI] Failed to generate matchday overview:', newsErr);
     }
 
     return NextResponse.json({ success: true, updatedMatches: matchesInRound.length })

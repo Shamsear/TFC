@@ -29,6 +29,11 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [mobileGroupsOpen, setMobileGroupsOpen] = useState<{[key: string]: boolean}>({
+    squad: false,
+    competition: false,
+    info: false
+  })
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -325,22 +330,86 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/5 relative z-10 animate-[fadeIn_0.2s_ease-out]">
-            <nav className="flex flex-col gap-3.5 px-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`text-xs font-black uppercase tracking-wider transition-colors py-1.5 ${
-                    isActive(item.href)
-                      ? "text-[#FFB347]"
-                      : "text-gray-500 hover:text-white"
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
+          <div className="md:hidden py-4 border-t border-white/5 relative z-10 animate-[fadeIn_0.2s_ease-out] max-h-[70vh] overflow-y-auto">
+            <nav className="flex flex-col gap-2 px-2">
+              {/* Main Links */}
+              <Link
+                href="/team"
+                className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${
+                  isActive("/team")
+                    ? "text-[#FFB347] bg-white/[0.03]"
+                    : "text-gray-500 hover:text-white"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+
+              {/* Squad & Players Group */}
+              <div className="border-t border-white/5 pt-2">
+                <button
+                  onClick={() => setMobileGroupsOpen(prev => ({ ...prev, squad: !prev.squad }))}
+                  className="w-full flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-400 py-2 px-3"
                 >
-                  {item.name}
-                </Link>
-              ))}
+                  <span>Squad & Players</span>
+                  <svg className={`w-4 h-4 transition-transform ${mobileGroupsOpen.squad ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {mobileGroupsOpen.squad && (
+                  <div className="flex flex-col gap-1 pl-3">
+                    <Link href="/team/squad" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/squad") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Squad</Link>
+                    <Link href="/team/players" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/players") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Players</Link>
+                    <Link href="/team/starred" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/starred") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Starred</Link>
+                    <Link href="/team/teams" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/teams") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Teams</Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Transfers & Auction */}
+              <Link href="/team/transfers" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/transfers") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Transfers</Link>
+              <Link href="/team/auction" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/auction") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Auction</Link>
+
+              {/* Competition Group */}
+              <div className="border-t border-white/5 pt-2">
+                <button
+                  onClick={() => setMobileGroupsOpen(prev => ({ ...prev, competition: !prev.competition }))}
+                  className="w-full flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-400 py-2 px-3"
+                >
+                  <span>Competition</span>
+                  <svg className={`w-4 h-4 transition-transform ${mobileGroupsOpen.competition ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {mobileGroupsOpen.competition && (
+                  <div className="flex flex-col gap-1 pl-3">
+                    <Link href="/team/matches" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/matches") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Matches</Link>
+                    <Link href="/team/tournaments" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/tournaments") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Tournaments</Link>
+                    <Link href="/team/calendar" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/calendar") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Calendar</Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Info & Stats Group */}
+              <div className="border-t border-white/5 pt-2">
+                <button
+                  onClick={() => setMobileGroupsOpen(prev => ({ ...prev, info: !prev.info }))}
+                  className="w-full flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-400 py-2 px-3"
+                >
+                  <span>Info & Stats</span>
+                  <svg className={`w-4 h-4 transition-transform ${mobileGroupsOpen.info ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {mobileGroupsOpen.info && (
+                  <div className="flex flex-col gap-1 pl-3">
+                    <Link href="/team/finances" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/finances") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Finances</Link>
+                    <Link href="/team/retentions" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/retentions") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Retentions</Link>
+                    <Link href="/team/achievements" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/achievements") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Achievements</Link>
+                    <Link href="/team/news" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/news") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>News</Link>
+                  </div>
+                )}
+              </div>
               
               {/* Mobile Team Info */}
               <div className="pt-4 border-t border-white/5 mt-2">

@@ -17,6 +17,12 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "seed:test": "node seed-test-data.js",
     "db:reset": "tsx scripts/reset-database-with-clean-ids.ts",
+    "news:regen": "tsx scripts/regenerate-matchday1-news.ts",
+    "news:regen-simple": "tsx scripts/regenerate-matchday1-news-simple.ts",
+    "news:matchday-complete": "tsx scripts/generate-matchday-completion-news.ts",
+    "news:matchday": "tsx scripts/generate-matchday-news.ts",
+    "news:list-rounds": "tsx scripts/list-rounds.ts",
+    "news:generate-images": "tsx scripts/generate-news-images.ts",
     "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm', 'public/sql-wasm.wasm')\""
   },
   "prisma": {
@@ -38,6 +44,7 @@
     "autoprefixer": "^10.5.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.9.0",
+    "canvas": "^3.2.3",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",

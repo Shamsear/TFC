@@ -45,6 +45,37 @@ function parseAIResponse(text: string): { title: string; content: string; summar
       }
     }
   } catch (e) {
+    // Continue to fallback strategies
+  }
+
+  try {
+    // Strategy 4: Try to extract incomplete JSON and complete it
+    // Look for opening brace and try to find the fields
+    const titleMatch = text.match(/"title"\s*:\s*"([^"]+)"/);
+    const contentMatch = text.match(/"content"\s*:\s*"([^"]*(?:\\.[^"]*)*)/);
+    const summaryMatch = text.match(/"summary"\s*:\s*"([^"]+)"/);
+    
+    if (titleMatch && contentMatch) {
+      // Extract content - it might be incomplete
+      let content = contentMatch[1];
+      // If content doesn't end properly, truncate at last complete sentence
+      if (!text.includes(`"${content}"`) || !summaryMatch) {
+        const lastPeriod = content.lastIndexOf('.');
+        const lastQuestion = content.lastIndexOf('?');
+        const lastExclaim = content.lastIndexOf('!');
+        const lastSentenceEnd = Math.max(lastPeriod, lastQuestion, lastExclaim);
+        if (lastSentenceEnd > 0) {
+          content = content.substring(0, lastSentenceEnd + 1);
+        }
+      }
+      
+      return {
+        title: titleMatch[1],
+        content: content,
+        summary: summaryMatch ? summaryMatch[1] : titleMatch[1].substring(0, 100)
+      };
+    }
+  } catch (e) {
     // All strategies failed
   }
 

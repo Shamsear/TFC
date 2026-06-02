@@ -1136,3 +1136,31 @@ model manager_teams {
   @@index([managerId])
   @@index([teamId])
 }
+
+model news {
+  id            String    @id
+  title_en      String
+  title_ml      String?
+  content_en    String
+  content_ml    String?
+  summary_en    String?
+  summary_ml    String?
+  category      String
+  event_type    String
+  season_id     String?
+  season_name   String?
+  tone          String?
+  reporter_en   String?
+  reporter_ml   String?
+  image_url     String?
+  metadata      Json?
+  generated_by  String    @default("manual")
+  is_published  Boolean   @default(false)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  @@index([season_id])
+  @@index([category])
+  @@index([is_published])
+  @@index([created_at])
+}

@@ -64,9 +64,11 @@ export type NewsEventType =
   | 'finals_started'
   // Match Events
   | 'match_scheduled'
-  | 'match_started'
+  | 'matchday_started'
+  | 'matchday_completed'
   | 'match_completed'
   | 'match_rescheduled'
+  | 'matchday_opener'
   | 'thrashing'
   | 'close_match'
   | 'boring_draw'

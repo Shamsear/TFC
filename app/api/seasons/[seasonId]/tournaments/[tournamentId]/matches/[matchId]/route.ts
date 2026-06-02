@@ -5,6 +5,7 @@ import { createAuditLog } from '@/lib/audit'
 import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
 import { evaluateTeamAchievements } from '@/lib/achievements-engine'
 import { triggerNews } from '@/lib/news/trigger'
+import { getTournamentContext, generateContextNarrative } from '@/lib/news/tournament-context'
 
 export async function PATCH(
   request: NextRequest,
@@ -115,42 +116,7 @@ export async function PATCH(
           const homeResults = await evaluateTeamAchievements(existingMatch.homeTeam.teamId);
           const awayResults = await evaluateTeamAchievements(existingMatch.awayTeam.teamId);
 
-          // Trigger news for badge unlocks
-          if (homeResults?.newBadgesUnlocked && homeResults.newBadgesUnlocked.length > 0) {
-            for (const badge of homeResults.newBadgesUnlocked) {
-              try {
-                await triggerNews('badge_unlocked', {
-                  season_id: badge.seasonId || seasonId,
-                  metadata: {
-                    team_name: existingMatch.homeTeam.team.name,
-                    badge_name: badge.def?.name || badge.key,
-                    badge_tier: badge.def?.tier || 'BRONZE',
-                    xp_earned: badge.def?.xpAward || 50
-                  }
-                });
-              } catch (newsErr) {
-                console.warn('[News AI] Failed to generate badge unlock news:', newsErr);
-              }
-            }
-          }
-
-          if (awayResults?.newBadgesUnlocked && awayResults.newBadgesUnlocked.length > 0) {
-            for (const badge of awayResults.newBadgesUnlocked) {
-              try {
-                await triggerNews('badge_unlocked', {
-                  season_id: badge.seasonId || seasonId,
-                  metadata: {
-                    team_name: existingMatch.awayTeam.team.name,
-                    badge_name: badge.def?.name || badge.key,
-                    badge_tier: badge.def?.tier || 'BRONZE',
-                    xp_earned: badge.def?.xpAward || 50
-                  }
-                });
-              } catch (newsErr) {
-                console.warn('[News AI] Failed to generate badge unlock news:', newsErr);
-              }
-            }
-          }
+          // Badge unlocks are tracked but no news generated (only level ups get news)
 
           // Trigger news for level ups
           if (homeResults?.leveledUp) {
@@ -257,15 +223,39 @@ export async function PATCH(
           console.warn('[Push] Admin match result notification failed:', adminNotifErr);
         }
 
-        // Generate AI news for match completion
+        // Generate AI news for match completion WITH TOURNAMENT CONTEXT
         try {
           const goalDiff = Math.abs(homeScore - awayScore);
           const winner = homeScore > awayScore ? existingMatch.homeTeam.team.name : 
                          awayScore > homeScore ? existingMatch.awayTeam.team.name : null;
+          const winnerTeamId = homeScore > awayScore ? existingMatch.homeTeam.teamId : 
+                               awayScore > homeScore ? existingMatch.awayTeam.teamId : null;
+          
+          // Check if this is the first completed match in the round
+          const completedMatchesInRound = await prisma.matches.findMany({
+            where: {
+              tournamentId,
+              round: existingMatch.round,
+              status: 'COMPLETED'
+            },
+            orderBy: {
+              updatedAt: 'asc'
+            },
+            select: {
+              id: true,
+              updatedAt: true
+            }
+          });
+          
+          const isFirstMatch = completedMatchesInRound.length > 0 && completedMatchesInRound[0].id === matchId;
           
           // Determine specific event type
           let eventType: any = 'match_completed';
-          if (goalDiff >= 5) {
+          
+          // Special event for first completed match in the round
+          if (isFirstMatch) {
+            eventType = 'matchday_opener';
+          } else if (goalDiff >= 5) {
             eventType = 'thrashing';
           } else if (goalDiff === 1) {
             eventType = 'close_match';
@@ -275,8 +265,8 @@ export async function PATCH(
             eventType = 'high_scoring';
           }
           
-          // Check for penalty shootout
-          if (homePenalty !== null && awayPenalty !== null) {
+          // Check for penalty shootout (but matchday_opener takes precedence)
+          if (homePenalty !== null && awayPenalty !== null && !isFirstMatch) {
             eventType = 'penalty_shootout';
           }
 
@@ -285,6 +275,41 @@ export async function PATCH(
             where: { id: tournamentId },
             select: { name: true }
           });
+
+          // Get tournament context for BOTH teams
+          const [homeContext, awayContext] = await Promise.all([
+            getTournamentContext(tournamentId, existingMatch.homeTeam.teamId, matchId),
+            getTournamentContext(tournamentId, existingMatch.awayTeam.teamId, matchId)
+          ]);
+
+          // Generate narrative context
+          const homeNarrative = homeContext ? generateContextNarrative(homeContext) : '';
+          const awayNarrative = awayContext ? generateContextNarrative(awayContext) : '';
+
+          // Build enriched context string
+          let contextString = `Tournament Context:\n\n`;
+          if (homeContext) {
+            contextString += `${existingMatch.homeTeam.team.name}: ${homeNarrative}\n\n`;
+          }
+          if (awayContext) {
+            contextString += `${existingMatch.awayTeam.team.name}: ${awayNarrative}\n\n`;
+          }
+
+          // Add impact analysis
+          if (winner && winnerTeamId) {
+            const winnerContext = winnerTeamId === existingMatch.homeTeam.teamId ? homeContext : awayContext;
+            if (winnerContext) {
+              contextString += `Impact: This victory `;
+              if (winnerContext.context.isLeader) {
+                contextString += `strengthens ${winner}'s position at the top of the table`;
+              } else if (winnerContext.context.isInPlayoffs) {
+                contextString += `helps ${winner} secure their playoff position`;
+              } else {
+                contextString += `brings ${winner} closer to the playoff spots (now ${winnerContext.context.pointsFromPlayoffs} points away)`;
+              }
+              contextString += `.`;
+            }
+          }
 
           await triggerNews(eventType, {
             season_id: seasonId,
@@ -300,8 +325,16 @@ export async function PATCH(
               venue: venue || existingMatch.venue,
               has_penalties: homePenalty !== null && awayPenalty !== null,
               home_penalty: homePenalty,
-              away_penalty: awayPenalty
-            }
+              away_penalty: awayPenalty,
+              // NEW: Rich tournament context
+              home_position: homeContext?.standing.position,
+              home_points: homeContext?.standing.points,
+              home_form: homeContext?.form.recent,
+              away_position: awayContext?.standing.position,
+              away_points: awayContext?.standing.points,
+              away_form: awayContext?.form.recent
+            },
+            context: contextString
           });
         } catch (newsErr) {
           console.warn('[News AI] Failed to generate match news:', newsErr);

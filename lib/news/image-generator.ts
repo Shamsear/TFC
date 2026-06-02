@@ -99,7 +99,7 @@ async function drawLogoWatermark(ctx: CanvasRenderingContext2D, logo: Image | nu
   const y = 30;
   
   ctx.globalAlpha = 0.9;
-  ctx.drawImage(logo, x, y, logoSize, logoSize);
+  ctx.drawImage(logo as any, x, y, logoSize, logoSize);
   ctx.globalAlpha = 1.0;
 }
 
@@ -256,7 +256,7 @@ async function drawTeamLogo(
     // Draw actual logo
     const logoX = x - size / 2;
     const logoY = y - size / 2;
-    ctx.drawImage(teamLogo, logoX, logoY, size, size);
+    ctx.drawImage(teamLogo as any, logoX, logoY, size, size);
   } else {
     // Draw fallback with team initials
     ctx.save();
@@ -383,14 +383,14 @@ async function generateMatchResultTemplate(
   if (homeTeamLogo) {
     ctx.save();
     ctx.globalAlpha = 0.10;
-    ctx.drawImage(homeTeamLogo, -200, CANVAS_HEIGHT / 2 - 300, 600, 600);
+    ctx.drawImage(homeTeamLogo as any, -200, CANVAS_HEIGHT / 2 - 300, 600, 600);
     ctx.restore();
   }
   
   if (awayTeamLogo) {
     ctx.save();
     ctx.globalAlpha = 0.10;
-    ctx.drawImage(awayTeamLogo, CANVAS_WIDTH - 400, CANVAS_HEIGHT / 2 - 300, 600, 600);
+    ctx.drawImage(awayTeamLogo as any, CANVAS_WIDTH - 400, CANVAS_HEIGHT / 2 - 300, 600, 600);
     ctx.restore();
   }
   

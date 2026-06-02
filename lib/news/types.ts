@@ -68,6 +68,8 @@ export type NewsEventType =
   | 'matchday_completed'
   | 'match_completed'
   | 'match_rescheduled'
+  | 'match_walkover'
+  | 'match_voided'
   | 'matchday_opener'
   | 'thrashing'
   | 'close_match'

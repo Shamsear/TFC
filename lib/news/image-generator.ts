@@ -381,14 +381,41 @@ async function generateMatchResultTemplate(
   homeTeamLogo: Image | null,
   awayTeamLogo: Image | null
 ) {
-  // Determine primary color (use home team's color or default)
+  // Determine winner
+  const homeScore = metadata.home_score ?? 0;
+  const awayScore = metadata.away_score ?? 0;
+  const homeWins = homeScore > awayScore;
+  const awayWins = awayScore > homeScore;
+  const isDraw = homeScore === awayScore;
+  
+  // Determine primary color - use WINNING team's color, fallback to home team, then default
   const defaultColor = '#00e5ff';
-  const primaryColor = homeTeamData?.primaryColor && 
-                       homeTeamData.primaryColor !== '' && 
-                       homeTeamData.primaryColor.startsWith('#') &&
-                       homeTeamData.primaryColor.toLowerCase() !== '#00e5ff'
-    ? homeTeamData.primaryColor 
-    : defaultColor;
+  let primaryColor = defaultColor;
+  
+  if (!isDraw) {
+    // Use winner's color
+    const winnerTeamData = homeWins ? homeTeamData : awayTeamData;
+    if (winnerTeamData?.primaryColor && 
+        winnerTeamData.primaryColor !== '' && 
+        winnerTeamData.primaryColor.startsWith('#') &&
+        winnerTeamData.primaryColor.toLowerCase() !== '#00e5ff') {
+      primaryColor = winnerTeamData.primaryColor;
+    } else if (homeTeamData?.primaryColor && 
+               homeTeamData.primaryColor !== '' && 
+               homeTeamData.primaryColor.startsWith('#') &&
+               homeTeamData.primaryColor.toLowerCase() !== '#00e5ff') {
+      // Fallback to home team if winner has no color
+      primaryColor = homeTeamData.primaryColor;
+    }
+  } else {
+    // For draws, prefer home team color
+    if (homeTeamData?.primaryColor && 
+        homeTeamData.primaryColor !== '' && 
+        homeTeamData.primaryColor.startsWith('#') &&
+        homeTeamData.primaryColor.toLowerCase() !== '#00e5ff') {
+      primaryColor = homeTeamData.primaryColor;
+    }
+  }
   
   const lighterColor = lightenColor(primaryColor, 0.3);
   const rgb = hexToRgb(lighterColor);

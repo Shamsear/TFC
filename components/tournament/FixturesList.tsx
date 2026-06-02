@@ -122,6 +122,7 @@ interface FixturesListProps {
 export default function FixturesList({ matches, tournamentId, seasonId, tournamentName, seasonName }: FixturesListProps) {
   const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'live' | 'completed'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Extract all unique rounds in the matches list and sort them numerically
   const allRounds = Array.from(new Set(matches.map(m => m.round || 'Round 1'))).sort((a, b) => {
@@ -140,10 +141,24 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
   const [activeRound, setActiveRound] = useState<string>(defaultRound)
 
   const filteredMatches = matches.filter(match => {
+    // Filter by round
     const isSameRound = (match.round || 'Round 1') === activeRound
     if (!isSameRound) return false
-    if (filter === 'all') return true
-    return match.status.toLowerCase() === filter
+    
+    // Filter by status
+    if (filter !== 'all' && match.status.toLowerCase() !== filter) return false
+    
+    // Filter by search query (searches both home and away team names)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      const homeTeamName = match.homeTeam.team.name.toLowerCase()
+      const awayTeamName = match.awayTeam.team.name.toLowerCase()
+      if (!homeTeamName.includes(query) && !awayTeamName.includes(query)) {
+        return false
+      }
+    }
+    
+    return true
   })
 
   const getStatusColor = (status: string) => {
@@ -193,6 +208,52 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
   return (
     <div>
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search teams..."
+            className="w-full px-4 py-3 pl-11 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#7A7367] focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent transition-all text-sm"
+          />
+          <svg
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7367]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <svg
+                className="w-4 h-4 text-[#7A7367] hover:text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Filters & Pager container */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         {/* Filters */}
@@ -466,8 +527,22 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
       </div>
 
       {filteredMatches.length === 0 && (
-        <div className="text-center py-8 sm:py-12 text-[#7A7367] text-sm sm:text-base">
-          No {filter} matches found
+        <div className="text-center py-8 sm:py-12">
+          <div className="text-[#7A7367] text-sm sm:text-base">
+            {searchQuery ? (
+              <>
+                No matches found for &quot;<span className="text-white font-bold">{searchQuery}</span>&quot;
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="block mx-auto mt-3 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[#E8A800] text-sm font-bold transition-all"
+                >
+                  Clear Search
+                </button>
+              </>
+            ) : (
+              `No ${filter} matches found`
+            )}
+          </div>
         </div>
       )}
     </div>

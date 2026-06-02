@@ -250,6 +250,26 @@ export async function PATCH(
 
         // Generate AI news for match completion WITH TOURNAMENT CONTEXT
         try {
+          // For VOID matches, generate a simple administrative news article
+          if (status === 'VOID') {
+            await triggerNews('match_voided', {
+              season_id: seasonId,
+              metadata: {
+                home_team: existingMatch.homeTeam.team.name,
+                away_team: existingMatch.awayTeam.team.name,
+                home_manager: getCleanManagerName(existingMatch.homeTeam.managerName),
+                away_manager: getCleanManagerName(existingMatch.awayTeam.managerName),
+                tournament_name: existingMatch.tournament?.name || 'Tournament',
+                round: round || existingMatch.round,
+                venue: venue || existingMatch.venue,
+                reason: notes || 'Administrative decision'
+              },
+              context: `This match has been declared void and will not count towards tournament standings.`
+            });
+            return; // Exit early for VOID
+          }
+
+          // For WALKOVER and COMPLETED matches, generate full news
           const goalDiff = Math.abs(homeScore - awayScore);
           const winner = homeScore > awayScore ? existingMatch.homeTeam.team.name : 
                          awayScore > homeScore ? existingMatch.awayTeam.team.name : null;
@@ -261,7 +281,7 @@ export async function PATCH(
             where: {
               tournamentId,
               round: existingMatch.round,
-              status: 'COMPLETED'
+              status: { in: ['COMPLETED', 'WALKOVER'] }
             },
             orderBy: {
               updatedAt: 'asc'
@@ -274,22 +294,34 @@ export async function PATCH(
           
           const isFirstMatch = completedMatchesInRound.length > 0 && completedMatchesInRound[0].id === matchId;
           
-          // Detect the best scenario for this match using advanced scenario detection
-          const scenario = await detectMatchScenarios(
-            matchId,
-            tournamentId,
-            existingMatch.homeTeam.teamId,
-            existingMatch.awayTeam.teamId,
-            homeScore,
-            awayScore,
-            existingMatch.round,
-            isFirstMatch,
-            homePenalty,
-            awayPenalty
-          );
-
-          const eventType = scenario?.eventType || 'match_completed';
-          const scenarioMetadata = scenario?.metadata || {};
+          // For WALKOVER, use a specific event type, otherwise detect scenario
+          let eventType;
+          let scenarioMetadata = {};
+          
+          if (status === 'WALKOVER') {
+            eventType = 'match_walkover';
+            scenarioMetadata = {
+              is_walkover: true,
+              walkover_winner: winner
+            };
+          } else {
+            // Detect the best scenario for this match using advanced scenario detection
+            const scenario = await detectMatchScenarios(
+              matchId,
+              tournamentId,
+              existingMatch.homeTeam.teamId,
+              existingMatch.awayTeam.teamId,
+              homeScore,
+              awayScore,
+              existingMatch.round,
+              isFirstMatch,
+              homePenalty,
+              awayPenalty
+            );
+            
+            eventType = scenario?.eventType || 'match_completed';
+            scenarioMetadata = scenario?.metadata || {};
+          }
 
           // Tournament already loaded in existingMatch
           const tournament = existingMatch.tournament;

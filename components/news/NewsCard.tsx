@@ -20,6 +20,7 @@ interface NewsCardProps {
     reporter_ml?: string | null;
   };
   featured?: boolean;
+  baseUrl?: string;
 }
 
 const categoryColors: Record<string, string> = {

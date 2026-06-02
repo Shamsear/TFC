@@ -24,7 +24,7 @@ export async function getTournamentContext(
     }
 
     // Get current standings
-    const standings = await prisma.tournament_standings.findMany({
+    const standings = await prisma.standings.findMany({
       where: { tournamentId },
       include: {
         seasonTeam: {
@@ -35,13 +35,13 @@ export async function getTournamentContext(
       },
       orderBy: [
         { points: 'desc' },
-        { goalDifference: 'desc' },
+        { goalDiff: 'desc' },
         { goalsFor: 'desc' }
       ]
     });
 
     // Find team's current standing
-    const teamStandingIndex = standings.findIndex(s => s.seasonTeam.teamId === teamId);
+    const teamStandingIndex = standings.findIndex((s: any) => s.seasonTeam.teamId === teamId);
     const teamStanding = standings[teamStandingIndex];
 
     if (!teamStanding) {
@@ -54,8 +54,8 @@ export async function getTournamentContext(
         tournamentId,
         status: 'COMPLETED',
         OR: [
-          { homeTeamId: teamStanding.seasonTeamId },
-          { awayTeamId: teamStanding.seasonTeamId }
+          { homeTeamId: teamStanding.teamId },
+          { awayTeamId: teamStanding.teamId }
         ],
         ...(matchId ? { id: { not: matchId } } : {})
       },
@@ -72,8 +72,8 @@ export async function getTournamentContext(
     });
 
     // Calculate form
-    const form = recentMatches.map(match => {
-      const isHome = match.homeTeamId === teamStanding.seasonTeamId;
+    const form = recentMatches.map((match: any) => {
+      const isHome = match.homeTeamId === teamStanding.teamId;
       const teamScore = isHome ? match.homeScore : match.awayScore;
       const oppScore = isHome ? match.awayScore : match.homeScore;
       
@@ -83,9 +83,9 @@ export async function getTournamentContext(
     }).reverse();
 
     // Calculate stats
-    const wins = form.filter(r => r === 'W').length;
-    const draws = form.filter(r => r === 'D').length;
-    const losses = form.filter(r => r === 'L').length;
+    const wins = form.filter((r: any) => r === 'W').length;
+    const draws = form.filter((r: any) => r === 'D').length;
+    const losses = form.filter((r: any) => r === 'L').length;
 
     // Position context
     const position = teamStandingIndex + 1;
@@ -114,14 +114,14 @@ export async function getTournamentContext(
       standing: {
         position,
         totalTeams,
-        played: teamStanding.matchesPlayed,
-        won: teamStanding.wins,
-        drawn: teamStanding.draws,
-        lost: teamStanding.losses,
+        played: teamStanding.played,
+        won: teamStanding.won,
+        drawn: teamStanding.drawn,
+        lost: teamStanding.lost,
         points: teamStanding.points,
         goalsFor: teamStanding.goalsFor,
         goalsAgainst: teamStanding.goalsAgainst,
-        goalDifference: teamStanding.goalDifference
+        goalDifference: teamStanding.goalDiff
       },
       context: {
         isLeader: position === 1,
@@ -150,7 +150,7 @@ export async function getTournamentContext(
       leader: {
         name: leader.seasonTeam.team.name,
         points: leader.points,
-        isLeader: leader.seasonTeamId === teamStanding.seasonTeamId
+        isLeader: leader.teamId === teamStanding.teamId
       }
     };
   } catch (error) {

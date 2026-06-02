@@ -312,15 +312,15 @@ export async function generateNewsImage(
 
     // Determine which template to use
     if (eventType.includes('match_') || eventType === 'matchday_opener' || eventType === 'thrashing' || eventType === 'close_match') {
-      await generateMatchResultTemplate(ctx, metadata, eventType, tfcLogo, homeTeamData, awayTeamData, homeTeamLogo, awayTeamLogo);
+      await generateMatchResultTemplate(ctx as any, metadata, eventType, tfcLogo, homeTeamData, awayTeamData, homeTeamLogo, awayTeamLogo);
     } else if (eventType === 'matchday_started') {
-      await generateMatchdayStartTemplate(ctx, metadata, tfcLogo);
+      await generateMatchdayStartTemplate(ctx as any, metadata, tfcLogo);
     } else if (eventType === 'matchday_completed') {
-      await generateMatchdayCompleteTemplate(ctx, metadata, tfcLogo);
+      await generateMatchdayCompleteTemplate(ctx as any, metadata, tfcLogo);
     } else if (eventType.includes('level_up')) {
-      await generateLevelUpTemplate(ctx, metadata, tfcLogo);
+      await generateLevelUpTemplate(ctx as any, metadata, tfcLogo);
     } else {
-      await generateGenericTemplate(ctx, metadata, tfcLogo);
+      await generateGenericTemplate(ctx as any, metadata, tfcLogo);
     }
 
     // Save image
@@ -865,23 +865,7 @@ async function generateGenericTemplate(
   drawGlowOrb(ctx, 100, CANVAS_HEIGHT - 80, 120, lighterColor, 0.15);
   
   // Event badge
-  ctx.fillStyle = `${lighterColor}15`;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.fill();
-  ctx.strokeStyle = `${lighterColor}35`;
-  ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.stroke();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.beginPath();
-  ctx.arc(60, 70, 6, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('📰 NEWS UPDATE', 75, 75);
+  drawEventBadge(ctx as any, metadata.event_type || 'NEWS UPDATE', lighterColor);
   
   // Main content box
   ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';

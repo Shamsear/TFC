@@ -104,6 +104,94 @@ async function drawLogoWatermark(ctx: CanvasRenderingContext2D, logo: Image | nu
 }
 
 /**
+ * Draw premium dynamic event badge (top left)
+ */
+function drawEventBadge(
+  ctx: CanvasRenderingContext2D,
+  badgeText: string,
+  badgeColor: string
+) {
+  ctx.save();
+  ctx.font = 'bold 20px "Bahnschrift", "Segoe UI", sans-serif';
+  const textWidth = ctx.measureText(badgeText).width;
+  
+  const badgeX = 40;
+  const badgeY = 40;
+  const badgeHeight = 44;
+  const badgeWidth = textWidth + 60; // Extra padding for icon/dot and margins
+  const badgeRadius = badgeHeight / 2;
+  
+  // Background
+  ctx.fillStyle = `${badgeColor}15`;
+  drawRoundedRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, badgeRadius);
+  ctx.fill();
+  
+  // Border
+  ctx.strokeStyle = `${badgeColor}35`;
+  ctx.lineWidth = 1.5;
+  drawRoundedRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, badgeRadius);
+  ctx.stroke();
+  
+  // Glowing effect under badge active dot
+  ctx.shadowColor = badgeColor;
+  ctx.shadowBlur = 10;
+  
+  // Active dot
+  ctx.fillStyle = badgeColor;
+  ctx.beginPath();
+  ctx.arc(badgeX + 22, badgeY + badgeHeight / 2, 5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.shadowBlur = 0; // Reset shadow
+  
+  // Badge text
+  ctx.fillStyle = badgeColor;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(badgeText, badgeX + 38, badgeY + badgeHeight / 2);
+  
+  ctx.restore();
+}
+
+/**
+ * Draw premium transparent footer bar with light readable text
+ */
+async function drawFooter(
+  ctx: CanvasRenderingContext2D,
+  tfcLogo: Image | null,
+  centerText: string = ''
+) {
+  // Let the background flow naturally to the bottom (completely transparent bar or extremely subtle dark gradient)
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
+  
+  // Footer content (clean semi-transparent white/cream text)
+  ctx.fillStyle = 'rgba(245, 240, 232, 0.5)';
+  ctx.font = 'bold 16px "Segoe UI", sans-serif';
+  
+  // Left: Domain
+  ctx.textAlign = 'left';
+  ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
+  
+  // Center (Optional)
+  if (centerText) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(245, 240, 232, 0.4)';
+    ctx.fillText(centerText, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 35);
+    ctx.fillStyle = 'rgba(245, 240, 232, 0.5)'; // Restore
+  }
+  
+  // Right: Date
+  ctx.textAlign = 'right';
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
+  
+  // TFC logo watermark
+  await drawLogoWatermark(ctx, tfcLogo);
+}
+
+
+/**
  * Draw rounded rectangle
  */
 function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
@@ -177,7 +265,7 @@ async function drawTeamLogo(
     ctx.fill();
     
     ctx.fillStyle = '#0a0a0a';
-    ctx.font = `bold ${size / 2.5}px system-ui`;
+    ctx.font = `bold ${size / 2.5}px "Bahnschrift", "Segoe UI", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(teamName.slice(0, 2).toUpperCase(), x, y);
@@ -291,11 +379,18 @@ async function generateMatchResultTemplate(
   drawGlowOrb(ctx, CANVAS_WIDTH - 100, 100, 160, lighterColor, 0.35);
   drawGlowOrb(ctx, 100, CANVAS_HEIGHT - 80, 120, lighterColor, 0.15);
   
-  // Large background logo (right side, half-cut)
+  // Large background logos (left side for home team, right side for away team)
   if (homeTeamLogo) {
     ctx.save();
     ctx.globalAlpha = 0.10;
-    ctx.drawImage(homeTeamLogo, CANVAS_WIDTH - 400, CANVAS_HEIGHT / 2 - 300, 600, 600);
+    ctx.drawImage(homeTeamLogo, -200, CANVAS_HEIGHT / 2 - 300, 600, 600);
+    ctx.restore();
+  }
+  
+  if (awayTeamLogo) {
+    ctx.save();
+    ctx.globalAlpha = 0.10;
+    ctx.drawImage(awayTeamLogo, CANVAS_WIDTH - 400, CANVAS_HEIGHT / 2 - 300, 600, 600);
     ctx.restore();
   }
   
@@ -330,13 +425,13 @@ async function generateMatchResultTemplate(
   
   // Badge text
   ctx.fillStyle = badgeColor;
-  ctx.font = 'bold 24px system-ui';
+  ctx.font = 'bold 24px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText(badgeText, 75, 75);
   
   // Tournament name (below badge)
   ctx.fillStyle = '#8a8278';
-  ctx.font = 'bold 14px system-ui';
+  ctx.font = 'bold 14px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText((metadata.tournament_name || 'TFC League').toUpperCase(), 40, 130);
   
@@ -349,7 +444,7 @@ async function generateMatchResultTemplate(
     
     // Home team name
     ctx.fillStyle = '#F5F0E8';
-    ctx.font = 'bold 32px system-ui';
+    ctx.font = 'bold 40px "Bahnschrift", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(metadata.home_team, 250, centerY + 90);
   }
@@ -357,7 +452,7 @@ async function generateMatchResultTemplate(
   // Score (center)
   if (metadata.home_score !== undefined && metadata.away_score !== undefined) {
     ctx.fillStyle = lighterColor;
-    ctx.font = 'bold 90px system-ui';
+    ctx.font = 'bold 90px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
@@ -379,7 +474,7 @@ async function generateMatchResultTemplate(
     
     // Away team name
     ctx.fillStyle = '#F5F0E8';
-    ctx.font = 'bold 32px system-ui';
+    ctx.font = 'bold 40px "Bahnschrift", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(metadata.away_team, CANVAS_WIDTH - 250, centerY + 90);
   }
@@ -390,7 +485,7 @@ async function generateMatchResultTemplate(
   
   // Footer content
   ctx.fillStyle = '#3a3630';
-  ctx.font = 'bold 16px system-ui';
+  ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   
@@ -445,28 +540,31 @@ async function generateMatchdayStartTemplate(
   ctx.fill();
   
   ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px system-ui';
+  ctx.font = 'bold 24px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('🚀 MATCHDAY START', 75, 75);
   
   // Tournament name
   ctx.fillStyle = '#8a8278';
-  ctx.font = 'bold 14px system-ui';
+  ctx.font = 'bold 14px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText((metadata.tournament_name || 'TFC League').toUpperCase(), 40, 130);
   
-  // Main title
+  // Main title - extract round number from 'Matchday 1' style strings
   const centerY = CANVAS_HEIGHT / 2 - 40;
+  const roundStr = (metadata.round || '').toString();
+  const roundNumber = roundStr.replace(/matchday\s*/i, '').trim();
+  
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 80px system-ui';
+  ctx.font = 'bold 80px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('MATCHDAY', CANVAS_WIDTH / 2, centerY);
   
   ctx.fillStyle = lighterColor;
   ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
   ctx.shadowBlur = 30;
-  ctx.font = 'bold 80px system-ui';
-  ctx.fillText(metadata.round || 'KICKS OFF', CANVAS_WIDTH / 2, centerY + 90);
+  ctx.font = 'bold 100px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.fillText(roundNumber || 'KICKS OFF', CANVAS_WIDTH / 2, centerY + 100);
   ctx.shadowBlur = 0;
   
   // Stats card
@@ -475,12 +573,12 @@ async function generateMatchdayStartTemplate(
   ctx.fill();
   
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 48px system-ui';
+  ctx.font = 'bold 48px "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`${metadata.match_count || 0} MATCHES`, CANVAS_WIDTH / 2, centerY + 195);
   
   if (metadata.deadline) {
-    ctx.font = '24px system-ui';
+    ctx.font = '24px "Segoe UI", sans-serif';
     ctx.fillStyle = lighterColor;
     ctx.fillText(`Deadline: ${metadata.deadline}`, CANVAS_WIDTH / 2, centerY + 235);
   }
@@ -490,7 +588,7 @@ async function generateMatchdayStartTemplate(
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
   ctx.fillStyle = '#3a3630';
-  ctx.font = 'bold 16px system-ui';
+  ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   
@@ -544,29 +642,34 @@ async function generateMatchdayCompleteTemplate(
   ctx.fill();
   
   ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px system-ui';
+  ctx.font = 'bold 24px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('✅ MATCHDAY DONE', 75, 75);
   
   // Tournament name
   ctx.fillStyle = '#8a8278';
-  ctx.font = 'bold 14px system-ui';
+  ctx.font = 'bold 14px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText((metadata.tournament_name || 'TFC League').toUpperCase(), 40, 130);
   
   // Title
   const centerY = CANVAS_HEIGHT / 2 - 80;
+  const roundStr = (metadata.round || '').toString();
+  const roundNumber = roundStr.replace(/matchday\s*/i, '').trim();
+  
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 64px system-ui';
+  ctx.font = 'bold 64px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('MATCHDAY COMPLETE', CANVAS_WIDTH / 2, centerY);
   
-  ctx.fillStyle = lighterColor;
-  ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
-  ctx.shadowBlur = 30;
-  ctx.font = 'bold 56px system-ui';
-  ctx.fillText(metadata.round || '', CANVAS_WIDTH / 2, centerY + 70);
-  ctx.shadowBlur = 0;
+  if (roundNumber) {
+    ctx.fillStyle = lighterColor;
+    ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
+    ctx.shadowBlur = 30;
+    ctx.font = 'bold 72px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
+    ctx.fillText(roundNumber, CANVAS_WIDTH / 2, centerY + 70);
+    ctx.shadowBlur = 0;
+  }
   
   // Stats cards
   const cardY = centerY + 140;
@@ -579,10 +682,10 @@ async function generateMatchdayCompleteTemplate(
   drawRoundedRect(ctx, startX, cardY, cardWidth, 140, 15);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 56px system-ui';
+  ctx.font = 'bold 56px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`${metadata.total_goals || 0}`, startX + cardWidth / 2, cardY + 65);
-  ctx.font = '20px system-ui';
+  ctx.font = '20px "Segoe UI", sans-serif';
   ctx.fillText('GOALS', startX + cardWidth / 2, cardY + 100);
   
   // Card 2: Matches
@@ -590,9 +693,9 @@ async function generateMatchdayCompleteTemplate(
   drawRoundedRect(ctx, startX + cardWidth + gap, cardY, cardWidth, 140, 15);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 56px system-ui';
+  ctx.font = 'bold 56px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillText(`${metadata.total_matches || 0}`, startX + cardWidth + gap + cardWidth / 2, cardY + 65);
-  ctx.font = '20px system-ui';
+  ctx.font = '20px "Segoe UI", sans-serif';
   ctx.fillText('MATCHES', startX + cardWidth + gap + cardWidth / 2, cardY + 100);
   
   // Card 3: Best team
@@ -600,9 +703,9 @@ async function generateMatchdayCompleteTemplate(
   drawRoundedRect(ctx, startX + (cardWidth + gap) * 2, cardY, cardWidth, 140, 15);
   ctx.fill();
   ctx.fillStyle = '#fbbf24';
-  ctx.font = 'bold 36px system-ui';
+  ctx.font = 'bold 36px "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillText('🏆', startX + (cardWidth + gap) * 2 + cardWidth / 2, cardY + 50);
-  ctx.font = '20px system-ui';
+  ctx.font = '20px "Segoe UI", sans-serif';
   ctx.fillStyle = '#ffffff';
   const bestTeam = (metadata.best_team || 'N/A').substring(0, 12);
   ctx.fillText(bestTeam, startX + (cardWidth + gap) * 2 + cardWidth / 2, cardY + 100);
@@ -612,7 +715,7 @@ async function generateMatchdayCompleteTemplate(
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
   ctx.fillStyle = '#3a3630';
-  ctx.font = 'bold 16px system-ui';
+  ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   
@@ -676,7 +779,7 @@ async function generateLevelUpTemplate(
   ctx.fill();
   
   ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px system-ui';
+  ctx.font = 'bold 24px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('🏆 ACHIEVEMENT', 75, 75);
   
@@ -688,7 +791,7 @@ async function generateLevelUpTemplate(
   
   // Title
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 64px system-ui';
+  ctx.font = 'bold 64px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillText('LEVEL UP!', CANVAS_WIDTH / 2, 280);
   
   // Team name card
@@ -699,14 +802,14 @@ async function generateLevelUpTemplate(
   ctx.fillStyle = lighterColor;
   ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
   ctx.shadowBlur = 20;
-  ctx.font = 'bold 48px system-ui';
+  ctx.font = 'bold 48px "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillText(metadata.team_name || 'Team', CANVAS_WIDTH / 2, 370);
   ctx.shadowBlur = 0;
   
   // Level info
   if (metadata.new_level) {
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 72px system-ui';
+    ctx.font = 'bold 72px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
     ctx.fillText(`LEVEL ${metadata.new_level}`, CANVAS_WIDTH / 2, 470);
   }
   
@@ -715,18 +818,18 @@ async function generateLevelUpTemplate(
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
   ctx.fillStyle = '#3a3630';
-  ctx.font = 'bold 16px system-ui';
+  ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   
   ctx.textAlign = 'center';
   ctx.fillStyle = '#6b6560';
-  ctx.font = '16px system-ui';
+  ctx.font = '16px "Segoe UI", sans-serif';
   ctx.fillText('TFC League • Achievement Unlocked', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 35);
   
   ctx.textAlign = 'right';
   ctx.fillStyle = '#3a3630';
-  ctx.font = 'bold 16px system-ui';
+  ctx.font = 'bold 16px "Segoe UI", sans-serif';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
   
@@ -776,7 +879,7 @@ async function generateGenericTemplate(
   ctx.fill();
   
   ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px system-ui';
+  ctx.font = 'bold 24px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('📰 NEWS UPDATE', 75, 75);
   
@@ -787,12 +890,12 @@ async function generateGenericTemplate(
   
   // Title
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 64px system-ui';
+  ctx.font = 'bold 64px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('TFC LEAGUE', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
   
   // Subtitle
-  ctx.font = 'bold 42px system-ui';
+  ctx.font = 'bold 42px "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillStyle = lighterColor;
   ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
   ctx.shadowBlur = 20;
@@ -801,11 +904,11 @@ async function generateGenericTemplate(
   
   // Tournament/Season info
   if (metadata.tournament_name) {
-    ctx.font = '32px system-ui';
+    ctx.font = '32px "Bahnschrift", "Segoe UI", sans-serif';
     ctx.fillStyle = '#fbbf24';
     ctx.fillText(metadata.tournament_name, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
   } else if (metadata.season_name) {
-    ctx.font = '32px system-ui';
+    ctx.font = '32px "Bahnschrift", "Segoe UI", sans-serif';
     ctx.fillStyle = '#fbbf24';
     ctx.fillText(metadata.season_name, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
   }
@@ -815,7 +918,7 @@ async function generateGenericTemplate(
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
   ctx.fillStyle = '#3a3630';
-  ctx.font = 'bold 16px system-ui';
+  ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   

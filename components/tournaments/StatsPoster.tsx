@@ -200,7 +200,7 @@ function TeamMatchdayPosterSnapshot({
           width: 800,
           minHeight: 600,
           background: `linear-gradient(145deg, ${theme.bg[0]}, ${theme.bg[1]}, ${theme.bg[2]})`,
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          fontFamily: '"Barlow Condensed", "Outfit", "Bahnschrift", "Segoe UI", -apple-system, sans-serif',
           boxSizing: 'border-box',
           position: 'relative',
           overflow: 'hidden',
@@ -228,13 +228,14 @@ function TeamMatchdayPosterSnapshot({
         width: 800,
         minHeight: 600,
         background: bgGradient,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: '"Barlow Condensed", "Outfit", "Bahnschrift", "Segoe UI", -apple-system, sans-serif',
         boxSizing: 'border-box',
         position: 'relative',
         overflow: 'hidden',
         padding: 48,
       }}
     >
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
       {/* Diagonal Lines Pattern Overlay */}
       <div
         style={{
@@ -617,12 +618,13 @@ function PosterSnapshot({
         width: 800,
         minHeight: 600,
         background: bgGradient,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: '"Barlow Condensed", "Outfit", "Bahnschrift", "Segoe UI", -apple-system, sans-serif',
         boxSizing: 'border-box',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
       {/* Diagonal Lines Pattern Overlay */}
       <div
         style={{

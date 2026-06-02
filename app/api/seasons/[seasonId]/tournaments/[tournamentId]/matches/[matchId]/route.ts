@@ -8,6 +8,7 @@ import { triggerNews } from '@/lib/news/trigger'
 import { getTournamentContext, generateContextNarrative } from '@/lib/news/tournament-context'
 import { detectMatchScenarios } from '@/lib/news/scenario-detector'
 import { getCleanManagerName } from '@/lib/news/utils'
+import { NewsEventType } from '@/lib/news/types'
 
 export async function PATCH(
   request: NextRequest,
@@ -295,7 +296,7 @@ export async function PATCH(
           const isFirstMatch = completedMatchesInRound.length > 0 && completedMatchesInRound[0].id === matchId;
           
           // For WALKOVER, use a specific event type, otherwise detect scenario
-          let eventType;
+          let eventType: NewsEventType;
           let scenarioMetadata = {};
           
           if (status === 'WALKOVER') {

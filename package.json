@@ -23,6 +23,7 @@
     "news:matchday": "tsx scripts/generate-matchday-news.ts",
     "news:list-rounds": "tsx scripts/list-rounds.ts",
     "news:generate-images": "tsx scripts/generate-news-images.ts",
+    "test:imagekit": "tsx scripts/test-imagekit-config.ts",
     "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm', 'public/sql-wasm.wasm')\""
   },
   "prisma": {

@@ -46,6 +46,9 @@ efootball_latest.db
 public/player_cards/
 public/player_photos/
 
+# News images (uploaded to ImageKit)
+public/news-images/
+
 # Large files
 *.db
 temp_images_migration/

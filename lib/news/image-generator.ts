@@ -12,16 +12,18 @@ import { createCanvas, loadImage, Image } from 'canvas';
 import fs from 'fs';
 import path from 'path';
 import { prisma } from '@/lib/prisma';
+import ImageKit from 'imagekit';
 
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 630;
-const OUTPUT_DIR = path.join(process.cwd(), 'public', 'news-images');
 const LOGO_PATH = path.join(process.cwd(), 'public', 'logo.png');
 
-// Ensure output directory exists
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
+// ImageKit configuration
+const imagekit = new ImageKit({
+  publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || '',
+  privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',
+  urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || '',
+});
 
 /**
  * Fetch team data from database
@@ -99,7 +101,7 @@ async function drawLogoWatermark(ctx: CanvasRenderingContext2D, logo: Image | nu
   const y = 30;
   
   ctx.globalAlpha = 0.9;
-  ctx.drawImage(logo as any, x, y, logoSize, logoSize);
+   ctx.drawImage(logo as any, x, y, logoSize, logoSize);
   ctx.globalAlpha = 1.0;
 }
 
@@ -112,14 +114,14 @@ function drawEventBadge(
   badgeColor: string
 ) {
   ctx.save();
-  ctx.font = 'bold 20px "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 24px "Bahnschrift", "Segoe UI", sans-serif';
   const textWidth = ctx.measureText(badgeText).width;
   
   const badgeX = 40;
   const badgeY = 40;
-  const badgeHeight = 44;
-  const badgeWidth = textWidth + 60; // Extra padding for icon/dot and margins
-  const badgeRadius = badgeHeight / 2;
+  const badgeHeight = 60;
+  const badgeWidth = textWidth + 70; // Extra padding for icon/dot and margins
+  const badgeRadius = 30;
   
   // Background
   ctx.fillStyle = `${badgeColor}15`;
@@ -139,7 +141,7 @@ function drawEventBadge(
   // Active dot
   ctx.fillStyle = badgeColor;
   ctx.beginPath();
-  ctx.arc(badgeX + 22, badgeY + badgeHeight / 2, 5, 0, Math.PI * 2);
+  ctx.arc(badgeX + 25, badgeY + badgeHeight / 2, 6, 0, Math.PI * 2);
   ctx.fill();
   
   ctx.shadowBlur = 0; // Reset shadow
@@ -148,7 +150,7 @@ function drawEventBadge(
   ctx.fillStyle = badgeColor;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(badgeText, badgeX + 38, badgeY + badgeHeight / 2);
+  ctx.fillText(badgeText, badgeX + 45, badgeY + badgeHeight / 2);
   
   ctx.restore();
 }
@@ -162,7 +164,7 @@ async function drawFooter(
   centerText: string = ''
 ) {
   // Let the background flow naturally to the bottom (completely transparent bar or extremely subtle dark gradient)
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillStyle = 'transparent';
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
   // Footer content (clean semi-transparent white/cream text)
@@ -171,7 +173,7 @@ async function drawFooter(
   
   // Left: Domain
   ctx.textAlign = 'left';
-  ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
+  // Removed URL text
   
   // Center (Optional)
   if (centerText) {
@@ -184,7 +186,7 @@ async function drawFooter(
   // Right: Date
   ctx.textAlign = 'right';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
+  // Removed Date text
   
   // TFC logo watermark
   await drawLogoWatermark(ctx, tfcLogo);
@@ -256,8 +258,8 @@ async function drawTeamLogo(
     // Draw actual logo
     const logoX = x - size / 2;
     const logoY = y - size / 2;
-    ctx.drawImage(teamLogo as any, logoX, logoY, size, size);
-  } else {
+        ctx.drawImage(teamLogo as any, logoX, logoY, size, size);
+    } else {
     // Draw fallback with team initials
     ctx.save();
     ctx.fillStyle = `linear-gradient(135deg, ${teamColor}, ${lightenColor(teamColor, 0.2)})`;
@@ -311,7 +313,11 @@ export async function generateNewsImage(
     }
 
     // Determine which template to use
-    if (eventType.includes('match_') || eventType === 'matchday_opener' || eventType === 'thrashing' || eventType === 'close_match') {
+    const isMatchEvent = eventType.includes('match_') || 
+                         ['matchday_opener', 'thrashing', 'close_match', 'high_scoring', 'upset', 'draw', 'clean_sheet'].includes(eventType) ||
+                         (metadata.home_team && metadata.away_team && metadata.home_score !== undefined);
+                         
+    if (isMatchEvent) {
       await generateMatchResultTemplate(ctx as any, metadata, eventType, tfcLogo, homeTeamData, awayTeamData, homeTeamLogo, awayTeamLogo);
     } else if (eventType === 'matchday_started') {
       await generateMatchdayStartTemplate(ctx as any, metadata, tfcLogo);
@@ -323,14 +329,37 @@ export async function generateNewsImage(
       await generateGenericTemplate(ctx as any, metadata, tfcLogo);
     }
 
-    // Save image
-    const filename = `${newsId}.png`;
-    const filepath = path.join(OUTPUT_DIR, filename);
+    // Generate image buffer
     const buffer = canvas.toBuffer('image/png');
-    fs.writeFileSync(filepath, buffer);
 
-    console.log(`[News Image] ✅ Saved: /news-images/${filename}`);
-    return `/news-images/${filename}`;
+    // Upload to ImageKit
+    try {
+      const uploadResponse = await imagekit.upload({
+        file: buffer,
+        fileName: `${newsId}.png`,
+        folder: '/news-images',
+        useUniqueFileName: false,
+      });
+
+      console.log(`[News Image] ✅ Uploaded to ImageKit: ${uploadResponse.url}`);
+      return uploadResponse.url;
+    } catch (uploadError) {
+      console.error('[News Image] ❌ ImageKit upload failed:', uploadError);
+      
+      // Fallback: Save to /tmp for serverless or local directory for development
+      const tempDir = process.env.NODE_ENV === 'production' ? '/tmp/news-images' : path.join(process.cwd(), 'public', 'news-images');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const filename = `${newsId}.png`;
+      const filepath = path.join(tempDir, filename);
+      fs.writeFileSync(filepath, buffer);
+      
+      const localPath = process.env.NODE_ENV === 'production' ? '' : `/news-images/${filename}`;
+      console.log(`[News Image] ⚠️ Saved locally (fallback): ${localPath || filepath}`);
+      return localPath;
+    }
   } catch (error) {
     console.error('[News Image] ❌ Generation failed:', error);
     return '';
@@ -407,27 +436,21 @@ async function generateMatchResultTemplate(
   } else if (eventType === 'close_match') {
     badgeText = '⚡ NAIL-BITER';
     badgeColor = '#FFD700';
+  } else if (eventType === 'high_scoring') {
+    badgeText = '🔥 GOAL FEST';
+    badgeColor = '#f97316';
+  } else if (eventType === 'upset') {
+    badgeText = '😲 SHOCKER';
+    badgeColor = '#eab308';
+  } else if (eventType === 'draw') {
+    badgeText = '🤝 STALEMATE';
+    badgeColor = '#94a3b8';
+  } else if (eventType === 'clean_sheet') {
+    badgeText = '🧱 BRICK WALL';
+    badgeColor = '#38bdf8';
   }
   
-  ctx.fillStyle = `${badgeColor}15`;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.fill();
-  ctx.strokeStyle = `${badgeColor}35`;
-  ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.stroke();
-  
-  // Badge dot
-  ctx.fillStyle = badgeColor;
-  ctx.beginPath();
-  ctx.arc(60, 70, 6, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Badge text
-  ctx.fillStyle = badgeColor;
-  ctx.font = 'bold 24px "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(badgeText, 75, 75);
+  drawEventBadge(ctx, badgeText, badgeColor);
   
   // Tournament name (below badge)
   ctx.fillStyle = '#8a8278';
@@ -440,19 +463,19 @@ async function generateMatchResultTemplate(
   
   // Home team logo (left)
   if (metadata.home_team) {
-    await drawTeamLogo(ctx, homeTeamLogo, metadata.home_team, 250, centerY - 80, 140, primaryColor);
-    
+    await drawTeamLogo(ctx, homeTeamLogo, metadata.home_team, 250, centerY - 50, 200, primaryColor);
+
     // Home team name
     ctx.fillStyle = '#F5F0E8';
-    ctx.font = 'bold 40px "Bahnschrift", "Segoe UI", sans-serif';
+    ctx.font = 'bold 52px "Bahnschrift", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(metadata.home_team, 250, centerY + 90);
+    ctx.fillText(metadata.home_team, 250, centerY + 110);
   }
   
   // Score (center)
   if (metadata.home_score !== undefined && metadata.away_score !== undefined) {
     ctx.fillStyle = lighterColor;
-    ctx.font = 'bold 90px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
+    ctx.font = 'bold 130px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
@@ -470,29 +493,26 @@ async function generateMatchResultTemplate(
       ? awayTeamData.primaryColor 
       : primaryColor;
     
-    await drawTeamLogo(ctx, awayTeamLogo, metadata.away_team, CANVAS_WIDTH - 250, centerY - 80, 140, awayColor);
+    await drawTeamLogo(ctx, awayTeamLogo, metadata.away_team, CANVAS_WIDTH - 250, centerY - 50, 200, awayColor);
     
     // Away team name
     ctx.fillStyle = '#F5F0E8';
-    ctx.font = 'bold 40px "Bahnschrift", "Segoe UI", sans-serif';
+    ctx.font = 'bold 52px "Bahnschrift", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(metadata.away_team, CANVAS_WIDTH - 250, centerY + 90);
+    ctx.fillText(metadata.away_team, CANVAS_WIDTH - 250, centerY + 110);
   }
   
   // Footer bar
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillStyle = 'transparent';
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
   // Footer content
-  ctx.fillStyle = '#3a3630';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
   ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
-  
+
   ctx.textAlign = 'right';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
-  
   // TFC logo watermark
   await drawLogoWatermark(ctx, tfcLogo);
 }
@@ -526,23 +546,7 @@ async function generateMatchdayStartTemplate(
   drawGlowOrb(ctx, 100, CANVAS_HEIGHT - 80, 120, lighterColor, 0.15);
   
   // Event badge
-  ctx.fillStyle = `${lighterColor}15`;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.fill();
-  ctx.strokeStyle = `${lighterColor}35`;
-  ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.stroke();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.beginPath();
-  ctx.arc(60, 70, 6, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('🚀 MATCHDAY START', 75, 75);
+  drawEventBadge(ctx, '🚀 MATCHDAY START', lighterColor);
   
   // Tournament name
   ctx.fillStyle = '#8a8278';
@@ -584,18 +588,15 @@ async function generateMatchdayStartTemplate(
   }
   
   // Footer
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillStyle = 'transparent';
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
-  ctx.fillStyle = '#3a3630';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
   ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   
   ctx.textAlign = 'right';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
-  
   await drawLogoWatermark(ctx, tfcLogo);
 }
 
@@ -628,23 +629,7 @@ async function generateMatchdayCompleteTemplate(
   drawGlowOrb(ctx, 100, CANVAS_HEIGHT - 80, 120, lighterColor, 0.15);
   
   // Event badge
-  ctx.fillStyle = `${lighterColor}15`;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.fill();
-  ctx.strokeStyle = `${lighterColor}35`;
-  ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.stroke();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.beginPath();
-  ctx.arc(60, 70, 6, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('✅ MATCHDAY DONE', 75, 75);
+  drawEventBadge(ctx, '✅ MATCHDAY DONE', lighterColor);
   
   // Tournament name
   ctx.fillStyle = '#8a8278';
@@ -714,15 +699,12 @@ async function generateMatchdayCompleteTemplate(
   ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
-  ctx.fillStyle = '#3a3630';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
   ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   
   ctx.textAlign = 'right';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
-  
   await drawLogoWatermark(ctx, tfcLogo);
 }
 
@@ -765,24 +747,7 @@ async function generateLevelUpTemplate(
   drawGlowOrb(ctx, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 200, lighterColor, 0.25);
   
   // Event badge
-  ctx.fillStyle = `${lighterColor}20`;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.fill();
-  ctx.strokeStyle = `${lighterColor}50`;
-  ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, 40, 40, 280, 60, 30);
-  ctx.stroke();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.beginPath();
-  ctx.arc(60, 70, 6, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = lighterColor;
-  ctx.font = 'bold 24px "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('🏆 ACHIEVEMENT', 75, 75);
-  
+  drawEventBadge(ctx, '🏆 ACHIEVEMENT', lighterColor);
   // Trophy icon
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 100px system-ui';
@@ -814,24 +779,22 @@ async function generateLevelUpTemplate(
   }
   
   // Footer
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillStyle = 'transparent';
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
-  ctx.fillStyle = '#3a3630';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
   ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
-  
+
   ctx.textAlign = 'center';
   ctx.fillStyle = '#6b6560';
   ctx.font = '16px "Segoe UI", sans-serif';
   ctx.fillText('TFC League • Achievement Unlocked', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 35);
   
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#3a3630';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
   ctx.font = 'bold 16px "Segoe UI", sans-serif';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
   
   await drawLogoWatermark(ctx, tfcLogo);
 }
@@ -898,17 +861,15 @@ async function generateGenericTemplate(
   }
   
   // Footer
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillStyle = 'transparent';
   ctx.fillRect(0, CANVAS_HEIGHT - 70, CANVAS_WIDTH, 70);
   
-  ctx.fillStyle = '#3a3630';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
   ctx.font = 'bold 16px "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('turfcats.vercel.app', 40, CANVAS_HEIGHT - 35);
   
   ctx.textAlign = 'right';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  ctx.fillText(`Generated on ${dateStr}`, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 35);
   
   await drawLogoWatermark(ctx, tfcLogo);
 }

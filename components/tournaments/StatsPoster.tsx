@@ -6,7 +6,7 @@ import type { TeamStatRow } from './TournamentStats'
 
 /* ───────────────────────────── Theme Definitions ────────────────────────── */
 
-type ThemeKey = 'golden_boot' | 'ball' | 'glove' | 'team_matchday'
+type ThemeKey = 'golden_boot' | 'ball' | 'glove' | 'team_matchday' | 'team_weekly'
 
 interface Theme {
   label: string
@@ -29,13 +29,13 @@ const THEMES: Record<ThemeKey, Theme> = {
     tagline: 'GOLDEN BOOT',
   },
   ball: {
-    label: 'Match Ball',
+    label: 'Golden Ball',
     emoji: '⚽',
     bg: ['#050a1a', '#0a1628', '#0d2040'],
     accent: '#3ab8ff',
     accent2: '#ffffff',
     glow: 'rgba(58,184,255,0.35)',
-    tagline: 'MATCH STATISTICS',
+    tagline: 'GOLDEN BALL',
   },
   glove: {
     label: 'Golden Glove',
@@ -54,6 +54,15 @@ const THEMES: Record<ThemeKey, Theme> = {
     accent2: '#0077ff',
     glow: 'rgba(0,229,255,0.35)',
     tagline: 'TEAM OF THE DAY',
+  },
+  team_weekly: {
+    label: 'Team of the Week',
+    emoji: '🏆',
+    bg: ['#0a0a0a', '#0f0f0f', '#141414'],
+    accent: '#E8A800',
+    accent2: '#FFD700',
+    glow: 'rgba(232,168,0,0.35)',
+    tagline: 'TEAM OF THE WEEK',
   },
 }
 
@@ -135,11 +144,36 @@ function ShieldIcon({ color, size = 64 }: { color: string; size?: number }) {
   )
 }
 
+function TrophyIcon({ color, size = 64 }: { color: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <path
+        d="M32 8L24 12V20C24 28 26 32 32 40C38 32 40 28 40 20V12L32 8Z"
+        fill={color}
+        fillOpacity={0.12}
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M32 40V48M26 48H38M20 16H16C14 16 12 18 12 20V24C12 26 14 28 16 28H20M44 16H48C50 16 52 18 52 20V24C52 26 50 28 48 28H44" 
+        stroke={color} 
+        strokeWidth={2} 
+        strokeLinecap="round" 
+        opacity={0.5} 
+      />
+      <circle cx="32" cy="24" r="4" fill={color} fillOpacity={0.3} />
+      <path d="M26 52H38" stroke={color} strokeWidth={3} strokeLinecap="round" />
+    </svg>
+  )
+}
+
 const ICON_MAP: Record<ThemeKey, typeof BootIcon> = {
   golden_boot: BootIcon,
   ball: BallIcon,
   glove: GloveIcon,
   team_matchday: ShieldIcon,
+  team_weekly: TrophyIcon,
 }
 
 /* ──────────────────────── Poster Snapshot Component ──────────────────────── */
@@ -973,6 +1007,432 @@ function PosterSnapshot({
   )
 }
 
+/* ──────────────────────── Team Weekly Poster Component ──────────────────────── */
+
+function TeamWeeklyPosterSnapshot({
+  theme,
+  team,
+  tournamentName,
+  seasonName,
+  weekLabel,
+  weekRange,
+}: {
+  theme: Theme
+  themeKey: ThemeKey
+  team: TeamStatRow
+  tournamentName: string
+  seasonName: string
+  weekLabel: string
+  weekRange: string
+}) {
+  // Use team's primary color if available and valid, otherwise use theme color
+  // Exclude default cyan color (#00e5ff) as it's not a real team color
+  const teamColor = (team.primaryColor && 
+                     team.primaryColor !== '' && 
+                     team.primaryColor.startsWith('#') &&
+                     team.primaryColor.toLowerCase() !== '#00e5ff') 
+    ? team.primaryColor 
+    : theme.accent
+  
+  // Lighten the team color by 20% for better visibility
+  const lightenColor = (hex: string, percent: number) => {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const r = Math.min(255, Math.floor((num >> 16) + ((255 - (num >> 16)) * percent)))
+    const g = Math.min(255, Math.floor(((num >> 8) & 0x00FF) + ((255 - ((num >> 8) & 0x00FF)) * percent)))
+    const b = Math.min(255, Math.floor((num & 0x0000FF) + ((255 - (num & 0x0000FF)) * percent)))
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+  }
+  
+  const lighterTeamColor = lightenColor(teamColor, 0.3)
+  
+  // Generate background gradient based on team color
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 }
+  }
+  
+  const rgb = hexToRgb(lighterTeamColor)
+  const bgGradient = `linear-gradient(145deg, rgb(${rgb.r * 0.05}, ${rgb.g * 0.05}, ${rgb.b * 0.05}), rgb(${rgb.r * 0.08}, ${rgb.g * 0.08}, ${rgb.b * 0.08}), rgb(${rgb.r * 0.12}, ${rgb.g * 0.12}, ${rgb.b * 0.12}))`
+  const glowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`
+  
+  // Safety check - if no team data, show placeholder
+  if (!team || !team.teamName) {
+    return (
+      <div
+        style={{
+          width: 800,
+          minHeight: 600,
+          background: `linear-gradient(145deg, ${theme.bg[0]}, ${theme.bg[1]}, ${theme.bg[2]})`,
+          fontFamily: '"Barlow Condensed", "Outfit", "Bahnschrift", "Segoe UI", -apple-system, sans-serif',
+          boxSizing: 'border-box',
+          position: 'relative',
+          overflow: 'hidden',
+          padding: 48,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ textAlign: 'center' as const }}>
+          <div style={{ color: '#8a8278', fontSize: 18, fontWeight: 700, marginBottom: 12 }}>
+            No team data available for this week
+          </div>
+          <div style={{ color: '#6b6560', fontSize: 14 }}>
+            Please select a different week or check if matches have been played.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      style={{
+        width: 800,
+        minHeight: 600,
+        background: bgGradient,
+        fontFamily: '"Barlow Condensed", "Outfit", "Bahnschrift", "Segoe UI", -apple-system, sans-serif',
+        boxSizing: 'border-box',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: 48,
+      }}
+    >
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
+      {/* Diagonal Lines Pattern Overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.02) 10px,
+            rgba(255, 255, 255, 0.02) 20px
+          )`,
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      />
+
+      {/* Background Glow */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -80,
+          right: -80,
+          width: 320,
+          height: 320,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${glowColor}, transparent 70%)`,
+          filter: 'blur(40px)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Large Half-Cut Team Logo Background (Right Side) */}
+      {team.logoUrl && (
+        <div
+          style={{
+            position: 'absolute',
+            right: -200,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 600,
+            height: 600,
+            opacity: 0.10,
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        >
+          <img
+            src={team.logoUrl}
+            alt=""
+            crossOrigin="anonymous"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              imageRendering: 'high-quality' as any,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+          <div>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: `${teamColor}15`,
+                border: `1.5px solid ${teamColor}35`,
+                padding: '5px 14px',
+                borderRadius: 30,
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: lighterTeamColor }} />
+              <span style={{ color: lighterTeamColor, fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' as const }}>
+                {weekLabel} · {weekRange}
+              </span>
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 6 }}>
+              {seasonName} · {tournamentName}
+            </div>
+            <div style={{ color: '#FFFFFF', fontSize: 56, fontWeight: 900, letterSpacing: -1.5, lineHeight: 1, marginBottom: 8 }}>
+              TEAM OF
+            </div>
+            <div
+              style={{
+                color: lighterTeamColor,
+                fontSize: 56,
+                fontWeight: 900,
+                letterSpacing: -1.5,
+                lineHeight: 1,
+                textShadow: `0 0 30px ${glowColor}`,
+              }}
+            >
+              THE WEEK
+            </div>
+          </div>
+        </div>
+
+        {/* Team Card */}
+        <div
+          style={{
+            padding: 40,
+            marginBottom: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 20,
+          }}
+        >
+          {/* Team Logo */}
+          <div
+            style={{
+              width: 280,
+              height: 280,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              filter: `drop-shadow(0 12px 32px ${glowColor})`,
+            }}
+          >
+            {team.logoUrl ? (
+              <img
+                src={team.logoUrl}
+                alt={team.teamName}
+                crossOrigin="anonymous"
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'contain',
+                  imageRendering: 'high-quality' as any,
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${teamColor}, ${teamColor}dd)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span style={{ fontSize: 72, fontWeight: 900, color: '#0a0a0a' }}>
+                  {team.teamName.slice(0, 2).toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Team Name */}
+          <div style={{ textAlign: 'center' as const }}>
+            <div style={{ color: '#F5F0E8', fontSize: 48, fontWeight: 900, letterSpacing: -1, lineHeight: 1, marginBottom: 12 }}>
+              {team.teamName}
+            </div>
+            
+            {/* Manager Name */}
+            {team.managerName && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <div style={{ 
+                  width: 4, 
+                  height: 4, 
+                  borderRadius: '50%', 
+                  background: lighterTeamColor 
+                }} />
+                <div style={{ 
+                  color: lighterTeamColor, 
+                  fontSize: 14, 
+                  fontWeight: 700, 
+                  letterSpacing: 1,
+                  textTransform: 'uppercase' as const,
+                }}>
+                  {team.managerName}
+                </div>
+                <div style={{ 
+                  width: 4, 
+                  height: 4, 
+                  borderRadius: '50%', 
+                  background: lighterTeamColor 
+                }} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Weekly Stats Grid */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: 16,
+          marginBottom: 24
+        }}>
+          {/* Points */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: `1px solid ${teamColor}20`,
+            borderRadius: 14,
+            padding: '20px 16px',
+            textAlign: 'center' as const,
+          }}>
+            <div style={{ color: lighterTeamColor, fontSize: 36, fontWeight: 900, lineHeight: 1 }}>
+              {team.points}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' as const, marginTop: 8 }}>
+              Points
+            </div>
+          </div>
+
+          {/* Goals Scored */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: `1px solid ${teamColor}20`,
+            borderRadius: 14,
+            padding: '20px 16px',
+            textAlign: 'center' as const,
+          }}>
+            <div style={{ color: '#22c55e', fontSize: 36, fontWeight: 900, lineHeight: 1 }}>
+              {team.goalsFor}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' as const, marginTop: 8 }}>
+              Goals For
+            </div>
+          </div>
+
+          {/* Goals Against */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: `1px solid ${teamColor}20`,
+            borderRadius: 14,
+            padding: '20px 16px',
+            textAlign: 'center' as const,
+          }}>
+            <div style={{ color: '#ef4444', fontSize: 36, fontWeight: 900, lineHeight: 1 }}>
+              {team.goalsAgainst}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' as const, marginTop: 8 }}>
+              Goals Against
+            </div>
+          </div>
+        </div>
+
+        {/* Weekly Record */}
+        <div style={{
+          background: `${teamColor}08`,
+          border: `1px solid ${teamColor}20`,
+          borderRadius: 14,
+          padding: '24px 32px',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+        }}>
+          {/* Matches Played */}
+          <div style={{ textAlign: 'center' as const }}>
+            <div style={{ color: '#F5F0E8', fontSize: 28, fontWeight: 900 }}>
+              {team.played}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginTop: 4 }}>
+              Played
+            </div>
+          </div>
+
+          {/* Wins */}
+          <div style={{ textAlign: 'center' as const }}>
+            <div style={{ color: '#22c55e', fontSize: 28, fontWeight: 900 }}>
+              {team.won}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginTop: 4 }}>
+              Wins
+            </div>
+          </div>
+
+          {/* Draws */}
+          <div style={{ textAlign: 'center' as const }}>
+            <div style={{ color: '#fbbf24', fontSize: 28, fontWeight: 900 }}>
+              {team.drawn}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginTop: 4 }}>
+              Draws
+            </div>
+          </div>
+
+          {/* Losses */}
+          <div style={{ textAlign: 'center' as const }}>
+            <div style={{ color: '#ef4444', fontSize: 28, fontWeight: 900 }}>
+              {team.lost}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginTop: 4 }}>
+              Losses
+            </div>
+          </div>
+
+          {/* Goal Difference */}
+          <div style={{ textAlign: 'center' as const }}>
+            <div style={{ color: team.goalDiff >= 0 ? lighterTeamColor : '#ef4444', fontSize: 28, fontWeight: 900 }}>
+              {team.goalDiff >= 0 ? '+' : ''}{team.goalDiff}
+            </div>
+            <div style={{ color: '#8a8278', fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginTop: 4 }}>
+              Goal Diff
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: 24,
+            marginTop: 24,
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>turfcats.vercel.app</div>
+          <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700 }}>
+            Generated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ──────────────────────── Main StatsPoster Component ──────────────────────── */
 
 interface StatsPosterProps {
@@ -983,6 +1443,8 @@ interface StatsPosterProps {
   activeAward: 'golden-boot' | 'golden-ball' | 'golden-glove'
   imageTeamsLimit: string
   matches?: any[]
+  tournamentId?: string
+  seasonId?: string
 }
 
 export default function StatsPoster({
@@ -993,6 +1455,8 @@ export default function StatsPoster({
   activeAward,
   imageTeamsLimit,
   matches = [],
+  tournamentId,
+  seasonId,
 }: StatsPosterProps) {
   const posterRef = useRef<HTMLDivElement>(null)
   const [activeTheme, setActiveTheme] = useState<ThemeKey>(
@@ -1004,6 +1468,10 @@ export default function StatsPoster({
   const [shareDone, setShareDone] = useState(false)
   const [showPoster, setShowPoster] = useState(false)
   const [selectedMatchday, setSelectedMatchday] = useState<number>(0)
+  const [selectedWeek, setSelectedWeek] = useState<number>(0)
+  const [saving, setSaving] = useState(false)
+  const [saveDone, setSaveDone] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const theme = THEMES[activeTheme]
   const maxTeams = imageTeamsLimit === 'all' ? teams.length : Number(imageTeamsLimit)
@@ -1028,6 +1496,20 @@ export default function StatsPoster({
     const maxMatchdays = Math.max(...teams.map(t => t.played), 10)
     return Array.from({ length: maxMatchdays }, (_, i) => i + 1)
   })()
+
+  // Generate week options (weeks of 7 matchdays: 1-7, 8-14, 15-21, etc.)
+  const weekOptions = (() => {
+    const maxMatchday = matchdayOptions.length > 0 ? Math.max(...matchdayOptions) : 0
+    const weekCount = Math.ceil(maxMatchday / 7)
+    return Array.from({ length: weekCount }, (_, i) => i + 1)
+  })()
+
+  // Get week range for display
+  const getWeekRange = (weekNum: number) => {
+    const startMatchday = (weekNum - 1) * 7 + 1
+    const endMatchday = Math.min(weekNum * 7, matchdayOptions.length > 0 ? Math.max(...matchdayOptions) : 0)
+    return `MD ${startMatchday}-${endMatchday}`
+  }
 
   // Calculate cumulative team stats up to a specific matchday (for Golden Boot, Ball, Glove)
   const getCumulativeStatsUpToMatchday = (matchdayNum: number) => {
@@ -1184,6 +1666,77 @@ export default function StatsPoster({
     return teamsWithMatches.length > 0 ? teamsWithMatches : teams.map(t => ({ ...t, matchDetails: [] }))
   }
 
+  // Calculate team performance for selected week (range of matchdays)
+  const getTeamStatsForWeek = (weekNum: number) => {
+    if (!matches || matches.length === 0) {
+      return teams.map(t => ({ ...t, matchDetails: [] }))
+    }
+
+    const startMatchday = (weekNum - 1) * 7 + 1
+    const endMatchday = weekNum * 7
+
+    // Get all matches within the week range
+    const weekMatches = matches.filter(m => {
+      if (!m.round || m.status !== 'COMPLETED') return false
+      const matchRoundNum = parseInt(m.round.match(/\d+/)?.[0] || '0')
+      return matchRoundNum >= startMatchday && matchRoundNum <= endMatchday
+    })
+
+    if (weekMatches.length === 0) {
+      return teams.map(t => ({ ...t, matchDetails: [] }))
+    }
+
+    // Calculate stats for each team based on week matches
+    const teamStats = teams.map(team => {
+      const teamMatches = weekMatches.filter(
+        m => m.homeTeamId === team.seasonTeamId || m.awayTeamId === team.seasonTeamId
+      )
+
+      let weekPoints = 0
+      let weekGoalsFor = 0
+      let weekGoalsAgainst = 0
+      let weekWon = 0
+      let weekDrawn = 0
+      let weekLost = 0
+
+      teamMatches.forEach(match => {
+        const isHome = match.homeTeamId === team.seasonTeamId
+        const goalsFor = isHome ? (match.homeScore || 0) : (match.awayScore || 0)
+        const goalsAgainst = isHome ? (match.awayScore || 0) : (match.homeScore || 0)
+
+        weekGoalsFor += goalsFor
+        weekGoalsAgainst += goalsAgainst
+
+        if (goalsFor > goalsAgainst) {
+          weekPoints += 3
+          weekWon += 1
+        } else if (goalsFor === goalsAgainst) {
+          weekPoints += 1
+          weekDrawn += 1
+        } else {
+          weekLost += 1
+        }
+      })
+
+      return {
+        ...team,
+        played: teamMatches.length,
+        points: weekPoints,
+        goalsFor: weekGoalsFor,
+        goalsAgainst: weekGoalsAgainst,
+        goalDiff: weekGoalsFor - weekGoalsAgainst,
+        won: weekWon,
+        drawn: weekDrawn,
+        lost: weekLost,
+        cleanSheets: weekGoalsAgainst === 0 && teamMatches.length > 0 ? 1 : 0
+      }
+    })
+
+    const teamsWithMatches = teamStats.filter(t => t.played > 0)
+    
+    return teamsWithMatches.length > 0 ? teamsWithMatches : teams.map(t => ({ ...t }))
+  }
+
   // Metric extraction per theme
   const getMetric = (t: TeamStatRow) => {
     switch (activeTheme) {
@@ -1211,11 +1764,25 @@ export default function StatsPoster({
           label: 'Points',
           secondary: `${t.played} MP · ${t.won}W ${t.drawn}D ${t.lost}L`,
         }
+      case 'team_weekly':
+        return {
+          primary: t.points,
+          label: 'Points',
+          secondary: `${t.played} MP · ${t.won}W ${t.drawn}D ${t.lost}L`,
+        }
     }
   }
 
-  // Get teams based on poster type and matchday selection
+  // Get teams based on poster type and matchday/week selection
   const matchdayTeams = (() => {
+    if (activeTheme === 'team_weekly') {
+      // Team Weekly: Show week range performance
+      if (selectedWeek === 0) {
+        return teams // All weeks
+      }
+      return getTeamStatsForWeek(selectedWeek)
+    }
+    
     if (selectedMatchday === 0) {
       return teams // All matchdays
     }
@@ -1241,13 +1808,14 @@ export default function StatsPoster({
       case 'glove':
         return [...teamsToSort].filter(t => t.played > 0).sort((a, b) => a.goalsAgainst - b.goalsAgainst || (b.cleanSheets ?? 0) - (a.cleanSheets ?? 0))
       case 'team_matchday':
+      case 'team_weekly':
         return [...teamsToSort].sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
       default:
         return teamsToSort
     }
   })()
 
-  // Get the best team for the selected matchday
+  // Get the best team for the selected matchday/week
   const bestTeamForMatchday = sortedTeams[0] || ({} as TeamStatRow)
 
   const handleDownload = async () => {
@@ -1307,6 +1875,70 @@ export default function StatsPoster({
       console.error('Share error:', err)
     } finally {
       setSharing(false)
+    }
+  }
+
+  const handleSaveAward = async () => {
+    if (!tournamentId || !bestTeamForMatchday?.seasonTeamId || saving) return
+    
+    // Only allow saving for team_matchday and team_weekly
+    if (activeTheme !== 'team_matchday' && activeTheme !== 'team_weekly') return
+    
+    setSaving(true)
+    setSaveError(null)
+    
+    try {
+      const awardType = activeTheme === 'team_matchday' ? 'TEAM_OF_THE_DAY' : 'TEAM_OF_THE_WEEK'
+      
+      let awardPeriod = ''
+      let matchdayNumber = null
+      let weekNumber = null
+      
+      if (activeTheme === 'team_matchday') {
+        matchdayNumber = selectedMatchday
+        awardPeriod = `Matchday ${selectedMatchday}`
+      } else {
+        weekNumber = selectedWeek
+        awardPeriod = `${getWeekRange(selectedWeek)}`
+      }
+      
+      const response = await fetch(`/api/tournaments/${tournamentId}/team-awards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seasonTeamId: bestTeamForMatchday.seasonTeamId,
+          awardType,
+          awardPeriod,
+          matchdayNumber,
+          weekNumber,
+          pointsEarned: bestTeamForMatchday.points,
+          goalsFor: bestTeamForMatchday.goalsFor,
+          goalsAgainst: bestTeamForMatchday.goalsAgainst,
+          goalDifference: bestTeamForMatchday.goalDiff,
+          matchesPlayed: bestTeamForMatchday.played,
+          wins: bestTeamForMatchday.won,
+          draws: bestTeamForMatchday.drawn,
+          losses: bestTeamForMatchday.lost,
+        }),
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        if (response.status === 409) {
+          setSaveError('Award already saved for this period')
+        } else {
+          setSaveError(error.error || 'Failed to save award')
+        }
+        return
+      }
+      
+      setSaveDone(true)
+      setTimeout(() => setSaveDone(false), 2500)
+    } catch (err) {
+      console.error('Save award error:', err)
+      setSaveError('Failed to save award')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -1371,36 +2003,69 @@ export default function StatsPoster({
               </div>
             </div>
 
-            {/* Matchday Selector - Show for all poster types */}
+            {/* Matchday/Week Selector */}
             <div className="mt-4 flex items-center gap-3">
-              <label className="text-xs font-bold text-[#7A7367] uppercase tracking-wider">
-                Filter by Matchday:
-              </label>
-              <select
-                value={selectedMatchday}
-                onChange={(e) => setSelectedMatchday(Number(e.target.value))}
-                className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[#F5F0E8] text-sm font-bold focus:outline-none focus:border-[#00e5ff]/50 focus:ring-1 focus:ring-[#00e5ff]/30"
-                style={{
-                  background: `${theme.accent}08`,
-                  borderColor: `${theme.accent}30`,
-                }}
-              >
-                <option value={0} className="bg-[#0a0a0a] text-[#F5F0E8]">
-                  All Matchdays
-                </option>
-                {matchdayOptions.map((md) => (
-                  <option key={md} value={md} className="bg-[#0a0a0a] text-[#F5F0E8]">
-                    Matchday {md}
-                  </option>
-                ))}
-              </select>
-              {selectedMatchday > 0 && (
-                <div className="text-xs text-[#7A7367]">
-                  {activeTheme === 'team_matchday' 
-                    ? `Showing best team from Matchday ${selectedMatchday}`
-                    : `Showing cumulative stats till Matchday ${selectedMatchday}`
-                  }
-                </div>
+              {activeTheme === 'team_weekly' ? (
+                <>
+                  <label className="text-xs font-bold text-[#7A7367] uppercase tracking-wider">
+                    Filter by Week:
+                  </label>
+                  <select
+                    value={selectedWeek}
+                    onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                    className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[#F5F0E8] text-sm font-bold focus:outline-none focus:border-[#E8A800]/50 focus:ring-1 focus:ring-[#E8A800]/30"
+                    style={{
+                      background: `${theme.accent}08`,
+                      borderColor: `${theme.accent}30`,
+                    }}
+                  >
+                    <option value={0} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                      All Weeks
+                    </option>
+                    {weekOptions.map((week) => (
+                      <option key={week} value={week} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                        Week {week} ({getWeekRange(week)})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedWeek > 0 && (
+                    <div className="text-xs text-[#7A7367]">
+                      Showing best team from {getWeekRange(selectedWeek)}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <label className="text-xs font-bold text-[#7A7367] uppercase tracking-wider">
+                    Filter by Matchday:
+                  </label>
+                  <select
+                    value={selectedMatchday}
+                    onChange={(e) => setSelectedMatchday(Number(e.target.value))}
+                    className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[#F5F0E8] text-sm font-bold focus:outline-none focus:border-[#00e5ff]/50 focus:ring-1 focus:ring-[#00e5ff]/30"
+                    style={{
+                      background: `${theme.accent}08`,
+                      borderColor: `${theme.accent}30`,
+                    }}
+                  >
+                    <option value={0} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                      All Matchdays
+                    </option>
+                    {matchdayOptions.map((md) => (
+                      <option key={md} value={md} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                        Matchday {md}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedMatchday > 0 && (
+                    <div className="text-xs text-[#7A7367]">
+                      {activeTheme === 'team_matchday' 
+                        ? `Showing best team from Matchday ${selectedMatchday}`
+                        : `Showing cumulative stats till Matchday ${selectedMatchday}`
+                      }
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1417,6 +2082,16 @@ export default function StatsPoster({
                     tournamentName={tournamentName}
                     seasonName={seasonName}
                     roundLabel={`Matchday ${selectedMatchday}`}
+                  />
+                ) : activeTheme === 'team_weekly' ? (
+                  <TeamWeeklyPosterSnapshot
+                    theme={theme}
+                    themeKey={activeTheme}
+                    team={bestTeamForMatchday}
+                    tournamentName={tournamentName}
+                    seasonName={seasonName}
+                    weekLabel={selectedWeek > 0 ? `Week ${selectedWeek}` : 'All Weeks'}
+                    weekRange={selectedWeek > 0 ? getWeekRange(selectedWeek) : 'All Matchdays'}
                   />
                 ) : (
                   <PosterSnapshot
@@ -1435,83 +2110,138 @@ export default function StatsPoster({
           </div>
 
           {/* Action Buttons */}
-          <div className="px-5 py-4 border-t border-white/10 bg-white/[0.02] flex flex-wrap gap-2 justify-end">
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
-                downloadDone
-                  ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
-                  : 'bg-white/5 hover:bg-white/10 border-white/10 text-[#D4CCBB] hover:text-[#F5F0E8]'
-              }`}
-            >
-              {downloading ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Saving…
-                </>
-              ) : downloadDone ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Saved!
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download Poster
-                </>
-              )}
-            </button>
+          <div className="px-5 py-4 border-t border-white/10 bg-white/[0.02] flex flex-wrap gap-2 justify-between items-center">
+            {/* Save Award Button - Only show for team_matchday and team_weekly */}
+            {(activeTheme === 'team_matchday' || activeTheme === 'team_weekly') && tournamentId && bestTeamForMatchday?.seasonTeamId && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSaveAward}
+                  disabled={saving || (activeTheme === 'team_matchday' && selectedMatchday === 0) || (activeTheme === 'team_weekly' && selectedWeek === 0)}
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed ${
+                    saveDone
+                      ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
+                      : saveError
+                        ? 'bg-red-400/10 border-red-400/30 text-red-400'
+                        : 'bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border-[#E8A800]/30 text-[#E8A800]'
+                  }`}
+                >
+                  {saving ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Saving…
+                    </>
+                  ) : saveDone ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Award Saved!
+                    </>
+                  ) : saveError ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      {saveError}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Save Award
+                    </>
+                  )}
+                </button>
+                {(activeTheme === 'team_matchday' && selectedMatchday === 0) || (activeTheme === 'team_weekly' && selectedWeek === 0) ? (
+                  <span className="text-xs text-[#7A7367]">
+                    Select a {activeTheme === 'team_matchday' ? 'matchday' : 'week'} to save
+                  </span>
+                ) : null}
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-2 ml-auto">
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
+                  downloadDone
+                    ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-[#D4CCBB] hover:text-[#F5F0E8]'
+                }`}
+              >
+                {downloading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Saving…
+                  </>
+                ) : downloadDone ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Poster
+                  </>
+                )}
+              </button>
 
-            <button
-              onClick={handleShare}
-              disabled={sharing}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
-                shareDone
-                  ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
-                  : ''
-              }`}
-              style={
-                !shareDone
-                  ? {
-                      background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`,
-                      color: '#0a0a0a',
-                      border: 'none',
-                    }
-                  : undefined
-              }
-            >
-              {sharing ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Sharing…
-                </>
-              ) : shareDone ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Shared!
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                  Share Poster
-                </>
-              )}
-            </button>
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
+                  shareDone
+                    ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
+                    : ''
+                }`}
+                style={
+                  !shareDone
+                    ? {
+                        background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`,
+                        color: '#0a0a0a',
+                        border: 'none',
+                      }
+                    : undefined
+                }
+              >
+                {sharing ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Sharing…
+                  </>
+                ) : shareDone ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Shared!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                    Share Poster
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1527,6 +2257,16 @@ export default function StatsPoster({
               tournamentName={tournamentName}
               seasonName={seasonName}
               roundLabel={selectedMatchday > 0 ? `Matchday ${selectedMatchday}` : roundLabel}
+            />
+          ) : activeTheme === 'team_weekly' ? (
+            <TeamWeeklyPosterSnapshot
+              theme={theme}
+              themeKey={activeTheme}
+              team={bestTeamForMatchday}
+              tournamentName={tournamentName}
+              seasonName={seasonName}
+              weekLabel={selectedWeek > 0 ? `Week ${selectedWeek}` : 'All Weeks'}
+              weekRange={selectedWeek > 0 ? getWeekRange(selectedWeek) : 'All Matchdays'}
             />
           ) : (
             <PosterSnapshot

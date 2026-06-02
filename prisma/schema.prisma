@@ -82,6 +82,7 @@ model season_teams {
   starredPlayers     starred_players[]
   tournamentTeams    tournament_teams[] @relation("TournamentTeams")
   transfer_history   transfer_history[]
+  teamAwards         team_awards[]
 
   @@unique([seasonId, teamId])
 }
@@ -505,6 +506,7 @@ model tournaments {
   standings       standings[]
   tournamentTeams tournament_teams[]
   season          seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  teamAwards      team_awards[]
 
   @@unique([seasonId, name])
 }
@@ -1138,29 +1140,64 @@ model manager_teams {
 }
 
 model news {
-  id            String    @id
-  title_en      String
-  title_ml      String?
-  content_en    String
-  content_ml    String?
-  summary_en    String?
-  summary_ml    String?
-  category      String
-  event_type    String
-  season_id     String?
-  season_name   String?
-  tone          String?
-  reporter_en   String?
-  reporter_ml   String?
-  image_url     String?
-  metadata      Json?
-  generated_by  String    @default("manual")
-  is_published  Boolean   @default(false)
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  id              String    @id
+  title_en        String
+  title_ml        String?
+  content_en      String
+  content_ml      String?
+  summary_en      String?
+  summary_ml      String?
+  category        String
+  event_type      String
+  season_id       String?
+  season_name     String?
+  tone            String?
+  reporter_en     String?
+  reporter_ml     String?
+  image_url       String?
+  metadata        Json?
+  generated_by    String    @default("manual")
+  is_published    Boolean   @default(false)
+  edited_by_admin Boolean   @default(false)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
 
   @@index([season_id])
   @@index([category])
   @@index([is_published])
   @@index([created_at])
+}
+
+model team_awards {
+  id             String       @id
+  tournamentId   String       @map("tournament_id")
+  seasonTeamId   String       @map("season_team_id")
+  awardType      TeamAwardType @map("award_type")
+  awardPeriod    String       @map("award_period")
+  matchdayNumber Int?         @map("matchday_number")
+  weekNumber     Int?         @map("week_number")
+  pointsEarned   Int          @map("points_earned")
+  goalsFor       Int          @map("goals_for")
+  goalsAgainst   Int          @map("goals_against")
+  goalDifference Int          @map("goal_difference")
+  matchesPlayed  Int          @map("matches_played")
+  wins           Int
+  draws          Int
+  losses         Int
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  tournament     tournaments  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  seasonTeam     season_teams @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, awardType, awardPeriod], map: "unique_award_per_period")
+  @@index([tournamentId])
+  @@index([seasonTeamId])
+  @@index([awardType])
+  @@index([tournamentId, awardType, awardPeriod])
+}
+
+enum TeamAwardType {
+  TEAM_OF_THE_DAY
+  TEAM_OF_THE_WEEK
 }

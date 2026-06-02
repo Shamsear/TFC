@@ -29,7 +29,7 @@ type Tab = 'golden-boot' | 'golden-ball' | 'golden-glove'
 
 const TABS: { id: Tab; label: string; emoji: string; sublabel: string; accentColor: string }[] = [
   { id: 'golden-boot', label: 'Golden Boot', emoji: '🥇', sublabel: 'Most Goals Scored', accentColor: '#FFD700' },
-  { id: 'golden-ball', label: 'Golden Ball', emoji: '🥊', sublabel: 'Best Performance', accentColor: '#E8A800' },
+  { id: 'golden-ball', label: 'Golden Ball', emoji: '⚽', sublabel: 'Best Performance', accentColor: '#E8A800' },
   { id: 'golden-glove', label: 'Golden Glove', emoji: '🧤', sublabel: 'Best Defense', accentColor: '#60A5FA' },
 ]
 
@@ -44,6 +44,8 @@ interface TournamentStatsProps {
   activeRoundLimit?: string
   setActiveRoundLimit?: (limit: string) => void
   hideShareOptions?: boolean
+  tournamentId?: string
+  seasonId?: string
 }
 
 export default function TournamentStats({ 
@@ -56,7 +58,9 @@ export default function TournamentStats({
   seasonName,
   activeRoundLimit: externalRoundLimit,
   setActiveRoundLimit: externalSetRoundLimit,
-  hideShareOptions = false
+  hideShareOptions = false,
+  tournamentId,
+  seasonId,
 }: TournamentStatsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('golden-boot')
   
@@ -477,6 +481,8 @@ export default function TournamentStats({
           activeAward={activeTab}
           imageTeamsLimit={imageTeamsLimit}
           matches={matches}
+          tournamentId={tournamentId}
+          seasonId={seasonId}
         />
       )}
 

@@ -1,0 +1,201 @@
+/**
+ * Manually generate news for a specific match
+ * Run: npx tsx scripts/generate-match-news.ts TFCMA-2664
+ */
+
+import { prisma } from '../lib/prisma';
+import { triggerNews } from '../lib/news/trigger';
+import { getTournamentContext, generateContextNarrative } from '../lib/news/tournament-context';
+
+async function generateMatchNews(matchId: string) {
+  console.log(`📰 Generating news for match: ${matchId}\n`);
+
+  // Get match details
+  const match = await prisma.matches.findUnique({
+    where: { id: matchId },
+    include: {
+      homeTeam: {
+        include: {
+          team: true
+        }
+      },
+      awayTeam: {
+        include: {
+          team: true
+        }
+      },
+      tournament: {
+        include: {
+          season: true
+        }
+      }
+    }
+  });
+
+  if (!match) {
+    console.error(`❌ Match ${matchId} not found!`);
+    return;
+  }
+
+  console.log('📊 Match Details:');
+  console.log(`   ${match.homeTeam.team.name} ${match.homeScore} - ${match.awayScore} ${match.awayTeam.team.name}`);
+  console.log(`   Status: ${match.status}`);
+  console.log(`   Round: ${match.round}`);
+  console.log(`   Tournament: ${match.tournament.name}`);
+  console.log(`   Season: ${match.tournament.season.name}`);
+  console.log();
+
+  // Validate
+  if (match.status !== 'COMPLETED') {
+    console.error(`❌ Match is not COMPLETED (status: ${match.status})`);
+    console.log('   Change status to COMPLETED first.');
+    return;
+  }
+
+  if (match.homeScore === null || match.awayScore === null) {
+    console.error(`❌ Match has no scores!`);
+    console.log('   Set match scores first.');
+    return;
+  }
+
+  // Calculate match statistics
+  const homeScore = match.homeScore;
+  const awayScore = match.awayScore;
+  const goalDiff = Math.abs(homeScore - awayScore);
+  const winner = homeScore > awayScore ? match.homeTeam.team.name : 
+                 awayScore > homeScore ? match.awayTeam.team.name : null;
+  const winnerTeamId = homeScore > awayScore ? match.homeTeam.teamId : 
+                       awayScore > homeScore ? match.awayTeam.teamId : null;
+
+  // Check if this was the first completed match in the round
+  const completedMatchesInRound = await prisma.matches.findMany({
+    where: {
+      tournamentId: match.tournamentId,
+      round: match.round,
+      status: 'COMPLETED'
+    },
+    orderBy: {
+      updatedAt: 'asc'
+    },
+    select: {
+      id: true,
+      updatedAt: true
+    }
+  });
+
+  const isFirstMatch = completedMatchesInRound.length > 0 && completedMatchesInRound[0].id === matchId;
+
+  // Determine event type
+  let eventType: any = 'match_completed';
+
+  if (isFirstMatch) {
+    eventType = 'matchday_opener';
+    console.log(`   🎬 This is the MATCHDAY OPENER!`);
+  } else if (goalDiff >= 5) {
+    eventType = 'thrashing';
+    console.log(`   🔥 THRASHING! (${goalDiff}-goal difference)`);
+  } else if (goalDiff === 1) {
+    eventType = 'close_match';
+    console.log(`   ⚡ CLOSE MATCH! (1-goal difference)`);
+  } else if (homeScore === 0 && awayScore === 0) {
+    eventType = 'boring_draw';
+    console.log(`   😴 BORING DRAW (0-0)`);
+  } else if ((homeScore + awayScore) >= 6) {
+    eventType = 'high_scoring';
+    console.log(`   🎯 HIGH SCORING! (${homeScore + awayScore} total goals)`);
+  }
+
+  // Check for penalty shootout
+  if (match.homePenalty !== null && match.awayPenalty !== null && !isFirstMatch) {
+    eventType = 'penalty_shootout';
+    console.log(`   🎯 PENALTY SHOOTOUT! (${match.homePenalty}-${match.awayPenalty})`);
+  }
+
+  console.log(`   Event Type: ${eventType}`);
+  console.log();
+
+  // Get tournament context
+  console.log('📊 Fetching tournament context...');
+  const [homeContext, awayContext] = await Promise.all([
+    getTournamentContext(match.tournamentId, match.homeTeam.teamId, matchId),
+    getTournamentContext(match.tournamentId, match.awayTeam.teamId, matchId)
+  ]);
+
+  const homeNarrative = homeContext ? generateContextNarrative(homeContext) : '';
+  const awayNarrative = awayContext ? generateContextNarrative(awayContext) : '';
+
+  // Build context string
+  let contextString = `Tournament Context:\n\n`;
+  if (homeContext) {
+    contextString += `${match.homeTeam.team.name}: ${homeNarrative}\n\n`;
+  }
+  if (awayContext) {
+    contextString += `${match.awayTeam.team.name}: ${awayNarrative}\n\n`;
+  }
+
+  // Add impact analysis
+  if (winner && winnerTeamId) {
+    const winnerContext = winnerTeamId === match.homeTeam.teamId ? homeContext : awayContext;
+    if (winnerContext) {
+      contextString += `Impact: This victory `;
+      if (winnerContext.context.isLeader) {
+        contextString += `strengthens ${winner}'s position at the top of the table`;
+      } else if (winnerContext.context.isInPlayoffs) {
+        contextString += `helps ${winner} secure their playoff position`;
+      } else {
+        contextString += `brings ${winner} closer to the playoff spots (now ${winnerContext.context.pointsFromPlayoffs} points away)`;
+      }
+      contextString += `.`;
+    }
+  }
+
+  console.log('Context:', contextString.substring(0, 200) + '...\n');
+
+  // Generate news
+  console.log('🤖 Generating AI news with Gemini...');
+  try {
+    await triggerNews(eventType, {
+      season_id: match.tournament.seasonId,
+      metadata: {
+        home_team: match.homeTeam.team.name,
+        away_team: match.awayTeam.team.name,
+        home_score: homeScore,
+        away_score: awayScore,
+        winner,
+        goal_diff: goalDiff,
+        tournament_name: match.tournament.name,
+        round: match.round,
+        venue: match.venue,
+        has_penalties: match.homePenalty !== null && match.awayPenalty !== null,
+        home_penalty: match.homePenalty,
+        away_penalty: match.awayPenalty,
+        home_position: homeContext?.standing.position,
+        home_points: homeContext?.standing.points,
+        home_form: homeContext?.form.recent,
+        away_position: awayContext?.standing.position,
+        away_points: awayContext?.standing.points,
+        away_form: awayContext?.form.recent
+      },
+      context: contextString
+    });
+
+    console.log('✅ News generated successfully!');
+    console.log('\nCheck the news page or database to see the article.');
+  } catch (error) {
+    console.error('❌ Failed to generate news:', error);
+  }
+}
+
+const matchId = process.argv[2];
+if (!matchId) {
+  console.error('Usage: npx tsx scripts/generate-match-news.ts <MATCH_ID>');
+  console.error('Example: npx tsx scripts/generate-match-news.ts TFCMA-2664');
+  process.exit(1);
+}
+
+generateMatchNews(matchId)
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  });

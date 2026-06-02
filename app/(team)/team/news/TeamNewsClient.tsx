@@ -129,7 +129,7 @@ function TeamNewsContent() {
             {/* Featured News */}
             {featuredNews && (
               <div className="mb-6">
-                <NewsCard news={featuredNews} featured />
+                <NewsCard news={featuredNews} featured baseUrl="/team/news" />
               </div>
             )}
 
@@ -137,7 +137,7 @@ function TeamNewsContent() {
             {regularNews.length > 0 && (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {regularNews.map((item) => (
-                  <NewsCard key={item.id} news={item} />
+                  <NewsCard key={item.id} news={item} baseUrl="/team/news" />
                 ))}
               </div>
             )}

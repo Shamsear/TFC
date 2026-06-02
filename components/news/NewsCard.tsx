@@ -2,6 +2,7 @@
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import Image from 'next/image';
+import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NewsCardProps {
@@ -40,7 +41,7 @@ const toneEmojis: Record<string, string> = {
   harsh: '🔥',
 };
 
-export default function NewsCard({ news, featured = false }: NewsCardProps) {
+export default function NewsCard({ news, featured = false, baseUrl = '/news' }: NewsCardProps) {
   const { language } = useLanguage();
 
   const title = language === 'ml' && news.title_ml ? news.title_ml : news.title_en;
@@ -49,106 +50,112 @@ export default function NewsCard({ news, featured = false }: NewsCardProps) {
 
   const categoryColor = categoryColors[news.category] || categoryColors.season;
   const toneEmoji = news.tone ? toneEmojis[news.tone] || '📰' : '📰';
+  
+  const href = `${baseUrl}/${news.id}`;
 
   if (featured) {
     return (
-      <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all shadow-xl">
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Image */}
-          <div className="relative h-64 md:h-full">
-            {news.image_url ? (
-              <Image
-                src={news.image_url}
-                alt={title}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 flex items-center justify-center">
-                <span className="text-6xl">{toneEmoji}</span>
+      <Link href={href} className="block group">
+        <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden hover:border-white/30 transition-all shadow-xl group-hover:shadow-2xl group-hover:transform group-hover:-translate-y-1">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Image */}
+            <div className="relative h-64 md:h-full">
+              {news.image_url ? (
+                <Image
+                  src={news.image_url}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 flex items-center justify-center">
+                  <span className="text-6xl">{toneEmoji}</span>
+                </div>
+              )}
+              <div className="absolute top-4 left-4">
+                <span className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border ${categoryColor}`}>
+                  {news.category}
+                </span>
               </div>
-            )}
-            <div className="absolute top-4 left-4">
-              <span className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border ${categoryColor}`}>
-                {news.category}
-              </span>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 flex flex-col justify-center">
-            <div className="flex items-center gap-2 text-xs text-gray-400 mb-3 font-bold">
-              <span>{toneEmoji}</span>
-              <span>{formatDistanceToNow(new Date(news.created_at), { addSuffix: true })}</span>
             </div>
 
-            <h2 className="text-3xl font-black mb-4 text-white leading-tight">
-              {title}
-            </h2>
+            {/* Content */}
+            <div className="p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-xs text-gray-400 mb-3 font-bold">
+                <span>{toneEmoji}</span>
+                <span>{formatDistanceToNow(new Date(news.created_at), { addSuffix: true })}</span>
+              </div>
 
-            {summary && (
-              <p className="text-base text-gray-300 mb-4 line-clamp-3">
-                {summary}
-              </p>
-            )}
+              <h2 className="text-3xl font-black mb-4 text-white leading-tight group-hover:text-[#E8A800] transition-colors">
+                {title}
+              </h2>
 
-            {reporter && (
-              <p className="text-sm text-gray-400 italic font-medium">
-                — {reporter}
-              </p>
-            )}
+              {summary && (
+                <p className="text-base text-gray-300 mb-4 line-clamp-3">
+                  {summary}
+                </p>
+              )}
+
+              {reporter && (
+                <p className="text-sm text-gray-400 italic font-medium">
+                  — {reporter}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </Link>
     );
   }
 
   return (
-    <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all shadow-lg">
-      {/* Image */}
-      <div className="relative h-48">
-        {news.image_url ? (
-          <Image
-            src={news.image_url}
-            alt={title}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 flex items-center justify-center">
-            <span className="text-4xl">{toneEmoji}</span>
+    <Link href={href} className="block group h-full">
+      <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden hover:border-white/30 transition-all shadow-lg h-full flex flex-col group-hover:shadow-xl group-hover:transform group-hover:-translate-y-1">
+        {/* Image */}
+        <div className="relative h-48 flex-shrink-0">
+          {news.image_url ? (
+            <Image
+              src={news.image_url}
+              alt={title}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 flex items-center justify-center">
+              <span className="text-4xl">{toneEmoji}</span>
+            </div>
+          )}
+          <div className="absolute top-3 left-3">
+            <span className={`px-2 py-1 rounded-lg text-xs font-black uppercase tracking-wider border ${categoryColor}`}>
+              {news.category}
+            </span>
           </div>
-        )}
-        <div className="absolute top-3 left-3">
-          <span className={`px-2 py-1 rounded-lg text-xs font-black uppercase tracking-wider border ${categoryColor}`}>
-            {news.category}
-          </span>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 font-bold">
-          <span>{toneEmoji}</span>
-          <span>{formatDistanceToNow(new Date(news.created_at), { addSuffix: true })}</span>
         </div>
 
-        <h3 className="text-xl font-black mb-2 text-white line-clamp-2 leading-tight">
-          {title}
-        </h3>
+        {/* Content */}
+        <div className="p-4 flex flex-col flex-grow">
+          <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 font-bold">
+            <span>{toneEmoji}</span>
+            <span>{formatDistanceToNow(new Date(news.created_at), { addSuffix: true })}</span>
+          </div>
 
-        {summary && (
-          <p className="text-sm text-gray-300 mb-3 line-clamp-2">
-            {summary}
-          </p>
-        )}
+          <h3 className="text-xl font-black mb-2 text-white line-clamp-2 leading-tight group-hover:text-[#E8A800] transition-colors">
+            {title}
+          </h3>
 
-        {reporter && (
-          <p className="text-xs text-gray-400 italic font-medium">
-            — {reporter}
-          </p>
-        )}
+          {summary && (
+            <p className="text-sm text-gray-300 mb-3 line-clamp-2 flex-grow">
+              {summary}
+            </p>
+          )}
+
+          {reporter && (
+            <p className="text-xs text-gray-400 italic font-medium mt-auto pt-2">
+              — {reporter}
+            </p>
+          )}
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }

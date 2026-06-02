@@ -70,8 +70,26 @@ async function resetAllAchievements() {
             select: { xp: true, level: true }
           })
 
+          // Get match count for this team
+          const seasonTeams = await prisma.season_teams.findMany({
+            where: { teamId: team.id },
+            select: { id: true }
+          })
+          const seasonTeamIds = seasonTeams.map(st => st.id)
+          
+          const matchCount = await prisma.matches.count({
+            where: {
+              status: 'COMPLETED',
+              OR: [
+                { homeTeamId: { in: seasonTeamIds } },
+                { awayTeamId: { in: seasonTeamIds } },
+              ],
+            }
+          })
+
           if (updatedTeam) {
             console.log(`   Level ${updatedTeam.level}, ${updatedTeam.xp} XP`)
+            console.log(`   Matches processed: ${matchCount}`)
             
             if (result.newBadgesUnlocked && result.newBadgesUnlocked.length > 0) {
               console.log(`   🏆 Badges: ${result.newBadgesUnlocked.map(b => b.key).join(', ')}`)

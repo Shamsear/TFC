@@ -16,9 +16,7 @@ export async function getTournamentContext(
       select: {
         id: true,
         name: true,
-        tournamentType: true,
-        knockoutEnabled: true,
-        totalRounds: true
+        tournamentType: true
       }
     });
 
@@ -127,7 +125,7 @@ export async function getTournamentContext(
     const nextMatch = await prisma.matches.findFirst({
       where: {
         tournamentId,
-        status: { in: ['SCHEDULED', 'UPCOMING'] },
+        status: 'SCHEDULED',
         OR: [
           { homeTeamId: teamStanding.teamId },
           { awayTeamId: teamStanding.teamId }
@@ -198,8 +196,7 @@ export async function getTournamentContext(
     const tournamentType = tournament.tournamentType;
     const hasKnockoutStage = 
       tournamentType === 'LEAGUE_PLAYOFF' || 
-      tournamentType === 'GROUP_KNOCKOUT' ||
-      (tournamentType === 'LEAGUE_ONLY' && tournament.knockoutEnabled === true);
+      tournamentType === 'GROUP_KNOCKOUT';
     
     // For pure knockout tournaments, there are no standings/playoffs to worry about
     const isPureKnockout = tournamentType === 'KNOCKOUT_ONLY';

@@ -47,7 +47,12 @@ export async function PATCH(
             team: true
           }
         },
-        group: true
+        group: true,
+        tournament: {
+          include: {
+            season: true
+          }
+        }
       }
     })
 
@@ -268,11 +273,8 @@ export async function PATCH(
           const eventType = scenario?.eventType || 'match_completed';
           const scenarioMetadata = scenario?.metadata || {};
 
-          // Get tournament name for news
-          const tournament = await prisma.tournaments.findUnique({
-            where: { id: tournamentId },
-            select: { name: true }
-          });
+          // Tournament already loaded in existingMatch
+          const tournament = existingMatch.tournament;
 
           // Get tournament context for BOTH teams
           const [homeContext, awayContext] = await Promise.all([

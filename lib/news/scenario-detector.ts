@@ -37,8 +37,7 @@ export async function detectMatchScenarios(
       where: { id: tournamentId },
       select: { 
         name: true, 
-        tournamentType: true,
-        totalRounds: true 
+        tournamentType: true
       }
     })
   ]);
@@ -60,7 +59,14 @@ export async function detectMatchScenarios(
 
   // Priority 9: Final Day Drama
   const completedRounds = await getCompletedRounds(tournamentId);
-  if (round === tournament.totalRounds && completedRounds === tournament.totalRounds) {
+  const allMatches = await prisma.matches.findMany({
+    where: { tournamentId },
+    select: { round: true },
+    distinct: ['round']
+  });
+  const totalRounds = allMatches.length;
+  
+  if (round === totalRounds && completedRounds === totalRounds) {
     const standings = await prisma.standings.findMany({
       where: { tournamentId },
       orderBy: [{ points: 'desc' }, { goalDiff: 'desc' }]

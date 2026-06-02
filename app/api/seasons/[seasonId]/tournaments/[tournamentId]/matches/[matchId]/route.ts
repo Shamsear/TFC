@@ -313,7 +313,7 @@ export async function PATCH(
               existingMatch.awayTeam.teamId,
               homeScore,
               awayScore,
-              existingMatch.round,
+              existingMatch.round ? parseInt(existingMatch.round.match(/\d+/)?.[0] || '1', 10) : 1,
               isFirstMatch,
               homePenalty,
               awayPenalty

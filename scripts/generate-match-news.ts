@@ -6,6 +6,8 @@
 import { prisma } from '../lib/prisma';
 import { triggerNews } from '../lib/news/trigger';
 import { getTournamentContext, generateContextNarrative } from '../lib/news/tournament-context';
+import { detectMatchScenarios } from '../lib/news/scenario-detector';
+import { getCleanManagerName } from '../lib/news/utils';
 
 async function generateMatchNews(matchId: string) {
   console.log(`📰 Generating news for match: ${matchId}\n`);
@@ -85,33 +87,29 @@ async function generateMatchNews(matchId: string) {
 
   const isFirstMatch = completedMatchesInRound.length > 0 && completedMatchesInRound[0].id === matchId;
 
-  // Determine event type
-  let eventType: any = 'match_completed';
+  // Detect the best scenario for this match using advanced scenario detection
+  console.log('🔍 Detecting match scenario...');
+  const scenario = await detectMatchScenarios(
+    matchId,
+    match.tournamentId,
+    match.homeTeam.teamId,
+    match.awayTeam.teamId,
+    homeScore,
+    awayScore,
+    match.round,
+    isFirstMatch,
+    match.homePenalty,
+    match.awayPenalty
+  );
 
-  if (isFirstMatch) {
-    eventType = 'matchday_opener';
-    console.log(`   🎬 This is the MATCHDAY OPENER!`);
-  } else if (goalDiff >= 5) {
-    eventType = 'thrashing';
-    console.log(`   🔥 THRASHING! (${goalDiff}-goal difference)`);
-  } else if (goalDiff === 1) {
-    eventType = 'close_match';
-    console.log(`   ⚡ CLOSE MATCH! (1-goal difference)`);
-  } else if (homeScore === 0 && awayScore === 0) {
-    eventType = 'boring_draw';
-    console.log(`   😴 BORING DRAW (0-0)`);
-  } else if ((homeScore + awayScore) >= 6) {
-    eventType = 'high_scoring';
-    console.log(`   🎯 HIGH SCORING! (${homeScore + awayScore} total goals)`);
-  }
-
-  // Check for penalty shootout
-  if (match.homePenalty !== null && match.awayPenalty !== null && !isFirstMatch) {
-    eventType = 'penalty_shootout';
-    console.log(`   🎯 PENALTY SHOOTOUT! (${match.homePenalty}-${match.awayPenalty})`);
-  }
+  const eventType = scenario?.eventType || 'match_completed';
+  const scenarioMetadata = scenario?.metadata || {};
 
   console.log(`   Event Type: ${eventType}`);
+  console.log(`   Priority: ${scenario?.priority || 0}`);
+  if (Object.keys(scenarioMetadata).length > 0) {
+    console.log(`   Scenario Data:`, scenarioMetadata);
+  }
   console.log();
 
   // Get tournament context
@@ -159,6 +157,8 @@ async function generateMatchNews(matchId: string) {
       metadata: {
         home_team: match.homeTeam.team.name,
         away_team: match.awayTeam.team.name,
+        home_manager: getCleanManagerName(match.homeTeam.managerName),
+        away_manager: getCleanManagerName(match.awayTeam.managerName),
         home_score: homeScore,
         away_score: awayScore,
         winner,
@@ -174,7 +174,9 @@ async function generateMatchNews(matchId: string) {
         home_form: homeContext?.form.recent,
         away_position: awayContext?.standing.position,
         away_points: awayContext?.standing.points,
-        away_form: awayContext?.form.recent
+        away_form: awayContext?.form.recent,
+        // Scenario-specific metadata
+        ...scenarioMetadata
       },
       context: contextString
     });

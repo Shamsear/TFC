@@ -26,6 +26,7 @@
     "news:diagnose": "tsx scripts/diagnose-match-news.ts",
     "news:generate": "tsx scripts/generate-match-news.ts",
     "test:imagekit": "tsx scripts/test-imagekit-config.ts",
+    "gemini:list-models": "tsx scripts/list-gemini-models.ts",
     "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm', 'public/sql-wasm.wasm')\""
   },
   "prisma": {

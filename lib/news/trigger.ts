@@ -13,7 +13,33 @@ export function getEventCategory(eventType: NewsEventType): NewsCategory {
   if (eventType.startsWith('auction_') || eventType.includes('tiebreaker') || eventType.includes('round')) return 'auction';
   if (eventType.includes('release') || eventType.includes('swap') || eventType.startsWith('player_')) return 'transfer';
   if (eventType.startsWith('tournament_') || eventType.includes('knockout') || eventType.includes('finals')) return 'tournament';
-  if (eventType.startsWith('match_') || eventType.includes('scoring') || eventType.includes('sheet')) return 'match';
+  
+  // Match-related events (must come before general checks)
+  if (
+    eventType.startsWith('match_') || 
+    eventType.includes('match') ||  // Catches: close_match, high_scoring, etc.
+    eventType.includes('scoring') || 
+    eventType.includes('sheet') ||
+    eventType.includes('thrashing') ||
+    eventType.includes('opener') ||
+    eventType.includes('streak') ||
+    eventType.includes('drought') ||
+    eventType.includes('slayer') ||
+    eventType.includes('century') ||
+    eventType.includes('nightmare') ||
+    eventType.includes('takeover') ||
+    eventType.includes('mediocrity') ||
+    eventType.includes('basement') ||
+    eventType.includes('title_') ||
+    eventType.includes('final_day') ||
+    eventType === 'boring_draw' ||
+    eventType === 'penalty_shootout' ||
+    eventType === 'perfect_start' ||
+    eventType === 'manager_first_match' ||
+    eventType === 'manager_quote_special' ||
+    eventType.startsWith('matchday_')
+  ) return 'match';
+  
   if (eventType.includes('badge') || eventType.includes('award') || eventType.includes('winner')) return 'achievement';
   if (eventType.includes('admin') || eventType.includes('manager_created') || eventType.includes('notification')) return 'admin';
   if (eventType.includes('budget') || eventType.includes('financial')) return 'financial';

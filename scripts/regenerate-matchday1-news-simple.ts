@@ -257,7 +257,7 @@ async function main() {
           total_matches: completedMatches.length,
           total_goals: totalGoals,
           biggest_win: `${biggestWin.winner} (${biggestWin.goalDiff}-goal margin)`,
-          highest_scoring: `${highestScoring.home} ${highgestScoring.homeScore}-${highgestScoring.awayScore} ${highestScoring.away} (${highgestScoring.totalGoals} goals)`,
+          highest_scoring: `${highestScoring.home} ${highestScoring.homeScore}-${highestScoring.awayScore} ${highestScoring.away} (${highestScoring.totalGoals} goals)`,
           best_team: bestTeam.wins > 0 ? bestTeam.team : 'No clear standout',
           best_team_wins: bestTeam.wins,
           all_results: results.map(r => `${r.home} ${r.homeScore}-${r.awayScore} ${r.away}`).join(', ')

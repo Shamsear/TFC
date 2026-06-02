@@ -6,6 +6,8 @@ import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/li
 import { evaluateTeamAchievements } from '@/lib/achievements-engine'
 import { triggerNews } from '@/lib/news/trigger'
 import { getTournamentContext, generateContextNarrative } from '@/lib/news/tournament-context'
+import { detectMatchScenarios } from '@/lib/news/scenario-detector'
+import { getCleanManagerName } from '@/lib/news/utils'
 
 export async function PATCH(
   request: NextRequest,
@@ -249,26 +251,22 @@ export async function PATCH(
           
           const isFirstMatch = completedMatchesInRound.length > 0 && completedMatchesInRound[0].id === matchId;
           
-          // Determine specific event type
-          let eventType: any = 'match_completed';
-          
-          // Special event for first completed match in the round
-          if (isFirstMatch) {
-            eventType = 'matchday_opener';
-          } else if (goalDiff >= 5) {
-            eventType = 'thrashing';
-          } else if (goalDiff === 1) {
-            eventType = 'close_match';
-          } else if (homeScore === 0 && awayScore === 0) {
-            eventType = 'boring_draw';
-          } else if ((homeScore + awayScore) >= 6) {
-            eventType = 'high_scoring';
-          }
-          
-          // Check for penalty shootout (but matchday_opener takes precedence)
-          if (homePenalty !== null && awayPenalty !== null && !isFirstMatch) {
-            eventType = 'penalty_shootout';
-          }
+          // Detect the best scenario for this match using advanced scenario detection
+          const scenario = await detectMatchScenarios(
+            matchId,
+            tournamentId,
+            existingMatch.homeTeam.teamId,
+            existingMatch.awayTeam.teamId,
+            homeScore,
+            awayScore,
+            existingMatch.round,
+            isFirstMatch,
+            homePenalty,
+            awayPenalty
+          );
+
+          const eventType = scenario?.eventType || 'match_completed';
+          const scenarioMetadata = scenario?.metadata || {};
 
           // Get tournament name for news
           const tournament = await prisma.tournaments.findUnique({
@@ -316,6 +314,8 @@ export async function PATCH(
             metadata: {
               home_team: existingMatch.homeTeam.team.name,
               away_team: existingMatch.awayTeam.team.name,
+              home_manager: getCleanManagerName(existingMatch.homeTeam.managerName),
+              away_manager: getCleanManagerName(existingMatch.awayTeam.managerName),
               home_score: homeScore,
               away_score: awayScore,
               winner,
@@ -326,13 +326,15 @@ export async function PATCH(
               has_penalties: homePenalty !== null && awayPenalty !== null,
               home_penalty: homePenalty,
               away_penalty: awayPenalty,
-              // NEW: Rich tournament context
+              // Rich tournament context
               home_position: homeContext?.standing.position,
               home_points: homeContext?.standing.points,
               home_form: homeContext?.form.recent,
               away_position: awayContext?.standing.position,
               away_points: awayContext?.standing.points,
-              away_form: awayContext?.form.recent
+              away_form: awayContext?.form.recent,
+              // Scenario-specific metadata
+              ...scenarioMetadata
             },
             context: contextString
           });

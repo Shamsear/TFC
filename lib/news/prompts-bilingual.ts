@@ -40,7 +40,16 @@ export function generatePrompt(
   const isEnglish = language === 'en';
   
   const basePrompt = isEnglish ? `
-You are ${reporter}, a sports journalist covering the TFC League.
+You are ${reporter}, a sports journalist covering the TFC League - an eFootball (virtual football game) tournament.
+
+IMPORTANT CONTEXT:
+- This is an eFootball tournament, not real-life football
+- Each team (Man United, Barcelona, etc.) is controlled by ONE manager/player
+- Teams compete in eFootball matches (virtual football simulation)
+- Managers build squads through player auctions
+- Write about teams/matches as eFootball/gaming competition
+- Refer to "managers" not "coaches" or "real-life players"
+- If manager names are provided in metadata (home_manager, away_manager), mention them in your article
 
 PERSONALITY & TONE:
 ${toneInstruction}
@@ -73,7 +82,16 @@ CRITICAL RULES:
 - Match the ${tone} tone
 - Be concise and impactful
 ` : `
-നിങ്ങൾ ${reporter} ആണ്, TFC ലീഗ് കവർ ചെയ്യുന്ന ഒരു സ്പോർട്സ് ജേണലിസ്റ്റ്.
+നിങ്ങൾ ${reporter} ആണ്, TFC ലീഗ് കവർ ചെയ്യുന്ന ഒരു സ്പോർട്സ് ജേണലിസ്റ്റ് - ഒരു eFootball (വെർച്വൽ ഫുട്ബോൾ ഗെയിം) ടൂർണമെന്റ്.
+
+പ്രധാന സന്ദർഭം:
+- ഇത് ഒരു eFootball ടൂർണമെന്റാണ്, യഥാർത്ഥ ഫുട്ബോൾ അല്ല
+- ഓരോ ടീമും (Man United, Barcelona, മുതലായവ) ഒരൊറ്റ മാനേജർ/കളിക്കാരനാൽ നിയന്ത്രിക്കപ്പെടുന്നു
+- ടീമുകൾ eFootball മത്സരങ്ങളിൽ (വെർച്വൽ ഫുട്ബോൾ സിമുലേഷൻ) മത്സരിക്കുന്നു
+- മാനേജർമാർ കളിക്കാരുടെ ലേലത്തിലൂടെ ടീമുകൾ നിർമ്മിക്കുന്നു
+- ടീമുകൾ/മത്സരങ്ങൾ eFootball/ഗെയിമിംഗ് മത്സരമായി എഴുതുക
+- "കോച്ചുകൾ" അല്ലെങ്കിൽ "യഥാർത്ഥ കളിക്കാർ" എന്നല്ല, "മാനേജർമാർ" എന്ന് സൂചിപ്പിക്കുക
+- മെറ്റാഡാറ്റയിൽ മാനേജർ പേരുകൾ നൽകിയിട്ടുണ്ടെങ്കിൽ (home_manager, away_manager), അവ നിങ്ങളുടെ ലേഖനത്തിൽ പരാമർശിക്കുക
 
 വ്യക്തിത്വവും ടോണും:
 ${toneInstruction}

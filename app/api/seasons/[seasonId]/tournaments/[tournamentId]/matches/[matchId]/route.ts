@@ -188,16 +188,28 @@ export async function PATCH(
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
 
-    // Notify both teams if the match was just completed (async - don't block)
-    if (status === 'COMPLETED' && existingMatch.status !== 'COMPLETED') {
+    // Notify both teams if the match was just completed, walkover, or voided (async - don't block)
+    const isNewsWorthy = (status === 'COMPLETED' || status === 'WALKOVER' || status === 'VOID') && 
+                         existingMatch.status !== status;
+    
+    if (isNewsWorthy) {
       // Fire and forget notifications
       (async () => {
         try {
           const homeManagerId = await getTeamManagerId(existingMatch.homeTeam.team.id);
           const awayManagerId = await getTeamManagerId(existingMatch.awayTeam.team.id);
-          const matchTitle = `🏟️ Match Result Published`;
+          
+          // Set notification title based on status
+          const matchTitle = status === 'VOID' ? '🚫 Match Voided' : 
+                            status === 'WALKOVER' ? '⚠️ Match Walkover' : 
+                            '🏟️ Match Result Published';
+          
           let matchBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`;
-          if (homePenalty !== null && awayPenalty !== null) {
+          if (status === 'WALKOVER') {
+            matchBody += ' (Walkover)';
+          } else if (status === 'VOID') {
+            matchBody += ' (Voided)';
+          } else if (homePenalty !== null && awayPenalty !== null) {
             matchBody += ` (${homePenalty}-${awayPenalty} pens)`;
           }
           
@@ -221,9 +233,15 @@ export async function PATCH(
         
         // Notify admins
         try {
+          const adminTitle = status === 'VOID' ? 'Match Voided' : 
+                            status === 'WALKOVER' ? 'Match Walkover' : 
+                            'Match Result Published';
+          const adminBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}` +
+                           (status === 'WALKOVER' ? ' (Walkover)' : status === 'VOID' ? ' (Voided)' : '');
+          
           await notifyAllAdmins({
-            title: 'Match Result Published',
-            body: `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`,
+            title: adminTitle,
+            body: adminBody,
             url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
           }, seasonId).catch(() => {});
         } catch (adminNotifErr) {

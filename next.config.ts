@@ -33,10 +33,12 @@ const nextConfig: NextConfig = {
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
   },
+  serverExternalPackages: ['canvas'],
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb',
     },
+    serverComponentsExternalPackages: ['canvas'],
   },
   async headers() {
     return [
@@ -61,8 +63,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Disable static optimization to speed up builds
-  output: 'standalone',
   // Empty turbopack config to silence the warning
   turbopack: {},
 };

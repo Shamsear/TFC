@@ -320,7 +320,7 @@ export async function PATCH(
               awayPenalty
             );
             
-            eventType = scenario?.eventType || 'match_completed';
+            eventType = (scenario?.eventType || 'match_completed') as NewsEventType;
             scenarioMetadata = scenario?.metadata || {};
           }
 

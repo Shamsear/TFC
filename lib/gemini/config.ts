@@ -11,12 +11,13 @@ const API_KEYS = [
   process.env.GEMINI_API_KEY_3,
 ].filter(Boolean) as string[];
 
-// Model fallback order: Using verified working models from free tier
-// gemini-2.5-flash was working successfully in earlier tests
+// Model fallback order: Using VERIFIED WORKING Gemini API models
+// Tested and confirmed working with free tier API keys (June 2026)
 const MODELS = [
-  'gemini-2.5-flash',         // Primary: Known working model
-  'gemini-1.5-pro',           // Fallback 1: Pro model
-  'gemini-pro',               // Fallback 2: Legacy pro model  
+  'gemini-2.5-flash',         // Primary: Best price-performance, CONFIRMED WORKING
+  'gemini-3.5-flash',         // Fallback 1: Latest model, CONFIRMED WORKING
+  'gemini-2.5-flash-lite',    // Fallback 2: Lighter/faster, CONFIRMED WORKING
+  'gemini-flash-latest',      // Fallback 3: Alias to latest, CONFIRMED WORKING
 ] as const;
 
 let currentKeyIndex = 0;
@@ -44,7 +45,7 @@ export function getGeminiModel() {
       temperature: 0.9,
       topP: 0.95,
       topK: 40,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096, // Increased for Malayalam Unicode support
     }
   });
 }

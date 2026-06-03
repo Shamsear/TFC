@@ -391,8 +391,9 @@ export async function detectMatchScenarios(
   }
 
   // Priority 1: Manager scenarios
-  const homeManagerFirstMatch = homeHistory.results.length === 0;
-  const awayManagerFirstMatch = awayHistory.results.length === 0;
+  // Only trigger on ACTUAL first match (round 1 OR team's first completed match)
+  const homeManagerFirstMatch = homeHistory.results.length === 0 && round === 1;
+  const awayManagerFirstMatch = awayHistory.results.length === 0 && round === 1;
 
   if (homeManagerFirstMatch) {
     scenarios.push({

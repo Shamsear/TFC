@@ -14,7 +14,7 @@ export async function GET(
   const session = await auth();
 
   // If user is logged in as team, redirect to team news page
-  if (session?.user?.role === 'TEAM') {
+  if (session?.user?.role === 'TEAM_MANAGER') {
     return NextResponse.redirect(new URL(`/team/news/${id}`, request.url));
   }
 

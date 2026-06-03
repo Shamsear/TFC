@@ -3,7 +3,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FaWhatsapp } from 'react-icons/fa';
 
@@ -47,11 +46,6 @@ const toneEmojis: Record<string, string> = {
 
 export default function NewsDetailView({ news, backUrl }: NewsDetailProps) {
   const { language } = useLanguage();
-  const [currentUrl, setCurrentUrl] = useState('');
-
-  useEffect(() => {
-    setCurrentUrl(window.location.href);
-  }, []);
 
   const title = language === 'ml' && news.title_ml ? news.title_ml : news.title_en;
   const content = language === 'ml' && news.content_ml ? news.content_ml : news.content_en;
@@ -73,7 +67,14 @@ export default function NewsDetailView({ news, backUrl }: NewsDetailProps) {
   };
 
   const shareToWhatsApp = () => {
-    const text = `*${title}*\n\nRead more at: ${currentUrl}`;
+    // Always share smart router URL that works for both team and public users
+    // /news/[id] will auto-redirect to:
+    // - /team/news/[id] for logged-in team users
+    // - /news/[id] (public) for non-logged-in users
+    const baseUrl = window.location.origin;
+    const smartUrl = `${baseUrl}/news/${news.id}`;
+    
+    const text = `*${title}*\n\nRead more at: ${smartUrl}`;
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
   };

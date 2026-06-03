@@ -17,7 +17,8 @@ const MODELS = [
   'gemini-2.5-flash',         // Primary: Best price-performance, CONFIRMED WORKING
   'gemini-3.5-flash',         // Fallback 1: Latest model, CONFIRMED WORKING
   'gemini-2.5-flash-lite',    // Fallback 2: Lighter/faster, CONFIRMED WORKING
-  'gemini-flash-latest',      // Fallback 3: Alias to latest, CONFIRMED WORKING
+  'gemini-flash-latest',
+  'gemini-2.5-pro',      // Fallback 3: Alias to latest, CONFIRMED WORKING
 ] as const;
 
 let currentKeyIndex = 0;

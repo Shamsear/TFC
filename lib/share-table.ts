@@ -165,7 +165,14 @@ export async function captureTableAsPng(
     backgroundColor: options?.backgroundColor ?? '#0a0a0a',
     quality: 1,
     pixelRatio: 2, // retina-quality output
-    skipFonts: false,
+    skipFonts: true, // Skip external fonts to avoid CORS issues with cssRules
+    filter: (node) => {
+      // Filter out any external stylesheets to prevent CORS errors
+      if (node instanceof HTMLLinkElement && node.rel === 'stylesheet') {
+        return false
+      }
+      return true
+    },
   })
 }
 

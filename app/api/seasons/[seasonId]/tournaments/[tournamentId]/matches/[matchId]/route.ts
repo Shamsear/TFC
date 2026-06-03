@@ -295,6 +295,24 @@ export async function PATCH(
           
           const isFirstMatch = completedMatchesInRound.length > 0 && completedMatchesInRound[0].id === matchId;
           
+          // Check if ALL matches in this round are now completed (for matchday recap)
+          const allMatchesInRound = await prisma.matches.findMany({
+            where: {
+              tournamentId,
+              round: existingMatch.round
+            },
+            select: {
+              id: true,
+              status: true
+            }
+          });
+          
+          const isLastMatchToComplete = allMatchesInRound.length > 0 && 
+                                        allMatchesInRound.every(m => 
+                                          m.status === 'COMPLETED' || m.status === 'WALKOVER'
+                                        ) &&
+                                        completedMatchesInRound[completedMatchesInRound.length - 1]?.id === matchId;
+          
           // For WALKOVER, use a specific event type, otherwise detect scenario
           let eventType: NewsEventType;
           let scenarioMetadata = {};
@@ -396,6 +414,66 @@ export async function PATCH(
             },
             context: contextString
           });
+          
+          // Generate Matchday Recap if this was the last match to complete
+          if (isLastMatchToComplete) {
+            console.log(`[News AI] Generating matchday recap for ${existingMatch.round}`);
+            
+            // Get all completed matches in this round with full details
+            const roundMatches = await prisma.matches.findMany({
+              where: {
+                tournamentId,
+                round: existingMatch.round,
+                status: { in: ['COMPLETED', 'WALKOVER'] }
+              },
+              include: {
+                homeTeam: {
+                  include: { team: true }
+                },
+                awayTeam: {
+                  include: { team: true }
+                }
+              },
+              orderBy: {
+                matchDate: 'asc'
+              }
+            });
+            
+            // Build matchday recap context
+            const resultsSummary = roundMatches.map(m => {
+              const homeScore = m.homeScore || 0;
+              const awayScore = m.awayScore || 0;
+              return `${m.homeTeam.team.name} ${homeScore}-${awayScore} ${m.awayTeam.team.name}`;
+            }).join(', ');
+            
+            const totalGoals = roundMatches.reduce((sum, m) => 
+              sum + (m.homeScore || 0) + (m.awayScore || 0), 0
+            );
+            
+            const recapContext = `Matchday ${existingMatch.round} Results:\n\n` +
+              `${roundMatches.length} matches completed with ${totalGoals} goals scored.\n\n` +
+              `Results: ${resultsSummary}\n\n` +
+              `This matchday concludes ${existingMatch.round} of ${tournament?.name || 'the tournament'}.`;
+            
+            // Trigger matchday recap news
+            await triggerNews('matchday_completed', {
+              season_id: seasonId,
+              season_name: tournament?.season?.name,
+              metadata: {
+                tournament_name: tournament?.name || 'Tournament',
+                round: existingMatch.round,
+                total_matches: roundMatches.length,
+                total_goals: totalGoals,
+                results: roundMatches.map(m => ({
+                  home_team: m.homeTeam.team.name,
+                  away_team: m.awayTeam.team.name,
+                  home_score: m.homeScore || 0,
+                  away_score: m.awayScore || 0,
+                }))
+              },
+              context: recapContext
+            });
+          }
         } catch (newsErr) {
           console.warn('[News AI] Failed to generate match news:', newsErr);
         }

@@ -74,9 +74,13 @@ export default async function NewsManagerPage({ params }: NewsManagerPageProps) 
       awayScore: match.awayScore,
       matchDate: match.matchDate,
       tournament: match.tournament.name,
+      round: match.round,
       hasNews,
     }
   })
+
+  // Get first tournament ID for matchday news generation (assuming single tournament per season typically)
+  const firstTournament = recentMatches[0]?.tournamentId
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -88,13 +92,17 @@ export default async function NewsManagerPage({ params }: NewsManagerPageProps) 
             </span>
           </h1>
           <p className="text-gray-400 text-sm">
-            Check and manually trigger news generation for completed matches
+            Check and manually trigger news generation for completed matches and matchdays
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <NewsManagerClient matches={matchesWithStatus} seasonId={seasonId} />
+        <NewsManagerClient 
+          matches={matchesWithStatus} 
+          seasonId={seasonId}
+          tournamentId={firstTournament}
+        />
       </div>
     </div>
   )

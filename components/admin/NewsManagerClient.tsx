@@ -12,18 +12,25 @@ interface Match {
   matchDate: Date
   tournament: string
   hasNews: boolean
+  round?: string
 }
 
 interface NewsManagerClientProps {
   matches: Match[]
   seasonId: string
+  tournamentId?: string
 }
 
-export default function NewsManagerClient({ matches, seasonId }: NewsManagerClientProps) {
+export default function NewsManagerClient({ matches, seasonId, tournamentId }: NewsManagerClientProps) {
   const router = useRouter()
   const [generatingFor, setGeneratingFor] = useState<string | null>(null)
+  const [generatingMatchday, setGeneratingMatchday] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [selectedRound, setSelectedRound] = useState<string>('')
+
+  // Get unique rounds from matches
+  const rounds = Array.from(new Set(matches.map(m => m.round).filter(Boolean))).sort()
 
   const handleGenerateNews = async (matchId: string) => {
     setGeneratingFor(matchId)
@@ -52,11 +59,114 @@ export default function NewsManagerClient({ matches, seasonId }: NewsManagerClie
     }
   }
 
+  const handleGenerateMatchdayNews = async (eventType: 'matchday_started' | 'matchday_completed') => {
+    if (!selectedRound) {
+      setError('Please select a matchday/round')
+      return
+    }
+
+    setGeneratingMatchday(eventType)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch(`/api/admin/news/generate-matchday`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          seasonId, 
+          tournamentId,
+          round: selectedRound, 
+          eventType 
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate matchday news')
+      }
+
+      setSuccess(`${eventType === 'matchday_started' ? 'Matchday Started' : 'Matchday Recap'} news generated successfully!`)
+      router.refresh()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setGeneratingMatchday(null)
+    }
+  }
+
   const matchesWithoutNews = matches.filter((m) => !m.hasNews)
   const matchesWithNews = matches.filter((m) => m.hasNews)
 
   return (
     <div className="space-y-6">
+      {/* Matchday News Generator */}
+      <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/30 p-6">
+        <h2 className="text-xl font-black text-white mb-4 flex items-center gap-2">
+          <span>📰</span> Generate Matchday News
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-300 mb-2">
+              Select Matchday/Round
+            </label>
+            <select
+              value={selectedRound}
+              onChange={(e) => setSelectedRound(e.target.value)}
+              className="w-full bg-black/30 border border-white/20 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50"
+            >
+              <option value="">-- Select a round --</option>
+              {rounds.map((round) => (
+                <option key={round} value={round}>
+                  {round}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => handleGenerateMatchdayNews('matchday_started')}
+              disabled={!selectedRound || generatingMatchday === 'matchday_started'}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-lg font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingMatchday === 'matchday_started' ? (
+                <>
+                  <svg className="inline w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                '🚀 Generate Matchday Started'
+              )}
+            </button>
+            <button
+              onClick={() => handleGenerateMatchdayNews('matchday_completed')}
+              disabled={!selectedRound || generatingMatchday === 'matchday_completed'}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white rounded-lg font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingMatchday === 'matchday_completed' ? (
+                <>
+                  <svg className="inline w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                '🏁 Generate Matchday Recap'
+              )}
+            </button>
+          </div>
+          <div className="text-xs text-gray-500">
+            <strong>Matchday Started:</strong> Preview of upcoming matches<br />
+            <strong>Matchday Recap:</strong> Summary of completed matches and results
+          </div>
+        </div>
+      </div>
+
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">

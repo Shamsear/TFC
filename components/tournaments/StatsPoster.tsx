@@ -1802,14 +1802,141 @@ export default function StatsPoster({
     
     switch (activeTheme) {
       case 'golden_boot':
-        return [...teamsToSort].sort((a, b) => b.goalsFor - a.goalsFor || b.won - a.won)
+        return [...teamsToSort].sort((a, b) => 
+          b.goalsFor - a.goalsFor || 
+          b.won - a.won ||
+          b.points - a.points ||
+          a.teamName.localeCompare(b.teamName) // Alphabetical as final tiebreaker
+        )
       case 'ball':
-        return [...teamsToSort].sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
+        return [...teamsToSort].sort((a, b) => 
+          b.points - a.points || 
+          b.goalDiff - a.goalDiff || 
+          b.goalsFor - a.goalsFor ||
+          a.teamName.localeCompare(b.teamName) // Alphabetical as final tiebreaker
+        )
       case 'glove':
-        return [...teamsToSort].filter(t => t.played > 0).sort((a, b) => a.goalsAgainst - b.goalsAgainst || (b.cleanSheets ?? 0) - (a.cleanSheets ?? 0))
+        return [...teamsToSort].filter(t => t.played > 0).sort((a, b) => 
+          a.goalsAgainst - b.goalsAgainst || 
+          (b.cleanSheets ?? 0) - (a.cleanSheets ?? 0) ||
+          a.teamName.localeCompare(b.teamName) // Alphabetical as final tiebreaker
+        )
       case 'team_matchday':
       case 'team_weekly':
-        return [...teamsToSort].sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
+        // For Team of the Day/Week, use comprehensive tiebreakers
+        return [...teamsToSort].sort((a, b) => {
+          // Primary: Points
+          if (b.points !== a.points) return b.points - a.points
+          
+          // Second: Goal Difference
+          if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff
+          
+          // Third: Goals Scored
+          if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor
+          
+          // Fourth: Fewer goals conceded
+          if (a.goalsAgainst !== b.goalsAgainst) return a.goalsAgainst - b.goalsAgainst
+          
+          // Fifth: For Team of the Day with single match - consider underdog factor & opponent strength
+          // Use standings BEFORE the selected matchday (not current standings)
+          if (activeTheme === 'team_matchday' && a.played === 1 && b.played === 1 && selectedMatchday > 0) {
+            const aMatchDetails = (a as any).matchDetails
+            const bMatchDetails = (b as any).matchDetails
+            
+            if (aMatchDetails?.[0] && bMatchDetails?.[0]) {
+              // Calculate standings BEFORE this matchday
+              const standingsBeforeMatchday = (() => {
+                if (!matches || matches.length === 0) return teams
+                
+                // Get all matches BEFORE the selected matchday
+                const previousMatches = matches.filter(m => {
+                  if (!m.round || m.status !== 'COMPLETED') return false
+                  const matchRoundNum = parseInt(m.round.match(/\d+/)?.[0] || '0')
+                  return matchRoundNum < selectedMatchday
+                })
+                
+                if (previousMatches.length === 0) return teams
+                
+                // Calculate cumulative stats for each team
+                const teamStandings = teams.map(team => {
+                  const teamMatches = previousMatches.filter(
+                    m => m.homeTeamId === team.seasonTeamId || m.awayTeamId === team.seasonTeamId
+                  )
+                  
+                  let points = 0
+                  let goalsFor = 0
+                  let goalsAgainst = 0
+                  
+                  teamMatches.forEach(match => {
+                    const isHome = match.homeTeamId === team.seasonTeamId
+                    const myScore = isHome ? (match.homeScore || 0) : (match.awayScore || 0)
+                    const oppScore = isHome ? (match.awayScore || 0) : (match.homeScore || 0)
+                    
+                    goalsFor += myScore
+                    goalsAgainst += oppScore
+                    
+                    if (myScore > oppScore) {
+                      points += 3
+                    } else if (myScore === oppScore) {
+                      points += 1
+                    }
+                  })
+                  
+                  return {
+                    ...team,
+                    points,
+                    goalsFor,
+                    goalsAgainst,
+                    goalDiff: goalsFor - goalsAgainst
+                  }
+                })
+                
+                // Sort to get positions
+                return teamStandings.sort((x, y) => 
+                  y.points - x.points || 
+                  y.goalDiff - x.goalDiff || 
+                  y.goalsFor - x.goalsFor ||
+                  x.teamName.localeCompare(y.teamName)
+                )
+              })()
+              
+              // Find positions in standings before matchday
+              const aOppName = aMatchDetails[0].opponentName
+              const bOppName = bMatchDetails[0].opponentName
+              
+              const aTeamIndex = standingsBeforeMatchday.findIndex(t => t.teamName === a.teamName)
+              const bTeamIndex = standingsBeforeMatchday.findIndex(t => t.teamName === b.teamName)
+              const aOppIndex = standingsBeforeMatchday.findIndex(t => t.teamName === aOppName)
+              const bOppIndex = standingsBeforeMatchday.findIndex(t => t.teamName === bOppName)
+              
+              const aTeamPos = aTeamIndex >= 0 ? aTeamIndex + 1 : 999
+              const bTeamPos = bTeamIndex >= 0 ? bTeamIndex + 1 : 999
+              const aOppPos = aOppIndex >= 0 ? aOppIndex + 1 : 999
+              const bOppPos = bOppIndex >= 0 ? bOppIndex + 1 : 999
+              
+              // Calculate "upset factor": lower-ranked team beating higher-ranked team is more impressive
+              // Positive value = upset victory (beat higher-ranked opponent)
+              const aUpsetFactor = aTeamPos - aOppPos  // e.g., 8th place beats 2nd = +6
+              const bUpsetFactor = bTeamPos - bOppPos
+              
+              // Higher upset factor wins
+              if (bUpsetFactor !== aUpsetFactor) {
+                return bUpsetFactor - aUpsetFactor
+              }
+              
+              // If upset factors are equal, prefer beating stronger opponent (lower position number)
+              if (aOppPos !== bOppPos) {
+                return aOppPos - bOppPos
+              }
+            }
+          }
+          
+          // Sixth: More wins (for weekly when multiple matches)
+          if (b.won !== a.won) return b.won - a.won
+          
+          // Final: Alphabetical
+          return a.teamName.localeCompare(b.teamName)
+        })
       default:
         return teamsToSort
     }

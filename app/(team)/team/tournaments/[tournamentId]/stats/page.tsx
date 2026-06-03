@@ -92,6 +92,7 @@ export default async function TeamTournamentStatsPage({
           teams={data.teams}
           myTeamId={session.user.teamId}
           teamLinkBase="/team/teams"
+          hideShareOptions={true}
         />
       </div>
     </div>

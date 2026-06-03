@@ -46,7 +46,8 @@ export function getGeminiModel() {
       temperature: 0.9,
       topP: 0.95,
       topK: 40,
-      maxOutputTokens: 4096, // Increased for Malayalam Unicode support
+      maxOutputTokens: 16384, // Maximum for Gemini - critical for Malayalam Unicode
+      candidateCount: 1,
     }
   });
 }

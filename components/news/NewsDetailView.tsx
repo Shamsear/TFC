@@ -90,27 +90,32 @@ export default function NewsDetailView({ news, backUrl }: NewsDetailProps) {
 
       <article className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
         {/* Header Image */}
-        <div className="relative h-[400px] w-full">
+        <div className="relative w-full bg-black/50">
           {news.image_url ? (
-            <Image
-              src={news.image_url}
-              alt={title}
-              fill
-              className="object-cover"
-              priority
-            />
+            <div className="relative w-full">
+              <Image
+                src={news.image_url}
+                alt={title}
+                width={1200}
+                height={630}
+                className="w-full h-auto object-contain max-h-[600px]"
+                priority
+              />
+            </div>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 flex items-center justify-center">
+            <div className="w-full h-[400px] bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 flex items-center justify-center">
               <span className="text-8xl">{toneEmoji}</span>
             </div>
           )}
           
+          {/* Category Badge - Positioned over image */}
           <div className="absolute top-6 left-6">
             <span className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border shadow-lg backdrop-blur-md ${categoryColor}`}>
               {news.category}
             </span>
           </div>
 
+          {/* Share Button - Positioned over image */}
           <div className="absolute bottom-6 right-6">
             <button 
               onClick={shareToWhatsApp}

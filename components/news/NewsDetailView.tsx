@@ -108,13 +108,6 @@ export default function NewsDetailView({ news, backUrl }: NewsDetailProps) {
             </div>
           )}
           
-          {/* Category Badge - Positioned over image */}
-          <div className="absolute top-6 left-6">
-            <span className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border shadow-lg backdrop-blur-md ${categoryColor}`}>
-              {news.category}
-            </span>
-          </div>
-
           {/* Share Button - Positioned over image */}
           <div className="absolute bottom-6 right-6">
             <button 

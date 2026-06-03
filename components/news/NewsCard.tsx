@@ -73,11 +73,6 @@ export default function NewsCard({ news, featured = false, baseUrl = '/news' }: 
                   <span className="text-6xl">{toneEmoji}</span>
                 </div>
               )}
-              <div className="absolute top-4 left-4">
-                <span className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border ${categoryColor}`}>
-                  {news.category}
-                </span>
-              </div>
             </div>
 
             {/* Content */}
@@ -126,11 +121,6 @@ export default function NewsCard({ news, featured = false, baseUrl = '/news' }: 
               <span className="text-4xl">{toneEmoji}</span>
             </div>
           )}
-          <div className="absolute top-3 left-3">
-            <span className={`px-2 py-1 rounded-lg text-xs font-black uppercase tracking-wider border ${categoryColor}`}>
-              {news.category}
-            </span>
-          </div>
         </div>
 
         {/* Content */}

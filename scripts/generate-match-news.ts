@@ -89,6 +89,7 @@ async function generateMatchNews(matchId: string) {
 
   // Detect the best scenario for this match using advanced scenario detection
   console.log('🔍 Detecting match scenario...');
+  const roundNumber = match.round ? parseInt(match.round.match(/\d+/)?.[0] || '1', 10) : 1;
   const scenario = await detectMatchScenarios(
     matchId,
     match.tournamentId,
@@ -96,13 +97,13 @@ async function generateMatchNews(matchId: string) {
     match.awayTeam.teamId,
     homeScore,
     awayScore,
-    match.round,
+    roundNumber,
     isFirstMatch,
     match.homePenalty,
     match.awayPenalty
   );
 
-  const eventType = scenario?.eventType || 'match_completed';
+  const eventType = (scenario?.eventType || 'match_completed') as any;
   const scenarioMetadata = scenario?.metadata || {};
 
   console.log(`   Event Type: ${eventType}`);

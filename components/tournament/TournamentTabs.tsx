@@ -270,6 +270,8 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
             seasonName={tournament.season?.name || ''}
             activeRoundLimit={activeRoundLimit}
             setActiveRoundLimit={setActiveRoundLimit}
+            tournamentId={tournament.id}
+            seasonId={seasonId}
           />
         )}
         {activeTab === 'groups' && tournament.groups.length > 0 && (

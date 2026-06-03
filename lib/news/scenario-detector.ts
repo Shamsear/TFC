@@ -133,7 +133,8 @@ export async function detectMatchScenarios(
   }
 
   // Priority 5: Title Race Heats Up
-  const titleRace = await checkTitleRace(tournamentId);
+  // Only consider title race after significant tournament progress
+  const titleRace = await checkTitleRace(tournamentId, round);
   if (titleRace.isHeated) {
     scenarios.push({
       eventType: 'title_race_heating',
@@ -211,7 +212,7 @@ export async function detectMatchScenarios(
   // Priority 3: Winless Drought Ends
   if (winner === 'home') {
     const homeWinless = calculateWinlessDrought(homeHistory);
-    if (homeWinless >= 5) {
+    if (homeWinless >= 3) {
       scenarios.push({
         eventType: 'winless_drought_ends',
         priority: 3,
@@ -220,7 +221,7 @@ export async function detectMatchScenarios(
     }
   } else if (winner === 'away') {
     const awayWinless = calculateWinlessDrought(awayHistory);
-    if (awayWinless >= 5) {
+    if (awayWinless >= 3) {
       scenarios.push({
         eventType: 'winless_drought_ends',
         priority: 3,
@@ -421,9 +422,23 @@ export async function detectMatchScenarios(
       scenarios.push({
         eventType: 'thrashing',
         priority: 1,
-        metadata: {}
+        metadata: { goal_margin: goalDiff }
       });
-    } else if (goalDiff === 1) {
+    } else if (goalDiff >= 3) {
+      scenarios.push({
+        eventType: 'dominant_win',
+        priority: 1,
+        metadata: { goal_margin: goalDiff }
+      });
+    } else if (winner && goalDiff === 1 && totalGoals >= 4) {
+      // High scoring but narrow margin (e.g., 3-2, 4-3)
+      scenarios.push({
+        eventType: 'thriller',
+        priority: 1,
+        metadata: { total_goals: totalGoals }
+      });
+    } else if (winner && goalDiff === 1) {
+      // Expand close_match - now only for low-scoring 1-goal wins
       scenarios.push({
         eventType: 'close_match',
         priority: 1,
@@ -435,16 +450,30 @@ export async function detectMatchScenarios(
         priority: 1,
         metadata: {}
       });
-    } else if (totalGoals >= 6) {
+    } else if (winner && totalGoals >= 6) {
       scenarios.push({
-        eventType: 'high_scoring',
+        eventType: 'goal_fest',
         priority: 1,
-        metadata: {}
+        metadata: { total_goals: totalGoals }
+      });
+    } else if (!winner && totalGoals >= 4) {
+      // Draw with lots of goals (e.g., 2-2, 3-3)
+      scenarios.push({
+        eventType: 'entertaining_draw',
+        priority: 1,
+        metadata: { total_goals: totalGoals }
       });
     } else if (homePenalty !== null && awayPenalty !== null) {
       scenarios.push({
         eventType: 'penalty_shootout',
         priority: 1,
+        metadata: {}
+      });
+    } else if (!winner) {
+      // Generic draw
+      scenarios.push({
+        eventType: 'draw',
+        priority: 0,
         metadata: {}
       });
     } else {
@@ -597,11 +626,11 @@ async function checkPositionStagnation(
   return true; // Placeholder
 }
 
-async function checkTitleRace(tournamentId: string) {
+async function checkTitleRace(tournamentId: string, currentRound: number) {
   const standings = await prisma.standings.findMany({
     where: { tournamentId },
     orderBy: [{ points: 'desc' }, { goalDiff: 'desc' }],
-    take: 4,
+    take: 5,
     include: {
       seasonTeam: {
         include: { team: true }
@@ -611,17 +640,58 @@ async function checkTitleRace(tournamentId: string) {
 
   if (standings.length < 2) return { isHeated: false, contenders: [], pointsGap: 999 };
 
+  // Get total rounds in tournament to determine progress
+  const allMatches = await prisma.matches.findMany({
+    where: { tournamentId },
+    select: { round: true },
+    distinct: ['round']
+  });
+  const totalRounds = allMatches.length;
+  const tournamentProgress = totalRounds > 0 ? (currentRound / totalRounds) * 100 : 0;
+
   const leader = standings[0];
-  const contenders = standings.slice(1, 4).filter(s => leader.points - s.points <= 5);
+  
+  // Include ALL teams within points threshold of the leader
+  // Threshold gets tighter as season progresses
+  let pointsThreshold = 3;
+  
+  // Early season (0-30%): Very tight race required (3 points = 1 game)
+  if (tournamentProgress <= 30) {
+    pointsThreshold = 3;
+  }
+  // Mid season (30-60%): Slightly wider (5 points = less than 2 games)
+  else if (tournamentProgress <= 60) {
+    pointsThreshold = 5;
+  }
+  // Late season (60%+): Even 6-9 points can be title race territory
+  else {
+    pointsThreshold = 6;
+  }
+
+  const allContenders = standings.filter(s => leader.points - s.points <= pointsThreshold);
+
+  // Title race is "heated" only if:
+  // 1. Tournament is >50% complete AND there are at least 3 teams within threshold, OR
+  // 2. Tournament is >70% complete AND at least 2 teams within threshold (late season drama), OR
+  // 3. Very tight race: Top 3 teams all within 1 point of each other in mid-to-late season
+  
+  const topThree = standings.slice(0, 3);
+  const topThreePointsSpread = topThree.length >= 3 ? topThree[0].points - topThree[2].points : 999;
+  const tightTopThree = topThreePointsSpread <= 1 && tournamentProgress > 30;
+  
+  const isHeated = 
+    (tournamentProgress > 50 && allContenders.length >= 3) ||
+    (tournamentProgress > 70 && allContenders.length >= 2) ||
+    tightTopThree;
 
   return {
-    isHeated: contenders.length >= 2,
-    contenders: contenders.map(c => ({
+    isHeated,
+    contenders: allContenders.map(c => ({
       name: c.seasonTeam.team.name,
       points: c.points,
       gap: leader.points - c.points
     })),
-    pointsGap: contenders.length > 0 ? leader.points - contenders[0].points : 999
+    pointsGap: allContenders.length > 1 ? leader.points - allContenders[1].points : 999
   };
 }
 

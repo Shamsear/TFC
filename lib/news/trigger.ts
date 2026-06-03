@@ -37,6 +37,11 @@ export function getEventCategory(eventType: NewsEventType): NewsCategory {
     eventType === 'perfect_start' ||
     eventType === 'manager_first_match' ||
     eventType === 'manager_quote_special' ||
+    eventType === 'dominant_win' ||
+    eventType === 'thriller' ||
+    eventType === 'goal_fest' ||
+    eventType === 'entertaining_draw' ||
+    eventType === 'draw' ||
     eventType.startsWith('matchday_')
   ) return 'match';
   

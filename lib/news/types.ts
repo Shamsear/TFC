@@ -2,7 +2,7 @@
  * News AI System Types
  */
 
-export type NewsTone = 'neutral' | 'dramatic' | 'funny' | 'harsh';
+export type NewsTone = 'neutral' | 'dramatic' | 'funny' | 'harsh' | 'analytical' | 'hype';
 
 export type NewsCategory = 
   | 'season'
@@ -78,6 +78,12 @@ export type NewsEventType =
   | 'comeback_victory'
   | 'clean_sheet'
   | 'penalty_shootout'
+  // New Match Scenarios
+  | 'dominant_win'
+  | 'thriller'
+  | 'goal_fest'
+  | 'entertaining_draw'
+  | 'draw'
   // Advanced Match Scenarios
   | 'clean_sheet_master'
   | 'unbeaten_streak'

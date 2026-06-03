@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
@@ -466,7 +467,7 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
         )}
 
         {/* Interactive Detail Modal Popup */}
-        {isModalOpen && selectedBadge && (
+        {isModalOpen && selectedBadge && typeof document !== 'undefined' && createPortal(
           <div 
             onClick={() => setIsModalOpen(false)}
             className="fixed inset-0 z-[99999] flex items-center justify-center px-4 backdrop-blur-md bg-black/75 transition-all duration-300 cursor-pointer animate-[fadeIn_0.2s_ease-out]"
@@ -582,7 +583,8 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
                 )}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
       </div>

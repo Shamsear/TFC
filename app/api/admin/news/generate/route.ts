@@ -44,10 +44,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check if news already exists
+    // Check if news already exists for this match
     const existingNews = await prisma.news.findFirst({
       where: {
-        matchId: match.id,
+        season_id: match.tournament.seasonId,
+        metadata: {
+          path: ['match_id'],
+          equals: match.id,
+        },
       },
     })
 
@@ -85,7 +89,8 @@ export async function POST(req: NextRequest) {
     }
     
     // Get clean manager names
-    const getCleanManagerName = (name: string) => {
+    const getCleanManagerName = (name: string | null) => {
+      if (!name) return 'Manager'
       return name.replace(/^(TM|Mr\.?|Manager)\s+/i, '').trim()
     }
     

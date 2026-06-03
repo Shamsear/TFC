@@ -51,18 +51,21 @@ export default async function NewsManagerPage({ params }: NewsManagerPageProps) 
   // Get existing news articles
   const existingNews = await prisma.news.findMany({
     where: {
-      seasonId,
+      season_id: seasonId,
     },
     select: {
-      matchId: true,
+      metadata: true,
       event_type: true,
-      createdAt: true,
+      created_at: true,
     },
   })
 
   // Check which matches have news
   const matchesWithStatus = recentMatches.map((match) => {
-    const hasNews = existingNews.some((news) => news.matchId === match.id)
+    const hasNews = existingNews.some((news) => {
+      const metadata = news.metadata as any
+      return metadata?.match_id === match.id
+    })
     return {
       id: match.id,
       homeTeam: match.homeTeam.team.name,

@@ -388,6 +388,7 @@ export async function PATCH(
           await triggerNews(eventType, {
             season_id: seasonId,
             metadata: {
+              match_id: matchId, // IMPORTANT: Store match ID for news detection
               home_team: existingMatch.homeTeam.team.name,
               away_team: existingMatch.awayTeam.team.name,
               home_manager: getCleanManagerName(existingMatch.homeTeam.managerName),

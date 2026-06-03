@@ -9,7 +9,7 @@ interface Match {
   awayTeam: string
   homeScore: number | null
   awayScore: number | null
-  matchDate: Date
+  matchDate: string // Changed from Date to string for hydration safety
   tournament: string
   hasNews: boolean
   round?: string
@@ -218,7 +218,7 @@ export default function NewsManagerClient({ matches, seasonId, tournamentId }: N
                     {match.homeTeam} {match.homeScore} - {match.awayScore} {match.awayTeam}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {match.tournament} • {new Date(match.matchDate).toLocaleDateString()}
+                    {match.tournament} • {match.round || 'N/A'}
                   </div>
                 </div>
                 <button
@@ -276,7 +276,7 @@ export default function NewsManagerClient({ matches, seasonId, tournamentId }: N
                     {match.homeTeam} {match.homeScore} - {match.awayScore} {match.awayTeam}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {match.tournament} • {new Date(match.matchDate).toLocaleDateString()}
+                    {match.tournament} • {match.round || 'N/A'}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

@@ -469,7 +469,7 @@ export function AchievementsClient({ team }: AchievementsClientProps) {
         {isModalOpen && selectedBadge && (
           <div 
             onClick={() => setIsModalOpen(false)}
-            className="fixed inset-0 z-[9999] flex items-center justify-center px-4 backdrop-blur-md bg-black/75 transition-all duration-300 cursor-pointer animate-[fadeIn_0.2s_ease-out]"
+            className="fixed inset-0 z-[99999] flex items-center justify-center px-4 backdrop-blur-md bg-black/75 transition-all duration-300 cursor-pointer animate-[fadeIn_0.2s_ease-out]"
           >
             <div 
               onClick={(e) => e.stopPropagation()}

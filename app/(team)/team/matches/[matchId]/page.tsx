@@ -78,9 +78,9 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
     const started = match.startDate ? new Date(match.startDate) : new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
     
     const formatFull = (d: Date) => 
-      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
+      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' }) + 
       ' at ' + 
-      d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
     return {
       startedStr: formatFull(started),
@@ -137,9 +137,8 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
             <div className="flex items-center gap-2.5">
               <span className="text-base sm:text-lg">🚨</span>
               <div>
-                <span className="font-black text-[#E8A800] uppercase tracking-wider text-[9px] block mb-0.5">Submission Deadline:</span>{' '}
-                <span className="font-black text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]/40">{getRoundDates().deadlineStr}</span>
-              </div>
+                <span className="font-black text-[#E8A800] uppercase tracking-wider text-[9px] block mb-0.5">Submission Deadline</span>
+                <span className="font-black text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]/40">{getRoundDates().deadlineStr}</span>              </div>
             </div>
           </div>
         )}
@@ -151,19 +150,23 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-6 border-b border-white/5 gap-3">
             <div>
               <div className="text-xs sm:text-sm text-gray-400 mb-1 font-bold uppercase tracking-wider">
-                {new Date(match.matchDate).toLocaleDateString("en-US", {
+                {match.startDate && new Date(match.startDate).toLocaleDateString("en-US", {
                   weekday: "long",
                   year: "numeric",
                   month: "long",
                   day: "numeric",
+                  timeZone: "Asia/Kolkata"
                 })}
               </div>
-              <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-                Kickoff Time: {new Date(match.matchDate).toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
+              {match.startDate && (
+                <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">
+                  Kickoff Time: {new Date(match.startDate).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Asia/Kolkata"
+                  })}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider">

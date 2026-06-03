@@ -70,13 +70,39 @@ export async function triggerNews(
     
     const category = getEventCategory(eventType);
     
+    // Fetch recent news to avoid duplicates
+    const recentNews = await prisma.news.findMany({
+      where: {
+        category,
+        created_at: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+        }
+      },
+      select: {
+        title_en: true,
+        title_ml: true,
+        summary_en: true,
+        summary_ml: true,
+      },
+      orderBy: { created_at: 'desc' },
+      take: 10 // Last 10 articles in this category
+    });
+
+    // Build recent headlines context
+    const recentHeadlinesEN = recentNews.map(n => n.title_en).join('\n- ');
+    const recentHeadlinesML = recentNews.map(n => n.title_ml || '').filter(Boolean).join('\n- ');
+    
+    const avoidContext = recentNews.length > 0 
+      ? `\n\n🚫 CRITICAL: AVOID DUPLICATE CONTENT\n\nRECENT HEADLINES (Last 7 days):\n\nEnglish:\n- ${recentHeadlinesEN}\n\nMalayalam:\n- ${recentHeadlinesML}\n\n⚠️ STRICT REQUIREMENTS:\n1. DO NOT use the same key words, phrases, or expressions\n2. DO NOT use similar score mentions (if recent used "6-0 താണ്ഡവം", use different phrasing)\n3. DO NOT repeat emotional descriptors (താണ്ഡവം, നാണംകെട്ട, etc.)\n4. CREATE completely fresh angles and vocabulary\n5. VARY your opening structure and narrative approach\n\nThis is MANDATORY - repetitive content will be rejected.`
+      : '';
+    
     const input: NewsGenerationInput = {
       event_type: eventType,
       category,
       season_id: data.season_id,
       season_name: data.season_name,
       metadata: data.metadata,
-      context: data.context
+      context: (data.context || '') + avoidContext
     };
 
     // Generate bilingual news content with AI

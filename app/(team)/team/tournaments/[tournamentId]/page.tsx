@@ -112,9 +112,9 @@ export default async function TournamentDetailsPage({
   const upcomingMatches = matches.filter(m => m.status === 'SCHEDULED')
 
   const formatDate = (d: Date) =>
-    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' })
   const formatTime = (d: Date) =>
-    new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   const statusStyle = (s: string) => {
     if (s === 'COMPLETED') return 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]'
@@ -366,6 +366,7 @@ function MatchCard({
 }: {
   match: {
     id: string
+    startDate: Date | null
     matchDate: Date
     status: string
     homeScore: number | null
@@ -396,6 +397,9 @@ function MatchCard({
                        myResult === 'draw' ? 'border-[#E8A800]/30 bg-[#E8A800]/[0.03] hover:border-[#E8A800]/50 hover:shadow-[0_0_15px_rgba(232,168,0,0.08)]' :
                        'border-white/10 bg-white/[0.01] hover:border-white/20 hover:bg-white/[0.03]'
 
+  // Use startDate if available, otherwise fall back to matchDate
+  const displayDate = match.startDate || match.matchDate
+
   return (
     <Link
       href={`/team/matches/${match.id}`}
@@ -413,7 +417,7 @@ function MatchCard({
           )}
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{formatDate(match.matchDate)} {formatTime(match.matchDate)}</span>
+          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{formatDate(displayDate)} {formatTime(displayDate)}</span>
           <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${statusStyle(match.status)}`}>
             {match.status === 'IN_PROGRESS' ? 'LIVE' : match.status}
           </span>

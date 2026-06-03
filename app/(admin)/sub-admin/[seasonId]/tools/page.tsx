@@ -137,6 +137,20 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
       bgColor: 'bg-gray-500/10',
       borderColor: 'border-gray-500/20',
       textColor: 'text-gray-400'
+    },
+    {
+      title: 'News Manager',
+      description: 'Check and manually trigger news generation for matches',
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+        </svg>
+      ),
+      href: `/sub-admin/${seasonId}/tools/news-manager`,
+      color: 'from-indigo-500 to-purple-500',
+      bgColor: 'bg-indigo-500/10',
+      borderColor: 'border-indigo-500/20',
+      textColor: 'text-indigo-400'
     }
   ]
 

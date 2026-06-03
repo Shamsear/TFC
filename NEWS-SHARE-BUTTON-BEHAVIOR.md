@@ -1,87 +1,99 @@
-# News Share Button Behavior
+# News Share Button - Smart Routing
 
-## Current Implementation
+## Problem Solved
 
-The news share button in `NewsDetailView.tsx` already implements context-aware sharing based on the user's current location.
+The news share button now uses a **smart routing API** that automatically redirects users to the correct page based on their authentication status.
 
-### How It Works
+### Previous Issue
+
+- **Team users** couldn't access public news URLs (`/news/[id]`) without logging out
+- **Public users** couldn't access team news URLs (`/team/news/[id]`) without logging in
+- Sharing the "current" URL didn't work for recipients with different auth status
+
+### Solution
+
+Created a **smart share API endpoint** at `/api/news/share/[id]` that:
+1. Checks if user is authenticated as a team member
+2. Redirects to `/team/news/[id]` for team users
+3. Redirects to `/news/[id]` for public/guest users
+
+## Implementation
+
+### API Endpoint
+
+**File**: `app/api/news/share/[id]/route.ts`
 
 ```typescript
-const [currentUrl, setCurrentUrl] = useState('');
+export async function GET(request, { params }) {
+  const { id } = await params;
+  const session = await auth();
 
-useEffect(() => {
-  setCurrentUrl(window.location.href);
-}, []);
+  if (session?.user?.role === 'TEAM') {
+    return NextResponse.redirect(new URL(`/team/news/${id}`, request.url));
+  }
 
-const shareToWhatsApp = () => {
-  const text = `*${title}*\n\nRead more at: ${currentUrl}`;
-  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-  window.open(whatsappUrl, '_blank');
-};
+  return NextResponse.redirect(new URL(`/news/${id}`, request.url));
+}
 ```
 
-### Behavior
+### Share Button
 
-**✅ Logged-in team users** viewing `/team/news/[id]`:
-- Share button shares: `https://yourdomain.com/team/news/[id]`
-- Recipients with team access can view the news
-
-**✅ Public/guest users** viewing `/news/[id]`:
-- Share button shares: `https://yourdomain.com/news/[id]`
-- Anyone can view the news (public access)
-
-### Why This Works
-
-The `NewsDetailView` component uses `window.location.href` to capture the current URL, which automatically:
-- Shares the team URL when accessed from `/team/news/[id]`
-- Shares the public URL when accessed from `/news/[id]`
-
-### URL Structure
-
-Both pages use the same component but different routes:
-
-| User Type | News List Page | Detail Page | Share URL |
-|-----------|---------------|-------------|-----------|
-| Team (logged in) | `/team/news` | `/team/news/[id]` | `https://domain.com/team/news/[id]` |
-| Public (guest) | `/news` | `/news/[id]` | `https://domain.com/news/[id]` |
-
-### Access Control
-
-**Important**: Both URLs access the same news data from the database. The route protection is handled by:
-
-1. **Public routes** (`/news/*`): No authentication required
-2. **Team routes** (`/team/news/*`): Require team authentication middleware
-
-If a non-logged-in user tries to access `/team/news/[id]`, they should be redirected to login.
-If a logged-in team user accesses `/news/[id]`, they can still view it (public route).
-
-## Recommendation
-
-The current implementation is **already correct** and follows best practices:
-
-✅ Context-aware sharing (shares current URL)
-✅ Works for both team and public users
-✅ No code changes needed
-
-### Optional Enhancement
-
-If you want to ensure team users always share public URLs (for wider accessibility), you could modify the share function:
+**File**: `components/news/NewsDetailView.tsx`
 
 ```typescript
 const shareToWhatsApp = () => {
-  // Always share public URL for wider accessibility
-  const shareUrl = backUrl.includes('/team/') 
-    ? currentUrl.replace('/team/news/', '/news/')
-    : currentUrl;
+  const baseUrl = window.location.origin;
+  const smartUrl = `${baseUrl}/api/news/share/${news.id}`;
   
-  const text = `*${title}*\n\nRead more at: ${shareUrl}`;
+  const text = `*${title}*\n\nRead more at: ${smartUrl}`;
   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
   window.open(whatsappUrl, '_blank');
 };
 ```
 
-But this is **not recommended** unless you want team users to always share public links.
+## How It Works
 
-## Current Status
+### User Flow
 
-✅ **WORKING AS INTENDED** - No changes needed
+1. **Team user** shares news article
+   - Shares: `https://yoursite.com/api/news/share/NEWS-123`
+   
+2. **Recipient clicks link:**
+   - **If team user**: Redirects to `/team/news/NEWS-123` ✅
+   - **If public user**: Redirects to `/news/NEWS-123` ✅
+
+### Benefits
+
+✅ **Single share URL** works for all users
+✅ **No login/logout required** for recipients
+✅ **Automatic routing** based on authentication
+✅ **Clean URLs** in WhatsApp messages
+✅ **SEO-friendly** (redirects preserve proper URLs)
+
+## URL Structure
+
+| Share URL | Team User Sees | Public User Sees |
+|-----------|---------------|------------------|
+| `/api/news/share/NEWS-123` | `/team/news/NEWS-123` | `/news/NEWS-123` |
+
+## Testing
+
+1. **As team user**:
+   - Open `/team/news/[id]`
+   - Click WhatsApp share button
+   - Copy the shared URL
+   - Open in incognito → should redirect to `/news/[id]`
+   - Open while logged in → should redirect to `/team/news/[id]`
+
+2. **As public user**:
+   - Open `/news/[id]`
+   - Click WhatsApp share button
+   - Copy the shared URL
+   - Same smart routing behavior
+
+## Notes
+
+- The API route is accessible to both authenticated and unauthenticated users
+- Uses server-side auth check for reliable routing
+- No client-side JavaScript required for routing logic
+- Works with direct browser navigation and shared links

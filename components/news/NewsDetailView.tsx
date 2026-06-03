@@ -67,12 +67,11 @@ export default function NewsDetailView({ news, backUrl }: NewsDetailProps) {
   };
 
   const shareToWhatsApp = () => {
-    // Always share smart router URL that works for both team and public users
-    // /news/[id] will auto-redirect to:
-    // - /team/news/[id] for logged-in team users
-    // - /news/[id] (public) for non-logged-in users
+    // Share via smart router API that auto-redirects based on login status:
+    // - Team users → /team/news/[id]
+    // - Public users → /news/[id]
     const baseUrl = window.location.origin;
-    const smartUrl = `${baseUrl}/news/${news.id}`;
+    const smartUrl = `${baseUrl}/api/news/share/${news.id}`;
     
     const text = `*${title}*\n\nRead more at: ${smartUrl}`;
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;

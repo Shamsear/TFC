@@ -205,6 +205,7 @@ export async function getTournamentContext(
     let isInPlayoffs = false;
     let pointsFromPlayoffs = 0;
     
+    // Only calculate playoff context if tournament actually has knockouts/playoffs
     if (!isPureKnockout && hasKnockoutStage) {
       // Determine playoff cutoff based on tournament type
       if (tournamentType === 'LEAGUE_PLAYOFF') {

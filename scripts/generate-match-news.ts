@@ -135,14 +135,19 @@ async function generateMatchNews(matchId: string) {
   // Add impact analysis
   if (winner && winnerTeamId) {
     const winnerContext = winnerTeamId === match.homeTeam.teamId ? homeContext : awayContext;
-    if (winnerContext) {
+    if (winnerContext && winnerContext.context) {
       contextString += `Impact: This victory `;
       if (winnerContext.context.isLeader) {
         contextString += `strengthens ${winner}'s position at the top of the table`;
-      } else if (winnerContext.context.isInPlayoffs) {
+      } else if (winnerContext.context.hasKnockoutStage && winnerContext.context.isInPlayoffs) {
+        // Only mention playoffs if tournament has knockout stage
         contextString += `helps ${winner} secure their playoff position`;
-      } else {
+      } else if (winnerContext.context.hasKnockoutStage && !winnerContext.context.isInPlayoffs) {
+        // Only mention playoff chase if tournament has knockout stage
         contextString += `brings ${winner} closer to the playoff spots (now ${winnerContext.context.pointsFromPlayoffs} points away)`;
+      } else {
+        // Pure league - focus on position and points
+        contextString += `improves ${winner}'s league position and strengthens their points tally`;
       }
       contextString += `.`;
     }

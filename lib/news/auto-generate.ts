@@ -1,4 +1,4 @@
-import { getGeminiModel, rotateApiKey } from '../gemini/config';
+import { getGeminiModel, rotateApiKey, handleModelFailure, resetToPrimary } from '../gemini/config';
 import { generatePrompt } from './prompts-bilingual';
 import { determineTone } from './determine-tone';
 import { NewsGenerationInput, BilingualNewsResult, NewsContent, NewsTone } from './types';
@@ -130,6 +130,14 @@ async function generateSingleLanguage(
         rotateApiKey();
       }
       
+      // Handle persistent failures by trying model fallback
+      if (error.message?.includes('500') || error.message?.includes('503') || error.message?.includes('model')) {
+        const didFallback = handleModelFailure();
+        if (didFallback) {
+          console.log(`[News AI] Retrying with fallback model...`);
+        }
+      }
+      
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
       } else {
@@ -159,6 +167,9 @@ export async function generateBilingualNews(
     ]);
 
     console.log('[News AI] ✅ Bilingual generation successful');
+    
+    // Reset to primary model after successful generation
+    resetToPrimary();
 
     return {
       en: enContent,

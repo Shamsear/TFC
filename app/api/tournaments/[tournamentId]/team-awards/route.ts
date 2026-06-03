@@ -6,10 +6,10 @@ import { generateId } from '@/lib/id-generator'
 // GET: Fetch all team awards for a tournament
 export async function GET(
   req: NextRequest,
-  { params }: { params: { tournamentId: string } }
+  { params }: { params: Promise<{ tournamentId: string }> }
 ) {
   try {
-    const { tournamentId } = params
+    const { tournamentId } = await params
 
     const awards = await prisma.team_awards.findMany({
       where: {
@@ -47,7 +47,7 @@ export async function GET(
 // POST: Save a new team award
 export async function POST(
   req: NextRequest,
-  { params }: { params: { tournamentId: string } }
+  { params }: { params: Promise<{ tournamentId: string }> }
 ) {
   try {
     const session = await auth()
@@ -55,7 +55,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { tournamentId } = params
+    const { tournamentId } = await params
     const body = await req.json()
 
     const {
@@ -83,13 +83,11 @@ export async function POST(
     }
 
     // Check if award already exists for this period
-    const existing = await prisma.team_awards.findUnique({
+    const existing = await prisma.team_awards.findFirst({
       where: {
-        unique_award_per_period: {
-          tournamentId,
-          awardType,
-          awardPeriod,
-        },
+        tournamentId,
+        awardType,
+        awardPeriod,
       },
     })
 
@@ -103,7 +101,7 @@ export async function POST(
     // Create the award
     const award = await prisma.team_awards.create({
       data: {
-        id: generateId('TFCTA'),
+        id: await generateId('TFCTA'),
         tournamentId,
         seasonTeamId,
         awardType,

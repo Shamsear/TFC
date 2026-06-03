@@ -33,6 +33,7 @@ export const ID_PREFIXES = {
   RELEASE_WINDOW: 'TFCRW',
   SWAP_WINDOW: 'TFCSW',
   MANAGER: 'TFCMGR',
+  TEAM_AWARD: 'TFCTA',
 } as const
 
 type IDPrefix = typeof ID_PREFIXES[keyof typeof ID_PREFIXES]

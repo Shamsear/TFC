@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
  * Gemini API Configuration
- * Supports multiple API keys for rate limit rotation
+ * Supports multiple API keys and model fallbacks
  */
 
 const API_KEYS = [
@@ -11,10 +11,21 @@ const API_KEYS = [
   process.env.GEMINI_API_KEY_3,
 ].filter(Boolean) as string[];
 
+// Model fallback order: Using verified working models from free tier
+// gemini-2.5-flash was working successfully in earlier tests
+const MODELS = [
+  'gemini-2.5-flash',         // Primary: Known working model
+  'gemini-1.5-pro',           // Fallback 1: Pro model
+  'gemini-pro',               // Fallback 2: Legacy pro model  
+] as const;
+
 let currentKeyIndex = 0;
+let currentModelIndex = 0;
+let failureCount = 0;
+const MAX_FAILURES_BEFORE_FALLBACK = 3;
 
 /**
- * Get Gemini model instance with automatic key rotation
+ * Get Gemini model instance with automatic key rotation and model fallback
  */
 export function getGeminiModel() {
   if (API_KEYS.length === 0) {
@@ -22,10 +33,13 @@ export function getGeminiModel() {
   }
 
   const apiKey = API_KEYS[currentKeyIndex];
+  const modelName = MODELS[currentModelIndex];
   const genAI = new GoogleGenerativeAI(apiKey);
   
+  console.log(`[Gemini] Using model: ${modelName} (API key ${currentKeyIndex + 1}/${API_KEYS.length})`);
+  
   return genAI.getGenerativeModel({ 
-    model: 'gemini-2.5-flash',
+    model: modelName,
     generationConfig: {
       temperature: 0.9,
       topP: 0.95,
@@ -41,6 +55,47 @@ export function getGeminiModel() {
 export function rotateApiKey() {
   currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
   console.log(`[Gemini] Rotated to API key ${currentKeyIndex + 1}/${API_KEYS.length}`);
+}
+
+/**
+ * Handle model failure and fallback to next model if needed
+ */
+export function handleModelFailure() {
+  failureCount++;
+  
+  if (failureCount >= MAX_FAILURES_BEFORE_FALLBACK && currentModelIndex < MODELS.length - 1) {
+    currentModelIndex++;
+    failureCount = 0;
+    console.log(`[Gemini] ⚠️ Falling back to model: ${MODELS[currentModelIndex]}`);
+    return true; // Indicates fallback occurred
+  }
+  
+  return false; // No fallback needed yet
+}
+
+/**
+ * Reset to primary model (call after successful generation)
+ */
+export function resetToPrimary() {
+  if (currentModelIndex !== 0 || failureCount !== 0) {
+    currentModelIndex = 0;
+    failureCount = 0;
+    console.log(`[Gemini] ✅ Reset to primary model: ${MODELS[0]}`);
+  }
+}
+
+/**
+ * Get current model info
+ */
+export function getCurrentModelInfo() {
+  return {
+    model: MODELS[currentModelIndex],
+    modelIndex: currentModelIndex,
+    totalModels: MODELS.length,
+    apiKeyIndex: currentKeyIndex,
+    totalKeys: API_KEYS.length,
+    failureCount,
+  };
 }
 
 /**

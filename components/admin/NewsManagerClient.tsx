@@ -12,7 +12,7 @@ interface Match {
   matchDate: string // Changed from Date to string for hydration safety
   tournament: string
   hasNews: boolean
-  round?: string
+  round?: string | null
 }
 
 interface NewsManagerClientProps {
@@ -30,7 +30,7 @@ export default function NewsManagerClient({ matches, seasonId, tournamentId }: N
   const [selectedRound, setSelectedRound] = useState<string>('')
 
   // Get unique rounds from matches
-  const rounds = Array.from(new Set(matches.map(m => m.round).filter(Boolean))).sort()
+  const rounds = Array.from(new Set(matches.map(m => m.round).filter((r): r is string => r != null))).sort()
 
   const handleGenerateNews = async (matchId: string) => {
     setGeneratingFor(matchId)

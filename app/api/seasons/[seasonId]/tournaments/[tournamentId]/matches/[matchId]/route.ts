@@ -476,7 +476,16 @@ export async function PATCH(
             });
           }
         } catch (newsErr) {
-          console.warn('[News AI] Failed to generate match news:', newsErr);
+          console.error('[News AI] Failed to generate match news:', newsErr);
+          // Log more details for debugging
+          if (newsErr instanceof Error) {
+            console.error('[News AI] Error details:', {
+              message: newsErr.message,
+              stack: newsErr.stack,
+              matchId,
+              eventType: status
+            });
+          }
         }
       })();
     }

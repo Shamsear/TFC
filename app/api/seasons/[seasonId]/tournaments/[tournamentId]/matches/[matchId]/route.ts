@@ -125,11 +125,11 @@ export async function PATCH(
     const isNewsWorthy = (status === 'COMPLETED' || status === 'WALKOVER' || status === 'VOID') && 
                          existingMatch.status !== status;
     
-    // Define all background tasks
-    const backgroundTasks = [];
+    // Define all background tasks as functions to execute sequentially
+    const backgroundTasks: (() => Promise<any>)[] = [];
     
     // Task 1: Audit Log (always run)
-    backgroundTasks.push(
+    backgroundTasks.push(() =>
       createAuditLog({
         userId: session.user.id,
         userEmail: session.user.email!,
@@ -160,63 +160,49 @@ export async function PATCH(
     // Task 2: Achievements Evaluation (if applicable)
     if (updatedMatch.shouldEvaluateAchievements) {
       backgroundTasks.push(
-        (async () => {
+        async () => {
           try {
-            // Evaluate both teams in parallel
-            const [homeResults, awayResults] = await Promise.all([
-              evaluateTeamAchievements(existingMatch.homeTeam.teamId),
-              evaluateTeamAchievements(existingMatch.awayTeam.teamId)
-            ]);
+            // Evaluate teams sequentially to save connections
+            const homeResults = await evaluateTeamAchievements(existingMatch.homeTeam.teamId);
+            const awayResults = await evaluateTeamAchievements(existingMatch.awayTeam.teamId);
 
-            // Generate level-up news if needed (in parallel)
-            const levelUpNewsPromises = [];
-            
+            // Generate level-up news sequentially
             if (homeResults?.leveledUp) {
-              levelUpNewsPromises.push(
-                triggerNews('team_level_up', {
-                  season_id: seasonId,
-                  metadata: {
-                    team_name: existingMatch.homeTeam.team.name,
-                    old_level: homeResults.oldLevel,
-                    new_level: homeResults.newLevel
-                  }
-                }).catch(err => console.warn('[News AI] Failed to generate home level up news:', err))
-              );
+              await triggerNews('team_level_up', {
+                season_id: seasonId,
+                metadata: {
+                  team_name: existingMatch.homeTeam.team.name,
+                  old_level: homeResults.oldLevel,
+                  new_level: homeResults.newLevel
+                }
+              }).catch(err => console.warn('[News AI] Failed to generate home level up news:', err));
             }
 
             if (awayResults?.leveledUp) {
-              levelUpNewsPromises.push(
-                triggerNews('team_level_up', {
-                  season_id: seasonId,
-                  metadata: {
-                    team_name: existingMatch.awayTeam.team.name,
-                    old_level: awayResults.oldLevel,
-                    new_level: awayResults.newLevel
-                  }
-                }).catch(err => console.warn('[News AI] Failed to generate away level up news:', err))
-              );
-            }
-            
-            if (levelUpNewsPromises.length > 0) {
-              await Promise.all(levelUpNewsPromises);
+              await triggerNews('team_level_up', {
+                season_id: seasonId,
+                metadata: {
+                  team_name: existingMatch.awayTeam.team.name,
+                  old_level: awayResults.oldLevel,
+                  new_level: awayResults.newLevel
+                }
+              }).catch(err => console.warn('[News AI] Failed to generate away level up news:', err));
             }
           } catch (err) {
             console.error('[Achievements] Evaluation failed:', err);
           }
-        })()
+        }
       );
     }
     
     // Task 3: Notifications + News Generation (if newsworthy)
     if (isNewsWorthy) {
       backgroundTasks.push(
-        (async () => {
+        async () => {
           try {
-            // Fetch manager IDs for notifications
-            const [homeManagerId, awayManagerId] = await Promise.all([
-              getTeamManagerId(existingMatch.homeTeam.team.id),
-              getTeamManagerId(existingMatch.awayTeam.team.id)
-            ]);
+            // Fetch manager IDs for notifications sequentially to save connections
+            const homeManagerId = await getTeamManagerId(existingMatch.homeTeam.team.id);
+            const awayManagerId = await getTeamManagerId(existingMatch.awayTeam.team.id);
             
             // Set notification title based on status
             const matchTitle = status === 'VOID' ? '🚫 Match Voided' : 
@@ -232,7 +218,7 @@ export async function PATCH(
               matchBody += ` (${homePenalty}-${awayPenalty} pens)`;
             }
             
-            // Send all notifications in parallel
+            // Send notifications (these do not use Prisma mostly, so they can run concurrently)
             const notificationPromises = [];
             
             if (homeManagerId) {
@@ -270,7 +256,6 @@ export async function PATCH(
               }, seasonId).catch(() => {})
             );
             
-            // Wait for all notifications to complete
             await Promise.all(notificationPromises);
           } catch (notifErr) {
             console.warn('[Push] Notification batch failed:', notifErr);
@@ -372,11 +357,9 @@ export async function PATCH(
           // Tournament already loaded in existingMatch
           const tournament = existingMatch.tournament;
 
-          // Get tournament context for BOTH teams
-          const [homeContext, awayContext] = await Promise.all([
-            getTournamentContext(tournamentId, existingMatch.homeTeam.teamId, matchId),
-            getTournamentContext(tournamentId, existingMatch.awayTeam.teamId, matchId)
-          ]);
+          // Get tournament context for BOTH teams sequentially to save DB connections
+          const homeContext = await getTournamentContext(tournamentId, existingMatch.homeTeam.teamId, matchId);
+          const awayContext = await getTournamentContext(tournamentId, existingMatch.awayTeam.teamId, matchId);
 
           // Generate narrative context
           const homeNarrative = homeContext ? generateContextNarrative(homeContext) : '';
@@ -505,15 +488,25 @@ export async function PATCH(
           } catch (newsErr) {
             console.warn('[News AI] Failed to generate match news:', newsErr);
           }
-        })()
+        }
       );
     }
     
-    // ⚡ EXECUTE ALL TASKS IN PARALLEL with 30-second timeout
+    // ⚡ EXECUTE TASKS SEQUENTIALLY TO PREVENT CONNECTION POOL DEADLOCK
+    const executeSequentially = async () => {
+      for (const task of backgroundTasks) {
+        try {
+          await task();
+        } catch (e) {
+          console.error('[Background Task] Failed:', e);
+        }
+      }
+    };
+    
     await Promise.race([
-      Promise.all(backgroundTasks),
+      executeSequentially(),
       new Promise(resolve => setTimeout(() => {
-        console.warn(`[Match Submission] Timeout after 30s - ${backgroundTasks.length} tasks may be incomplete`);
+        console.warn(`[Match Submission] Timeout after 30s - tasks may be incomplete`);
         resolve(null);
       }, 30000))
     ]);

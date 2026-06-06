@@ -311,6 +311,40 @@ async function drawTeamLogo(
   }
 }
 
+let emojiFontRegistered = false;
+async function ensureEmojiFont() {
+  if (emojiFontRegistered) return;
+  
+  // Vercel serverless environments allow writing to /tmp
+  const tempDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(process.cwd(), 'public');
+  const tempFontPath = path.join(tempDir, 'seguiemj.ttf');
+  
+  // URL to fetch from - defaults to ImageKit if configured, otherwise falls back to jsdelivr Github
+  const baseUrl = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT?.replace(/\/$/, '') || 'https://cdn.jsdelivr.net/gh/Shamsear/TFC-Images@main';
+  const cdnUrl = `${baseUrl}/fonts/seguiemj.ttf`;
+  
+  try {
+    if (!fs.existsSync(tempFontPath)) {
+      console.log(`[News Image] Downloading emoji font from CDN: ${cdnUrl}...`);
+      const response = await fetch(cdnUrl);
+      if (response.ok) {
+        const buffer = await response.arrayBuffer();
+        fs.writeFileSync(tempFontPath, Buffer.from(buffer));
+        console.log(`[News Image] Emoji font saved to ${tempFontPath}`);
+      } else {
+        console.warn(`[News Image] Failed to download emoji font: ${response.statusText}`);
+        return;
+      }
+    }
+    
+    registerFont(tempFontPath, { family: 'system-ui' });
+    emojiFontRegistered = true;
+    console.log('[News Image] ✅ Emoji font registered successfully from CDN');
+  } catch (error) {
+    console.warn('[News Image] ⚠️ Failed to register emoji font from CDN:', error);
+  }
+}
+
 /**
  * Generate news image (main entry point)
  */
@@ -321,6 +355,9 @@ export async function generateNewsImage(
 ): Promise<string> {
   try {
     console.log(`[News Image] Generating for ${newsId} (${eventType})`);
+    
+    // Ensure emoji font is loaded from CDN before creating canvas context
+    await ensureEmojiFont();
 
     const canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     const ctx = canvas.getContext('2d');

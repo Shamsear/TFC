@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
@@ -120,7 +120,7 @@ export async function PATCH(
 
     // ⚡⚡⚡ FULLY PARALLEL EXECUTION: Run ALL background tasks simultaneously
     const startBackgroundTasks = Date.now();
-    console.log('[Match Submission] Starting parallel background tasks...');
+    console.log('[Match Submission] Match saved. Delegating background tasks to after()...');
     
     const isNewsWorthy = (status === 'COMPLETED' || status === 'WALKOVER' || status === 'VOID') && 
                          existingMatch.status !== status;
@@ -492,8 +492,9 @@ export async function PATCH(
       );
     }
     
-    // ⚡ EXECUTE TASKS SEQUENTIALLY TO PREVENT CONNECTION POOL DEADLOCK
-    const executeSequentially = async () => {
+    // ⚡ EXECUTE TASKS IN BACKGROUND WITHOUT BLOCKING THE RESPONSE
+    after(async () => {
+      console.log(`[Match Submission] Executing background tasks off the critical path...`);
       for (const task of backgroundTasks) {
         try {
           await task();
@@ -501,17 +502,10 @@ export async function PATCH(
           console.error('[Background Task] Failed:', e);
         }
       }
-    };
+      console.log(`[Match Submission] ✅ All background tasks completed`);
+    });
     
-    await Promise.race([
-      executeSequentially(),
-      new Promise(resolve => setTimeout(() => {
-        console.warn(`[Match Submission] Timeout after 30s - tasks may be incomplete`);
-        resolve(null);
-      }, 30000))
-    ]);
-    
-    console.log(`[Match Submission] ✅ All background tasks completed (${Date.now() - startBackgroundTasks}ms)`);
+    console.log(`[Match Submission] ✅ Database update complete. API response sent in ${Date.now() - startBackgroundTasks}ms.`);
 
     return NextResponse.json(updatedMatch)
   } catch (error) {

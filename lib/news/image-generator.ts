@@ -42,12 +42,7 @@ try {
     }
   }
   
-  // Segoe UI Emoji (NEW - for emoji support 🏆⚽)
-  try {
-    registerFont(path.join(fontsPath, 'seguiemj.ttf'), { family: 'system-ui' });
-  } catch {
-    registerFont(path.join(fontsPath, 'Segoe UI Emoji.ttf'), { family: 'system-ui' });
-  }
+
   
   console.log('[News Image] ✅ All custom fonts registered successfully');
 } catch (error) {

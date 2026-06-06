@@ -14,12 +14,10 @@
   ],
   "functions": {
     "app/api/import/preview/route.ts": {
-      "maxDuration": 60,
-      "memory": 1024
+      "maxDuration": 60
     },
     "app/api/import/stream/route.ts": {
-      "maxDuration": 300,
-      "memory": 1024
+      "maxDuration": 300
     }
   }
 }

@@ -55,6 +55,7 @@ export function getEventCategory(eventType: NewsEventType): NewsCategory {
 /**
  * Trigger news generation for an event
  * This is the main entry point for creating news
+ * OPTIMIZED: Parallelized for faster execution in serverless environments
  */
 export async function triggerNews(
   eventType: NewsEventType,
@@ -65,28 +66,37 @@ export async function triggerNews(
     context?: string;
   }
 ): Promise<void> {
+  const startTime = Date.now();
+  
   try {
-    console.log(`[News Trigger] Event: ${eventType}`);
+    console.log(`[News Trigger] Event: ${eventType} at ${new Date().toISOString()}`);
+    console.log(`[News Trigger] Environment: ${process.env.VERCEL ? 'Vercel' : 'Local'}`);
     
     const category = getEventCategory(eventType);
+    const newsId = `NEWS-${randomUUID()}`; // Generate ID early for parallel image generation
     
-    // Fetch recent news to avoid duplicates
-    const recentNews = await prisma.news.findMany({
-      where: {
-        category,
-        created_at: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-        }
-      },
-      select: {
-        title_en: true,
-        title_ml: true,
-        summary_en: true,
-        summary_ml: true,
-      },
-      orderBy: { created_at: 'desc' },
-      take: 10 // Last 10 articles in this category
-    });
+    // ⚡ PARALLEL EXECUTION: Start all independent tasks simultaneously
+    const [recentNews] = await Promise.all([
+      // Task 1: Fetch recent news (needed for context)
+      prisma.news.findMany({
+        where: {
+          category,
+          created_at: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+          }
+        },
+        select: {
+          title_en: true,
+          title_ml: true,
+          summary_en: true,
+          summary_ml: true,
+        },
+        orderBy: { created_at: 'desc' },
+        take: 10
+      })
+    ]);
+
+    console.log(`[News Trigger] Stage 1: Recent news fetched (${Date.now() - startTime}ms)`);
 
     // Build recent headlines context
     const recentHeadlinesEN = recentNews.map(n => n.title_en).join('\n- ');
@@ -105,20 +115,22 @@ export async function triggerNews(
       context: (data.context || '') + avoidContext
     };
 
-    // Generate bilingual news content with AI
-    const result = await generateBilingualNews(input);
+    // ⚡ PARALLEL EXECUTION: Generate content AND image simultaneously
+    const [result, imageUrl] = await Promise.all([
+      // Task 2: Generate bilingual content (already parallel EN + ML inside)
+      generateBilingualNews(input),
+      
+      // Task 3: Generate image (runs in parallel with content generation)
+      generateNewsImage(newsId, eventType, data.metadata || {})
+        .catch(imgError => {
+          console.warn('[News Trigger] Image generation failed:', imgError);
+          return ''; // Return empty string on failure
+        })
+    ]);
+
+    console.log(`[News Trigger] Stage 2: Content + Image generated (${Date.now() - startTime}ms)`);
     
-    // Create news record ID
-    const newsId = `NEWS-${randomUUID()}`;
-    
-    // Generate image poster
-    let imageUrl = '';
-    try {
-      imageUrl = await generateNewsImage(newsId, eventType, data.metadata || {});
-    } catch (imgError) {
-      console.warn('[News Trigger] Image generation failed:', imgError);
-    }
-    
+    // Task 4: Insert to database (must wait for content)
     await prisma.$executeRawUnsafe(`
       INSERT INTO news (
         id, title_en, title_ml, content_en, content_ml, summary_en, summary_ml,
@@ -149,9 +161,9 @@ export async function triggerNews(
       )
     `);
 
-    console.log(`[News Trigger] ✅ News created: ${newsId}`);
+    console.log(`[News Trigger] ✅ COMPLETE: News created ${newsId} (${Date.now() - startTime}ms total)`);
   } catch (error) {
-    console.error(`[News Trigger] ❌ Failed to trigger news:`, error);
+    console.error(`[News Trigger] ❌ Failed after ${Date.now() - startTime}ms:`, error);
     // Don't throw - news generation failures shouldn't break the main flow
   }
 }

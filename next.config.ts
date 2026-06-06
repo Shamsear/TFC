@@ -38,7 +38,6 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '50mb',
     },
-    serverComponentsExternalPackages: ['canvas'],
   },
   async headers() {
     return [

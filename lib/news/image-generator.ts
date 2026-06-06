@@ -14,19 +14,45 @@ import path from 'path';
 import { prisma } from '@/lib/prisma';
 import ImageKit from 'imagekit';
 
-// Register custom fonts
+// Register custom fonts for canvas rendering
 try {
-  registerFont(path.join(process.cwd(), 'fonts', 'BAHNSCHRIFT.TTF'), { family: 'Bahnschrift' });
-  registerFont(path.join(process.cwd(), 'fonts', 'Segoe UI.ttf'), { family: 'Segoe UI' });
-  registerFont(path.join(process.cwd(), 'fonts', 'Segoe UI Bold.ttf'), { family: 'Segoe UI', weight: 'bold' });
-  registerFont(path.join(process.cwd(), 'fonts', 'Oswald-Bold.ttf'), { family: 'Oswald', weight: 'bold' });
-  registerFont(path.join(process.cwd(), 'fonts', 'Oswald-SemiBold.ttf'), { family: 'Oswald', weight: '600' });
-  registerFont(path.join(process.cwd(), 'fonts', 'Oswald-Medium.ttf'), { family: 'Oswald', weight: '500' });
-  registerFont(path.join(process.cwd(), 'fonts', 'Oswald-Regular.ttf'), { family: 'Oswald', weight: 'normal' });
-  console.log('[News Image] ✅ Fonts registered successfully');
+  const fontsPath = path.join(process.cwd(), 'fonts');
+  
+  // Bahnschrift (existing)
+  registerFont(path.join(fontsPath, 'BAHNSCHRIFT.TTF'), { family: 'Bahnschrift' });
+  
+  // Segoe UI (existing)
+  registerFont(path.join(fontsPath, 'Segoe UI.ttf'), { family: 'Segoe UI' });
+  registerFont(path.join(fontsPath, 'Segoe UI Bold.ttf'), { family: 'Segoe UI', weight: 'bold' });
+  
+  // Oswald (existing)
+  registerFont(path.join(fontsPath, 'Oswald-Bold.ttf'), { family: 'Oswald', weight: 'bold' });
+  registerFont(path.join(fontsPath, 'Oswald-SemiBold.ttf'), { family: 'Oswald', weight: '600' });
+  registerFont(path.join(fontsPath, 'Oswald-Medium.ttf'), { family: 'Oswald', weight: '500' });
+  registerFont(path.join(fontsPath, 'Oswald-Regular.ttf'), { family: 'Oswald', weight: 'normal' });
+  
+  // Impact (NEW - CRITICAL for scores and large text)
+  try {
+    registerFont(path.join(fontsPath, 'Impact.ttf'), { family: 'Impact' });
+  } catch {
+    try {
+      registerFont(path.join(fontsPath, 'impact.ttf'), { family: 'Impact' });
+    } catch {
+      registerFont(path.join(fontsPath, 'IMPACT.TTF'), { family: 'Impact' });
+    }
+  }
+  
+  // Segoe UI Emoji (NEW - for emoji support 🏆⚽)
+  try {
+    registerFont(path.join(fontsPath, 'seguiemj.ttf'), { family: 'system-ui' });
+  } catch {
+    registerFont(path.join(fontsPath, 'Segoe UI Emoji.ttf'), { family: 'system-ui' });
+  }
+  
+  console.log('[News Image] ✅ All custom fonts registered successfully');
 } catch (error) {
   console.error('[News Image] ⚠️ Font registration failed:', error);
-  console.error('[News Image] ⚠️ Text rendering may fall back to system fonts');
+  console.error('[News Image] Images will use fallback system fonts');
 }
 
 const CANVAS_WIDTH = 1200;
@@ -517,7 +543,7 @@ async function generateMatchResultTemplate(
   // Score (center)
   if (metadata.home_score !== undefined && metadata.away_score !== undefined) {
     ctx.fillStyle = lighterColor;
-    ctx.font = 'bold 130px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+    ctx.font = 'bold 130px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
@@ -602,14 +628,14 @@ async function generateMatchdayStartTemplate(
   const roundNumber = roundStr.replace(/matchday\s*/i, '').trim();
   
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 80px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 80px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('MATCHDAY', CANVAS_WIDTH / 2, centerY);
   
   ctx.fillStyle = lighterColor;
   ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
   ctx.shadowBlur = 30;
-  ctx.font = 'bold 100px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 100px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillText(roundNumber || 'KICKS OFF', CANVAS_WIDTH / 2, centerY + 100);
   ctx.shadowBlur = 0;
   
@@ -685,7 +711,7 @@ async function generateMatchdayCompleteTemplate(
   const roundNumber = roundStr.replace(/matchday\s*/i, '').trim();
   
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 64px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 64px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('MATCHDAY COMPLETE', CANVAS_WIDTH / 2, centerY);
   
@@ -693,7 +719,7 @@ async function generateMatchdayCompleteTemplate(
     ctx.fillStyle = lighterColor;
     ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
     ctx.shadowBlur = 30;
-    ctx.font = 'bold 72px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+    ctx.font = 'bold 72px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
     ctx.fillText(roundNumber, CANVAS_WIDTH / 2, centerY + 70);
     ctx.shadowBlur = 0;
   }
@@ -709,7 +735,7 @@ async function generateMatchdayCompleteTemplate(
   drawRoundedRect(ctx, startX, cardY, cardWidth, 140, 15);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 56px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 56px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`${metadata.total_goals || 0}`, startX + cardWidth / 2, cardY + 65);
   ctx.font = '20px "Segoe UI", sans-serif';
@@ -720,7 +746,7 @@ async function generateMatchdayCompleteTemplate(
   drawRoundedRect(ctx, startX + cardWidth + gap, cardY, cardWidth, 140, 15);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 56px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 56px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillText(`${metadata.total_matches || 0}`, startX + cardWidth + gap + cardWidth / 2, cardY + 65);
   ctx.font = '20px "Segoe UI", sans-serif';
   ctx.fillText('MATCHES', startX + cardWidth + gap + cardWidth / 2, cardY + 100);
@@ -798,7 +824,7 @@ async function generateLevelUpTemplate(
   
   // Title
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 64px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 64px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.fillText('LEVEL UP!', CANVAS_WIDTH / 2, 280);
   
   // Team name card
@@ -816,7 +842,7 @@ async function generateLevelUpTemplate(
   // Level info
   if (metadata.new_level) {
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 72px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+    ctx.font = 'bold 72px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
     ctx.fillText(`LEVEL ${metadata.new_level}`, CANVAS_WIDTH / 2, 470);
   }
   
@@ -879,7 +905,7 @@ async function generateGenericTemplate(
   
   // Title
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 64px "Oswald", "Bahnschrift", "Segoe UI", sans-serif';
+  ctx.font = 'bold 64px "Impact", "Bahnschrift", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('TFC LEAGUE', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
   

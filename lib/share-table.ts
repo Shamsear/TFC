@@ -154,9 +154,15 @@ export async function captureTableAsPng(
   // Then wait for them to be rendered in the DOM
   await waitForImagesToLoad(element)
   
-  // Longer delay for mobile devices to ensure rendering is complete
+  // Ensure fonts are loaded by checking document.fonts if available
+  if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    await document.fonts.ready
+  }
+  
+  // Longer delay to ensure fonts and all styles are fully rendered
+  // Extra time for mobile devices and to ensure font rendering is complete
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  const delay = isMobile ? 1000 : 300
+  const delay = isMobile ? 1500 : 800
   await new Promise(resolve => setTimeout(resolve, delay))
   
   return toPng(element, {
@@ -165,12 +171,9 @@ export async function captureTableAsPng(
     backgroundColor: options?.backgroundColor ?? '#0a0a0a',
     quality: 1,
     pixelRatio: 2, // retina-quality output
-    skipFonts: true, // Skip external fonts to avoid CORS issues with cssRules
+    skipFonts: false, // Allow fonts to be embedded in the image
     filter: (node) => {
-      // Filter out any external stylesheets to prevent CORS errors
-      if (node instanceof HTMLLinkElement && node.rel === 'stylesheet') {
-        return false
-      }
+      // Keep Google Fonts stylesheet links for proper font rendering
       return true
     },
   })

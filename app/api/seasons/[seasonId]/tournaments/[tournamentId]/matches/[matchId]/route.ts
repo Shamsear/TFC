@@ -10,6 +10,9 @@ import { detectMatchScenarios } from '@/lib/news/scenario-detector'
 import { getCleanManagerName } from '@/lib/news/utils'
 import { NewsEventType } from '@/lib/news/types'
 
+// ⚡ Increase timeout for news generation (Vercel default is 10s)
+export const maxDuration = 60; // 60 seconds max execution time
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ seasonId: string; tournamentId: string; matchId: string }> }
@@ -115,142 +118,166 @@ export async function PATCH(
       ) && homeScore !== null && awayScore !== null }
     })
 
-    // Evaluate achievements ASYNCHRONOUSLY — don't block the response
-    // Run in background after responding to user
-    if (updatedMatch.shouldEvaluateAchievements) {
-      // Fire and forget - don't await
-      (async () => {
-        try {
-          const homeResults = await evaluateTeamAchievements(existingMatch.homeTeam.teamId);
-          const awayResults = await evaluateTeamAchievements(existingMatch.awayTeam.teamId);
-
-          // Badge unlocks are tracked but no news generated (only level ups get news)
-
-          // Trigger news for level ups
-          if (homeResults?.leveledUp) {
-            try {
-              await triggerNews('team_level_up', {
-                season_id: seasonId,
-                metadata: {
-                  team_name: existingMatch.homeTeam.team.name,
-                  old_level: homeResults.oldLevel,
-                  new_level: homeResults.newLevel
-                }
-              });
-            } catch (newsErr) {
-              console.warn('[News AI] Failed to generate level up news:', newsErr);
-            }
-          }
-
-          if (awayResults?.leveledUp) {
-            try {
-              await triggerNews('team_level_up', {
-                season_id: seasonId,
-                metadata: {
-                  team_name: existingMatch.awayTeam.team.name,
-                  old_level: awayResults.oldLevel,
-                  new_level: awayResults.newLevel
-                }
-              });
-            } catch (newsErr) {
-              console.warn('[News AI] Failed to generate level up news:', newsErr);
-            }
-          }
-        } catch (err) {
-          console.error('[Achievements] Background evaluation failed:', err);
-        }
-      })();
-    }
-
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      userEmail: session.user.email!,
-      userRole: session.user.role!,
-      action: 'UPDATE_MATCH',
-      entityType: 'match',
-      entityId: matchId,
-      entityName: `${existingMatch.homeTeam.team.name} vs ${existingMatch.awayTeam.team.name}`,
-      seasonId,
-      details: {
-        matchDate,
-        venue,
-        round,
-        status,
-        homeScore,
-        awayScore,
-        homePenalty,
-        awayPenalty,
-        previousStatus: existingMatch.status,
-        previousHomeScore: existingMatch.homeScore,
-        previousAwayScore: existingMatch.awayScore
-      },
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-      userAgent: request.headers.get('user-agent') || 'unknown'
-    })
-
-    // Notify both teams if the match was just completed, walkover, or voided (async - don't block)
+    // ⚡⚡⚡ FULLY PARALLEL EXECUTION: Run ALL background tasks simultaneously
+    const startBackgroundTasks = Date.now();
+    console.log('[Match Submission] Starting parallel background tasks...');
+    
     const isNewsWorthy = (status === 'COMPLETED' || status === 'WALKOVER' || status === 'VOID') && 
                          existingMatch.status !== status;
     
-    if (isNewsWorthy) {
-      // Fire and forget notifications
-      (async () => {
-        try {
-          const homeManagerId = await getTeamManagerId(existingMatch.homeTeam.team.id);
-          const awayManagerId = await getTeamManagerId(existingMatch.awayTeam.team.id);
-          
-          // Set notification title based on status
-          const matchTitle = status === 'VOID' ? '🚫 Match Voided' : 
-                            status === 'WALKOVER' ? '⚠️ Match Walkover' : 
-                            '🏟️ Match Result Published';
-          
-          let matchBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`;
-          if (status === 'WALKOVER') {
-            matchBody += ' (Walkover)';
-          } else if (status === 'VOID') {
-            matchBody += ' (Voided)';
-          } else if (homePenalty !== null && awayPenalty !== null) {
-            matchBody += ` (${homePenalty}-${awayPenalty} pens)`;
-          }
-          
-          if (homeManagerId) {
-            await sendPushNotificationRaw(homeManagerId, {
-              title: matchTitle,
-              body: matchBody,
-              url: `/team/matches/${matchId}`
-            }, 'general').catch(() => {});
-          }
-          if (awayManagerId) {
-            await sendPushNotificationRaw(awayManagerId, {
-              title: matchTitle,
-              body: matchBody,
-              url: `/team/matches/${matchId}`
-            }, 'general').catch(() => {});
-          }
-        } catch (notifErr) {
-          console.warn('[Push] Match result notification failed:', notifErr);
-        }
-        
-        // Notify admins
-        try {
-          const adminTitle = status === 'VOID' ? 'Match Voided' : 
-                            status === 'WALKOVER' ? 'Match Walkover' : 
-                            'Match Result Published';
-          const adminBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}` +
-                           (status === 'WALKOVER' ? ' (Walkover)' : status === 'VOID' ? ' (Voided)' : '');
-          
-          await notifyAllAdmins({
-            title: adminTitle,
-            body: adminBody,
-            url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
-          }, seasonId).catch(() => {});
-        } catch (adminNotifErr) {
-          console.warn('[Push] Admin match result notification failed:', adminNotifErr);
-        }
+    // Define all background tasks
+    const backgroundTasks = [];
+    
+    // Task 1: Audit Log (always run)
+    backgroundTasks.push(
+      createAuditLog({
+        userId: session.user.id,
+        userEmail: session.user.email!,
+        userRole: session.user.role!,
+        action: 'UPDATE_MATCH',
+        entityType: 'match',
+        entityId: matchId,
+        entityName: `${existingMatch.homeTeam.team.name} vs ${existingMatch.awayTeam.team.name}`,
+        seasonId,
+        details: {
+          matchDate,
+          venue,
+          round,
+          status,
+          homeScore,
+          awayScore,
+          homePenalty,
+          awayPenalty,
+          previousStatus: existingMatch.status,
+          previousHomeScore: existingMatch.homeScore,
+          previousAwayScore: existingMatch.awayScore
+        },
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+        userAgent: request.headers.get('user-agent') || 'unknown'
+      }).catch(err => console.error('[Audit] Failed:', err))
+    );
+    
+    // Task 2: Achievements Evaluation (if applicable)
+    if (updatedMatch.shouldEvaluateAchievements) {
+      backgroundTasks.push(
+        (async () => {
+          try {
+            // Evaluate both teams in parallel
+            const [homeResults, awayResults] = await Promise.all([
+              evaluateTeamAchievements(existingMatch.homeTeam.teamId),
+              evaluateTeamAchievements(existingMatch.awayTeam.teamId)
+            ]);
 
-        // Generate AI news for match completion WITH TOURNAMENT CONTEXT
-        try {
+            // Generate level-up news if needed (in parallel)
+            const levelUpNewsPromises = [];
+            
+            if (homeResults?.leveledUp) {
+              levelUpNewsPromises.push(
+                triggerNews('team_level_up', {
+                  season_id: seasonId,
+                  metadata: {
+                    team_name: existingMatch.homeTeam.team.name,
+                    old_level: homeResults.oldLevel,
+                    new_level: homeResults.newLevel
+                  }
+                }).catch(err => console.warn('[News AI] Failed to generate home level up news:', err))
+              );
+            }
+
+            if (awayResults?.leveledUp) {
+              levelUpNewsPromises.push(
+                triggerNews('team_level_up', {
+                  season_id: seasonId,
+                  metadata: {
+                    team_name: existingMatch.awayTeam.team.name,
+                    old_level: awayResults.oldLevel,
+                    new_level: awayResults.newLevel
+                  }
+                }).catch(err => console.warn('[News AI] Failed to generate away level up news:', err))
+              );
+            }
+            
+            if (levelUpNewsPromises.length > 0) {
+              await Promise.all(levelUpNewsPromises);
+            }
+          } catch (err) {
+            console.error('[Achievements] Evaluation failed:', err);
+          }
+        })()
+      );
+    }
+    
+    // Task 3: Notifications + News Generation (if newsworthy)
+    if (isNewsWorthy) {
+      backgroundTasks.push(
+        (async () => {
+          try {
+            // Fetch manager IDs for notifications
+            const [homeManagerId, awayManagerId] = await Promise.all([
+              getTeamManagerId(existingMatch.homeTeam.team.id),
+              getTeamManagerId(existingMatch.awayTeam.team.id)
+            ]);
+            
+            // Set notification title based on status
+            const matchTitle = status === 'VOID' ? '🚫 Match Voided' : 
+                              status === 'WALKOVER' ? '⚠️ Match Walkover' : 
+                              '🏟️ Match Result Published';
+            
+            let matchBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}`;
+            if (status === 'WALKOVER') {
+              matchBody += ' (Walkover)';
+            } else if (status === 'VOID') {
+              matchBody += ' (Voided)';
+            } else if (homePenalty !== null && awayPenalty !== null) {
+              matchBody += ` (${homePenalty}-${awayPenalty} pens)`;
+            }
+            
+            // Send all notifications in parallel
+            const notificationPromises = [];
+            
+            if (homeManagerId) {
+              notificationPromises.push(
+                sendPushNotificationRaw(homeManagerId, {
+                  title: matchTitle,
+                  body: matchBody,
+                  url: `/team/matches/${matchId}`
+                }, 'general').catch(() => {})
+              );
+            }
+            
+            if (awayManagerId) {
+              notificationPromises.push(
+                sendPushNotificationRaw(awayManagerId, {
+                  title: matchTitle,
+                  body: matchBody,
+                  url: `/team/matches/${matchId}`
+                }, 'general').catch(() => {})
+              );
+            }
+            
+            // Admin notifications
+            const adminTitle = status === 'VOID' ? 'Match Voided' : 
+                              status === 'WALKOVER' ? 'Match Walkover' : 
+                              'Match Result Published';
+            const adminBody = `${existingMatch.homeTeam.team.name} ${homeScore} - ${awayScore} ${existingMatch.awayTeam.team.name}` +
+                             (status === 'WALKOVER' ? ' (Walkover)' : status === 'VOID' ? ' (Voided)' : '');
+            
+            notificationPromises.push(
+              notifyAllAdmins({
+                title: adminTitle,
+                body: adminBody,
+                url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
+              }, seasonId).catch(() => {})
+            );
+            
+            // Wait for all notifications to complete
+            await Promise.all(notificationPromises);
+          } catch (notifErr) {
+            console.warn('[Push] Notification batch failed:', notifErr);
+          }
+
+          // Generate AI news for match completion
+          try {
           // For VOID matches, generate a simple administrative news article
           if (status === 'VOID') {
             await triggerNews('match_voided', {
@@ -475,20 +502,23 @@ export async function PATCH(
               context: recapContext
             });
           }
-        } catch (newsErr) {
-          console.error('[News AI] Failed to generate match news:', newsErr);
-          // Log more details for debugging
-          if (newsErr instanceof Error) {
-            console.error('[News AI] Error details:', {
-              message: newsErr.message,
-              stack: newsErr.stack,
-              matchId,
-              eventType: status
-            });
+          } catch (newsErr) {
+            console.warn('[News AI] Failed to generate match news:', newsErr);
           }
-        }
-      })();
+        })()
+      );
     }
+    
+    // ⚡ EXECUTE ALL TASKS IN PARALLEL with 30-second timeout
+    await Promise.race([
+      Promise.all(backgroundTasks),
+      new Promise(resolve => setTimeout(() => {
+        console.warn(`[Match Submission] Timeout after 30s - ${backgroundTasks.length} tasks may be incomplete`);
+        resolve(null);
+      }, 30000))
+    ]);
+    
+    console.log(`[Match Submission] ✅ All background tasks completed (${Date.now() - startBackgroundTasks}ms)`);
 
     return NextResponse.json(updatedMatch)
   } catch (error) {

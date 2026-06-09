@@ -315,33 +315,93 @@ let emojiFontRegistered = false;
 async function ensureEmojiFont() {
   if (emojiFontRegistered) return;
   
-  // Vercel serverless environments allow writing to /tmp
-  const tempDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(process.cwd(), 'public');
-  const tempFontPath = path.join(tempDir, 'seguiemj.ttf');
-  
-  // URL to fetch from - defaults to ImageKit if configured, otherwise falls back to jsdelivr Github
-  const baseUrl = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT?.replace(/\/$/, '') || 'https://cdn.jsdelivr.net/gh/Shamsear/TFC-Images@main';
-  const cdnUrl = `${baseUrl}/fonts/seguiemj.ttf`;
-  
   try {
-    if (!fs.existsSync(tempFontPath)) {
-      console.log(`[News Image] Downloading emoji font from CDN: ${cdnUrl}...`);
-      const response = await fetch(cdnUrl);
-      if (response.ok) {
-        const buffer = await response.arrayBuffer();
-        fs.writeFileSync(tempFontPath, Buffer.from(buffer));
-        console.log(`[News Image] Emoji font saved to ${tempFontPath}`);
-      } else {
-        console.warn(`[News Image] Failed to download emoji font: ${response.statusText}`);
-        return;
-      }
+    // Vercel serverless environments allow writing to /tmp
+    const tempDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(process.cwd(), 'public');
+    const tempFontPath = path.join(tempDir, 'seguiemj.ttf');
+    
+    // Ensure the temp directory exists
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
     }
     
-    registerFont(tempFontPath, { family: 'system-ui' });
+    const baseUrl = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT?.replace(/\/$/, '');
+    const cdnUrls = [
+      baseUrl ? `${baseUrl}/fonts/seguiemj.ttf` : null,
+      'https://raw.githubusercontent.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf',
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/fonts/NotoColorEmoji.ttf'
+    ].filter(Boolean) as string[];
+    
+    // Download the font if it doesn't exist or is invalid
+    if (!fs.existsSync(tempFontPath) || fs.statSync(tempFontPath).size === 0) {
+      let downloaded = false;
+      
+      for (const url of cdnUrls) {
+        console.log(`[News Image] Trying to download emoji font from: ${url}...`);
+        try {
+          const response = await fetch(url, { 
+            signal: AbortSignal.timeout(15000) // 15 second timeout
+          });
+          
+          if (response.ok) {
+            const buffer = await response.arrayBuffer();
+            
+            // Validate that we actually got font data (should be at least 100KB)
+            if (buffer.byteLength < 100000) {
+              console.warn(`[News Image] Downloaded font too small (${buffer.byteLength} bytes), skipping`);
+              continue;
+            }
+            
+            fs.writeFileSync(tempFontPath, Buffer.from(buffer));
+            console.log(`[News Image] Emoji font saved to ${tempFontPath} (${buffer.byteLength} bytes)`);
+            downloaded = true;
+            break;
+          } else {
+            console.warn(`[News Image] Failed to download from ${url}: ${response.statusText}`);
+          }
+        } catch (e: any) {
+          console.warn(`[News Image] Error fetching from ${url}:`, e.message);
+        }
+      }
+      
+      if (!downloaded) {
+        console.warn(`[News Image] Failed to download emoji font from all sources.`);
+        return;
+      }
+    } else {
+      console.log(`[News Image] Emoji font already exists at ${tempFontPath}`);
+    }
+    
+    // Verify the font file exists and is readable before registering
+    if (!fs.existsSync(tempFontPath)) {
+      console.warn(`[News Image] Font file does not exist at ${tempFontPath}`);
+      return;
+    }
+    
+    const fontStats = fs.statSync(tempFontPath);
+    if (fontStats.size === 0) {
+      console.warn(`[News Image] Font file is empty at ${tempFontPath}`);
+      return;
+    }
+    
+    console.log(`[News Image] Attempting to register emoji font (${fontStats.size} bytes)...`);
+    
+    // Try to register the font - use a unique family name to avoid conflicts
+    // Wrap in separate try-catch to isolate registration errors
+    try {
+      registerFont(tempFontPath, { family: 'NotoEmoji' });
+      emojiFontRegistered = true;
+      console.log('[News Image] ✅ Emoji font registered successfully as "NotoEmoji"');
+    } catch (registerError: any) {
+      console.warn('[News Image] ⚠️ Font file exists but registration failed:', registerError.message || registerError);
+      console.warn('[News Image] This is likely a Windows/canvas library limitation and does not affect image generation');
+      // Mark as registered anyway to prevent repeated attempts
+      emojiFontRegistered = true;
+    }
+  } catch (error: any) {
+    console.warn('[News Image] ⚠️ Failed in emoji font setup:', error.message || error);
+    // Mark as registered to prevent repeated attempts
     emojiFontRegistered = true;
-    console.log('[News Image] ✅ Emoji font registered successfully from CDN');
-  } catch (error) {
-    console.warn('[News Image] ⚠️ Failed to register emoji font from CDN:', error);
   }
 }
 

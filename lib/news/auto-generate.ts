@@ -124,7 +124,7 @@ function parseAIResponse(text: string): { title: string; content: string; summar
 async function generateSingleLanguage(
   input: NewsGenerationInput,
   language: 'en' | 'ml',
-  maxRetries = 3
+  maxRetries = 10
 ): Promise<NewsContent> {
   const tone = input.tone || determineTone(input);
   const prompt = generatePrompt({ ...input, tone }, language);

@@ -13,6 +13,7 @@ interface Match {
   tournament: string
   hasNews: boolean
   round?: string | null
+  status?: string
 }
 
 interface NewsManagerClientProps {
@@ -30,7 +31,9 @@ export default function NewsManagerClient({ matches, seasonId, tournamentId }: N
   const [selectedRound, setSelectedRound] = useState<string>('')
 
   // Get unique rounds from matches
-  const rounds = Array.from(new Set(matches.map(m => m.round).filter((r): r is string => r != null))).sort()
+  const rounds = Array.from(new Set(matches.map(m => m.round).filter((r): r is string => r != null && r !== ''))).sort((a, b) => {
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  })
 
   const handleGenerateNews = async (matchId: string) => {
     setGeneratingFor(matchId)
@@ -96,8 +99,9 @@ export default function NewsManagerClient({ matches, seasonId, tournamentId }: N
     }
   }
 
-  const matchesWithoutNews = matches.filter((m) => !m.hasNews)
-  const matchesWithNews = matches.filter((m) => m.hasNews)
+  const completedMatches = matches.filter(m => m.status === 'COMPLETED')
+  const matchesWithoutNews = completedMatches.filter((m) => !m.hasNews)
+  const matchesWithNews = completedMatches.filter((m) => m.hasNews)
 
   return (
     <div className="space-y-6">
@@ -170,7 +174,7 @@ export default function NewsManagerClient({ matches, seasonId, tournamentId }: N
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <div className="text-3xl font-black text-white mb-1">{matches.length}</div>
+          <div className="text-3xl font-black text-white mb-1">{completedMatches.length}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wider font-bold">
             Total Completed Matches
           </div>

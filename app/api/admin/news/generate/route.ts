@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { triggerNews } from '@/lib/news/trigger'
 import type { NewsEventType } from '@/lib/news/types'
 
+export const maxDuration = 60; // Max allowed for Vercel Hobby plan (Pro users can increase this up to 300)
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()

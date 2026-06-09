@@ -23,7 +23,6 @@ export default async function NewsManagerPage({ params }: NewsManagerPageProps) 
       tournament: {
         seasonId,
       },
-      status: 'COMPLETED',
     },
     include: {
       homeTeam: {
@@ -45,7 +44,6 @@ export default async function NewsManagerPage({ params }: NewsManagerPageProps) 
     orderBy: {
       matchDate: 'desc',
     },
-    take: 50,
   })
 
   // Get existing news articles
@@ -163,6 +161,7 @@ export default async function NewsManagerPage({ params }: NewsManagerPageProps) 
       matchDate: match.matchDate.toISOString(), // Convert to ISO string for consistent serialization
       tournament: match.tournament.name,
       round: match.round,
+      status: match.status,
       hasNews,
     }
   })

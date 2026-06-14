@@ -61,6 +61,14 @@ const UploadIcon = () => (
   </svg>
 );
 
+const CameraIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+
 const ArrowRightIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -335,6 +343,19 @@ export default async function SubAdminDashboard() {
                       <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Import Database</div>
                     </div>
                     <div className="text-xs sm:text-sm text-white/80">Upload player data</div>
+                  </Link>
+
+                  <Link
+                    href="/sub-admin/upload-images"
+                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
+                        <CameraIcon />
+                      </div>
+                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Upload Images</div>
+                    </div>
+                    <div className="text-xs sm:text-sm text-white/80">Upload photos & cards to GitHub</div>
                   </Link>
                 </div>
               </div>

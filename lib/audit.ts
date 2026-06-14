@@ -26,6 +26,7 @@ export type AuditAction =
   | 'REVEAL_POSITIONS'
   | 'LOGIN'
   | 'LOGOUT'
+  | 'UPLOAD_PLAYER_IMAGE'
 
 export interface AuditLogData {
   userId: string

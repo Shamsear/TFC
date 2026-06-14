@@ -71,6 +71,12 @@ export default async function ReleaseRequestsAdminPage({
           email: true,
         },
       },
+      releaseWindow: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
     orderBy: [
       { status: 'asc' }, // pending first
@@ -156,6 +162,8 @@ export default async function ReleaseRequestsAdminPage({
     processedAt: req.processedAt?.toISOString() || null,
     processedBy: req.processor?.name || null,
     rejectionReason: req.rejectionReason,
+    releaseWindowId: req.releaseWindowId,
+    releaseWindowName: req.releaseWindow?.name || null,
   }))
 
   return (

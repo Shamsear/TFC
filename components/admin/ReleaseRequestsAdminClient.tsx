@@ -23,6 +23,8 @@ interface Request {
   processedAt: string | null
   processedBy: string | null
   rejectionReason: string | null
+  releaseWindowId: string | null
+  releaseWindowName: string | null
 }
 
 interface TeamStats {
@@ -69,7 +71,7 @@ export default function ReleaseRequestsAdminClient({
   const [teamStats] = useState(initialTeamStats)
   const [releaseWindows, setReleaseWindows] = useState<ReleaseWindowInfo[]>(initialReleaseWindows)
   const [selectedWindowId, setSelectedWindowId] = useState<string>(
-    initialReleaseWindows.find(w => w.status === 'ACTIVE')?.id || initialReleaseWindows[0]?.id || ''
+    initialReleaseWindows.find(w => w.status === 'ACTIVE')?.id || 'ALL'
   )
   const [isTogglingWindow, setIsTogglingWindow] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -82,8 +84,15 @@ export default function ReleaseRequestsAdminClient({
   const [showTeamStats, setShowTeamStats] = useState(false)
   const [bulkProcessingTeamId, setBulkProcessingTeamId] = useState<string | null>(null)
 
-  const pendingRequests = requests.filter(r => r.status === 'pending')
-  const processedRequests = requests.filter(r => r.status !== 'pending')
+  // Filter requests by selected window
+  const filteredRequests = selectedWindowId === 'ALL'
+    ? requests
+    : selectedWindowId 
+      ? requests.filter(r => r.releaseWindowId === selectedWindowId)
+      : requests
+
+  const pendingRequests = filteredRequests.filter(r => r.status === 'pending')
+  const processedRequests = filteredRequests.filter(r => r.status !== 'pending')
 
   // Group pending requests by team
   const pendingByTeam = pendingRequests.reduce((acc, request) => {
@@ -380,6 +389,7 @@ _All releases processed by admin_`
                   onChange={e => setSelectedWindowId(e.target.value)}
                   className="w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white font-medium focus:outline-none focus:border-[#E8A800]"
                 >
+                  <option value="ALL">All Windows</option>
                   {releaseWindows.map(w => (
                     <option key={w.id} value={w.id}>
                       {w.name} ({w.status})
@@ -389,7 +399,7 @@ _All releases processed by admin_`
               )}
             </div>
 
-            {selectedWindow && (
+            {selectedWindow && selectedWindowId !== 'ALL' && (
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWindow}
@@ -412,7 +422,7 @@ _All releases processed by admin_`
             )}
           </div>
 
-          {selectedWindow && (
+          {selectedWindow && selectedWindowId !== 'ALL' && (
             <div className="border-t border-white/5 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-400">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-300">Status:</span>
@@ -444,13 +454,13 @@ _All releases processed by admin_`
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">
           <div className="text-sm text-gray-400 mb-1">Approved</div>
           <div className="text-3xl font-black text-emerald-400">
-            {requests.filter(r => r.status === 'approved').length}
+            {filteredRequests.filter(r => r.status === 'approved').length}
           </div>
         </div>
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">
           <div className="text-sm text-gray-400 mb-1">Rejected</div>
           <div className="text-3xl font-black text-red-400">
-            {requests.filter(r => r.status === 'rejected').length}
+            {filteredRequests.filter(r => r.status === 'rejected').length}
           </div>
         </div>
       </div>

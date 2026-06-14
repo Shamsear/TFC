@@ -31,6 +31,8 @@ interface Request {
   processedAt: string | null
   processedBy: string | null
   rejectionReason: string | null
+  swapWindowId: string | null
+  swapWindowName: string | null
   players: SwapPlayer[]
 }
 
@@ -78,7 +80,7 @@ export default function SwapRequestsAdminClient({
   const [teamStats] = useState(initialTeamStats)
   const [swapWindows, setSwapWindows] = useState<SwapWindowInfo[]>(initialSwapWindows)
   const [selectedWindowId, setSelectedWindowId] = useState<string>(
-    initialSwapWindows.find(w => w.status === 'ACTIVE')?.id || initialSwapWindows[0]?.id || ''
+    initialSwapWindows.find(w => w.status === 'ACTIVE')?.id || 'ALL'
   )
   const [isTogglingWindow, setIsTogglingWindow] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -89,8 +91,15 @@ export default function SwapRequestsAdminClient({
   const [whatsappMessage, setWhatsappMessage] = useState('')
   const [showTeamStats, setShowTeamStats] = useState(false)
 
-  const pendingRequests = requests.filter(r => r.status === 'pending')
-  const processedRequests = requests.filter(r => r.status !== 'pending')
+  // Filter requests by selected window
+  const filteredRequests = selectedWindowId === 'ALL'
+    ? requests
+    : selectedWindowId 
+      ? requests.filter(r => r.swapWindowId === selectedWindowId)
+      : requests
+
+  const pendingRequests = filteredRequests.filter(r => r.status === 'pending')
+  const processedRequests = filteredRequests.filter(r => r.status !== 'pending')
 
   const selectedWindow = swapWindows.find(w => w.id === selectedWindowId)
 
@@ -291,6 +300,7 @@ _Swap processed by admin_`
                   onChange={e => setSelectedWindowId(e.target.value)}
                   className="w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white font-medium focus:outline-none focus:border-[#E8A800]"
                 >
+                  <option value="ALL">All Windows</option>
                   {swapWindows.map(w => (
                     <option key={w.id} value={w.id}>
                       {w.name} ({w.status})
@@ -300,7 +310,7 @@ _Swap processed by admin_`
               )}
             </div>
 
-            {selectedWindow && (
+            {selectedWindow && selectedWindowId !== 'ALL' && (
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWindow}
@@ -323,7 +333,7 @@ _Swap processed by admin_`
             )}
           </div>
 
-          {selectedWindow && (
+          {selectedWindow && selectedWindowId !== 'ALL' && (
             <div className="border-t border-white/5 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-400">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-300">Status:</span>
@@ -355,13 +365,13 @@ _Swap processed by admin_`
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">
           <div className="text-sm text-gray-400 mb-1">Approved</div>
           <div className="text-3xl font-black text-emerald-400">
-            {requests.filter(r => r.status === 'approved').length}
+            {filteredRequests.filter(r => r.status === 'approved').length}
           </div>
         </div>
         <div className="rounded-xl bg-white/5 border border-white/10 p-6">
           <div className="text-sm text-gray-400 mb-1">Rejected</div>
           <div className="text-3xl font-black text-red-400">
-            {requests.filter(r => r.status === 'rejected').length}
+            {filteredRequests.filter(r => r.status === 'rejected').length}
           </div>
         </div>
       </div>

@@ -94,6 +94,12 @@ export default async function SwapRequestsAdminPage({
           email: true,
         },
       },
+      swapWindow: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
     orderBy: [
       { status: 'asc' }, // pending first
@@ -115,6 +121,8 @@ export default async function SwapRequestsAdminPage({
     processedAt: req.processedAt?.toISOString() || null,
     processedBy: req.processor?.name || null,
     rejectionReason: req.rejectionReason,
+    swapWindowId: req.swapWindowId,
+    swapWindowName: req.swapWindow?.name || null,
     players: req.players.map(p => ({
       id: p.id,
       playerId: p.playerId,

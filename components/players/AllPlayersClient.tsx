@@ -126,7 +126,7 @@ function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-20 mt-2 w-full rounded-xl bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus:outline-none overflow-hidden">
+        <div className="absolute z-50 mt-2 w-full rounded-xl bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus:outline-none overflow-hidden">
           {/* Search Input */}
           {enableSearch && (
             <div className="p-2 border-b border-white/10">
@@ -1111,7 +1111,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       <div className="absolute top-80 right-20 w-80 h-80 bg-[#E8A800]/[0.02] rounded-full blur-3xl pointer-events-none" />
 
       {/* Filters */}
-      <div className="rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/10 p-4 sm:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+      <div className="relative z-30 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/10 p-4 sm:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
@@ -1191,7 +1191,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       </div>
 
       {/* Results count */}
-      <div className="flex items-center justify-between text-xs sm:text-sm text-[#D4CCBB] font-medium bg-white/[0.01] border border-white/5 rounded-xl p-3 sm:px-4 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center justify-between text-xs sm:text-sm text-[#D4CCBB] font-medium bg-white/[0.01] border border-white/5 rounded-xl p-3 sm:px-4 backdrop-blur-sm">
         <span>
           {loading
             ? 'Loading...'
@@ -1237,7 +1237,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       )}
 
       {/* Players Grid */}
-      <div className={`transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`relative z-0 transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
         {!loading && players.length === 0 && !error ? (
           <div className="rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/10 p-8 sm:p-12 text-center backdrop-blur-md">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4 shadow-[0_0_20px_rgba(232,168,0,0.1)]">

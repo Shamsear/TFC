@@ -126,7 +126,7 @@ function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full rounded-xl bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus:outline-none overflow-hidden">
+        <div className="absolute z-1000 mt-2 w-full rounded-xl bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus:outline-none overflow-hidden">
           {/* Search Input */}
           {enableSearch && (
             <div className="p-2 border-b border-white/10">

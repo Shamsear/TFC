@@ -80,6 +80,27 @@ export default function TournamentStats({
   const activeRoundLimit = externalRoundLimit !== undefined ? externalRoundLimit : internalRoundLimit
   const setActiveRoundLimit = externalSetRoundLimit !== undefined ? externalSetRoundLimit : setInternalRoundLimit
   
+  const [activeWeekFilter, setActiveWeekFilter] = useState<string>('All Weeks')
+
+  // Week Filter Options
+  const maxRoundNum = baseRounds.length > 0 ? (() => {
+    const match = baseRounds[baseRounds.length - 1].match(/\d+/)
+    return match ? parseInt(match[0], 10) : 1
+  })() : 0
+
+  const weekOptions = ['All Weeks']
+  if (maxRoundNum > 0) {
+    const totalWeeks = Math.ceil(maxRoundNum / 7)
+    for (let i = 1; i <= totalWeeks; i++) {
+      const start = (i - 1) * 7 + 1
+      const end = i * 7
+      weekOptions.push(`Week ${i} (Round ${start}-${end})`)
+    }
+  }
+
+  const currentFilterLabel = activeWeekFilter !== 'All Weeks' ? activeWeekFilter : activeRoundLimit
+
+  
   // Custom Share Image Settings
   const [imageTeamsLimit, setImageTeamsLimit] = useState<string>('5')
   const [downloading, setDownloading] = useState(false)
@@ -105,15 +126,28 @@ export default function TournamentStats({
     ? teamsData.map(team => {
         const relevantMatches = matches.filter(m => {
           if (m.status !== 'COMPLETED') return false
+
+          const getRoundNum = (name: string) => {
+            const num = name.match(/\d+/)
+            return num ? parseInt(num[0], 10) : 1
+          }
+          const matchRoundNum = getRoundNum(m.round || '')
+
           if (activeRoundLimit !== 'All Matchdays') {
-            const getRoundNum = (name: string) => {
-              const num = name.match(/\d+/)
-              return num ? parseInt(num[0], 10) : 1
-            }
-            const matchRoundNum = getRoundNum(m.round || '')
             const limitRoundNum = getRoundNum(activeRoundLimit)
             if (matchRoundNum > limitRoundNum) return false
           }
+
+          if (activeWeekFilter !== 'All Weeks') {
+            const weekMatch = activeWeekFilter.match(/Week (\d+)/)
+            if (weekMatch) {
+              const weekNum = parseInt(weekMatch[1], 10)
+              const startRound = (weekNum - 1) * 7 + 1
+              const endRound = weekNum * 7
+              if (matchRoundNum < startRound || matchRoundNum > endRound) return false
+            }
+          }
+
           return m.homeTeamId === team.id || m.awayTeamId === team.id
         })
 
@@ -239,7 +273,7 @@ export default function TournamentStats({
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `${(tournamentName || 'Tournament').replace(/\s+/g, '_')}_Stats_${activeTab}_${activeRoundLimit.replace(/\s+/g, '_')}.csv`)
+    link.setAttribute('download', `${(tournamentName || 'Tournament').replace(/\s+/g, '_')}_Stats_${activeTab}_${currentFilterLabel.replace(/\s+/g, '_')}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -321,7 +355,7 @@ export default function TournamentStats({
           <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '20px' }}>
             <div>
               <div style={{ color: activeTabData.accentColor, fontSize: 13, fontWeight: 900, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>
-                {seasonName || 'Season'} · {activeRoundLimit}
+                {seasonName || 'Season'} · {currentFilterLabel}
               </div>
               <div style={{ color: '#FFFFFF', fontSize: 34, fontWeight: 900, letterSpacing: '-0.5px', marginBottom: 4 }}>
                 {tournamentName || 'Tournament Stats'}
@@ -410,11 +444,37 @@ export default function TournamentStats({
               <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Filter Round Limit</label>
               <select
                 value={activeRoundLimit}
-                onChange={(e) => setActiveRoundLimit(e.target.value)}
+                onChange={(e) => {
+                  setActiveRoundLimit(e.target.value)
+                  if (e.target.value !== 'All Matchdays') {
+                    setActiveWeekFilter('All Weeks')
+                  }
+                }}
                 className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
               >
                 {roundOptions.map(r => (
                   <option key={r} value={r} className="bg-[#0a0a0a] text-white">{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Week Filter dropdown */}
+          {weekOptions.length > 1 && (
+            <div className="flex flex-col">
+              <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Filter By Week</label>
+              <select
+                value={activeWeekFilter}
+                onChange={(e) => {
+                  setActiveWeekFilter(e.target.value)
+                  if (e.target.value !== 'All Weeks') {
+                    setActiveRoundLimit('All Matchdays')
+                  }
+                }}
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
+              >
+                {weekOptions.map(w => (
+                  <option key={w} value={w} className="bg-[#0a0a0a] text-white">{w}</option>
                 ))}
               </select>
             </div>
@@ -479,7 +539,7 @@ export default function TournamentStats({
           teams={computedTeams}
           tournamentName={tournamentName || 'Tournament'}
           seasonName={seasonName || 'Season'}
-          roundLabel={activeRoundLimit}
+          roundLabel={currentFilterLabel}
           activeAward={activeTab}
           imageTeamsLimit={imageTeamsLimit}
           matches={matches}

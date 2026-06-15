@@ -158,7 +158,7 @@ export function SwapPoster({
         boxShadow: `inset 0 0 80px rgba(0,0,0,0.9)`
       }}
     >
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" crossOrigin="anonymous" />
       
       {/* Background patterns */}
       <div
@@ -554,7 +554,7 @@ export function ReleasePoster({
         boxShadow: `inset 0 0 80px rgba(0,0,0,0.9)`
       }}
     >
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" crossOrigin="anonymous" />
       
       {/* Background pattern */}
       <div

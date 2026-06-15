@@ -269,7 +269,7 @@ function TeamMatchdayPosterSnapshot({
         padding: 48,
       }}
     >
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" crossOrigin="anonymous" />
       {/* Diagonal Lines Pattern Overlay */}
       <div
         style={{
@@ -658,7 +658,7 @@ function PosterSnapshot({
         overflow: 'hidden',
       }}
     >
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" crossOrigin="anonymous" />
       {/* Diagonal Lines Pattern Overlay */}
       <div
         style={{
@@ -1102,7 +1102,7 @@ function TeamWeeklyPosterSnapshot({
         padding: 48,
       }}
     >
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" crossOrigin="anonymous" />
       {/* Diagonal Lines Pattern Overlay */}
       <div
         style={{

@@ -265,6 +265,7 @@ function Poster({ data }: any) {
       <link
         href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet"
+        crossOrigin="anonymous"
       />
 
       <div
@@ -476,6 +477,7 @@ export default function TeamMatchdayPoster() {
       <link
         href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet"
+        crossOrigin="anonymous"
       />
 
       <div style={{ textAlign: "center", marginBottom: "22px" }}>

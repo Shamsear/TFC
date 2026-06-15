@@ -807,7 +807,7 @@ export default function SwapRequestClient({
               </div>
 
               {/* Styled select container */}
-              <div className="p-[1px] bg-gradient-to-r from-white/[0.08] to-white/[0.02] rounded-xl overflow-hidden">
+              <div className="p-[1px] bg-gradient-to-r from-white/[0.08] to-white/[0.02] rounded-xl">
                 <SearchableSelect
                   value={selectedTargetTeam}
                   options={[

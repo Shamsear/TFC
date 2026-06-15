@@ -21,7 +21,7 @@ async function preloadImages(element: HTMLElement): Promise<void> {
           return
         }
 
-        // Create a new image to preload
+        // Create a new image to preload in browser cache
         const preloadImg = new Image()
         preloadImg.crossOrigin = 'anonymous'
         
@@ -36,21 +36,16 @@ async function preloadImages(element: HTMLElement): Promise<void> {
 
         preloadImg.onload = () => {
           cleanup()
-          // Update the original image src to trigger reload
-          const originalSrc = img.src
-          img.src = ''
-          img.src = originalSrc
-          // Wait a bit for the DOM to update
-          setTimeout(resolve, 50)
+          resolve()
         }
 
         preloadImg.onerror = () => {
           cleanup()
-          console.warn('Failed to preload image:', img.src)
+          console.warn('Failed to preload image in cache:', img.src)
           resolve()
         }
 
-        // Timeout
+        // Timeout after 10s
         setTimeout(() => {
           cleanup()
           resolve()
@@ -65,7 +60,7 @@ async function preloadImages(element: HTMLElement): Promise<void> {
 
 /**
  * Wait for all images within an element to load
- * Enhanced for mobile compatibility
+ * Enhanced for mobile compatibility and includes self-healing retry logic
  */
 async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
   const images = Array.from(element.querySelectorAll('img'))
@@ -76,7 +71,7 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
 
   const imagePromises = images.map((img) => {
     return new Promise<void>((resolve) => {
-      // If image is already loaded and has valid dimensions
+      // If image is already loaded and has valid dimensions, resolve immediately
       if (img.complete && img.naturalHeight > 0 && img.naturalWidth > 0) {
         resolve()
         return
@@ -86,6 +81,53 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
       if (!img.src || img.src === '') {
         resolve()
         return
+      }
+
+      // Self-healing recovery: if image completed in error state (e.g. failed load/CORS cache poisoning)
+      // trigger a fresh download by adding a retry parameter
+      if (img.complete && img.naturalHeight === 0) {
+        const currentSrc = img.src
+        if (currentSrc && !currentSrc.startsWith('data:') && !currentSrc.startsWith('/')) {
+          try {
+            const url = new URL(currentSrc)
+            url.searchParams.set('retry', Date.now().toString())
+            
+            let resolved = false
+            const onLoad = () => {
+              if (!resolved) {
+                resolved = true
+                img.removeEventListener('load', onLoad)
+                img.removeEventListener('error', onError)
+                resolve()
+              }
+            }
+            const onError = () => {
+              if (!resolved) {
+                resolved = true
+                img.removeEventListener('load', onLoad)
+                img.removeEventListener('error', onError)
+                console.warn('Image failed to load after recovery attempt:', img.src)
+                resolve()
+              }
+            }
+
+            img.addEventListener('load', onLoad)
+            img.addEventListener('error', onError)
+            img.src = url.toString()
+
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true
+                img.removeEventListener('load', onLoad)
+                img.removeEventListener('error', onError)
+                resolve()
+              }
+            }, 5000) // 5s timeout for self-healing
+            return
+          } catch (e) {
+            console.warn('Failed to parse image URL for recovery:', currentSrc, e)
+          }
+        }
       }
 
       let resolved = false
@@ -99,13 +141,7 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
 
       const onLoad = () => {
         cleanup()
-        // Extra check to ensure image actually loaded
-        if (img.naturalHeight > 0 && img.naturalWidth > 0) {
-          resolve()
-        } else {
-          // If dimensions are still 0, wait a bit more
-          setTimeout(resolve, 100)
-        }
+        resolve()
       }
 
       const onError = () => {
@@ -117,21 +153,20 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
       img.addEventListener('load', onLoad)
       img.addEventListener('error', onError)
 
-      // Timeout after 20 seconds (increased for mobile)
+      // Double-check if the image loaded immediately after listener attachment
+      if (img.complete) {
+        if (img.naturalHeight > 0 && img.naturalWidth > 0) {
+          onLoad()
+        } else {
+          onError()
+        }
+      }
+
+      // Timeout after 15 seconds
       setTimeout(() => {
         cleanup()
-        console.warn('Image load timeout:', img.src)
         resolve()
-      }, 20000)
-
-      // Force reload if image is in error state
-      if (img.complete && img.naturalHeight === 0) {
-        const currentSrc = img.src
-        img.src = ''
-        setTimeout(() => {
-          img.src = currentSrc
-        }, 10)
-      }
+      }, 15000)
     })
   })
 
@@ -194,6 +229,28 @@ export async function captureTableAsPng(
   element: HTMLElement,
   options?: { width?: number; backgroundColor?: string }
 ): Promise<string> {
+  // Dynamically ensure CORS attributes and cache-busting parameters on all images inside the capture target
+  const images = Array.from(element.querySelectorAll('img'))
+  images.forEach((img) => {
+    // 1. Force crossOrigin attribute
+    if (img.getAttribute('crossorigin') !== 'anonymous') {
+      img.setAttribute('crossorigin', 'anonymous')
+      img.crossOrigin = 'anonymous'
+    }
+    
+    // 2. Ensure cache-buster query parameter is present for non-data, non-local URLs to bypass cache poisoning
+    const src = img.src
+    if (src && !src.startsWith('data:') && !src.startsWith('/') && !src.includes('cb=')) {
+      try {
+        const url = new URL(src)
+        url.searchParams.set('cb', 'tfc-poster')
+        img.src = url.toString()
+      } catch (e) {
+        console.warn('Failed to apply cache buster to URL:', src, e)
+      }
+    }
+  })
+
   // First preload all images
   await preloadImages(element)
   
@@ -206,7 +263,6 @@ export async function captureTableAsPng(
   }
   
   // Longer delay to ensure fonts and all styles are fully rendered
-  // Extra time for mobile devices and to ensure font rendering is complete
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const delay = isMobile ? 1500 : 800
   await new Promise(resolve => setTimeout(resolve, delay))
@@ -215,6 +271,21 @@ export async function captureTableAsPng(
   const restoreStyleSheets = makeStyleSheetsSafe()
   
   try {
+    // WORKAROUND (Call Twice): Running html-to-image toPng twice ensures the browser finishes loading,
+    // decoding, and layout-binding of all custom fonts, SVG layers, and CORS images in the DOM.
+    await toPng(element, {
+      cacheBust: true,
+      width: options?.width ?? 1200,
+      backgroundColor: options?.backgroundColor ?? '#0a0a0a',
+      quality: 1,
+      pixelRatio: 2,
+      skipFonts: false,
+    })
+
+    // Brief delay to let render contexts settle
+    await new Promise((resolve) => setTimeout(resolve, 150))
+
+    // Second call to retrieve the fully rendered image
     return await toPng(element, {
       cacheBust: true,
       width: options?.width ?? 1200,

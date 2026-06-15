@@ -297,7 +297,6 @@ function TeamMatchdayPosterSnapshot({
           height: 320,
           borderRadius: '50%',
           background: `radial-gradient(circle, ${glowColor}, transparent 70%)`,
-          filter: 'blur(40px)',
           pointerEvents: 'none',
         }}
       />
@@ -393,7 +392,8 @@ function TeamMatchdayPosterSnapshot({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              filter: `drop-shadow(0 12px 32px ${glowColor})`,
+              // Use a premium radial back-glow instead of drop-shadow to prevent canvas color bleeding
+              background: `radial-gradient(circle, ${glowColor.replace('0.35', '0.25')} 0%, transparent 70%)`,
             }}
           >
             {team.logoUrl ? (
@@ -509,7 +509,8 @@ function TeamMatchdayPosterSnapshot({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        filter: `drop-shadow(0 4px 12px ${theme.glow})`,
+                        // Use a premium radial back-glow instead of drop-shadow to prevent canvas color bleeding
+                        background: `radial-gradient(circle, ${theme.glow}40 0%, transparent 70%)`,
                       }}
                     >
                       <img
@@ -686,7 +687,6 @@ function PosterSnapshot({
           height: 320,
           borderRadius: '50%',
           background: `radial-gradient(circle, ${glowColor}, transparent 70%)`,
-          filter: 'blur(40px)',
           pointerEvents: 'none',
         }}
       />
@@ -699,7 +699,6 @@ function PosterSnapshot({
           height: 240,
           borderRadius: '50%',
           background: `radial-gradient(circle, ${glowColorLight}, transparent 70%)`,
-          filter: 'blur(30px)',
           pointerEvents: 'none',
         }}
       />
@@ -1130,7 +1129,6 @@ function TeamWeeklyPosterSnapshot({
           height: 320,
           borderRadius: '50%',
           background: `radial-gradient(circle, ${glowColor}, transparent 70%)`,
-          filter: 'blur(40px)',
           pointerEvents: 'none',
         }}
       />
@@ -1226,7 +1224,8 @@ function TeamWeeklyPosterSnapshot({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              filter: `drop-shadow(0 12px 32px ${glowColor})`,
+              // Use a premium radial back-glow instead of drop-shadow to prevent canvas color bleeding
+              background: `radial-gradient(circle, ${glowColor.replace('0.35', '0.25')} 0%, transparent 70%)`,
             }}
           >
             {team.logoUrl ? (

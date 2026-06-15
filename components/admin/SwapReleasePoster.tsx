@@ -7,7 +7,13 @@ import { captureTableAsPng, shareOrDownloadPng } from '@/lib/share-table'
 /* ────────────────────────── Player Image Wrapper ────────────────────────── */
 
 function PlayerImageWithFallback({ playerPhotoId, playerName }: { playerPhotoId: string; playerName: string }) {
-  const [imgSrc, setImgSrc] = useState(getPlayerCardById(playerPhotoId))
+  // Add a cache buster query parameter specifically for the poster to bypass poisoned CORS browser cache
+  const getBustedUrl = (url: string) => {
+    if (!url || url.startsWith('data:') || url.startsWith('/')) return url;
+    return `${url}?cb=tfc-poster`;
+  }
+
+  const [imgSrc, setImgSrc] = useState(() => getBustedUrl(getPlayerCardById(playerPhotoId)))
   const [hasFailedOnce, setHasFailedOnce] = useState(false)
   const [hasFailedTwice, setHasFailedTwice] = useState(false)
 
@@ -25,7 +31,7 @@ function PlayerImageWithFallback({ playerPhotoId, playerName }: { playerPhotoId:
       onError={() => {
         if (!hasFailedOnce) {
           setHasFailedOnce(true)
-          setImgSrc(getPlayerPhotoUrl(`${playerPhotoId}.webp`))
+          setImgSrc(getBustedUrl(getPlayerPhotoUrl(`${playerPhotoId}.webp`)))
         } else if (!hasFailedTwice) {
           setHasFailedTwice(true)
           setImgSrc('/default-player-card.png')
@@ -61,7 +67,8 @@ function RenderPlayerCards({
               zIndex: idx + 1,
               width: 200,
               height: 266,
-              filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.65))',
+              borderRadius: 14,
+              boxShadow: '0 15px 25px rgba(0,0,0,0.65)',
               transition: 'all 0.3s ease',
             }}
           >
@@ -95,28 +102,10 @@ function RenderPlayerCards({
   )
 }
 
-/* ───────────────────────────── Swap Poster ──────────────────────────────── */
-
-export interface SwapPosterProps {
-  requestingTeamName: string
-  requestingTeamLogo?: string | null
-  targetTeamName: string
-  targetTeamLogo?: string | null
-  players: Array<{
-    id: string
-    playerId: string
-    playerName: string
-    playerPhotoId: string
-    fromTeamId: string
-    toTeamId: string
-    playerValue: number
-  }>
-  requestingTeamId: string
-  targetTeamId: string
-  status: string
-  seasonName: string
-  swapWindowName?: string | null
-  submittedAt?: string
+// Helper to add a cache buster query parameter specifically for the poster to bypass poisoned CORS browser cache
+const getBustedUrl = (url: string | null | undefined) => {
+  if (!url || url.startsWith('data:') || url.startsWith('/')) return url;
+  return `${url}?cb=tfc-poster`;
 }
 
 export function SwapPoster({
@@ -154,7 +143,6 @@ export function SwapPoster({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        border: `4px solid ${accentColor}30`,
         boxShadow: `inset 0 0 80px rgba(0,0,0,0.9)`
       }}
     >
@@ -187,7 +175,7 @@ export function SwapPoster({
           }}
         >
           <img
-            src={requestingTeamLogo}
+            src={getBustedUrl(requestingTeamLogo)}
             alt=""
             crossOrigin="anonymous"
             style={{
@@ -214,7 +202,7 @@ export function SwapPoster({
           }}
         >
           <img
-            src={targetTeamLogo}
+            src={getBustedUrl(targetTeamLogo)}
             alt=""
             crossOrigin="anonymous"
             style={{
@@ -227,30 +215,28 @@ export function SwapPoster({
         </div>
       )}
 
-      {/* Decorative Glow Orbs - Dynamic with Deal Status Accent Color */}
+      {/* Decorative Glow Orbs - Dynamic with Deal Status Accent Color (No CSS blur filters to prevent color bleeding canvas artifacts) */}
       <div
         style={{
           position: 'absolute',
-          top: '20%',
-          left: '-10%',
-          width: 450,
-          height: 450,
+          top: '10%',
+          left: '-20%',
+          width: 600,
+          height: 600,
           borderRadius: '50%',
-          background: `radial-gradient(circle, ${accentColor}15 0%, transparent 70%)`,
-          filter: 'blur(60px)',
+          background: `radial-gradient(circle, ${accentColor}15 0%, ${accentColor}05 45%, transparent 70%)`,
           pointerEvents: 'none',
         }}
       />
       <div
         style={{
           position: 'absolute',
-          bottom: '20%',
-          right: '-10%',
-          width: 450,
-          height: 450,
+          bottom: '10%',
+          right: '-20%',
+          width: 600,
+          height: 600,
           borderRadius: '50%',
-          background: `radial-gradient(circle, ${accentColor}15 0%, transparent 70%)`,
-          filter: 'blur(60px)',
+          background: `radial-gradient(circle, ${accentColor}15 0%, ${accentColor}05 45%, transparent 70%)`,
           pointerEvents: 'none',
         }}
       />
@@ -321,7 +307,7 @@ export function SwapPoster({
               backdropFilter: 'blur(8px)'
             }}>
               {requestingTeamLogo && (
-                <img src={requestingTeamLogo} alt="" crossOrigin="anonymous" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                <img src={getBustedUrl(requestingTeamLogo)} alt="" crossOrigin="anonymous" style={{ width: 32, height: 32, objectFit: 'contain' }} />
               )}
               <div style={{
                 fontFamily: '"Outfit", sans-serif',
@@ -424,7 +410,7 @@ export function SwapPoster({
               backdropFilter: 'blur(8px)'
             }}>
               {targetTeamLogo && (
-                <img src={targetTeamLogo} alt="" crossOrigin="anonymous" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                <img src={getBustedUrl(targetTeamLogo)} alt="" crossOrigin="anonymous" style={{ width: 32, height: 32, objectFit: 'contain' }} />
               )}
               <div style={{
                 fontFamily: '"Outfit", sans-serif',
@@ -550,7 +536,6 @@ export function ReleasePoster({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        border: `4px solid ${accentColor}30`,
         boxShadow: `inset 0 0 80px rgba(0,0,0,0.9)`
       }}
     >
@@ -567,18 +552,17 @@ export function ReleasePoster({
         }}
       />
 
-      {/* Decorative Glow Orb */}
+      {/* Decorative Glow Orb - Native Gradient (No CSS blur filter to avoid canvas rendering artifacts) */}
       <div
         style={{
           position: 'absolute',
-          top: '55%',
+          top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 450,
-          height: 450,
+          width: 600,
+          height: 600,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(239, 68, 68, 0.09) 0%, transparent 70%)',
-          filter: 'blur(50px)',
+          background: `radial-gradient(circle, ${accentColor}15 0%, ${accentColor}05 45%, transparent 70%)`,
           pointerEvents: 'none',
         }}
       />
@@ -643,7 +627,8 @@ export function ReleasePoster({
             style={{
               width: 250,
               height: 333,
-              filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.8))',
+              borderRadius: 14,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
               position: 'relative'
             }}
           >
@@ -677,7 +662,7 @@ export function ReleasePoster({
           {/* Team Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '1.5px solid rgba(255,255,255,0.08)' }}>
             {teamLogo && (
-              <img src={teamLogo} alt="" crossOrigin="anonymous" style={{ width: 44, height: 44, objectFit: 'contain' }} />
+              <img src={getBustedUrl(teamLogo)} alt="" crossOrigin="anonymous" style={{ width: 44, height: 44, objectFit: 'contain' }} />
             )}
             <div>
               <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>RELEASING CLUB</span>

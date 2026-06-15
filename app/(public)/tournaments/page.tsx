@@ -25,30 +25,30 @@ async function getTournamentsData() {
       orderBy: { startDate: 'desc' }
     })
 
-    // Get match statistics for each tournament
-    const tournamentsWithStats = await Promise.all(
-      tournaments.map(async (tournament) => {
-        const completedMatches = await prisma.matches.count({
-          where: {
-            tournamentId: tournament.id,
-            status: 'COMPLETED'
-          }
-        })
-
-        const liveMatches = await prisma.matches.count({
-          where: {
-            tournamentId: tournament.id,
-            status: 'LIVE'
-          }
-        })
-
-        return {
-          ...tournament,
-          completedMatches,
-          liveMatches
-        }
+    // Get match statistics for all tournaments
+    const [completedMatches, liveMatches] = await Promise.all([
+      prisma.matches.groupBy({
+        by: ['tournamentId'],
+        where: { status: 'COMPLETED' },
+        _count: { _all: true }
+      }),
+      prisma.matches.groupBy({
+        by: ['tournamentId'],
+        where: { status: 'LIVE' },
+        _count: { _all: true }
       })
-    )
+    ])
+
+    const completedMap = new Map(completedMatches.map(m => [m.tournamentId, m._count._all]))
+    const liveMap = new Map(liveMatches.map(m => [m.tournamentId, m._count._all]))
+
+    const tournamentsWithStats = tournaments.map(tournament => {
+      return {
+        ...tournament,
+        completedMatches: completedMap.get(tournament.id) || 0,
+        liveMatches: liveMap.get(tournament.id) || 0
+      }
+    })
 
     // Calculate overall stats
     const totalMatches = tournaments.reduce((sum, t) => sum + t._count.matches, 0)

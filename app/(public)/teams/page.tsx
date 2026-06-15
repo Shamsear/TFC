@@ -26,120 +26,145 @@ async function getTeamsData() {
       orderBy: { name: 'asc' }
     })
 
+    // --- 1. Fetch bulk overall team statistics ---
+    const [
+      overallPlayerCounts,
+      overallSpentData,
+      overallHomeWins,
+      overallAwayWins
+    ] = await Promise.all([
+      prisma.transfer_history.groupBy({
+        by: ['teamId'],
+        where: { status: 'ACTIVE' },
+        _count: { _all: true }
+      }),
+      prisma.transfer_history.groupBy({
+        by: ['teamId'],
+        where: { status: 'ACTIVE' },
+        _sum: { soldPrice: true }
+      }),
+      prisma.$queryRaw<Array<{ teamId: string; count: bigint }>>`
+        SELECT st."teamId", COUNT(*)::bigint as count
+        FROM matches m
+        INNER JOIN season_teams st ON m."homeTeamId" = st.id
+        WHERE m.status = 'COMPLETED' AND m."homeScore" > m."awayScore"
+        GROUP BY st."teamId"
+      `,
+      prisma.$queryRaw<Array<{ teamId: string; count: bigint }>>`
+        SELECT st."teamId", COUNT(*)::bigint as count
+        FROM matches m
+        INNER JOIN season_teams st ON m."awayTeamId" = st.id
+        WHERE m.status = 'COMPLETED' AND m."awayScore" > m."homeScore"
+        GROUP BY st."teamId"
+      `
+    ])
+
+    const overallCountMap = new Map(overallPlayerCounts.map(pc => [pc.teamId, pc._count._all]))
+    const overallSpentMap = new Map(overallSpentData.map(sd => [sd.teamId, sd._sum.soldPrice || 0]))
+    const overallHomeWinsMap = new Map(overallHomeWins.map(hw => [hw.teamId, Number(hw.count)]))
+    const overallAwayWinsMap = new Map(overallAwayWins.map(aw => [aw.teamId, Number(aw.count)]))
+
     // Calculate overall stats for each team
-    const overallTeams = await Promise.all(
-      allTeams.map(async (team) => {
-        const totalPlayers = await prisma.transfer_history.count({
-          where: { teamId: team.id, status: 'ACTIVE' }
-        })
+    const overallTeams = allTeams.map((team) => {
+      const activeSeasonTeam = team.seasonTeams.find(st => st.season.isActive)
+      return {
+        id: team.id,
+        name: team.name,
+        managerName: team.managerName,
+        logoUrl: team.logoUrl,
+        totalPlayers: overallCountMap.get(team.id) || 0,
+        totalSpent: overallSpentMap.get(team.id) || 0,
+        totalWins: (overallHomeWinsMap.get(team.id) || 0) + (overallAwayWinsMap.get(team.id) || 0),
+        currentBudget: activeSeasonTeam?.currentBudget || 0,
+        seasonsCount: team.seasonTeams.length
+      }
+    })
 
-        const spentData = await prisma.transfer_history.aggregate({
-          where: { teamId: team.id, status: 'ACTIVE' },
-          _sum: { soldPrice: true }
-        })
-
-        const homeWins = await prisma.matches.count({
-          where: {
-            homeTeam: { teamId: team.id },
-            status: 'COMPLETED',
-            homeScore: { gt: prisma.matches.fields.awayScore }
-          }
-        })
-
-        const awayWins = await prisma.matches.count({
-          where: {
-            awayTeam: { teamId: team.id },
-            status: 'COMPLETED',
-            awayScore: { gt: prisma.matches.fields.homeScore }
-          }
-        })
-
-        const activeSeasonTeam = team.seasonTeams.find(st => st.season.isActive)
-
-        return {
-          id: team.id,
-          name: team.name,
-          managerName: team.managerName,
-          logoUrl: team.logoUrl,
-          totalPlayers,
-          totalSpent: spentData._sum.soldPrice || 0,
-          totalWins: homeWins + awayWins,
-          currentBudget: activeSeasonTeam?.currentBudget || 0,
-          seasonsCount: team.seasonTeams.length
-        }
+    // --- 2. Fetch bulk season-specific statistics ---
+    const [
+      allSeasonPlayerCounts,
+      allSeasonSpentData,
+      allSeasonHomeWins,
+      allSeasonAwayWins,
+      allTotalPlayersBySeason,
+      allTotalSpentBySeason
+    ] = await Promise.all([
+      prisma.transfer_history.groupBy({
+        by: ['seasonId', 'teamId'],
+        where: { status: 'ACTIVE' },
+        _count: { _all: true }
+      }),
+      prisma.transfer_history.groupBy({
+        by: ['seasonId', 'teamId'],
+        where: { status: 'ACTIVE' },
+        _sum: { soldPrice: true }
+      }),
+      prisma.$queryRaw<Array<{ homeTeamId: string; count: bigint }>>`
+        SELECT "homeTeamId", COUNT(*)::bigint as count
+        FROM matches
+        WHERE status = 'COMPLETED' AND "homeScore" > "awayScore"
+        GROUP BY "homeTeamId"
+      `,
+      prisma.$queryRaw<Array<{ awayTeamId: string; count: bigint }>>`
+        SELECT "awayTeamId", COUNT(*)::bigint as count
+        FROM matches
+        WHERE status = 'COMPLETED' AND "awayScore" > "homeScore"
+        GROUP BY "awayTeamId"
+      `,
+      prisma.transfer_history.groupBy({
+        by: ['seasonId'],
+        where: { status: 'ACTIVE' },
+        _count: { _all: true }
+      }),
+      prisma.transfer_history.groupBy({
+        by: ['seasonId'],
+        where: { status: 'ACTIVE' },
+        _sum: { soldPrice: true }
       })
-    )
+    ])
 
-    // Calculate season-specific stats
+    const seasonCountMap = new Map(allSeasonPlayerCounts.map(pc => [`${pc.seasonId}-${pc.teamId}`, pc._count._all]))
+    const seasonSpentMap = new Map(allSeasonSpentData.map(sd => [`${sd.seasonId}-${sd.teamId}`, sd._sum.soldPrice || 0]))
+    const seasonHomeWinsMap = new Map(allSeasonHomeWins.map(hw => [hw.homeTeamId, Number(hw.count)]))
+    const seasonAwayWinsMap = new Map(allSeasonAwayWins.map(aw => [aw.awayTeamId, Number(aw.count)]))
+    const totalPlayersSeasonMap = new Map(allTotalPlayersBySeason.map(pc => [pc.seasonId, pc._count._all]))
+    const totalSpentSeasonMap = new Map(allTotalSpentBySeason.map(sd => [sd.seasonId, sd._sum.soldPrice || 0]))
+
+    // Get all season teams
+    const allSeasonTeams = await prisma.season_teams.findMany({
+      include: { team: true }
+    })
+
     const seasonTeams: Record<string, any[]> = {}
     const seasonStats: Record<string, any> = {}
 
     for (const season of seasons) {
-      const seasonTeamData = await prisma.season_teams.findMany({
-        where: { seasonId: season.id },
-        include: { team: true }
+      const seasonTeamData = allSeasonTeams.filter(st => st.seasonId === season.id)
+      
+      const teamsWithStats = seasonTeamData.map((st) => {
+        return {
+          id: st.team.id,
+          name: st.team.name,
+          managerName: st.team.managerName,
+          logoUrl: st.team.logoUrl,
+          seasonPlayers: seasonCountMap.get(`${season.id}-${st.teamId}`) || 0,
+          seasonSpent: seasonSpentMap.get(`${season.id}-${st.teamId}`) || 0,
+          seasonWins: (seasonHomeWinsMap.get(st.id) || 0) + (seasonAwayWinsMap.get(st.id) || 0),
+          seasonBudget: st.currentBudget,
+          totalPlayers: 0,
+          totalSpent: 0,
+          totalWins: 0,
+          currentBudget: 0,
+          seasonsCount: 0
+        }
       })
-
-      const teamsWithStats = await Promise.all(
-        seasonTeamData.map(async (st) => {
-          const playerCount = await prisma.transfer_history.count({
-            where: { seasonId: season.id, teamId: st.teamId, status: 'ACTIVE' }
-          })
-
-          const spentData = await prisma.transfer_history.aggregate({
-            where: { seasonId: season.id, teamId: st.teamId, status: 'ACTIVE' },
-            _sum: { soldPrice: true }
-          })
-
-          const homeWins = await prisma.matches.count({
-            where: {
-              homeTeamId: st.id,
-              status: 'COMPLETED',
-              homeScore: { gt: prisma.matches.fields.awayScore }
-            }
-          })
-
-          const awayWins = await prisma.matches.count({
-            where: {
-              awayTeamId: st.id,
-              status: 'COMPLETED',
-              awayScore: { gt: prisma.matches.fields.homeScore }
-            }
-          })
-
-          return {
-            id: st.team.id,
-            name: st.team.name,
-            managerName: st.team.managerName,
-            logoUrl: st.team.logoUrl,
-            seasonPlayers: playerCount,
-            seasonSpent: spentData._sum.soldPrice || 0,
-            seasonWins: homeWins + awayWins,
-            seasonBudget: st.currentBudget,
-            totalPlayers: 0,
-            totalSpent: 0,
-            totalWins: 0,
-            currentBudget: 0,
-            seasonsCount: 0
-          }
-        })
-      )
-
+      
       seasonTeams[season.id] = teamsWithStats
-
-      const totalPlayers = await prisma.transfer_history.count({
-        where: { seasonId: season.id, status: 'ACTIVE' }
-      })
-
-      const totalSpentData = await prisma.transfer_history.aggregate({
-        where: { seasonId: season.id, status: 'ACTIVE' },
-        _sum: { soldPrice: true }
-      })
 
       seasonStats[season.id] = {
         totalTeams: teamsWithStats.length,
-        totalPlayers,
-        totalSpent: totalSpentData._sum.soldPrice || 0
+        totalPlayers: totalPlayersSeasonMap.get(season.id) || 0,
+        totalSpent: totalSpentSeasonMap.get(season.id) || 0
       }
     }
 

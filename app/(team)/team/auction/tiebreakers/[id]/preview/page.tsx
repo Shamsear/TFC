@@ -76,25 +76,27 @@ export default async function TiebreakerPreviewPage({
   }
 
   // Get team names for all tied teams
-  const tiedTeamsWithNames = await Promise.all(
-    allTiedTeams.map(async (bid) => {
-      const team = await prisma.teams.findUnique({
-        where: { id: bid.teamId },
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true
-        }
-      })
-      return {
-        teamId: bid.teamId,
-        teamName: team?.name || 'Unknown Team',
-        teamLogo: team?.logoUrl || null,
-        oldBidAmount: bid.oldBidAmount,
-        isCurrentTeam: bid.teamId === teamId
-      }
-    })
-  )
+  const tiedTeamIds = allTiedTeams.map(b => b.teamId)
+  const teamsData = await prisma.teams.findMany({
+    where: { id: { in: tiedTeamIds } },
+    select: {
+      id: true,
+      name: true,
+      logoUrl: true
+    }
+  })
+  const teamMap = new Map(teamsData.map(t => [t.id, t]))
+
+  const tiedTeamsWithNames = allTiedTeams.map((bid) => {
+    const team = teamMap.get(bid.teamId)
+    return {
+      teamId: bid.teamId,
+      teamName: team?.name || 'Unknown Team',
+      teamLogo: team?.logoUrl || null,
+      oldBidAmount: bid.oldBidAmount,
+      isCurrentTeam: bid.teamId === teamId
+    }
+  })
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 sm:pt-24 md:pt-28">

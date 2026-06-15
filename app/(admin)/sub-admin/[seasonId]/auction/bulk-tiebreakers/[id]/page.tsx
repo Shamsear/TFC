@@ -91,18 +91,20 @@ export default async function BulkTiebreakerMonitorPage({ params }: BulkTiebreak
   })
 
   // Get squad sizes (count of ACTIVE transfers only)
-  const squadSizes = await Promise.all(
-    teamIds.map(async (teamId) => {
-      const count = await prisma.transfer_history.count({
-        where: {
-          seasonId: seasonId,
-          teamId: teamId,
-          status: 'ACTIVE'
-        }
-      })
-      return { teamId, squadSize: count }
-    })
-  )
+  const squadSizesData = await prisma.transfer_history.groupBy({
+    by: ['teamId'],
+    where: {
+      seasonId: seasonId,
+      teamId: { in: teamIds },
+      status: 'ACTIVE'
+    },
+    _count: { _all: true }
+  })
+  
+  const squadSizes = squadSizesData.map(s => ({
+    teamId: s.teamId,
+    squadSize: s._count._all
+  }))
 
   // Merge budget and squad size data into participants
   const participantsWithData = tiebreaker.participants.map(p => ({

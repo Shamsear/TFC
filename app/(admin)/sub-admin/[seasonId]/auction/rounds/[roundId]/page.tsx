@@ -84,23 +84,16 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
   })
 
   // Get squad sizes for all teams (only ACTIVE players)
-  const teamSquadSizes = await Promise.all(
-    seasonTeams.map(async (st) => {
-      const squadSize = await prisma.transfer_history.count({
-        where: {
-          teamId: st.team.id,
-          seasonId,
-          status: 'ACTIVE'
-        }
-      })
-      return {
-        teamId: st.team.id,
-        squadSize
-      }
-    })
-  )
-
-  const squadSizeMap = new Map(teamSquadSizes.map(s => [s.teamId, s.squadSize]))
+  const teamSquadSizesData = await prisma.transfer_history.groupBy({
+    by: ['teamId'],
+    where: {
+      seasonId,
+      status: 'ACTIVE'
+    },
+    _count: { _all: true }
+  })
+  
+  const squadSizeMap = new Map(teamSquadSizesData.map(s => [s.teamId, s._count._all]))
 
   // Fetch auction results (transfer history) for completed rounds
   let auctionResults = null

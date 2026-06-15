@@ -151,20 +151,24 @@ export default function SwapRequestsAdminClient({
     const requestingPlayers = request.players.filter(p => p.fromTeamId === request.requestingTeamId)
     const targetPlayers = request.players.filter(p => p.fromTeamId === request.targetTeamId)
     
-    const requestingPlayersList = requestingPlayers.map(p => `- ${p.playerName} (£${(p.playerValue).toLocaleString()})`).join('\n')
-    const targetPlayersList = targetPlayers.map(p => `- ${p.playerName} (£${(p.playerValue).toLocaleString()})`).join('\n')
+    const requestingAcquires = targetPlayers.map(p => `• *${p.playerName}* (£${p.playerValue.toLocaleString()})`).join('\n')
+    const targetAcquires = requestingPlayers.map(p => `• *${p.playerName}* (£${p.playerValue.toLocaleString()})`).join('\n')
     
-    return `✅ *Swap Approved*
-    
-*${request.requestingTeamName}* gives:
-${requestingPlayersList}
+    return `🚨 *BREAKING DEAL: SWAP AGREEMENT CONFIRMED!* 🚨
 
-*${request.targetTeamName}* gives:
-${targetPlayersList}
+A major player swap has been finalized between *${request.requestingTeamName}* and *${request.targetTeamName}*!
 
-*Type:* ${swapType}-for-${swapType} swap
+🤝 *Here is how the exchange shakes out:*
 
-_Swap processed by admin_`
+🟢 *${request.requestingTeamName}* acquires:
+${requestingAcquires || '_None_'}
+
+🟢 *${request.targetTeamName}* acquires:
+${targetAcquires || '_None_'}
+
+📊 *Trade Snapshot:*
+• *Swap Format:* ${swapType}-for-${swapType} Exchange
+• *Status:* APPROVED & ROSTERS UPDATED`
   }
 
   const copyToWhatsApp = () => {

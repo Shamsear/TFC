@@ -1,0 +1,1057 @@
+[
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\page.tsx",
+    "line": 111,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\achievements\\page.tsx",
+    "line": 36,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\all-players\\page.tsx",
+    "line": 26,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\all-players\\page.tsx",
+    "line": 31,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\all-teams\\[teamId]\\page.tsx",
+    "line": 65,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\all-teams\\[teamId]\\page.tsx",
+    "line": 97,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\all-teams\\[teamId]\\page.tsx",
+    "line": 120,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\bulk-tiebreakers\\page.tsx",
+    "line": 33,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\bulk-tiebreakers\\[id]\\page.tsx",
+    "line": 82,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\create\\page.tsx",
+    "line": 35,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\create\\page.tsx",
+    "line": 76,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\create\\page.tsx",
+    "line": 102,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\page.tsx",
+    "line": 34,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\page.tsx",
+    "line": 60,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\bids\\page.tsx",
+    "line": 46,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\bids\\page.tsx",
+    "line": 66,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\bids\\page.tsx",
+    "line": 101,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\bids\\page.tsx",
+    "line": 151,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 73,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 106,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 135,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 169,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 207,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 211,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 304,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 314,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 349,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 353,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 429,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 449,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 453,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 508,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 548,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 578,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 615,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 635,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\auction\\rounds\\[roundId]\\page.tsx",
+    "line": 639,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\retention\\page.tsx",
+    "line": 80,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\retention\\page.tsx",
+    "line": 132,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\teams\\page.tsx",
+    "line": 35,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\audit-logs\\page.tsx",
+    "line": 30,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\news-manager\\page.tsx",
+    "line": 21,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\news-manager\\page.tsx",
+    "line": 50,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\player-management\\page.tsx",
+    "line": 29,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\player-replacement\\page.tsx",
+    "line": 30,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\release-requests\\page.tsx",
+    "line": 48,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\release-requests\\page.tsx",
+    "line": 88,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\swap-requests\\page.tsx",
+    "line": 48,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\swap-requests\\page.tsx",
+    "line": 140,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tools\\transfer-fix\\page.tsx",
+    "line": 30,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tournaments\\[tournamentId]\\page.tsx",
+    "line": 84,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\tournaments\\[tournamentId]\\page.tsx",
+    "line": 101,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\sub-admin\\[seasonId]\\transfers\\page.tsx",
+    "line": 29,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\historical-data\\page.tsx",
+    "line": 39,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\notifications\\page.tsx",
+    "line": 19,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\notifications\\page.tsx",
+    "line": 36,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\seasons\\page.tsx",
+    "line": 51,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\sub-admins\\page.tsx",
+    "line": 8,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\team-managers\\new\\page.tsx",
+    "line": 23,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\team-managers\\new\\page.tsx",
+    "line": 35,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\team-managers\\page.tsx",
+    "line": 19,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\team-managers\\page.tsx",
+    "line": 32,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\team-managers\\[id]\\edit\\page.tsx",
+    "line": 38,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\team-managers\\[id]\\edit\\page.tsx",
+    "line": 50,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(admin)\\super-admin\\teams\\page.tsx",
+    "line": 38,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\auctions\\page.tsx",
+    "line": 19,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\auctions\\results\\page.tsx",
+    "line": 20,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\auctions\\rounds\\[roundId]\\page.tsx",
+    "line": 32,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\calendar\\page.tsx",
+    "line": 19,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\calendar\\page.tsx",
+    "line": 28,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\players\\page.tsx",
+    "line": 35,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\players\\page.tsx",
+    "line": 40,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\seasons\\page.tsx",
+    "line": 9,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\seasons\\[seasonId]\\teams\\page.tsx",
+    "line": 18,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\teams\\page.tsx",
+    "line": 18,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\teams\\page.tsx",
+    "line": 134,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\teams\\[teamId]\\page.tsx",
+    "line": 72,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\teams\\[teamId]\\page.tsx",
+    "line": 104,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\teams\\[teamId]\\page.tsx",
+    "line": 127,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\teams\\[teamId]\\page.tsx",
+    "line": 233,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\tournaments\\page.tsx",
+    "line": 18,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\tournaments\\[tournamentId]\\page.tsx",
+    "line": 21,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\tournaments\\[tournamentId]\\standings\\page.tsx",
+    "line": 29,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(public)\\tournaments\\[tournamentId]\\teams\\page.tsx",
+    "line": 30,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\bulk-rounds\\[id]\\page.tsx",
+    "line": 93,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\bulk-rounds\\[id]\\results\\page.tsx",
+    "line": 53,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\bulk-rounds\\[id]\\results\\page.tsx",
+    "line": 87,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\bulk-rounds\\[id]\\results\\page.tsx",
+    "line": 100,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\bulk-rounds\\[id]\\results\\page.tsx",
+    "line": 139,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\bulk-rounds\\[id]\\results\\page.tsx",
+    "line": 156,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\bulk-tiebreakers\\[id]\\page.tsx",
+    "line": 85,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\page.tsx",
+    "line": 126,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\page.tsx",
+    "line": 142,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\page.tsx",
+    "line": 157,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\page.tsx",
+    "line": 191,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\page.tsx",
+    "line": 222,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\page.tsx",
+    "line": 254,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\page.tsx",
+    "line": 289,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\rounds\\[id]\\page.tsx",
+    "line": 133,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\rounds\\[id]\\page.tsx",
+    "line": 144,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\rounds\\[id]\\results\\page.tsx",
+    "line": 54,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\rounds\\[id]\\results\\page.tsx",
+    "line": 87,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\rounds\\[id]\\results\\page.tsx",
+    "line": 100,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\rounds\\[id]\\results\\page.tsx",
+    "line": 139,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\rounds\\[id]\\results\\page.tsx",
+    "line": 156,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\tiebreakers\\[id]\\page.tsx",
+    "line": 64,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\tiebreakers\\[id]\\page.tsx",
+    "line": 78,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\tiebreakers\\[id]\\preview\\page.tsx",
+    "line": 56,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction\\tiebreakers\\[id]\\preview\\page.tsx",
+    "line": 80,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction-planner\\page.tsx",
+    "line": 46,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction-planner\\page.tsx",
+    "line": 60,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auction-planner\\page.tsx",
+    "line": 79,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auctions\\page.tsx",
+    "line": 16,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auctions\\page.tsx",
+    "line": 27,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\auctions\\page.tsx",
+    "line": 72,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\calendar\\page.tsx",
+    "line": 15,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\calendar\\page.tsx",
+    "line": 24,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\finances\\page.tsx",
+    "line": 46,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 64,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 146,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 184,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 223,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 246,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 286,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 322,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 348,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\page.tsx",
+    "line": 377,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\players\\page.tsx",
+    "line": 48,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\players\\page.tsx",
+    "line": 53,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\release-request\\page.tsx",
+    "line": 68,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\release-request\\page.tsx",
+    "line": 101,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\retentions\\page.tsx",
+    "line": 29,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\squad\\builder\\page.tsx",
+    "line": 45,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\squad\\page.tsx",
+    "line": 55,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\starred\\page.tsx",
+    "line": 44,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\starred\\page.tsx",
+    "line": 63,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\swap-request\\page.tsx",
+    "line": 68,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\swap-request\\page.tsx",
+    "line": 101,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\swap-request\\page.tsx",
+    "line": 118,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\swap-request\\page.tsx",
+    "line": 158,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\teams\\[teamId]\\page.tsx",
+    "line": 65,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\teams\\[teamId]\\page.tsx",
+    "line": 97,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\teams\\[teamId]\\page.tsx",
+    "line": 120,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\tournaments\\page.tsx",
+    "line": 20,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\tournaments\\[tournamentId]\\matches\\page.tsx",
+    "line": 29,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\transfers\\page.tsx",
+    "line": 38,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\(team)\\team\\transfers\\page.tsx",
+    "line": 75,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\audit-logs\\list\\route.ts",
+    "line": 90,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\balances\\audit\\route.ts",
+    "line": 38,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\balances\\audit\\route.ts",
+    "line": 61,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\balances\\audit\\route.ts",
+    "line": 115,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\bulk-rounds\\route.ts",
+    "line": 117,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\bulk-tiebreakers\\route.ts",
+    "line": 152,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\historical-data\\route.ts",
+    "line": 364,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\historical-data\\[seasonId]\\route.ts",
+    "line": 26,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\ledger\\fix-flow\\route.ts",
+    "line": 19,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\ledger\\fix-flow\\route.ts",
+    "line": 31,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\news\\generate-matchday\\route.ts",
+    "line": 41,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\notifications\\subscribers\\route.ts",
+    "line": 14,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\notifications\\test\\route.ts",
+    "line": 25,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\password-requests\\route.ts",
+    "line": 17,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\players\\replace-allocation\\route.ts",
+    "line": 95,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\players\\route.ts",
+    "line": 18,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\players\\route.ts",
+    "line": 65,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\players\\route.ts",
+    "line": 208,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\route.ts",
+    "line": 134,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\export\\route.ts",
+    "line": 54,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\export\\route.ts",
+    "line": 84,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\export\\route.ts",
+    "line": 136,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\export\\route.ts",
+    "line": 166,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\make-public\\route.ts",
+    "line": 48,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\make-public\\route.ts",
+    "line": 120,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\start\\route.ts",
+    "line": 62,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\team-bids\\[teamId]\\clean-invalid\\route.ts",
+    "line": 78,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\team-bids\\[teamId]\\clean-invalid\\route.ts",
+    "line": 156,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\rounds\\[id]\\team-bids-with-status\\route.ts",
+    "line": 47,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\seasons\\[seasonId]\\players\\export\\route.ts",
+    "line": 20,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\seasons\\[seasonId]\\release-windows\\route.ts",
+    "line": 19,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\seasons\\[seasonId]\\swap-windows\\route.ts",
+    "line": 19,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\team-managers\\route.ts",
+    "line": 121,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\teams\\all-bids\\route.ts",
+    "line": 21,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\teams\\all-bids\\route.ts",
+    "line": 46,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\teams\\all-bids\\route.ts",
+    "line": 69,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\teams\\bid-rounds\\route.ts",
+    "line": 21,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\teams\\players\\route.ts",
+    "line": 20,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\tiebreakers\\route.ts",
+    "line": 32,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\admin\\tiebreakers\\[id]\\spin-resolve\\route.ts",
+    "line": 73,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\import\\bulk\\route.ts",
+    "line": 75,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\import\\preview\\route.ts",
+    "line": 137,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\import\\preview-parsed\\route.ts",
+    "line": 66,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\notifications\\devices\\route.ts",
+    "line": 9,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\players\\search\\route.ts",
+    "line": 167,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\players\\search\\route.ts",
+    "line": 264,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\players\\search\\route.ts",
+    "line": 307,
+    "issue": "Has include (Potential nested data bloat, even with take)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\seasons\\[seasonId]\\position-groups\\route.ts",
+    "line": 24,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\seasons\\[seasonId]\\retention\\route.ts",
+    "line": 145,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\seasons\\[seasonId]\\teams\\route.ts",
+    "line": 15,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\seasons\\[seasonId]\\tournaments\\[tournamentId]\\knockout\\route.ts",
+    "line": 146,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\seasons\\[seasonId]\\tournaments\\[tournamentId]\\matches\\[matchId]\\route.ts",
+    "line": 309,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\seasons\\[seasonId]\\tournaments\\[tournamentId]\\rounds\\start\\route.ts",
+    "line": 45,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\seasons\\[seasonId]\\tournaments\\[tournamentId]\\rounds\\stop\\route.ts",
+    "line": 39,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\team\\achievements\\route.ts",
+    "line": 42,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\team\\achievements\\route.ts",
+    "line": 52,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\team\\bulk-tiebreakers\\[id]\\bid\\route.ts",
+    "line": 119,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\team\\finances\\route.ts",
+    "line": 48,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\team\\release-requests\\route.ts",
+    "line": 194,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\team\\starred-players\\route.ts",
+    "line": 35,
+    "issue": "Missing take (Unbounded query)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\team\\swap-requests\\route.ts",
+    "line": 315,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\teams\\[teamId]\\route.ts",
+    "line": 40,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\teams\\[teamId]\\route.ts",
+    "line": 60,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  },
+  {
+    "file": "C:\\Users\\shams\\OneDrive\\Documents\\GitHub\\TFC\\app\\api\\tournaments\\[tournamentId]\\team-awards\\route.ts",
+    "line": 14,
+    "issue": "Missing take + has include (High Data Transfer Risk)"
+  }
+]

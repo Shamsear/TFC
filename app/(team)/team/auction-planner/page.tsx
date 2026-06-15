@@ -47,8 +47,20 @@ export default async function AuctionPlannerPage() {
     where: {
       seasonId: activeSeason.id,
     },
-    include: {
-      basePlayer: true,
+    select: {
+      basePlayerId: true,
+      position: true,
+      position_group: true,
+      overallRating: true,
+      realWorldClub: true,
+      playing_style: true,
+      basePlayer: {
+        select: {
+          id: true,
+          name: true,
+          player_id: true,
+        }
+      }
     },
     orderBy: [
       { position: 'asc' },

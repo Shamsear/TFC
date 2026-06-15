@@ -53,7 +53,8 @@ export async function GET(
       },
       orderBy: {
         overallRating: 'desc'
-      }
+      },
+      take: 2000
     })
 
     const players = seasonalStats.map(stat => ({

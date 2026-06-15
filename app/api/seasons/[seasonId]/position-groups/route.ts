@@ -28,8 +28,20 @@ export async function GET(
           in: GROUPED_POSITIONS
         }
       },
-      include: {
-        basePlayer: true
+      select: {
+        id: true,
+        basePlayerId: true,
+        position: true,
+        position_group: true,
+        overallRating: true,
+        realWorldClub: true,
+        basePlayer: {
+          select: {
+            id: true,
+            name: true,
+            photoUrl: true
+          }
+        }
       },
       orderBy: [
         { position: 'asc' },

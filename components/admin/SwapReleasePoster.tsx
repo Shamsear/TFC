@@ -171,7 +171,63 @@ export function SwapPoster({
         }}
       />
 
-      {/* Decorative Glow Orbs */}
+      {/* Large Half-Cut Team Logos Background (Both Sides) - High Quality Watermarks */}
+      {requestingTeamLogo && (
+        <div
+          style={{
+            position: 'absolute',
+            left: -180,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 520,
+            height: 520,
+            opacity: 0.07,
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        >
+          <img
+            src={requestingTeamLogo}
+            alt=""
+            crossOrigin="anonymous"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              imageRendering: 'high-quality' as any,
+            }}
+          />
+        </div>
+      )}
+      {targetTeamLogo && (
+        <div
+          style={{
+            position: 'absolute',
+            right: -180,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 520,
+            height: 520,
+            opacity: 0.07,
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        >
+          <img
+            src={targetTeamLogo}
+            alt=""
+            crossOrigin="anonymous"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              imageRendering: 'high-quality' as any,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Decorative Glow Orbs - Dynamic with Deal Status Accent Color */}
       <div
         style={{
           position: 'absolute',
@@ -180,8 +236,8 @@ export function SwapPoster({
           width: 450,
           height: 450,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 229, 255, 0.09) 0%, transparent 70%)',
-          filter: 'blur(50px)',
+          background: `radial-gradient(circle, ${accentColor}15 0%, transparent 70%)`,
+          filter: 'blur(60px)',
           pointerEvents: 'none',
         }}
       />
@@ -193,8 +249,8 @@ export function SwapPoster({
           width: 450,
           height: 450,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(167, 139, 250, 0.09) 0%, transparent 70%)',
-          filter: 'blur(50px)',
+          background: `radial-gradient(circle, ${accentColor}15 0%, transparent 70%)`,
+          filter: 'blur(60px)',
           pointerEvents: 'none',
         }}
       />
@@ -226,28 +282,18 @@ export function SwapPoster({
           </div>
         </div>
         
-        <div style={{ textAlign: 'right' }}>
-          <div style={{
-            fontFamily: '"Outfit", sans-serif',
-            fontWeight: 900,
-            fontSize: 28,
-            color: 'rgba(255,255,255,0.08)',
-            letterSpacing: 3,
-            lineHeight: 1
-          }}>
-            TFC
-          </div>
-          <div style={{
-            fontFamily: '"Barlow Condensed", sans-serif',
-            fontWeight: 700,
-            fontSize: 11,
-            color: 'rgba(255,255,255,0.2)',
-            letterSpacing: 2,
-            marginTop: 4
-          }}>
-            ADMINISTRATION
-          </div>
-        </div>
+        <img
+          src="/logo.png"
+          alt="Turf Cats"
+          crossOrigin="anonymous"
+          style={{
+            width: 100,
+            height: 100,
+            objectFit: 'contain',
+            opacity: 0.4,
+            flexShrink: 0
+          }}
+        />
       </div>
 
       {/* Poster Body - Swap Display */}
@@ -261,8 +307,8 @@ export function SwapPoster({
             
             {/* Team Glassmorphic Card */}
             <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: 16,
               padding: '14px 20px',
               display: 'flex',
@@ -271,7 +317,7 @@ export function SwapPoster({
               gap: 10,
               width: '100%',
               maxWidth: 260,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)',
               backdropFilter: 'blur(8px)'
             }}>
               {requestingTeamLogo && (
@@ -320,7 +366,8 @@ export function SwapPoster({
               marginTop: 10,
               width: '100%',
               maxWidth: 240,
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(4px)'
             }}>
               {requestingPlayers.map(p => p.playerName).join(' & ')}
             </div>
@@ -363,8 +410,8 @@ export function SwapPoster({
             
             {/* Team Glassmorphic Card */}
             <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: 16,
               padding: '14px 20px',
               display: 'flex',
@@ -373,7 +420,7 @@ export function SwapPoster({
               gap: 10,
               width: '100%',
               maxWidth: 260,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)',
               backdropFilter: 'blur(8px)'
             }}>
               {targetTeamLogo && (
@@ -422,7 +469,8 @@ export function SwapPoster({
               marginTop: 10,
               width: '100%',
               maxWidth: 240,
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(4px)'
             }}>
               {targetPlayers.map(p => p.playerName).join(' & ')}
             </div>
@@ -432,37 +480,23 @@ export function SwapPoster({
 
       </div>
 
-      {/* Footer / Report Card */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '1.5px solid rgba(255, 255, 255, 0.07)',
-        borderRadius: 16,
-        padding: '20px 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 2,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(12px)'
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>TRANSACTION LEDGER</span>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>
-            {isApproved 
-              ? 'Rosters updated. Financial adjustments executed in database.' 
-              : 'Swap proposal registered. Pending administrative signoff.'}
-          </span>
-        </div>
-        <div style={{
-          fontFamily: '"Outfit", sans-serif',
-          fontWeight: 900,
-          fontSize: 16,
-          color: accentColor,
-          letterSpacing: 1.5,
-          textShadow: `0 0 10px ${accentColor}25`
-        }}>
-          {statusLabel}
-        </div>
+      {/* Footer */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 2,
+          paddingTop: 16,
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+        }}
+      >
+        <span style={{ color: 'rgba(255, 255, 255, 0.2)', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>
+          TURFCATS.VERCEL.APP
+        </span>
+        <span style={{ color: 'rgba(255, 255, 255, 0.2)', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+          GENERATED ON {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+        </span>
       </div>
     </div>
   )

@@ -61,9 +61,17 @@ export async function GET(request: NextRequest) {
 
     if (duplicatesMode) {
       // Find duplicates by grouping by name and nationality
-      // First, get ALL base players with their latest stats to determine nationality
+      // First, get ALL base players with their latest stats to determine nationality.
+      // We use select instead of include to minimize the memory payload size.
       const allPlayers = await prisma.base_players.findMany({
-        include: {
+        select: {
+          id: true,
+          name: true,
+          player_id: true,
+          normalized_name: true,
+          photoUrl: true,
+          createdAt: true,
+          updatedAt: true,
           seasonalPlayerStats: {
             orderBy: { seasonId: 'desc' },
             take: 1,
@@ -204,11 +212,59 @@ export async function GET(request: NextRequest) {
       ? { name: primarySort.direction } 
       : { name: 'asc' } // Fallback to name for other fields
 
+    // FAST PATH: If we are only sorting by name, we can paginate directly in the database!
+    // This avoids fetching 20,000+ rows into memory and causing massive Vercel data transfer.
+    if (sortConfigs.length === 1 && sortConfigs[0].field === 'name') {
+      const [paginatedPlayers, totalCount] = await Promise.all([
+        prisma.base_players.findMany({
+          where: finalWhereClause,
+          orderBy: { name: sortConfigs[0].direction as any },
+          skip,
+          take: limit,
+          include: {
+            seasonalPlayerStats: {
+              orderBy: { seasonId: 'desc' },
+              take: 1,
+              select: {
+                nationality: true,
+                position: true,
+                overallRating: true,
+                realWorldClub: true,
+                playing_style: true,
+              }
+            },
+            transferHistory: {
+              select: {
+                id: true
+              },
+              take: 1
+            }
+          }
+        }),
+        prisma.base_players.count({ where: finalWhereClause })
+      ])
+
+      return NextResponse.json({
+        players: paginatedPlayers,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit)
+      })
+    }
+
+    // SLOW PATH: If sorting by relation fields (club, nationality, rating), we must fetch matching 
+    // rows and sort in memory. To mitigate data transfer, we use `select` instead of full `include`.
     const [allPlayers, totalCount] = await Promise.all([
       prisma.base_players.findMany({
         where: finalWhereClause,
         orderBy: orderByClause,
-        include: {
+        select: {
+          id: true,
+          name: true,
+          player_id: true,
+          normalized_name: true,
+          photoUrl: true,
+          createdAt: true,
+          updatedAt: true,
           seasonalPlayerStats: {
             orderBy: { seasonId: 'desc' },
             take: 1,

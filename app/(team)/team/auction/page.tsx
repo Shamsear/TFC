@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import AuctionDashboardClient from "@/components/team-auction/AuctionDashboardClient"
 
+export const dynamic = "force-dynamic"
+
 export const metadata = {
   title: "Auction | Team Dashboard",
   description: "Participate in player auctions",

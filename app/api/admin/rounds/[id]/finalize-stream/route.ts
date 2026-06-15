@@ -58,14 +58,18 @@ export async function POST(
 
         // Import the appropriate finalization logic based on round type
         let finalizationFunction: (id: string) => Promise<any>;
+        let applyFunction: (id: string, allocations: any, conflicts?: any) => Promise<void>;
+        
         if (round.roundType === 'bulk') {
           sendLog('📦 Detected bulk round, loading bulk finalization logic...', 'info');
-          const { finalizeBulkRound } = await import('@/lib/auction/finalize-bulk-round');
+          const { finalizeBulkRound, applyBulkFinalizationResults } = await import('@/lib/auction/finalize-bulk-round');
           finalizationFunction = finalizeBulkRound;
+          applyFunction = applyBulkFinalizationResults;
         } else {
           sendLog('📊 Detected standard round, loading standard finalization logic...', 'info');
-          const { finalizeRound } = await import('@/lib/auction/finalize-round');
+          const { finalizeRound, applyFinalizationResults } = await import('@/lib/auction/finalize-round');
           finalizationFunction = finalizeRound;
+          applyFunction = applyFinalizationResults;
         }
         
         // Override console.log to capture logs
@@ -97,16 +101,43 @@ export async function POST(
           originalWarn(...args);
         };
 
-        // Run finalization
+        // Run finalization calculation
         const result = await finalizationFunction(roundId);
+
+        // If successful or there are tie/conflicts to save, apply to DB
+        // Normal rounds return success=false when there's a tie, but they still need to save state
+        // Bulk rounds return success=true and include conflicts list
+        if (result.success || result.tieDetected || result.conflicts?.length > 0) {
+          try {
+            sendLog('💾 Saving results to database...', 'info');
+            
+            if (round.roundType === 'bulk') {
+              await applyFunction(roundId, result.allocations, result.conflicts);
+            } else {
+              // Standard round tie handling is usually done inside finalizeRound state saving,
+              // but if it's completely successful with no ties, apply the allocations
+              if (result.success) {
+                await applyFunction(roundId, result.allocations);
+              } else if (result.tieDetected) {
+                // For standard round ties, the finalizeRound logic already saved state and created the tiebreaker
+                sendLog('⏸️ Tie detected. State saved, awaiting tiebreaker resolution.', 'warning');
+              }
+            }
+            
+            sendLog('✅ Database updated successfully!', 'success');
+          } catch (dbError: any) {
+            sendLog(`❌ Failed to save to database: ${dbError.message}`, 'error');
+            throw dbError; // Propagate to outer catch
+          }
+        }
 
         // Restore console
         console.log = originalLog;
         console.error = originalError;
         console.warn = originalWarn;
 
-        if (result.success) {
-          sendLog('✅ Round finalization completed successfully!', 'success');
+        if (result.success || result.tieDetected || result.conflicts?.length > 0) {
+          sendLog('✅ Round finalization completed!', 'success');
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ type: 'complete', success: true, result })}\n\n`)
           );

@@ -5,6 +5,8 @@ import BulkRoundSelectionClient from "@/components/team-auction/BulkRoundSelecti
 import { checkAndFinalizeExpiredRound } from "@/lib/auction/lazy-finalize-round"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 
+export const dynamic = "force-dynamic"
+
 export default async function BulkRoundPage({
   params
 }: {

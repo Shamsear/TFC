@@ -6,6 +6,8 @@ import { checkAndFinalizeExpiredRound } from "@/lib/auction/lazy-finalize-round"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 import { decryptBids } from "@/lib/auction/encryption"
 
+export const dynamic = "force-dynamic"
+
 export default async function RoundBiddingPage({
   params
 }: {

@@ -49,56 +49,65 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
     notFound()
   }
 
-  // Get aggregated player counts and spending for each team sequentially to avoid connection pool timeouts
-  const teamsWithDetails = []
-  for (const st of season.seasonTeams) {
-    const [playerCount, totalSpent, playersByPosition] = await Promise.all([
-      // Count ACTIVE players only
-      prisma.transfer_history.count({
-        where: {
-          seasonId,
-          teamId: st.team.id,
-          status: 'ACTIVE'
-        }
-      }),
-      
-      // Sum total spent
-      prisma.transfer_history.aggregate({
-        where: {
-          seasonId,
-          teamId: st.team.id
-        },
-        _sum: {
-          soldPrice: true
-        }
-      }),
-      
-      // Get position breakdown (only ACTIVE players)
-      prisma.$queryRaw<Array<{ position: string; count: bigint }>>`
-        SELECT sps.position, COUNT(*)::bigint as count
-        FROM transfer_history th
-        INNER JOIN seasonal_player_stats sps ON th."basePlayerId" = sps."basePlayerId"
-        WHERE th."seasonId" = ${seasonId}
-          AND th."teamId" = ${st.team.id}
-          AND th."status" = 'ACTIVE'
-          AND sps."seasonId" = ${seasonId}
-        GROUP BY sps.position
-        ORDER BY sps.position
-      `
-    ])
+  // Get aggregated player counts and spending for all teams in 3 optimized parallel queries
+  const [playerCounts, totalSpents, positionsByTeam] = await Promise.all([
+    // Count ACTIVE players per team
+    prisma.transfer_history.groupBy({
+      by: ['teamId'],
+      where: {
+        seasonId,
+        status: 'ACTIVE'
+      },
+      _count: {
+        _all: true
+      }
+    }),
+    
+    // Sum total spent per team
+    prisma.transfer_history.groupBy({
+      by: ['teamId'],
+      where: {
+        seasonId
+      },
+      _sum: {
+        soldPrice: true
+      }
+    }),
+    
+    // Get position breakdown per team (only ACTIVE players)
+    prisma.$queryRaw<Array<{ teamId: string; position: string; count: bigint }>>`
+      SELECT th."teamId", sps.position, COUNT(*)::bigint as count
+      FROM transfer_history th
+      INNER JOIN seasonal_player_stats sps ON th."basePlayerId" = sps."basePlayerId"
+      WHERE th."seasonId" = ${seasonId}
+        AND th."status" = 'ACTIVE'
+        AND sps."seasonId" = ${seasonId}
+      GROUP BY th."teamId", sps.position
+      ORDER BY th."teamId", sps.position
+    `
+  ])
 
-    const positionMap = playersByPosition.reduce((acc, { position, count }) => {
-      acc[position] = Number(count)
-      return acc
-    }, {} as Record<string, number>)
-
-    teamsWithDetails.push({
-      ...st,
-      playerCount,
-      playersByPosition: positionMap,
-      totalSpent: totalSpent._sum.soldPrice || 0
-    })
+  // Map results for quick lookup
+  const countMap = new Map(playerCounts.map(pc => [pc.teamId, pc._count._all]))
+  const spentMap = new Map(totalSpents.map(ts => [ts.teamId, ts._sum.soldPrice || 0]))
+  
+  const positionMapByTeam = new Map<string, Record<string, number>>()
+  for (const { teamId, position, count } of positionsByTeam) {
+    if (!positionMapByTeam.has(teamId)) {
+      positionMapByTeam.set(teamId, {})
+    }
+    positionMapByTeam.get(teamId)![position] = Number(count)
   }
+
+  // Combine with seasonTeams
+  const teamsWithDetails = season.seasonTeams.map(st => {
+    return {
+      ...st,
+      playerCount: countMap.get(st.team.id) || 0,
+      totalSpent: spentMap.get(st.team.id) || 0,
+      playersByPosition: positionMapByTeam.get(st.team.id) || {}
+    }
+  })
 
   const formatCurrency = (amount: number) => {
     return `£${amount.toLocaleString()}`

@@ -139,6 +139,52 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
 }
 
 /**
+ * Temporarily overrides document.styleSheets to filter out cross-origin stylesheets
+ * that throw a SecurityError when reading their cssRules property.
+ * Restores the original prototype getter when the returned callback is called.
+ */
+function makeStyleSheetsSafe(): () => void {
+  if (typeof document === 'undefined') return () => {}
+  try {
+    const sheetsArray = Array.from(document.styleSheets)
+    const safeSheets = sheetsArray.filter(sheet => {
+      try {
+        // Accessing cssRules will throw a SecurityError if the stylesheet is cross-origin
+        // and loaded without CORS headers/attributes
+        const rules = sheet.cssRules
+        return true
+      } catch (e) {
+        console.warn('[captureTableAsPng] Skipping cross-origin stylesheet to prevent SecurityError:', sheet.href)
+        return false
+      }
+    })
+
+    // If all stylesheets are safe, no need to override
+    if (safeSheets.length === sheetsArray.length) {
+      return () => {}
+    }
+
+    // Temporarily define styleSheets on the document instance
+    Object.defineProperty(document, 'styleSheets', {
+      value: safeSheets,
+      configurable: true,
+      writable: true
+    })
+
+    return () => {
+      try {
+        delete (document as any).styleSheets
+      } catch (e) {
+        console.error('[captureTableAsPng] Failed to restore document.styleSheets:', e)
+      }
+    }
+  } catch (e) {
+    console.error('[captureTableAsPng] Failed to make stylesheets safe:', e)
+    return () => {}
+  }
+}
+
+/**
  * Captures an HTMLElement as a PNG data URL.
  * The element should be positioned off-screen (fixed, left: -9999px)
  * rather than display:none so layout calculations remain intact.
@@ -165,18 +211,25 @@ export async function captureTableAsPng(
   const delay = isMobile ? 1500 : 800
   await new Promise(resolve => setTimeout(resolve, delay))
   
-  return toPng(element, {
-    cacheBust: true,
-    width: options?.width ?? 1200,
-    backgroundColor: options?.backgroundColor ?? '#0a0a0a',
-    quality: 1,
-    pixelRatio: 2, // retina-quality output
-    skipFonts: false, // Allow fonts to be embedded in the image
-    filter: (node) => {
-      // Keep Google Fonts stylesheet links for proper font rendering
-      return true
-    },
-  })
+  // Clean up cross-origin stylesheets that would cause a SecurityError
+  const restoreStyleSheets = makeStyleSheetsSafe()
+  
+  try {
+    return await toPng(element, {
+      cacheBust: true,
+      width: options?.width ?? 1200,
+      backgroundColor: options?.backgroundColor ?? '#0a0a0a',
+      quality: 1,
+      pixelRatio: 2, // retina-quality output
+      skipFonts: false, // Allow fonts to be embedded in the image
+      filter: (node) => {
+        // Keep Google Fonts stylesheet links for proper font rendering
+        return true
+      },
+    })
+  } finally {
+    restoreStyleSheets()
+  }
 }
 
 /**

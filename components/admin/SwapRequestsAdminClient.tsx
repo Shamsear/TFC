@@ -5,6 +5,7 @@ import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PosterModal } from './SwapReleasePoster'
 
 interface SwapPlayer {
   id: string
@@ -90,6 +91,8 @@ export default function SwapRequestsAdminClient({
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [whatsappMessage, setWhatsappMessage] = useState('')
   const [showTeamStats, setShowTeamStats] = useState(false)
+  const [selectedPosterRequest, setSelectedPosterRequest] = useState<Request | null>(null)
+  const [showPosterModal, setShowPosterModal] = useState(false)
 
   // Filter requests by selected window
   const filteredRequests = selectedWindowId === 'ALL'
@@ -196,7 +199,11 @@ _Swap processed by admin_`
       // Generate WhatsApp message and open modal
       const message = generateWhatsAppMessage(request)
       setWhatsappMessage(message)
-      setShowSuccessModal(true)
+      setSelectedPosterRequest({
+        ...request,
+        status: 'approved'
+      })
+      setShowPosterModal(true)
 
       router.refresh()
     } catch (error: any) {
@@ -588,9 +595,22 @@ _Swap processed by admin_`
                       {processingId === request.id ? 'Processing...' : 'Approve & Execute Swap'}
                     </button>
                     <button
+                      onClick={() => {
+                        setSelectedPosterRequest(request)
+                        setShowPosterModal(true)
+                      }}
+                      className="px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-lg font-bold transition-colors border border-white/10 flex items-center justify-center gap-2"
+                      title="Preview Poster"
+                    >
+                      <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Poster
+                    </button>
+                    <button
                       onClick={() => openRejectModal(request)}
                       disabled={processingId === request.id}
-                      className="flex-1 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold transition-colors border border-red-500/30 disabled:opacity-50"
+                      className="px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold transition-colors border border-red-500/30 disabled:opacity-50"
                     >
                       Reject
                     </button>
@@ -621,6 +641,18 @@ _Swap processed by admin_`
                       </div>
                     </div>
                     <div className="text-right flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setSelectedPosterRequest(request)
+                          setShowPosterModal(true)
+                        }}
+                        className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors border border-white/10 flex-shrink-0"
+                        title="View Poster"
+                      >
+                        <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </button>
                       {request.status === 'approved' && (
                         <button
                           onClick={() => {
@@ -754,6 +786,25 @@ _Swap processed by admin_`
           </div>
         </div>
       )}
+
+      <PosterModal
+        isOpen={showPosterModal}
+        onClose={() => {
+          setShowPosterModal(false)
+          setSelectedPosterRequest(null)
+        }}
+        request={selectedPosterRequest}
+        type="swap"
+        seasonName={seasonName}
+        whatsappMessage={selectedPosterRequest ? generateWhatsAppMessage(selectedPosterRequest) : ''}
+        copyToWhatsApp={() => {
+          if (selectedPosterRequest) {
+            const msg = generateWhatsAppMessage(selectedPosterRequest)
+            navigator.clipboard.writeText(msg)
+            alert('Copied to clipboard!')
+          }
+        }}
+      />
     </>
   )
 }

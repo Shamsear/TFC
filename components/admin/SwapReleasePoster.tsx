@@ -103,8 +103,9 @@ function RenderPlayerCards({
 }
 
 // Helper to add a cache buster query parameter specifically for the poster to bypass poisoned CORS browser cache
-const getBustedUrl = (url: string | null | undefined) => {
-  if (!url || url.startsWith('data:') || url.startsWith('/')) return url;
+const getBustedUrl = (url: string | null | undefined): string | undefined => {
+  if (!url) return undefined;
+  if (url.startsWith('data:') || url.startsWith('/')) return url;
   return `${url}?cb=tfc-poster`;
 }
 

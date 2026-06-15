@@ -49,57 +49,56 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
     notFound()
   }
 
-  // Get aggregated player counts and spending for each team in parallel
-  const teamsWithDetails = await Promise.all(
-    season.seasonTeams.map(async (st) => {
-      const [playerCount, totalSpent, playersByPosition] = await Promise.all([
-        // Count ACTIVE players only
-        prisma.transfer_history.count({
-          where: {
-            seasonId,
-            teamId: st.team.id,
-            status: 'ACTIVE'
-          }
-        }),
-        
-        // Sum total spent
-        prisma.transfer_history.aggregate({
-          where: {
-            seasonId,
-            teamId: st.team.id
-          },
-          _sum: {
-            soldPrice: true
-          }
-        }),
-        
-        // Get position breakdown (only ACTIVE players)
-        prisma.$queryRaw<Array<{ position: string; count: bigint }>>`
-          SELECT sps.position, COUNT(*)::bigint as count
-          FROM transfer_history th
-          INNER JOIN seasonal_player_stats sps ON th."basePlayerId" = sps."basePlayerId"
-          WHERE th."seasonId" = ${seasonId}
-            AND th."teamId" = ${st.team.id}
-            AND th."status" = 'ACTIVE'
-            AND sps."seasonId" = ${seasonId}
-          GROUP BY sps.position
-          ORDER BY sps.position
-        `
-      ])
+  // Get aggregated player counts and spending for each team sequentially to avoid connection pool timeouts
+  const teamsWithDetails = []
+  for (const st of season.seasonTeams) {
+    const [playerCount, totalSpent, playersByPosition] = await Promise.all([
+      // Count ACTIVE players only
+      prisma.transfer_history.count({
+        where: {
+          seasonId,
+          teamId: st.team.id,
+          status: 'ACTIVE'
+        }
+      }),
+      
+      // Sum total spent
+      prisma.transfer_history.aggregate({
+        where: {
+          seasonId,
+          teamId: st.team.id
+        },
+        _sum: {
+          soldPrice: true
+        }
+      }),
+      
+      // Get position breakdown (only ACTIVE players)
+      prisma.$queryRaw<Array<{ position: string; count: bigint }>>`
+        SELECT sps.position, COUNT(*)::bigint as count
+        FROM transfer_history th
+        INNER JOIN seasonal_player_stats sps ON th."basePlayerId" = sps."basePlayerId"
+        WHERE th."seasonId" = ${seasonId}
+          AND th."teamId" = ${st.team.id}
+          AND th."status" = 'ACTIVE'
+          AND sps."seasonId" = ${seasonId}
+        GROUP BY sps.position
+        ORDER BY sps.position
+      `
+    ])
 
-      const positionMap = playersByPosition.reduce((acc, { position, count }) => {
-        acc[position] = Number(count)
-        return acc
-      }, {} as Record<string, number>)
+    const positionMap = playersByPosition.reduce((acc, { position, count }) => {
+      acc[position] = Number(count)
+      return acc
+    }, {} as Record<string, number>)
 
-      return {
-        ...st,
-        playerCount,
-        playersByPosition: positionMap,
-        totalSpent: totalSpent._sum.soldPrice || 0
-      }
+    teamsWithDetails.push({
+      ...st,
+      playerCount,
+      playersByPosition: positionMap,
+      totalSpent: totalSpent._sum.soldPrice || 0
     })
-  )
+  }
 
   const formatCurrency = (amount: number) => {
     return `£${amount.toLocaleString()}`

@@ -129,7 +129,13 @@ async function allocateSingleBidders(
   });
   const playerNames = new Map(players.map(p => [p.id, p.name]));
 
+  let i = 0;
   for (const [playerId, teamId] of singleBidders.entries()) {
+    i++;
+    if (i % 5 === 0 || i === singleBidders.size) {
+      console.log(`   ⏳ Processing allocation ${i} of ${singleBidders.size}...`);
+    }
+
     // Check if player is available (not ACTIVE with any team)
     const owned = await prisma.transfer_history.findFirst({
       where: {
@@ -337,7 +343,7 @@ export async function applyBulkFinalizationResults(
   
   const round = await prisma.rounds.findUnique({
     where: { id: roundId },
-    select: { seasonId: true }
+    select: { seasonId: true, basePrice: true }
   });
 
   if (!round) {
@@ -426,10 +432,19 @@ export async function applyBulkFinalizationResults(
       console.log(`      ℹ️  No new transfers to create (all were duplicates)`);
     }
 
+    // Group allocations by team for batch processing (using ONLY new allocations to prevent duplicate budget deduction)
+    const newTeamAllocations = new Map<string, BulkAllocation[]>();
+    for (const alloc of newAllocations) {
+      if (!newTeamAllocations.has(alloc.teamId)) {
+        newTeamAllocations.set(alloc.teamId, []);
+      }
+      newTeamAllocations.get(alloc.teamId)!.push(alloc);
+    }
+    
     // 2. Update team budgets and create financial ledger entries
-    console.log(`   💰 Updating budgets for ${teamAllocations.size} teams...`);
+    console.log(`   💰 Updating budgets for ${newTeamAllocations.size} teams...`);
     let teamCount = 0;
-    for (const [teamId, teamAllocs] of teamAllocations.entries()) {
+    for (const [teamId, teamAllocs] of newTeamAllocations.entries()) {
       teamCount++;
       const totalSpent = teamAllocs.reduce((sum, alloc) => sum + alloc.amount, 0);
       const playerNames = teamAllocs.map(alloc => alloc.playerName);
@@ -487,6 +502,47 @@ export async function applyBulkFinalizationResults(
         
         console.log(`      ✓ [${teamCount}/${teamAllocations.size}] ${teamId}: £${totalSpent} spent, ${teamAllocs.length} players`);
       }
+    }
+
+    // 2.5 Create bulk tiebreakers for conflicts
+    if (conflicts.length > 0) {
+      console.log(`   ⚖️ Creating ${conflicts.length} bulk tiebreakers...`);
+      for (const conflict of conflicts) {
+        // Check if tiebreaker already exists for this player in this round
+        const existingTiebreaker = await tx.bulk_tiebreakers.findFirst({
+          where: {
+            roundId,
+            basePlayerId: conflict.basePlayerId
+          }
+        });
+
+        if (existingTiebreaker) {
+          console.warn(`      ⚠️  Tiebreaker already exists for player ${conflict.basePlayerId}, skipping`);
+          continue;
+        }
+
+        // Create the tiebreaker
+        const tiebreaker = await tx.bulk_tiebreakers.create({
+          data: {
+            roundId,
+            basePlayerId: conflict.basePlayerId,
+            basePrice: round.basePrice || 10,
+            status: 'pending',
+            teamsRemaining: conflict.teamIds.length
+          }
+        });
+
+        // Create participants
+        await tx.bulk_tiebreaker_participants.createMany({
+          data: conflict.teamIds.map(teamId => ({
+            tiebreakerId: tiebreaker.id,
+            teamId,
+            status: 'active',
+            currentBid: round.basePrice || 10
+          }))
+        });
+      }
+      console.log(`      ✓ Bulk tiebreakers creation pass complete`);
     }
 
     // 3. Update round status

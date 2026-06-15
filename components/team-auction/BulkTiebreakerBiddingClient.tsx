@@ -165,7 +165,7 @@ export default function BulkTiebreakerBiddingClient({
       const response = await fetch(`/api/team/bulk-tiebreakers/${tiebreaker.id}/bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bidAmount: newBidAmount })
+        body: JSON.stringify({ newBidAmount })
       })
 
       if (!response.ok) {

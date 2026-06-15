@@ -172,8 +172,10 @@ export function calculateReserveCore(
   }
   
   // Below minimum squad - need reserve
-  const slotsToMin = config.min_squad_size - teamSquadSize;
-  const reserve = slotsToMin * config.phase_3_min_balance;
+  // Calculate slots needed AFTER winning the current player (because the bid being made is for 1 of these slots)
+  const playersAfterThisRound = teamSquadSize + 1;
+  const futureSlotsToMin = Math.max(0, config.min_squad_size - playersAfterThisRound);
+  const reserve = futureSlotsToMin * config.phase_3_min_balance;
   const maxBid = Math.max(0, teamBalance - reserve);
   
   breakdown.phase3Reserve = reserve;
@@ -187,7 +189,7 @@ export function calculateReserveCore(
     enforceStrict: true,  // Enforce until min squad reached
     allowSkip: true,
     minimumToParticipate: config.phase_3_min_balance,
-    calculation: `Phase 3: ${slotsToMin} slots to min squad × £${config.phase_3_min_balance} = £${reserve}`,
+    calculation: `Phase 3: ${futureSlotsToMin} future slots to min squad × £${config.phase_3_min_balance} = £${reserve}`,
     breakdown
   };
 }

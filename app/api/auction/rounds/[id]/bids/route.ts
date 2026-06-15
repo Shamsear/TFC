@@ -160,31 +160,43 @@ export async function POST(
     // Encrypt bids
     const encryptedBids = encryptBids(JSON.stringify(bidData));
 
-    // UPSERT team_round_bids
-    const teamRoundBid = await prisma.team_round_bids.upsert({
-      where: {
-        roundId_teamId: {
-          roundId,
-          teamId
-        }
-      },
-      create: {
-        id: `${roundId}_${teamId}`,
-        roundId,
-        teamId,
-        encryptedBids,
-        submitted,
-        bidCount: bids.length,
-        lastUpdated: new Date(),
-        submittedAt: submitted ? new Date() : null
-      },
-      update: {
-        encryptedBids,
-        submitted,
-        bidCount: bids.length,
-        lastUpdated: new Date(),
-        submittedAt: submitted ? new Date() : null
+    // UPSERT team_round_bids within a transaction to prevent race condition with finalization
+    const teamRoundBid = await prisma.$transaction(async (tx) => {
+      // Re-verify round status inside transaction
+      const currentRound = await tx.rounds.findUnique({
+        where: { id: roundId },
+        select: { status: true }
+      });
+      
+      if (currentRound?.status !== 'active') {
+        throw new Error(`Round is no longer active (status: ${currentRound?.status})`);
       }
+
+      return await tx.team_round_bids.upsert({
+        where: {
+          roundId_teamId: {
+            roundId,
+            teamId
+          }
+        },
+        create: {
+          id: `${roundId}_${teamId}`,
+          roundId,
+          teamId,
+          encryptedBids,
+          submitted,
+          bidCount: bids.length,
+          lastUpdated: new Date(),
+          submittedAt: submitted ? new Date() : null
+        },
+        update: {
+          encryptedBids,
+          submitted,
+          bidCount: bids.length,
+          lastUpdated: new Date(),
+          submittedAt: submitted ? new Date() : null
+        }
+      });
     });
 
     // Optional: Create audit log entry

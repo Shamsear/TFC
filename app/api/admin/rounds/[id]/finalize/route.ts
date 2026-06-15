@@ -224,25 +224,7 @@ export async function POST(
         }
       });
 
-      // Trigger news for bulk round completion
-      if (roundDetails) {
-        try {
-          const totalSpent = result.allocations.reduce((sum, a) => sum + a.amount, 0);
-          await triggerNews('bulk_round_result', {
-            season_id: roundDetails.seasonId,
-            season_name: roundDetails.season.name,
-            metadata: {
-              round_number: roundDetails.roundNumber,
-              position: roundDetails.position,
-              total_spent: totalSpent,
-              player_count: result.allocations.length,
-              conflict_count: result.conflicts.length
-            }
-          });
-        } catch (newsErr) {
-          console.warn('[News AI] Failed to generate bulk round news:', newsErr);
-        }
-      }
+      // Trigger news for bulk round completion removed for speed
 
       // Auto-create bulk tiebreakers for conflicts (status='pending')
       if (result.conflicts.length > 0) {
@@ -325,22 +307,7 @@ export async function POST(
           }
         });
 
-        // Trigger news for tiebreaker creation
-        if (roundDetails && result.ties && result.ties.length > 0) {
-          try {
-            const firstTie = result.ties[0];
-            await triggerNews('tiebreaker_created', {
-              season_id: roundDetails.seasonId,
-              season_name: roundDetails.season.name,
-              metadata: {
-                player_name: firstTie.playerName,
-                participant_count: firstTie.tiedTeams.length
-              }
-            });
-          } catch (newsErr) {
-            console.warn('[News AI] Failed to generate tiebreaker creation news:', newsErr);
-          }
-        }
+        // Trigger news for tiebreaker creation removed for speed
 
         // Notify tied teams about the tiebreaker
         try {
@@ -406,24 +373,7 @@ export async function POST(
         }
       });
 
-      // Trigger news for normal round completion
-      if (roundDetails && finalStatus === 'completed') {
-        try {
-          const totalSpent = result.allocations.reduce((sum, a) => sum + a.amount, 0);
-          await triggerNews('auction_round_completed', {
-            season_id: roundDetails.seasonId,
-            season_name: roundDetails.season.name,
-            metadata: {
-              round_number: roundDetails.roundNumber,
-              position: roundDetails.position,
-              total_spent: totalSpent,
-              player_count: result.allocations.length
-            }
-          });
-        } catch (newsErr) {
-          console.warn('[News AI] Failed to generate round completion news:', newsErr);
-        }
-      }
+      // Trigger news for normal round completion removed for speed
 
       // Notify winning teams (direct finalize path)
       try {

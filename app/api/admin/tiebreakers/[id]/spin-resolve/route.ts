@@ -156,22 +156,7 @@ export async function POST(
           if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
             console.log(`✅ [SPIN RESOLVE] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
             
-            // Trigger news for tiebreaker resolution
-            try {
-              const winnerTeam = teamMap.get(resolveResult.winnerId);
-              await triggerNews('tiebreaker_resolved', {
-                season_id: tiebreaker.round.seasonId,
-                metadata: {
-                  player_name: tiebreaker.basePlayer.name,
-                  winner_team: winnerTeam?.name || resolveResult.winnerId,
-                  winning_bid: resolveResult.winningBid,
-                  participant_count: participatingTeams.length,
-                  resolution_method: 'spin'
-                }
-              });
-            } catch (newsErr) {
-              console.warn('[News AI] Failed to generate tiebreaker news:', newsErr);
-            }
+            // Trigger news for tiebreaker resolution removed for speed
             
             // Auto-resume finalization
             const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);

@@ -81,14 +81,26 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // Submit sealed bid
-    await prisma.bulk_tiebreaker_participants.update({
-      where: { id: myParticipation.id },
-      data: {
-        newBidAmount,
-        submitted: true,
-        submittedAt: new Date()
+    // Submit sealed bid within a transaction
+    await prisma.$transaction(async (tx) => {
+      // Re-verify tiebreaker status inside transaction
+      const currentTb = await tx.bulk_tiebreakers.findUnique({
+        where: { id: tiebreakerId },
+        select: { status: true }
+      });
+      
+      if (currentTb?.status !== 'active') {
+        throw new Error('Tiebreaker is no longer active');
       }
+
+      return await tx.bulk_tiebreaker_participants.update({
+        where: { id: myParticipation.id },
+        data: {
+          newBidAmount,
+          submitted: true,
+          submittedAt: new Date()
+        }
+      });
     });
 
     // Notify Admins

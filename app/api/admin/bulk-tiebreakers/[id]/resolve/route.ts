@@ -203,6 +203,22 @@ export async function POST(
       return { transfer, winnerId, winningBid }
     })
 
+    // Check if this was the last active tiebreaker in the round
+    const pendingTiebreakersCount = await prisma.bulk_tiebreakers.count({
+      where: {
+        roundId: tiebreaker.roundId,
+        status: 'active'
+      }
+    })
+
+    if (pendingTiebreakersCount === 0) {
+      console.log(`🎉 All tiebreakers resolved for round ${tiebreaker.roundId}. Marking round as completed.`)
+      await prisma.rounds.update({
+        where: { id: tiebreaker.roundId },
+        data: { status: 'completed' }
+      })
+    }
+
     console.log(`✅ Bulk tiebreaker ${tiebreakerId} manually resolved`)
     console.log(`   Winner: ${winnerId}`)
     console.log(`   Winning Bid: £${winningBid}`)
@@ -226,23 +242,7 @@ export async function POST(
       console.warn('[Push] Bulk tiebreaker resolve notification failed (non-fatal):', notifErr);
     }
 
-    // Trigger news for bulk tiebreaker resolution
-    try {
-      const winnerTeam = tiebreaker.participants.find(p => p.teamId === winnerId)?.team;
-      await triggerNews('bulk_tiebreaker_resolved', {
-        season_id: tiebreaker.round.seasonId,
-        season_name: tiebreaker.round.season.name,
-        metadata: {
-          player_name: tiebreaker.basePlayer.name,
-          winner_team: winnerTeam?.name || winnerId,
-          winning_bid: winningBid,
-          participant_count: tiebreaker.participants.length,
-          resolution_method: 'manual'
-        }
-      });
-    } catch (newsErr) {
-      console.warn('[News AI] Failed to generate bulk tiebreaker news:', newsErr);
-    }
+    // Trigger news for bulk tiebreaker resolution removed for speed
 
     return NextResponse.json({
       success: true,
@@ -254,7 +254,7 @@ export async function POST(
   } catch (error) {
     console.error('Error resolving bulk tiebreaker:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to resolve bulk tiebreaker' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to resolve bulk tiebreaker' },
       { status: 500 }
     )
   }

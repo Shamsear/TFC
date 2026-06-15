@@ -157,27 +157,39 @@ export async function POST(
       timestamp: new Date().toISOString()
     };
 
-    // UPSERT bulk_round_selections
-    const selection = await prisma.bulk_round_selections.upsert({
-      where: {
-        roundId_teamId: {
-          roundId: String(roundId),
-          teamId: String(teamId)
-        }
-      },
-      create: {
-        id: `${roundId}_${teamId}`,
-        roundId: String(roundId),
-        teamId: String(teamId),
-        selectedPlayers: JSON.stringify(selectionData),
-        submitted,
-        lastUpdated: new Date()
-      },
-      update: {
-        selectedPlayers: JSON.stringify(selectionData),
-        submitted,
-        lastUpdated: new Date()
+    // UPSERT bulk_round_selections within a transaction
+    const selection = await prisma.$transaction(async (tx) => {
+      // Re-verify round status inside transaction
+      const currentRound = await tx.rounds.findUnique({
+        where: { id: String(roundId) },
+        select: { status: true }
+      });
+      
+      if (currentRound?.status !== 'active') {
+        throw new Error(`Round is no longer active (status: ${currentRound?.status})`);
       }
+
+      return await tx.bulk_round_selections.upsert({
+        where: {
+          roundId_teamId: {
+            roundId: String(roundId),
+            teamId: String(teamId)
+          }
+        },
+        create: {
+          id: `${roundId}_${teamId}`,
+          roundId: String(roundId),
+          teamId: String(teamId),
+          selectedPlayers: JSON.stringify(selectionData),
+          submitted,
+          lastUpdated: new Date()
+        },
+        update: {
+          selectedPlayers: JSON.stringify(selectionData),
+          submitted,
+          lastUpdated: new Date()
+        }
+      });
     });
 
     if (submitted) {

@@ -79,19 +79,7 @@ export async function POST(
 
     console.log(`✅ Bulk tiebreaker ${tiebreakerId} activated for ${tiebreaker.basePlayer.name}`);
 
-    // Trigger news for bulk tiebreaker creation/start
-    try {
-      await triggerNews('bulk_tiebreaker_created', {
-        season_id: tiebreaker.round.seasonId,
-        season_name: tiebreaker.round.season.name,
-        metadata: {
-          player_name: tiebreaker.basePlayer.name,
-          participant_count: tiebreaker.participants.length
-        }
-      });
-    } catch (newsErr) {
-      console.warn('[News AI] Failed to generate bulk tiebreaker start news:', newsErr);
-    }
+    // Trigger news for bulk tiebreaker creation/start removed for speed
 
     // Notify all participating teams that the bulk tiebreaker is now live
     try {

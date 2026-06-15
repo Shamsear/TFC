@@ -240,6 +240,22 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
       });
     });
 
+    // Check if this was the last active tiebreaker in the round
+    const pendingTiebreakersCount = await prisma.bulk_tiebreakers.count({
+      where: {
+        roundId: tiebreaker.roundId,
+        status: 'active'
+      }
+    });
+
+    if (pendingTiebreakersCount === 0) {
+      console.log(`🎉 All tiebreakers resolved for round ${tiebreaker.roundId}. Marking round as completed.`);
+      await prisma.rounds.update({
+        where: { id: tiebreaker.roundId },
+        data: { status: 'completed' }
+      });
+    }
+
     console.log(`✅ Bulk tiebreaker ${tiebreakerId} auto-resolved successfully`);
     return {
       success: true,

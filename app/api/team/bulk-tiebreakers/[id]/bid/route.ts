@@ -113,14 +113,16 @@ export async function POST(
 
     const allSubmitted = allParticipants.every(p => p.submitted);
 
-    // If all submitted, trigger resolution asynchronously
+    // If all submitted, trigger resolution
+    let resolvedSuccessfully = false;
     if (allSubmitted) {
-      // Import and call resolution function asynchronously
-      import('@/lib/auction/resolve-bulk-tiebreaker').then(({ resolveBulkTiebreaker }) => {
-        resolveBulkTiebreaker(tiebreakerId).catch(err => {
-          console.error(`Failed to auto-resolve bulk tiebreaker ${tiebreakerId}:`, err);
-        });
-      });
+      try {
+        const { resolveBulkTiebreaker } = await import('@/lib/auction/resolve-bulk-tiebreaker');
+        await resolveBulkTiebreaker(tiebreakerId);
+        resolvedSuccessfully = true;
+      } catch (err) {
+        console.error(`Failed to auto-resolve bulk tiebreaker ${tiebreakerId}:`, err);
+      }
     }
 
     // Fetch updated tiebreaker (without revealing other bids)

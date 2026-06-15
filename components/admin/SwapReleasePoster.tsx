@@ -108,6 +108,19 @@ const getBustedUrl = (url: string | null | undefined) => {
   return `${url}?cb=tfc-poster`;
 }
 
+export interface SwapPosterProps {
+  requestingTeamName: string
+  requestingTeamLogo?: string | null
+  targetTeamName: string
+  targetTeamLogo?: string | null
+  players: any[]
+  requestingTeamId: string
+  targetTeamId: string
+  status: string
+  seasonName: string
+  swapWindowName?: string | null
+}
+
 export function SwapPoster({
   requestingTeamName,
   requestingTeamLogo,

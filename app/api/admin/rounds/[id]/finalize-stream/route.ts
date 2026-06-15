@@ -46,8 +46,27 @@ export async function POST(
       try {
         sendLog('🚀 Starting round finalization...', 'info');
         
-        // Import finalization logic
-        const { finalizeRound } = await import('@/lib/auction/finalize-round');
+        // Fetch round type first
+        const round = await prisma.rounds.findUnique({
+          where: { id: roundId },
+          select: { roundType: true }
+        });
+
+        if (!round) {
+          throw new Error('Round not found');
+        }
+
+        // Import the appropriate finalization logic based on round type
+        let finalizationFunction: (id: string) => Promise<any>;
+        if (round.roundType === 'bulk') {
+          sendLog('📦 Detected bulk round, loading bulk finalization logic...', 'info');
+          const { finalizeBulkRound } = await import('@/lib/auction/finalize-bulk-round');
+          finalizationFunction = finalizeBulkRound;
+        } else {
+          sendLog('📊 Detected standard round, loading standard finalization logic...', 'info');
+          const { finalizeRound } = await import('@/lib/auction/finalize-round');
+          finalizationFunction = finalizeRound;
+        }
         
         // Override console.log to capture logs
         const originalLog = console.log;
@@ -79,7 +98,7 @@ export async function POST(
         };
 
         // Run finalization
-        const result = await finalizeRound(roundId);
+        const result = await finalizationFunction(roundId);
 
         // Restore console
         console.log = originalLog;

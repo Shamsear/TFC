@@ -108,6 +108,8 @@ export async function finalizeBulkTiebreaker(
         basePrice: true,
         startTime: true,
         maxEndTime: true,
+        roundId: true,
+        basePlayerId: true,
         participants: {
           where: { status: 'active' },
           select: {
@@ -177,14 +179,67 @@ export async function finalizeBulkTiebreaker(
       return { success: false, error: 'No valid bids submitted' };
     }
 
-    // Sort by bid amount (highest first), then by submission time (earliest first) for tiebreaks
-    validBids.sort((a, b) => {
-      if (b.newBidAmount! !== a.newBidAmount!) {
-        return b.newBidAmount! - a.newBidAmount!;
-      }
-      // If bids are equal, earliest submission wins
-      return (a.submittedAt?.getTime() || 0) - (b.submittedAt?.getTime() || 0);
-    });
+    // Sort by bid amount (highest first)
+    validBids.sort((a, b) => b.newBidAmount! - a.newBidAmount!);
+
+    // Check for a tie at the highest bid
+    const highestBid = validBids[0].newBidAmount!;
+    const tiedBids = validBids.filter(b => b.newBidAmount === highestBid);
+
+    if (tiedBids.length > 1) {
+      console.log(`   ⚖️ Tie detected! ${tiedBids.length} teams bid £${highestBid}`);
+      
+      // We will create a new tiebreaker for the tied teams
+      let newTiebreakerId: number | undefined;
+
+      await prisma.$transaction(async (tx) => {
+        // Mark current as completed with no winner
+        await tx.bulk_tiebreakers.update({
+          where: { id: tiebreakerId },
+          data: {
+            status: 'completed',
+            currentHighestBid: highestBid,
+            currentHighestTeamId: null,
+            teamsRemaining: tiedBids.length
+          }
+        });
+
+        const now = new Date();
+        const maxEndTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        // Create new bulk tiebreaker
+        const newTiebreaker = await tx.bulk_tiebreakers.create({
+          data: {
+            roundId: tiebreaker.roundId,
+            basePlayerId: tiebreaker.basePlayerId,
+            basePrice: highestBid,
+            status: 'active',
+            teamsRemaining: tiedBids.length,
+            startTime: now,
+            maxEndTime: maxEndTime
+          }
+        });
+        newTiebreakerId = newTiebreaker.id;
+
+        // Create participants for the new tiebreaker
+        for (const bid of tiedBids) {
+          await tx.bulk_tiebreaker_participants.create({
+            data: {
+              tiebreakerId: newTiebreaker.id,
+              teamId: bid.teamId,
+              status: 'active',
+              submitted: false
+            }
+          });
+        }
+      });
+
+      console.log(`   ✅ New tiebreaker ${newTiebreakerId} created for the tied teams`);
+      return { 
+        success: true, 
+        error: 'Another tie detected. New tiebreaker created.' 
+      };
+    }
 
     const winner = validBids[0];
     winnerId = winner.teamId;

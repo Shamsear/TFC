@@ -22,6 +22,7 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
   const [knockoutRounds, setKnockoutRounds] = useState<any[]>([])
   const [loadingKnockout, setLoadingKnockout] = useState(false)
   const [activeRoundLimit, setActiveRoundLimit] = useState<string>('All Matchdays')
+  const [activeWeekFilter, setActiveWeekFilter] = useState<string>('All Weeks')
 
   // Dynamic Round Filter options based on all rounds
   const baseRounds = (tournament.matches 
@@ -35,6 +36,22 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
     : []) as string[]
   const roundOptions: string[] = baseRounds.length > 0 ? ['All Matchdays', ...baseRounds] : []
 
+  // Week Filter Options
+  const maxRoundNum = baseRounds.length > 0 ? (() => {
+    const match = baseRounds[baseRounds.length - 1].match(/\d+/)
+    return match ? parseInt(match[0], 10) : 1
+  })() : 0
+
+  const weekOptions = ['All Weeks']
+  if (maxRoundNum > 0) {
+    const totalWeeks = Math.ceil(maxRoundNum / 7)
+    for (let i = 1; i <= totalWeeks; i++) {
+      const start = (i - 1) * 7 + 1
+      const end = i * 7
+      weekOptions.push(`Week ${i} (Round ${start}-${end})`)
+    }
+  }
+
   // Dynamic Round Standings Calculation
   const standingsWithPositions = (() => {
     const standingsData = tournament.standings.map((standing: any) => {
@@ -42,15 +59,28 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
       
       const relevantMatches = tournament.matches.filter((m: any) => {
         if (m.status !== 'COMPLETED' && m.status !== 'WALKOVER') return false
+        
+        const getRoundNum = (name: string) => {
+          const num = name.match(/\d+/)
+          return num ? parseInt(num[0], 10) : 1
+        }
+        const matchRoundNum = getRoundNum(m.round || '')
+
         if (activeRoundLimit !== 'All Matchdays') {
-          const getRoundNum = (name: string) => {
-            const num = name.match(/\d+/)
-            return num ? parseInt(num[0], 10) : 1
-          }
-          const matchRoundNum = getRoundNum(m.round || '')
           const limitRoundNum = getRoundNum(activeRoundLimit)
           if (matchRoundNum > limitRoundNum) return false
         }
+
+        if (activeWeekFilter !== 'All Weeks') {
+          const weekMatch = activeWeekFilter.match(/Week (\d+)/)
+          if (weekMatch) {
+            const weekNum = parseInt(weekMatch[1], 10)
+            const startRound = (weekNum - 1) * 7 + 1
+            const endRound = weekNum * 7
+            if (matchRoundNum < startRound || matchRoundNum > endRound) return false
+          }
+        }
+
         return m.homeTeamId === teamId || m.awayTeamId === teamId
       })
 
@@ -228,23 +258,39 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
         {activeTab === 'standings' && (
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-white/5 border border-white/10 p-4 rounded-xl">
-              {/* Round Filter dropdown */}
-              {roundOptions.length > 0 ? (
-                <div className="flex flex-col">
-                  <label className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-1">Filter Round Limit</label>
-                  <select
-                    value={activeRoundLimit}
-                    onChange={(e) => setActiveRoundLimit(e.target.value)}
-                    className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer w-fit"
-                  >
-                    {roundOptions.map((r: string) => (
-                      <option key={r} value={r}>{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div />
-              )}
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Round Filter dropdown */}
+                {roundOptions.length > 0 && (
+                  <div className="flex flex-col">
+                    <label className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-1">Filter Round Limit</label>
+                    <select
+                      value={activeRoundLimit}
+                      onChange={(e) => setActiveRoundLimit(e.target.value)}
+                      className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer w-fit"
+                    >
+                      {roundOptions.map((r: string) => (
+                        <option key={r} value={r}>{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
+                {/* Week Filter dropdown */}
+                {weekOptions.length > 1 && (
+                  <div className="flex flex-col">
+                    <label className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-1">Filter by Week</label>
+                    <select
+                      value={activeWeekFilter}
+                      onChange={(e) => setActiveWeekFilter(e.target.value)}
+                      className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer w-fit"
+                    >
+                      {weekOptions.map((w: string) => (
+                        <option key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
               <div className="flex justify-end sm:ml-auto">
                 <ShareableAdminStandings
                   standings={standingsWithPositions}

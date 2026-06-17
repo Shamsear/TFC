@@ -153,7 +153,7 @@ export async function POST(
       const playersFromReq = swapRequest.players.filter(p => p.fromTeamId === swapRequest.requestingTeamId);
       const playersFromTgt = swapRequest.players.filter(p => p.fromTeamId === swapRequest.targetTeamId);
       
-      await triggerNews('swap_request_approved', {
+      triggerNews('swap_request_approved', {
         season_id: swapRequest.seasonId,
         season_name: swapRequest.season.name,
         metadata: {
@@ -164,6 +164,8 @@ export async function POST(
           players_out_req: playersFromReq.map(p => p.playerName).join(', '),
           players_in_req: playersFromTgt.map(p => p.playerName).join(', ')
         }
+      }).catch(newsErr => {
+        console.warn('[News AI] Failed to generate swap approval news:', newsErr);
       });
     } catch (newsErr) {
       console.warn('[News AI] Failed to generate swap approval news:', newsErr);

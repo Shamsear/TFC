@@ -79,7 +79,7 @@ export async function POST(
       });
 
       if (fullSwapRequest) {
-        await triggerNews('swap_request_rejected', {
+        triggerNews('swap_request_rejected', {
           season_id: swapRequest.seasonId,
           season_name: fullSwapRequest.season.name,
           metadata: {
@@ -88,6 +88,8 @@ export async function POST(
             player_count: fullSwapRequest.players.length / 2,
             rejection_reason: reason
           }
+        }).catch(newsErr => {
+          console.warn('[News AI] Failed to generate swap rejection news:', newsErr);
         });
       }
     } catch (newsErr) {

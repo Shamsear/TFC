@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { PosterModal } from './SwapReleasePoster'
 
@@ -78,11 +79,30 @@ export default function SwapRequestsAdminClient({
 }: Props) {
   const router = useRouter()
   const [requests, setRequests] = useState(initialRequests)
-  const [teamStats] = useState(initialTeamStats)
+  const [teamStats, setTeamStats] = useState(initialTeamStats)
   const [swapWindows, setSwapWindows] = useState<SwapWindowInfo[]>(initialSwapWindows)
   const [selectedWindowId, setSelectedWindowId] = useState<string>(
     initialSwapWindows.find(w => w.status === 'ACTIVE')?.id || 'ALL'
   )
+
+  useEffect(() => {
+    setRequests(initialRequests)
+  }, [initialRequests])
+
+  useEffect(() => {
+    setTeamStats(initialTeamStats)
+  }, [initialTeamStats])
+
+  useEffect(() => {
+    setSwapWindows(initialSwapWindows)
+  }, [initialSwapWindows])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh()
+    }, 15000) // 15 seconds
+    return () => clearInterval(interval)
+  }, [router])
   const [isTogglingWindow, setIsTogglingWindow] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')

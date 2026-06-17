@@ -317,8 +317,7 @@ export function SwapPoster({
               gap: 10,
               width: '100%',
               maxWidth: 260,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)',
-              backdropFilter: 'blur(8px)'
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)'
             }}>
               {requestingTeamLogo && (
                 <img src={getBustedUrl(requestingTeamLogo)} alt="" crossOrigin="anonymous" style={{ width: 32, height: 32, objectFit: 'contain' }} />
@@ -346,7 +345,7 @@ export function SwapPoster({
               color: '#00e5ff',
               letterSpacing: 2,
               textTransform: 'uppercase',
-              textShadow: '0 0 10px rgba(0,229,255,0.2)'
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
             }}>
               OUTBOUND TRANSFERS
             </div>
@@ -366,8 +365,7 @@ export function SwapPoster({
               marginTop: 10,
               width: '100%',
               maxWidth: 240,
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(4px)'
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}>
               {requestingPlayers.map(p => p.playerName).join(' & ')}
             </div>
@@ -420,8 +418,7 @@ export function SwapPoster({
               gap: 10,
               width: '100%',
               maxWidth: 260,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)',
-              backdropFilter: 'blur(8px)'
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)'
             }}>
               {targetTeamLogo && (
                 <img src={getBustedUrl(targetTeamLogo)} alt="" crossOrigin="anonymous" style={{ width: 32, height: 32, objectFit: 'contain' }} />
@@ -449,7 +446,7 @@ export function SwapPoster({
               color: '#FFB347',
               letterSpacing: 2,
               textTransform: 'uppercase',
-              textShadow: '0 0 10px rgba(255,179,71,0.2)'
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
             }}>
               INBOUND TRANSFERS
             </div>
@@ -469,8 +466,7 @@ export function SwapPoster({
               marginTop: 10,
               width: '100%',
               maxWidth: 240,
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(4px)'
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}>
               {targetPlayers.map(p => p.playerName).join(' & ')}
             </div>
@@ -716,8 +712,7 @@ export function ReleasePoster({
         justifyContent: 'space-between',
         alignItems: 'center',
         zIndex: 2,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(12px)'
+        boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>STATUS REPORT</span>

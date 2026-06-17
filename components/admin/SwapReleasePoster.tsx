@@ -887,6 +887,43 @@ export function PosterModal({
                 </div>
               </div>
             )}
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">WhatsApp Poll Options</span>
+                <button 
+                  onClick={() => {
+                    const text = type === 'swap' 
+                      ? '✅ Approve Swap\n❌ Reject Swap\n⏳ Discuss Further' 
+                      : '✅ Approve Release\n❌ Reject Release';
+                    navigator.clipboard.writeText(text);
+                    alert('Poll options copied! Paste into the first option box in a WhatsApp Poll.');
+                  }}
+                  className="text-[10px] bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded transition-colors"
+                >
+                  Copy Options
+                </button>
+              </div>
+              <div className="bg-[#0a0a0a] rounded-xl p-3 border border-white/5">
+                <p className="text-[10px] text-gray-500 mb-2 leading-relaxed">
+                  WhatsApp tip: Paste a multi-line list into the first poll option box to auto-fill all options instantly.
+                </p>
+                <div className="font-mono text-xs text-gray-300 leading-relaxed">
+                  {type === 'swap' ? (
+                    <>
+                      ✅ Approve Swap<br/>
+                      ❌ Reject Swap<br/>
+                      ⏳ Discuss Further
+                    </>
+                  ) : (
+                    <>
+                      ✅ Approve Release<br/>
+                      ❌ Reject Release
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3 pt-5 border-t border-white/10">

@@ -214,9 +214,20 @@ ${targetAcquires || '_None_'}
       return `${request.requestingTeamName}(${reqNames}) 🔄 ${request.targetTeamName}(${tgtNames})`.substring(0, 100)
     })
 
-    const pollText = options.join('\n')
-    navigator.clipboard.writeText(pollText)
-    alert('Best Swap Deal poll options copied!\n\nPaste this directly into the first option box of a new WhatsApp Poll to auto-fill the options.')
+    if (options.length <= 12) {
+      navigator.clipboard.writeText(options.join('\n'))
+      alert('Best Swap Deal poll options copied!\n\nPaste this directly into the first option box of a new WhatsApp Poll to auto-fill the options.')
+    } else {
+      // Chunk into groups of 12 for WhatsApp
+      const chunks = []
+      for (let i = 0; i < options.length; i += 12) {
+        chunks.push(options.slice(i, i + 12).join('\n'))
+      }
+      
+      const pollText = chunks.map((chunk, index) => `--- POLL PART ${index + 1} ---\n${chunk}`).join('\n\n')
+      navigator.clipboard.writeText(pollText)
+      alert(`You have ${options.length} approved swaps!\n\nWhatsApp only allows a MAXIMUM of 12 options per poll. The swaps have been chunked into ${chunks.length} parts in your clipboard.\n\nYou will need to create ${chunks.length} separate polls in WhatsApp and copy/paste 12 at a time.`)
+    }
   }
 
   const handleApprove = async (request: Request) => {

@@ -85,7 +85,7 @@ export default function TournamentTable({ standings, myTeamId, teamLinkBase = '/
                   const isMe = myTeamId && row.teamId === myTeamId
                   const pos = row.position ?? idx + 1
                   const posColor =
-                    pos === 1 ? 'bg-gradient-to-br from-amber-400 to-[#E8A800] text-black font-black shadow-[0_0_10px_rgba(232,168,0,0.3)] animate-pulse' :
+                    pos === 1 ? 'bg-gradient-to-br from-amber-400 to-[#E8A800] text-black font-black animate-pulse' :
                     pos === 2 ? 'bg-[#C0C0C0] text-black font-black' :
                     pos === 3 ? 'bg-[#CD7F32] text-white font-black' :
                     'bg-white/5 text-gray-500 font-bold'

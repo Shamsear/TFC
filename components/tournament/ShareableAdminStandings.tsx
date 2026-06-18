@@ -45,9 +45,9 @@ function AdminTableSnapshot({
       : { Overall: standings }
 
   const posStyle = (idx: number) =>
-    idx === 0 ? { background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(255,215,0,0.4)' } :
-    idx === 1 ? { background: 'linear-gradient(135deg, #E0E0E0, #9E9E9E)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(192,192,192,0.3)' } :
-    idx === 2 ? { background: 'linear-gradient(135deg, #CD7F32, #8B4513)', color: '#0a0a0a', boxShadow: '0 2px 8px rgba(205,127,50,0.3)' } :
+    idx === 0 ? { background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#0a0a0a' } :
+    idx === 1 ? { background: 'linear-gradient(135deg, #E0E0E0, #9E9E9E)', color: '#0a0a0a' } :
+    idx === 2 ? { background: 'linear-gradient(135deg, #CD7F32, #8B4513)', color: '#0a0a0a' } :
     { background: 'rgba(255,255,255,0.06)', color: '#A0988A' }
 
   return (

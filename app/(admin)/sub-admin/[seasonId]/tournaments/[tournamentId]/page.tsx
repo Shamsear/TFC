@@ -203,6 +203,24 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
 
             <div className="flex gap-2">
               <Link
+                href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/edit`}
+                className="flex items-center justify-center px-4 sm:px-5 py-2.5 sm:py-3 bg-white/10 hover:bg-white/15 text-white border border-white/10 rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span>Edit Tournament</span>
+              </Link>
+              <Link
+                href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/links`}
+                className="flex items-center justify-center px-4 sm:px-5 py-2.5 sm:py-3 bg-white/10 hover:bg-white/15 text-white border border-white/10 rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>Manage Links</span>
+              </Link>
+              <Link
                 href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/fixtures/new`}
                 className="flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base whitespace-nowrap"
               >

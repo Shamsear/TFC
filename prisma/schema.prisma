@@ -83,6 +83,7 @@ model season_teams {
   tournamentTeams    tournament_teams[] @relation("TournamentTeams")
   transfer_history   transfer_history[]
   teamAwards         team_awards[]
+  qualifications      tournament_team_qualifications[] @relation("TeamQualifications")
 
   @@unique([seasonId, teamId])
 }
@@ -507,6 +508,18 @@ model tournaments {
   tournamentTeams tournament_teams[]
   season          seasons            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   teamAwards      team_awards[]
+  
+  // NEW FIELDS
+  isLinked             Boolean                        @default(false)
+  requiresQualification Boolean                       @default(false)
+  qualificationStatus  TournamentQualificationStatus  @default(COMPLETE)
+  expectedTeams        Int?
+  
+  // NEW RELATIONS
+  outgoingLinks        tournament_links[]             @relation("SourceTournament")
+  incomingLinks        tournament_links[]             @relation("TargetTournament")
+  qualificationsFrom   tournament_team_qualifications[] @relation("SourceTournamentQualifications")
+  qualificationsTo     tournament_team_qualifications[] @relation("TargetTournamentQualifications")
 
   @@unique([seasonId, name])
 }
@@ -1200,4 +1213,76 @@ model team_awards {
 enum TeamAwardType {
   TEAM_OF_THE_DAY
   TEAM_OF_THE_WEEK
+}
+
+model tournament_links {
+  id                   String                         @id
+  sourceTournamentId   String                         @map("source_tournament_id")
+  targetTournamentId   String                         @map("target_tournament_id")
+  linkType             TournamentLinkType
+  qualificationConfig  Json                           @map("qualification_config")
+  status               TournamentLinkStatus           @default(PENDING)
+  teamsPopulated       Boolean                        @default(false) @map("teams_populated")
+  populatedAt          DateTime?                      @map("populated_at")
+  createdAt            DateTime                       @default(now()) @map("created_at")
+  updatedAt            DateTime                       @updatedAt @map("updated_at")
+  
+  sourceTournament     tournaments                    @relation("SourceTournament", fields: [sourceTournamentId], references: [id], onDelete: Cascade)
+  targetTournament     tournaments                    @relation("TargetTournament", fields: [targetTournamentId], references: [id], onDelete: Cascade)
+  qualifications       tournament_team_qualifications[]
+  
+  @@unique([sourceTournamentId, targetTournamentId])
+  @@index([sourceTournamentId])
+  @@index([targetTournamentId])
+  @@index([status])
+}
+
+model tournament_team_qualifications {
+  id                   String          @id
+  tournamentLinkId     String          @map("tournament_link_id")
+  seasonTeamId         String          @map("season_team_id")
+  sourceTournamentId   String          @map("source_tournament_id")
+  targetTournamentId   String          @map("target_tournament_id")
+  qualificationPosition Int?           @map("qualification_position")
+  groupName            String?         @map("group_name")
+  qualifiedAt          DateTime        @default(now()) @map("qualified_at")
+  confirmedAt          DateTime?       @map("confirmed_at")
+  slotNumber           Int?            @map("slot_number")
+  status               String          @default("PROVISIONAL")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  
+  tournamentLink       tournament_links @relation(fields: [tournamentLinkId], references: [id], onDelete: Cascade)
+  seasonTeam           season_teams     @relation("TeamQualifications", fields: [seasonTeamId], references: [id], onDelete: Cascade)
+  sourceTournament     tournaments      @relation("SourceTournamentQualifications", fields: [sourceTournamentId], references: [id], onDelete: Cascade)
+  targetTournament     tournaments      @relation("TargetTournamentQualifications", fields: [targetTournamentId], references: [id], onDelete: Cascade)
+  
+  @@unique([tournamentLinkId, seasonTeamId])
+  @@index([tournamentLinkId])
+  @@index([seasonTeamId])
+  @@index([sourceTournamentId])
+  @@index([targetTournamentId])
+}
+
+// NEW ENUMS
+enum TournamentLinkType {
+  TOP_N
+  BOTTOM_N
+  POSITION_RANGE
+  WINNER
+  RUNNER_UP
+  GROUP_POSITION
+  MULTIPLE_POSITIONS_PER_GROUP
+}
+
+enum TournamentLinkStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+enum TournamentQualificationStatus {
+  PENDING
+  PARTIAL
+  COMPLETE
 }

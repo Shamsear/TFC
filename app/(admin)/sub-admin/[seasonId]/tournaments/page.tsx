@@ -65,6 +65,15 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
             select: {
               matches: true
             }
+          },
+          outgoingLinks: {
+            include: {
+              targetTournament: {
+                select: {
+                  name: true
+                }
+              }
+            }
           }
         },
         orderBy: {
@@ -162,7 +171,43 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
                     </div>
 
                     {tournament.description && (
-                      <div className="text-sm text-[#D4CCBB] mb-4 line-clamp-2">{tournament.description}</div>
+                      <div className="text-sm text-[#D4CCBB] mb-3 line-clamp-2">{tournament.description}</div>
+                    )}
+
+                    {/* Linked Tournaments Status */}
+                    {tournament.outgoingLinks && tournament.outgoingLinks.length > 0 && (
+                      <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/5 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-[#E8A800] mb-2">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                          <span>Linked to Target:</span>
+                        </div>
+                        <ul className="space-y-1.5 text-[#D4CCBB]">
+                          {tournament.outgoingLinks.map((link: any) => {
+                            const config = link.qualificationConfig as any;
+                            let label = '';
+                            if (link.linkType === 'TOP_N') label = `Top ${config.count}`;
+                            else if (link.linkType === 'BOTTOM_N') label = `Bottom ${config.count}`;
+                            else if (link.linkType === 'POSITION_RANGE') label = `Positions ${config.startPosition}-${config.endPosition}`;
+                            else if (link.linkType === 'WINNER') label = 'Winner Only';
+                            else if (link.linkType === 'RUNNER_UP') label = 'Runner-up Only';
+                            else if (link.linkType === 'GROUP_POSITION') label = `Pos ${config.position} from Groups`;
+                            else if (link.linkType === 'MULTIPLE_POSITIONS_PER_GROUP') label = `Pos ${config.positionsPerGroup?.join(', ')} from Groups`;
+                            
+                            return (
+                              <li key={link.id} className="flex items-center justify-between gap-2 border-b border-white/5 pb-1 last:border-0 last:pb-0">
+                                <span className="font-semibold truncate text-[#fff]">
+                                  {link.targetTournament?.name}
+                                </span>
+                                <span className="text-[10px] px-2 py-0.5 rounded bg-[#E8A800]/10 text-[#E8A800] border border-[#E8A800]/20 whitespace-nowrap">
+                                  {label}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">

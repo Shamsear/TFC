@@ -333,54 +333,8 @@ export async function PATCH(
         // Tournament Linking System check
         const runTournamentLinking = async () => {
           try {
-            const allMatches = await prisma.matches.findMany({
-              where: { tournamentId },
-              select: { status: true }
-            })
-            
-            const isTournamentFinished = allMatches.length > 0 && allMatches.every(
-              m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
-            )
-            
-            const tournamentBefore = await prisma.tournaments.findUnique({
-              where: { id: tournamentId },
-              select: { status: true }
-            })
-            
-            if (isTournamentFinished) {
-              if (tournamentBefore && tournamentBefore.status !== 'COMPLETED') {
-                await prisma.tournaments.update({
-                  where: { id: tournamentId },
-                  data: { status: 'COMPLETED', updatedAt: new Date() }
-                })
-                
-                // Auto populate all outgoing links
-                const outgoingLinks = await prisma.tournament_links.findMany({
-                  where: { sourceTournamentId: tournamentId }
-                })
-                const { populateTournamentLink } = require('@/lib/tournament-linking')
-                for (const link of outgoingLinks) {
-                  await populateTournamentLink(link.id).catch((err: any) => 
-                    console.error(`Failed to auto-populate link ${link.id} on complete:`, err)
-                  )
-                }
-              }
-            } else {
-              // If any match is COMPLETED/LIVE/WALKOVER, update status to IN_PROGRESS (if it is currently UPCOMING)
-              if (tournamentBefore && tournamentBefore.status === 'UPCOMING') {
-                const hasStarted = allMatches.some(m => ['LIVE', 'COMPLETED', 'WALKOVER'].includes(m.status))
-                if (hasStarted) {
-                  await prisma.tournaments.update({
-                    where: { id: tournamentId },
-                    data: { status: 'IN_PROGRESS', updatedAt: new Date() }
-                  })
-                }
-              }
-              
-              // Run progressive confirmation population
-              const { checkAndPopulateConfirmedTeams } = require('@/lib/tournament-linking')
-              await checkAndPopulateConfirmedTeams(tournamentId)
-            }
+            const { runTournamentStatusUpdate } = require('@/lib/tournament-linking')
+            await runTournamentStatusUpdate(tournamentId)
           } catch (err) {
             console.error('[Linking] Background check failed:', err)
           }

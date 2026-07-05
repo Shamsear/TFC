@@ -106,6 +106,14 @@ export async function POST(
       console.warn('Failed to notify admins for round stop:', err)
     }
 
+    // Check if tournament is finished after closing matches
+    try {
+      const { runTournamentStatusUpdate } = require('@/lib/tournament-linking')
+      await runTournamentStatusUpdate(tournamentId)
+    } catch (err) {
+      console.error('Failed to run tournament status update on round stop:', err)
+    }
+
     return NextResponse.json({ success: true, updatedMatches: matchesInRound.length })
   } catch (error: any) {
     console.error('Error stopping round:', error)

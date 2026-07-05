@@ -38,6 +38,13 @@ export default function TournamentFormAdvanced({ seasonId, teams, initialTournam
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const hasExistingData = !!(
+    initialTournament &&
+    ((initialTournament.standings?.length || 0) > 0 ||
+      (initialTournament.groups?.length || 0) > 0 ||
+      (initialTournament._count?.matches || 0) > 0)
+  )
   
   const [formData, setFormData] = useState({
     name: '',
@@ -174,6 +181,16 @@ export default function TournamentFormAdvanced({ seasonId, teams, initialTournam
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    if (hasExistingData) {
+      const confirmed = window.confirm(
+        "WARNING: This tournament already contains matches, standings, or groups. Saving changes will COMPLETELY DELETE all current matches, standings, groups, and knockout rounds. This action is permanent and cannot be undone.\n\nAre you sure you want to proceed?"
+      )
+      if (!confirmed) {
+        setLoading(false)
+        return
+      }
+    }
 
     let qualificationConfig: any = null
 
@@ -1102,6 +1119,21 @@ export default function TournamentFormAdvanced({ seasonId, teams, initialTournam
           </div>
         )}
       </div>
+      )}
+
+      {/* Warning callout for data reset */}
+      {hasExistingData && (
+        <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 p-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 className="text-sm font-black text-yellow-500 uppercase tracking-wider mb-1">Warning: Data Reset</h4>
+            <p className="text-xs text-[#D4CCBB] leading-relaxed font-bold">
+              This tournament already contains matches, standings, or groups. Saving changes will <span className="text-yellow-500">completely delete</span> all current matches, standings, groups, and knockout rounds to rebuild the tournament fresh under the new configuration. This action is permanent and cannot be undone.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Submit */}

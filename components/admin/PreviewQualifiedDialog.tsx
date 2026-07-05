@@ -310,9 +310,19 @@ export default function PreviewQualifiedDialog({
               </div>
             )}
 
+            {/* Note about resetting population to apply exclusions */}
+            {(data?.summary?.alreadyPopulated > 0 || data?.summary?.targetTeamsCount > 0) && (
+              <div className="mt-4 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
+                <span className="flex-shrink-0">💡</span>
+                <span>
+                  This tournament is currently populated. To apply changes to exclusions, click <strong>Clear Populated Teams</strong> first, then re-populate.
+                </span>
+              </div>
+            )}
+
             {/* Manual Trigger Section */}
             <div className="flex flex-col sm:flex-row gap-2 justify-between border-t border-white/10 pt-4 mt-6">
-              {data?.summary?.alreadyPopulated > 0 && (
+              {(data?.summary?.alreadyPopulated > 0 || data?.summary?.targetTeamsCount > 0) && (
                 <button
                   type="button"
                   onClick={handleClear}

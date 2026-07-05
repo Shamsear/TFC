@@ -15,15 +15,65 @@ export interface ConfirmedTeam {
   confirmedAt: Date;
 }
 
+function getLinkPriority(linkType: string, config: any): number {
+  const type = linkType
+  const cfg = config || {}
+  if (type === 'POSITION_RANGE') {
+    return Number(cfg.startPosition) || 1
+  }
+  if (type === 'RUNNER_UP') {
+    return 2
+  }
+  if (type === 'GROUP_POSITION') {
+    return Number(cfg.position) || 1
+  }
+  if (type === 'MULTIPLE_POSITIONS_PER_GROUP') {
+    const positions = cfg.positionsPerGroup || []
+    return positions.length > 0 ? Math.min(...positions) : 1
+  }
+  return 1
+}
+
 /**
  * Resolves qualified teams from a source tournament based on standings and link configurations
  */
 export async function getQualifiedTeams(
   tournamentId: string,
   linkType: string,
-  config: any
+  config: any,
+  linkId?: string
 ): Promise<QualifiedTeam[]> {
   const excludeTeamIds = new Set<string>(config?.excludeTeamIds || []);
+  const takenTeamIds = new Set<string>()
+
+  // If linkId is provided, resolve sister links of higher priority to exclude their qualified teams
+  if (linkId) {
+    const sisterLinks = await prisma.tournament_links.findMany({
+      where: {
+        sourceTournamentId: tournamentId,
+        status: 'ACTIVE'
+      }
+    })
+
+    const currentPriority = getLinkPriority(linkType, config)
+    const higherPriorityLinks = sisterLinks.filter(l => {
+      if (l.id === linkId) return false
+      const p = getLinkPriority(l.linkType, l.qualificationConfig)
+      return p < currentPriority
+    })
+
+    for (const hl of higherPriorityLinks) {
+      const hlTeams = await getQualifiedTeams(
+        tournamentId,
+        hl.linkType,
+        hl.qualificationConfig,
+        hl.id
+      )
+      for (const t of hlTeams) {
+        takenTeamIds.add(t.seasonTeamId)
+      }
+    }
+  }
 
   const rawStandings = await prisma.standings.findMany({
     where: { tournamentId },
@@ -44,9 +94,11 @@ export async function getQualifiedTeams(
     ]
   });
 
-  const standings = excludeTeamIds.size > 0
-    ? rawStandings.filter(s => !excludeTeamIds.has(s.teamId))
-    : rawStandings;
+  const standings = rawStandings.filter(s => {
+    if (excludeTeamIds.has(s.teamId)) return false
+    if (takenTeamIds.has(s.teamId)) return false
+    return true
+  })
 
   switch (linkType) {
     case 'TOP_N': {
@@ -165,7 +217,9 @@ export async function getQualifiedTeams(
         const teams: QualifiedTeam[] = [];
         let globalIndex = 0;
         for (const [gName, groupStandings] of Object.entries(groups)) {
-          const rangeTeams = groupStandings.slice(start - 1, end);
+          const sliceStart = takenTeamIds.size > 0 ? 0 : (start - 1);
+          const sliceEnd = takenTeamIds.size > 0 ? (end - start + 1) : end;
+          const rangeTeams = groupStandings.slice(sliceStart, sliceEnd);
           rangeTeams.forEach((s, idx) => {
             teams.push({
               seasonTeamId: s.teamId,
@@ -184,7 +238,9 @@ export async function getQualifiedTeams(
           return b.goalsFor - a.goalsFor;
         });
 
-        const rangeTeams = overallStandings.slice(start - 1, end);
+        const sliceStart = takenTeamIds.size > 0 ? 0 : (start - 1);
+        const sliceEnd = takenTeamIds.size > 0 ? (end - start + 1) : end;
+        const rangeTeams = overallStandings.slice(sliceStart, sliceEnd);
         return rangeTeams.map((s, idx) => {
           const pos = start + idx;
           return {
@@ -311,6 +367,34 @@ export async function checkGuaranteedQualifications(
 
   const config = link.qualificationConfig as any;
   const excludeTeamIds = new Set<string>(config?.excludeTeamIds || []);
+  const takenTeamIds = new Set<string>()
+
+  // Resolve sister links of higher priority to exclude their qualified teams
+  const sisterLinks = await prisma.tournament_links.findMany({
+    where: {
+      sourceTournamentId: tournamentId,
+      status: 'ACTIVE'
+    }
+  })
+
+  const currentPriority = getLinkPriority(link.linkType, link.qualificationConfig)
+  const higherPriorityLinks = sisterLinks.filter(l => {
+    if (l.id === linkId) return false
+    const p = getLinkPriority(l.linkType, l.qualificationConfig)
+    return p < currentPriority
+  })
+
+  for (const hl of higherPriorityLinks) {
+    const hlTeams = await getQualifiedTeams(
+      tournamentId,
+      hl.linkType,
+      hl.qualificationConfig,
+      hl.id
+    )
+    for (const t of hlTeams) {
+      takenTeamIds.add(t.seasonTeamId)
+    }
+  }
 
   const rawStandings = await prisma.standings.findMany({
     where: { tournamentId },
@@ -328,9 +412,11 @@ export async function checkGuaranteedQualifications(
     ]
   });
 
-  const standings = excludeTeamIds.size > 0
-    ? rawStandings.filter(s => !excludeTeamIds.has(s.teamId))
-    : rawStandings;
+  const standings = rawStandings.filter(s => {
+    if (excludeTeamIds.has(s.teamId)) return false
+    if (takenTeamIds.has(s.teamId)) return false
+    return true
+  });
 
   const matches = await prisma.matches.findMany({
     where: {
@@ -943,7 +1029,8 @@ export async function populateTournamentLink(
   const qualifiedTeams = await getQualifiedTeams(
     link.sourceTournamentId,
     link.linkType,
-    link.qualificationConfig
+    link.qualificationConfig,
+    link.id
   );
 
   // 2. Get already populated teams
@@ -1077,35 +1164,23 @@ export async function clearPopulatedTeams(linkId: string) {
   });
   if (!link) throw new Error('Tournament link not found');
 
-  const qualifications = await prisma.tournament_team_qualifications.findMany({
-    where: { tournamentLinkId: linkId }
-  });
-  const seasonTeamIds = qualifications.map(q => q.seasonTeamId);
+  // Delete all standings, tournament_teams, and qualifications for this target tournament/link
+  await prisma.$transaction([
+    // 1. Delete all standings in the target tournament
+    prisma.standings.deleteMany({
+      where: { tournamentId: link.targetTournamentId }
+    }),
+    // 2. Delete all tournament_teams in the target tournament
+    prisma.tournament_teams.deleteMany({
+      where: { tournamentId: link.targetTournamentId }
+    }),
+    // 3. Delete all qualification records for this link
+    prisma.tournament_team_qualifications.deleteMany({
+      where: { tournamentLinkId: linkId }
+    })
+  ]);
 
-  if (seasonTeamIds.length > 0) {
-    await prisma.$transaction([
-      // 1. Delete standings entries in target tournament
-      prisma.standings.deleteMany({
-        where: {
-          tournamentId: link.targetTournamentId,
-          teamId: { in: seasonTeamIds }
-        }
-      }),
-      // 2. Delete entries in tournament_teams in target tournament
-      prisma.tournament_teams.deleteMany({
-        where: {
-          tournamentId: link.targetTournamentId,
-          teamId: { in: seasonTeamIds }
-        }
-      }),
-      // 3. Delete qualification records
-      prisma.tournament_team_qualifications.deleteMany({
-        where: { tournamentLinkId: linkId }
-      })
-    ]);
-  }
-
-  // 4. Reset link status to ACTIVE or PENDING
+  // 4. Reset link status
   await prisma.tournament_links.update({
     where: { id: linkId },
     data: {
@@ -1115,12 +1190,16 @@ export async function clearPopulatedTeams(linkId: string) {
     }
   });
 
-  // 5. Update target tournament qualificationStatus
-  await updateTournamentQualificationStatus(link.targetTournamentId);
+  // 5. Update target tournament qualificationStatus to PENDING
+  await prisma.tournaments.update({
+    where: { id: link.targetTournamentId },
+    data: {
+      qualificationStatus: 'PENDING'
+    }
+  });
 
   return {
-    success: true,
-    clearedCount: seasonTeamIds.length
+    success: true
   };
 }
 

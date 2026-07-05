@@ -79,7 +79,13 @@ export async function PUT(
     const groupIds = groupCount > 0 ? await generateIds(ID_PREFIXES.GROUP, groupCount) : []
 
     const updatedTournament = await prisma.$transaction(async (tx) => {
-      // 1. Update basic tournament fields
+      // 1. Delete all current matches, standings, groups, and knockout rounds to wipe existing layout
+      await tx.matches.deleteMany({ where: { tournamentId } })
+      await tx.standings.deleteMany({ where: { tournamentId } })
+      await tx.groups.deleteMany({ where: { tournamentId } })
+      await tx.knockout_rounds.deleteMany({ where: { tournamentId } })
+
+      // 2. Update basic tournament fields
       const tourn = await tx.tournaments.update({
         where: { id: tournamentId },
         data: {
@@ -119,53 +125,30 @@ export async function PUT(
         }
       })
 
-      // 2. Manage groups
-      // Recreate groups if numGroups/type changed
-      if (tournamentType === 'GROUP_KNOCKOUT') {
-        // Only delete and recreate groups if the count changed or there were no groups
-        if (existingTournament.groups.length !== groupCount) {
-          await tx.groups.deleteMany({ where: { tournamentId } })
-          const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
-          await tx.groups.createMany({
-            data: groupIds.map((groupId, i) => ({
-              id: groupId,
-              tournamentId,
-              name: `Group ${groupNames[i]}`,
-              groupOrder: i,
-              updatedAt: new Date()
-            }))
-          })
-        }
-      } else {
-        // Delete all groups if not group type
-        await tx.groups.deleteMany({ where: { tournamentId } })
+      // 3. Recreate groups if GROUP_KNOCKOUT type
+      if (tournamentType === 'GROUP_KNOCKOUT' && groupCount > 0) {
+        const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        await tx.groups.createMany({
+          data: groupIds.map((groupId, i) => ({
+            id: groupId,
+            tournamentId,
+            name: `Group ${groupNames[i]}`,
+            groupOrder: i,
+            updatedAt: new Date()
+          }))
+        })
       }
 
-      // 3. Manage standings (manual vs linked)
+      // 4. Manage standings & incoming links (manual vs linked)
       if (!linked) {
         // Remove incoming link if any
         await tx.tournament_links.deleteMany({ where: { targetTournamentId: tournamentId } })
 
-        // Update standings: add new ones, remove unused ones
-        const currentTeamIds = new Set(existingTournament.standings.map(s => s.teamId))
-        const newTeamIds = new Set(selectedTeams as string[])
-
-        const teamsToAdd = (selectedTeams as string[]).filter(id => !currentTeamIds.has(id))
-        const teamsToRemove = existingTournament.standings.filter(s => !newTeamIds.has(s.teamId)).map(s => s.teamId)
-
-        if (teamsToRemove.length > 0) {
-          await tx.standings.deleteMany({
-            where: {
-              tournamentId,
-              teamId: { in: teamsToRemove }
-            }
-          })
-        }
-
-        if (teamsToAdd.length > 0) {
-          const standingIds = await generateIds(ID_PREFIXES.STANDING, teamsToAdd.length)
+        // Create fresh standings for the manually selected teams
+        if (selectedTeams && selectedTeams.length > 0) {
+          const standingIds = await generateIds(ID_PREFIXES.STANDING, selectedTeams.length)
           await tx.standings.createMany({
-            data: teamsToAdd.map((teamId, i) => ({
+            data: selectedTeams.map((teamId: string, i: number) => ({
               id: standingIds[i],
               tournamentId,
               teamId,
@@ -174,12 +157,13 @@ export async function PUT(
           })
         }
       } else {
-        // Delete all manual standings if transitioning to linked
-        await tx.standings.deleteMany({ where: { tournamentId } })
-
-        // Create or update incoming link
+        // Wipe qualifications for the link to trigger fresh calculations
         const existingLink = existingTournament.incomingLinks[0]
         if (existingLink) {
+          await tx.tournament_team_qualifications.deleteMany({
+            where: { tournamentLinkId: existingLink.id }
+          })
+
           await tx.tournament_links.update({
             where: { id: existingLink.id },
             data: {

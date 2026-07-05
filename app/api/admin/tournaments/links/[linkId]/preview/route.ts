@@ -31,7 +31,8 @@ export async function GET(
     const qualifiedTeams = await getQualifiedTeams(
       link.sourceTournamentId,
       link.linkType,
-      link.qualificationConfig
+      link.qualificationConfig,
+      link.id
     )
 
     // 2. Check which ones are mathematically confirmed
@@ -120,6 +121,10 @@ export async function GET(
       })
     }
 
+    const targetTeamsCount = await prisma.tournament_teams.count({
+      where: { tournamentId: link.targetTournamentId }
+    })
+
     return NextResponse.json({
       link,
       preview,
@@ -129,7 +134,8 @@ export async function GET(
         confirmed: confirmedTeams.length,
         provisional: preview.length - confirmedTeams.length,
         alreadyPopulated: alreadyPopulated.length,
-        excluded: excluded.length
+        excluded: excluded.length,
+        targetTeamsCount
       }
     })
   } catch (error: any) {

@@ -24,7 +24,12 @@ export default async function EditTournamentPage({ params }: EditTournamentPageP
     include: {
       standings: true,
       groups: true,
-      incomingLinks: true
+      incomingLinks: true,
+      _count: {
+        select: {
+          matches: true
+        }
+      }
     }
   })
 

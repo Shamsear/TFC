@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
-import EditTournamentForm from '@/components/tournament/EditTournamentForm'
+import TournamentFormAdvanced from '@/components/tournament/TournamentFormAdvanced'
 
 interface EditTournamentPageProps {
   params: Promise<{
@@ -20,12 +20,32 @@ export default async function EditTournamentPage({ params }: EditTournamentPageP
   const { seasonId, tournamentId } = await params
 
   const tournament = await prisma.tournaments.findUnique({
-    where: { id: tournamentId }
+    where: { id: tournamentId },
+    include: {
+      standings: true,
+      groups: true,
+      incomingLinks: true
+    }
   })
 
   if (!tournament || tournament.seasonId !== seasonId) {
     notFound()
   }
+
+  // Get all season teams for team selection grid
+  const seasonTeams = await prisma.season_teams.findMany({
+    where: { seasonId },
+    include: {
+      team: true
+    }
+  })
+
+  const teams = seasonTeams.map(st => ({
+    id: st.id,
+    teamId: st.team.id,
+    name: st.team.name,
+    logoUrl: st.team.logoUrl || ''
+  }))
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -44,7 +64,11 @@ export default async function EditTournamentPage({ params }: EditTournamentPageP
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <EditTournamentForm seasonId={seasonId} tournament={tournament} />
+        <TournamentFormAdvanced 
+          seasonId={seasonId} 
+          teams={teams} 
+          initialTournament={tournament} 
+        />
       </div>
     </div>
   )

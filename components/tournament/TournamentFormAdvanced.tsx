@@ -15,6 +15,7 @@ interface Team {
 interface TournamentFormAdvancedProps {
   seasonId: string
   teams: Team[]
+  initialTournament?: any
 }
 
 const tournamentTypes = [
@@ -33,7 +34,7 @@ const knockoutRoundOptions = [
   { value: 'FINAL', label: 'Final', teams: 2 },
 ]
 
-export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFormAdvancedProps) {
+export default function TournamentFormAdvanced({ seasonId, teams, initialTournament }: TournamentFormAdvancedProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -44,6 +45,7 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
     startDate: '',
     endDate: '',
     description: '',
+    status: 'UPCOMING',
     selectedTeams: [] as string[],
     
     // League settings
@@ -57,17 +59,17 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
     
     // Knockout settings
     knockoutLegs: 2, // 1 or 2 per round (can be customized per round later)
-
+ 
     // Custom Knockout settings
     qualifyingTeams: 4,    // how many teams enter the knockout
     qualifyingRound: 'SEMI_FINAL', // which round they start from
-
+ 
     // Linking settings
     isLinkedTournament: false,
     linkSourceTournamentId: '',
     linkType: 'TOP_N'
   })
-
+ 
   const [seasonTournaments, setSeasonTournaments] = useState<any[]>([])
   
   // Linking configuration sub-states
@@ -83,7 +85,76 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
   const [linkPositionsPerGroupText, setLinkPositionsPerGroupText] = useState('1, 2')
   const [linkMultipleGroupsText, setLinkMultipleGroupsText] = useState('Group A, Group B')
   const [linkMultipleSeedMappingText, setLinkMultipleSeedMappingText] = useState('')
-
+ 
+  useEffect(() => {
+    if (initialTournament) {
+      const tourn = initialTournament
+      const isLinked = tourn.requiresQualification && tourn.incomingLinks && tourn.incomingLinks.length > 0
+      const link = isLinked ? tourn.incomingLinks[0] : null
+      const config = link?.qualificationConfig as any || {}
+      
+      const formatDateForInput = (date: any) => {
+        if (!date) return ''
+        const d = new Date(date)
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+ 
+      let kConfig: any = {}
+      try {
+        kConfig = tourn.knockoutConfig ? JSON.parse(tourn.knockoutConfig) : {}
+      } catch (e) {
+        console.error('Error parsing knockout config:', e)
+      }
+ 
+      setFormData({
+        name: tourn.name || '',
+        tournamentType: tourn.tournamentType || 'LEAGUE_ONLY',
+        startDate: formatDateForInput(tourn.startDate),
+        endDate: formatDateForInput(tourn.endDate),
+        description: tourn.description || '',
+        status: tourn.status || 'UPCOMING',
+        selectedTeams: tourn.standings?.map((s: any) => s.teamId) || [],
+        leagueLegs: tourn.leagueLegs || 2,
+        playoffFormat: tourn.playoffFormat || 'TOP_4_SEMI',
+        numGroups: tourn.groups?.length || 2,
+        groupLegs: tourn.groupLegs || 2,
+        groupQualifiers: tourn.groupQualifiers || 2,
+        knockoutLegs: kConfig.defaultLegs || 2,
+        qualifyingTeams: kConfig.qualifyingTeams || 4,
+        qualifyingRound: kConfig.qualifyingRound || 'SEMI_FINAL',
+        isLinkedTournament: isLinked,
+        linkSourceTournamentId: link?.sourceTournamentId || '',
+        linkType: link?.linkType || 'TOP_N'
+      })
+ 
+      if (link) {
+        const type = link.linkType
+        if (type === 'TOP_N' || type === 'BOTTOM_N') {
+          setLinkCount(config.count || 8)
+          setLinkGroupBy(config.groupBy || null)
+          setLinkSeedMappingText(config.seedMapping ? config.seedMapping.join(', ') : '')
+        } else if (type === 'POSITION_RANGE') {
+          setLinkStartPosition(config.startPosition || 2)
+          setLinkEndPosition(config.endPosition || 5)
+          setLinkGroupBy(config.groupBy || null)
+        } else if (type === 'WINNER' || type === 'RUNNER_UP') {
+          setLinkSlotNumber(config.slotNumber || 1)
+        } else if (type === 'GROUP_POSITION') {
+          setLinkPosition(config.position || 1)
+          setLinkGroupNamesText(config.groupNames ? config.groupNames.join(', ') : '')
+          setLinkGroupSeedMappingText(config.seedMapping ? Object.entries(config.seedMapping).map(([k, v]) => `${k}:${v}`).join(', ') : '')
+        } else if (type === 'MULTIPLE_POSITIONS_PER_GROUP') {
+          setLinkPositionsPerGroupText(config.positionsPerGroup ? config.positionsPerGroup.join(', ') : '')
+          setLinkMultipleGroupsText(config.groupNames ? config.groupNames.join(', ') : '')
+          setLinkMultipleSeedMappingText(config.seedMapping ? config.seedMapping.join(', ') : '')
+        }
+      }
+    }
+  }, [initialTournament])
+ 
   useEffect(() => {
     fetch(`/api/seasons/${seasonId}/tournaments`)
       .then(res => res.json())
@@ -157,8 +228,14 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
     }
 
     try {
-      const response = await fetch(`/api/seasons/${seasonId}/tournaments`, {
-        method: 'POST',
+      const isEdit = !!initialTournament
+      const url = isEdit
+        ? `/api/seasons/${seasonId}/tournaments/${initialTournament.id}`
+        : `/api/seasons/${seasonId}/tournaments`
+      const method = isEdit ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -168,11 +245,12 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to create tournament')
+        throw new Error(data.error || `Failed to ${isEdit ? 'update' : 'create'} tournament`)
       }
 
       const tournament = await response.json()
       router.push(`/sub-admin/${seasonId}/tournaments/${tournament.id}`)
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
       setLoading(false)
@@ -271,6 +349,25 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
               />
             </div>
           </div>
+
+          {/* Only show status selector when editing */}
+          {!!initialTournament && (
+            <div>
+              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                Tournament Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/30 border border-white/10 rounded-lg sm:rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent text-sm sm:text-base font-bold cursor-pointer"
+              >
+                <option value="UPCOMING">UPCOMING</option>
+                <option value="IN_PROGRESS">IN PROGRESS</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1022,7 +1119,7 @@ export default function TournamentFormAdvanced({ seasonId, teams }: TournamentFo
           className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base flex items-center justify-center gap-2"
         >
           {loading && <LoadingSpinner size="sm" />}
-          {loading ? 'Creating...' : 'Create Tournament'}
+          {loading ? (!!initialTournament ? 'Saving Changes...' : 'Creating...') : (!!initialTournament ? 'Save Changes' : 'Create Tournament')}
         </button>
       </div>
     </form>

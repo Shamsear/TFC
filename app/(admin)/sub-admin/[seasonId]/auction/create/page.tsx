@@ -121,36 +121,28 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
   const nextRoundNumber = latestRound ? latestRound.roundNumber + 1 : 1
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                Create Auction Round
-              </span>
-            </h1>
-            <p className="text-[#D4CCBB] text-sm sm:text-base">
-              {season.name} — Set up a new bidding round from auction calendar
-            </p>
-          </div>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Create Auction Round
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          {season.name} — Set up a new bidding round from auction calendar
+        </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <CreateRoundClient
-          seasonId={seasonId}
-          availablePlayers={transformedPlayers}
-          teams={seasonTeams.map(st => st.team)}
-          auctionCalendar={auctionCalendar}
-          nextRoundNumber={nextRoundNumber}
-          seasonDefaults={{
-            maxBidsPerTeam: season.defaultMaxBidsPerTeam || seasonTeams.length,
-            basePrice: season.defaultBasePrice || 100000
-          }}
-        />
-      </div>
+      <CreateRoundClient
+        seasonId={seasonId}
+        availablePlayers={transformedPlayers}
+        teams={seasonTeams.map(st => st.team)}
+        auctionCalendar={auctionCalendar}
+        nextRoundNumber={nextRoundNumber}
+        seasonDefaults={{
+          maxBidsPerTeam: season.defaultMaxBidsPerTeam || seasonTeams.length,
+          basePrice: season.defaultBasePrice || 100000
+        }}
+      />
     </div>
   )
 }

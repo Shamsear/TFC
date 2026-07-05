@@ -75,36 +75,39 @@ export default async function BulkTiebreakersListPage({ params }: BulkTiebreaker
   const completedTiebreakers = tiebreakers.filter(t => t.status === 'completed')
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link
-            href={`/sub-admin/${seasonId}/auction`}
-            className="inline-flex items-center gap-2 text-[#D4CCBB] hover:text-white mb-4 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Auction
-          </Link>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}/auction`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Auction
+        </Link>
+      </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-black text-white mb-1">Bulk Tiebreakers</h1>
-              <p className="text-sm text-[#D4CCBB]">{season.name}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="px-4 py-2 rounded-lg bg-white/5 border border-white/10">
-                <div className="text-xs text-[#7A7367] mb-1">Total</div>
-                <div className="text-2xl font-bold text-white">{tiebreakers.length}</div>
-              </div>
-            </div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Bulk Tiebreakers
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            {season.name}
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="px-4 py-2 rounded-2xl bg-white/[0.01] border border-white/5 shadow-md">
+            <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold font-mono">Total</div>
+            <div className="text-2xl font-black text-white font-mono">{tiebreakers.length}</div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <div>
         {/* Active Tiebreakers */}
         {activeTiebreakers.length > 0 && (
           <div className="mb-8">

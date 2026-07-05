@@ -170,27 +170,22 @@ export default async function NewsManagerPage({ params }: NewsManagerPageProps) 
   const firstTournament = recentMatches[0]?.tournamentId
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl sm:text-4xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              News Manager
-            </span>
-          </h1>
-          <p className="text-gray-400 text-sm">
-            Check and manually trigger news generation for completed matches and matchdays
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          News Manager
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Check and manually trigger news generation for completed matches and matchdays
+        </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <NewsManagerClient 
-          matches={matchesWithStatus} 
-          seasonId={seasonId}
-          tournamentId={firstTournament}
-        />
-      </div>
+      <NewsManagerClient 
+        matches={matchesWithStatus} 
+        seasonId={seasonId}
+        tournamentId={firstTournament}
+      />
     </div>
   )
 }

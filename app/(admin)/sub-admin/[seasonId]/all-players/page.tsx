@@ -43,45 +43,39 @@ export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
   const teams = ['ALL', ...allTeams.map((t: { name: string }) => t.name), 'Free Agent']
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              All Players
-            </span>
-          </h1>
-          <p className="text-[#D4CCBB] text-sm sm:text-base">
-            {season.name} — Complete player database with team assignments
-          </p>
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          All Players
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          {season.name} — Complete player database with team assignments
+        </p>
+      </div>
+
+      {/* Stats Summary — static, no filter dependency */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 shadow-md transition-all hover:border-[#E8A800]/25">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-2 font-mono">Total Players</div>
+          <div className="text-3xl sm:text-4xl font-black text-white font-mono">{totalCount}</div>
+        </div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 shadow-md transition-all hover:border-emerald-500/25">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-2 font-mono">Sold Players</div>
+          <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono">{soldCount}</div>
+        </div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 sm:col-span-2 lg:col-span-1 shadow-md transition-all hover:border-[#FFB347]/25">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-2 font-mono">Available Players</div>
+          <div className="text-3xl sm:text-4xl font-black text-[#FFB347] font-mono">{totalCount - soldCount}</div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        {/* Stats Summary — static, no filter dependency */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Total Players</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{totalCount}</div>
-          </div>
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Sold Players</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">{soldCount}</div>
-          </div>
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
-            <div className="text-xs sm:text-sm text-[#7A7367] mb-1 sm:mb-2 font-medium">Available Players</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#FFB347]">{totalCount - soldCount}</div>
-          </div>
-        </div>
-
-        {/* Players List — client-side search & filter via API */}
-        <AllPlayersClient
-          seasonId={seasonId}
-          positions={positions}
-          teams={teams}
-        />
-      </div>
+      {/* Players List — client-side search & filter via API */}
+      <AllPlayersClient
+        seasonId={seasonId}
+        positions={positions}
+        teams={teams}
+      />
     </div>
   )
 }

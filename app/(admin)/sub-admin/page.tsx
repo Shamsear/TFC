@@ -121,375 +121,439 @@ export default async function SubAdminDashboard() {
   })
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 lg:pb-12">
-        {/* Page Title */}
-        <div className="mb-6 sm:mb-8 lg:mb-12">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2 sm:mb-3">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              Sub Admin Dashboard
-            </span>
-          </h1>
-          <p className="text-gray-400 text-sm sm:text-base lg:text-lg">
-            Manage season operations, team selection, retention, and live auctions
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Page Title */}
+      <div className="mb-8 lg:mb-12">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Sub Admin Dashboard
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Manage season operations, team selection, retention, and live auctions
+        </p>
+      </div>
 
-        {/* Active Season Info */}
-        {activeSeason ? (
-          <div className="mb-6 sm:mb-8 lg:mb-12">
-            <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/30 p-4 sm:p-6 lg:p-8">
-              <div className="absolute top-0 right-0 w-32 sm:w-48 lg:w-64 h-32 sm:h-48 lg:h-64 bg-[#E8A800]/5 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 left-0 w-32 sm:w-48 lg:w-64 h-32 sm:h-48 lg:h-64 bg-[#FFB347]/5 rounded-full blur-3xl"></div>
+      {/* Active Season Info */}
+      {activeSeason ? (
+        <div className="mb-8 lg:mb-12">
+          <div className="relative overflow-hidden rounded-2xl bg-white/[0.01] border border-white/5 p-6 sm:p-8 lg:p-10 shadow-2xl backdrop-blur-xl">
+            {/* Ambient glows inside card */}
+            <div className="absolute top-[-50%] right-[-20%] w-[400px] h-[400px] bg-[#E8A800]/[0.02] rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-[-50%] left-[-20%] w-[400px] h-[400px] bg-[#FFB347]/[0.02] rounded-full blur-[100px] pointer-events-none" />
+            
+            <div className="relative z-10">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8 border-b border-white/5 pb-6">
+                <div>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 uppercase tracking-widest font-mono font-bold mb-2">
+                    <div className="w-4 h-4"><CalendarIcon /></div>
+                    <span>Active Season</span>
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">{activeSeason.name}</h2>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                  ACTIVE
+                </div>
+              </div>
               
-              <div className="relative">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <div>
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5"><CalendarIcon /></div>
-                      <span className="font-medium">Active Season</span>
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{activeSeason.name}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 transition-all hover:border-[#E8A800]/25 duration-300 shadow-md">
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 uppercase tracking-widest font-mono font-bold mb-2">
+                    <div className="w-4 h-4"><DollarIcon /></div>
+                    <span>Starting Purse</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-emerald-500/30 font-bold text-xs sm:text-sm">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    ACTIVE
+                  <div className="text-2xl sm:text-3xl font-black text-[#E8A800] font-mono">
+                    ${activeSeason.startingPurse.toLocaleString()}
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
-                  <div className="rounded-lg sm:rounded-xl bg-black/30 backdrop-blur-sm border border-white/10 p-3 sm:p-4 lg:p-5">
-                    <div className="flex items-center gap-2 text-gray-400 text-xs sm:text-sm mb-1 sm:mb-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5"><DollarIcon /></div>
-                      <span className="font-medium">Starting Purse</span>
-                    </div>
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-black text-[#E8A800]">
-                      ${activeSeason.startingPurse.toLocaleString()}
-                    </div>
+                <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 transition-all hover:border-[#FFB347]/25 duration-300 shadow-md">
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 uppercase tracking-widest font-mono font-bold mb-2">
+                    <div className="w-4 h-4"><TrophyIcon /></div>
+                    <span>Participating Teams</span>
                   </div>
-                  <div className="rounded-lg sm:rounded-xl bg-black/30 backdrop-blur-sm border border-white/10 p-3 sm:p-4 lg:p-5">
-                    <div className="flex items-center gap-2 text-gray-400 text-xs sm:text-sm mb-1 sm:mb-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5"><TrophyIcon /></div>
-                      <span className="font-medium">Participating Teams</span>
-                    </div>
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-black text-[#FFB347]">
-                      {activeSeason.seasonTeams.length}
-                    </div>
-                  </div>
-                  <div className="rounded-lg sm:rounded-xl bg-black/30 backdrop-blur-sm border border-white/10 p-3 sm:p-4 lg:p-5 sm:col-span-2 lg:col-span-1">
-                    <div className="flex items-center gap-2 text-gray-400 text-xs sm:text-sm mb-1 sm:mb-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5"><TrophyIcon /></div>
-                      <span className="font-medium">Season Status</span>
-                    </div>
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-400">
-                      In Progress
-                    </div>
+                  <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                    {activeSeason.seasonTeams.length}
                   </div>
                 </div>
-
-                {/* Quick Actions for Active Season */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/teams`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800] to-[#D49700] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#E8A800]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <UsersIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Team Selection</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Select participating teams</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/all-players`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <PlayersIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">All Players</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">View all players by team</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/all-teams`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFC93A]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <UsersIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">All Teams</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">View all teams overview</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/transfers`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800] to-[#D49700] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#E8A800]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <TransferIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Transfer History</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">View auction history</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/retention`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <TrophyIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Player Retention</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Manage retained players</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/tournaments`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFC93A]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <TrophyIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Tournaments</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Create & manage tournaments</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/calendar`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800] to-[#D49700] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#E8A800]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <CalendarIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Auction Calendar</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Schedule auction dates</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/auction`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <DollarIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Auction System</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Manage auction rounds</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/auction-settings`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800] to-[#D49700] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#E8A800]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <SettingsIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Auction Settings</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Configure auction rules</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/position-groups`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <PlayersIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Position Groups</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Manage position groups</div>
-                  </Link>
-
-                  <Link
-                    href={`/sub-admin/${activeSeason.id}/tools`}
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFC93A]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <ToolsIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Admin Tools</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Balance audit & management</div>
-                  </Link>
-
-                  <Link
-                    href="/sub-admin/import"
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#E8A800] to-[#D49700] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#E8A800]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <UploadIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Import Database</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Upload player data</div>
-                  </Link>
-
-                  <Link
-                    href="/sub-admin/upload-images"
-                    className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-4 sm:p-5 hover:scale-105 transition-all shadow-lg hover:shadow-[#FFB347]/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/20 flex items-center justify-center">
-                        <CameraIcon />
-                      </div>
-                      <div className="font-bold text-white text-sm sm:text-base lg:text-lg">Upload Images</div>
-                    </div>
-                    <div className="text-xs sm:text-sm text-white/80">Upload photos & cards to GitHub</div>
-                  </Link>
+                <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 transition-all hover:border-[#E8A800]/25 duration-300 shadow-md sm:col-span-2 lg:col-span-1">
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 uppercase tracking-widest font-mono font-bold mb-2">
+                    <div className="w-4 h-4"><TrophyIcon /></div>
+                    <span>Season Status</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-400">
+                    In Progress
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="mb-6 sm:mb-8 lg:mb-12">
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8 lg:p-12 text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mx-auto mb-4 sm:mb-6">
-                <CalendarIcon />
-              </div>
-              <div className="text-lg sm:text-xl font-bold text-white mb-2">No Active Season Assigned</div>
-              <p className="text-sm sm:text-base text-gray-400">
-                You don't have access to the currently active season. Please contact a Super Admin if you need access.
-              </p>
-            </div>
-          </div>
-        )}
 
-        {/* All Seasons */}
-        <div>
-          <div className="flex items-center justify-between mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">Your Assigned Seasons</h2>
-          </div>
-          
-          {allSeasons.length === 0 ? (
-            <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8 lg:p-12 text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gray-500/10 border border-gray-500/20 flex items-center justify-center text-gray-400 mx-auto mb-4 sm:mb-6">
-                <CalendarIcon />
-              </div>
-              <div className="text-lg sm:text-xl font-bold text-white mb-2">No Seasons Assigned</div>
-              <p className="text-sm sm:text-base text-gray-400">
-                You haven't been assigned to any seasons yet. Contact a Super Admin to get access to a season.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-5 sm:space-y-6">
-              {allSeasons.map((season) => (
-                <div
-                  key={season.id}
-                  className="group rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-5 sm:p-7"
+              {/* Quick Actions for Active Season */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/teams`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#E8A800] to-[#FFB347] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#E8A800]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
                 >
-                  {/* Season Header */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-5">
-                    <div className="text-xl sm:text-2xl font-black text-white">{season.name}</div>
-                    {season.isActive && (
-                      <span className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30 text-xs font-bold">
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                        ACTIVE
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Season Stats */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-sm text-gray-400 mb-5 sm:mb-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4"><DollarIcon /></div>
-                      <span>Starting Purse: <span className="text-[#E8A800] font-bold">${season.startingPurse.toLocaleString()}</span></span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <UsersIcon />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4"><TrophyIcon /></div>
-                      <span><span className="text-[#FFB347] font-bold">{season.seasonTeams.length}</span> teams</span>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
                     </div>
                   </div>
-
-                  {/* Action Buttons - Grid Layout */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3">
-                    <Link
-                      href={`/sub-admin/${season.id}/teams`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
-                    >
-                      Teams
-                      <ArrowRightIcon />
-                    </Link>
-                    <Link
-                      href={`/sub-admin/${season.id}/retention`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
-                    >
-                      Retention
-                      <ArrowRightIcon />
-                    </Link>
-                    <Link
-                      href={`/sub-admin/${season.id}/tournaments`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFC93A] hover:text-[#FFB347] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFC93A]/30 hover:border-[#FFC93A]/50 hover:bg-[#FFC93A]/10 transition-all font-medium"
-                    >
-                      Tournaments
-                      <ArrowRightIcon />
-                    </Link>
-                    <Link
-                      href={`/sub-admin/${season.id}/calendar`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFB347] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
-                    >
-                      Calendar
-                      <ArrowRightIcon />
-                    </Link>
-                    <Link
-                      href={`/sub-admin/${season.id}/auction`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
-                    >
-                      Auction
-                      <ArrowRightIcon />
-                    </Link>
-                    <Link
-                      href={`/sub-admin/${season.id}/auction-settings`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#E8A800]/30 hover:border-[#E8A800]/50 hover:bg-[#E8A800]/10 transition-all font-medium"
-                    >
-                      Settings
-                      <ArrowRightIcon />
-                    </Link>
-                    <Link
-                      href={`/sub-admin/${season.id}/position-groups`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFB347] hover:text-[#FFC93A] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFB347]/30 hover:border-[#FFB347]/50 hover:bg-[#FFB347]/10 transition-all font-medium"
-                    >
-                      Position Groups
-                      <ArrowRightIcon />
-                    </Link>
-                    <Link
-                      href={`/sub-admin/${season.id}/tools`}
-                      className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#FFC93A] hover:text-[#FFB347] px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-[#FFC93A]/30 hover:border-[#FFC93A]/50 hover:bg-[#FFC93A]/10 transition-all font-medium"
-                    >
-                      Tools
-                      <ArrowRightIcon />
-                    </Link>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Team Selection</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Select participating teams</div>
                   </div>
-                </div>
-              ))}
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/all-players`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFB347]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <PlayersIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">All Players</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">View all players by team</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/all-teams`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFC93A]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <UsersIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">All Teams</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">View all teams overview</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/transfers`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#E8A800] to-[#FFB347] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#E8A800]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <TransferIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Transfer History</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">View auction history</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/retention`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFB347]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <TrophyIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Player Retention</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Manage retained players</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/tournaments`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFC93A]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <TrophyIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Tournaments</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Create & manage tournaments</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/calendar`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#E8A800] to-[#FFB347] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#E8A800]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <CalendarIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Auction Calendar</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Schedule auction dates</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/auction`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFB347]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <DollarIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Auction System</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Manage auction rounds</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/auction-settings`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#E8A800] to-[#FFB347] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#E8A800]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <SettingsIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Auction Settings</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Configure auction rules</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/position-groups`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFB347]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <PlayersIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Position Groups</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Manage position groups</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/tools`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFC93A]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <ToolsIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Admin Tools</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Balance audit & management</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/sub-admin/import"
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#E8A800] to-[#FFB347] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#E8A800]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <UploadIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Import Database</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Upload player data</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/sub-admin/upload-images"
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFB347]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px] sm:col-span-2 lg:col-span-1"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <CameraIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Upload Images</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Upload photos & cards to GitHub</div>
+                  </div>
+                </Link>
+              </div>
             </div>
-          )}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-8">
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-8 sm:p-12 text-center backdrop-blur-xl">
+            <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mx-auto mb-6">
+              <CalendarIcon />
+            </div>
+            <div className="text-xl font-black text-white mb-2 uppercase tracking-wide">No Active Season Assigned</div>
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+              You don't have access to the currently active season. Please contact a Super Admin.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* All Seasons */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Your Assigned Seasons</h2>
         </div>
         
-        {/* Push Notification Controls */}
-        <div className="mt-6 sm:mt-8 lg:mt-12">
-          <PushToggle />
-        </div>
+        {allSeasons.length === 0 ? (
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-8 sm:p-12 text-center backdrop-blur-xl">
+            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 mx-auto mb-6">
+              <CalendarIcon />
+            </div>
+            <div className="text-xl font-black text-white mb-2 uppercase tracking-wide">No Seasons Assigned</div>
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+              You haven't been assigned to any seasons yet. Contact a Super Admin.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {allSeasons.map((season) => (
+              <div
+                key={season.id}
+                className="group rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all p-6 sm:p-8 backdrop-blur-xl relative overflow-hidden shadow-xl"
+              >
+                <div className="absolute top-[-50%] right-[-20%] w-[300px] h-[300px] bg-[#E8A800]/[0.01] rounded-full blur-[80px] pointer-events-none" />
+
+                {/* Season Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight">{season.name}</div>
+                  {season.isActive && (
+                    <span className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+
+                {/* Season Stats */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-xs text-gray-400 mb-6 relative z-10">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-4 h-4 text-gray-500"><DollarIcon /></div>
+                    <span>Starting Purse: <span className="text-[#E8A800] font-bold font-mono">${season.startingPurse.toLocaleString()}</span></span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-4 h-4 text-gray-500"><TrophyIcon /></div>
+                    <span><span className="text-[#FFB347] font-bold font-mono">{season.seasonTeams.length}</span> Participating Teams</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons - Grid Layout */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 relative z-10">
+                  <Link
+                    href={`/sub-admin/${season.id}/teams`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 hover:bg-[#E8A800]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Teams
+                    <ArrowRightIcon />
+                  </Link>
+                  <Link
+                    href={`/sub-admin/${season.id}/retention`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#FFB347]/30 hover:bg-[#FFB347]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Retention
+                    <ArrowRightIcon />
+                  </Link>
+                  <Link
+                    href={`/sub-admin/${season.id}/tournaments`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#FFC93A]/30 hover:bg-[#FFC93A]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Tournaments
+                    <ArrowRightIcon />
+                  </Link>
+                  <Link
+                    href={`/sub-admin/${season.id}/calendar`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 hover:bg-[#E8A800]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Calendar
+                    <ArrowRightIcon />
+                  </Link>
+                  <Link
+                    href={`/sub-admin/${season.id}/auction`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#FFB347]/30 hover:bg-[#FFB347]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Auction
+                    <ArrowRightIcon />
+                  </Link>
+                  <Link
+                    href={`/sub-admin/${season.id}/auction-settings`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 hover:bg-[#E8A800]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Settings
+                    <ArrowRightIcon />
+                  </Link>
+                  <Link
+                    href={`/sub-admin/${season.id}/position-groups`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#FFB347]/30 hover:bg-[#FFB347]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Groups
+                    <ArrowRightIcon />
+                  </Link>
+                  <Link
+                    href={`/sub-admin/${season.id}/tools`}
+                    className="flex items-center justify-center gap-1.5 text-xs text-gray-300 hover:text-white px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#FFC93A]/30 hover:bg-[#FFC93A]/5 transition-all font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Tools
+                    <ArrowRightIcon />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Push Notification Controls */}
+      <div className="mt-8 lg:mt-12">
+        <PushToggle />
       </div>
     </div>
   )

@@ -42,35 +42,27 @@ export default async function RetentionModulePage({
 
   if (!previousSeason) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
         {/* Header */}
-        <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2 sm:pb-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-                <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                  Player Retention
-                </span>
-              </h1>
-              <p className="text-[#D4CCBB] text-sm sm:text-base">
-                Retain players from previous season for {season.name}
-              </p>
-            </div>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Player Retention
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            Retain players from previous season for {season.name}
+          </p>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4">
-              <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="text-lg sm:text-xl font-black text-white mb-2">No Previous Season Found</div>
-            <p className="text-[#D4CCBB] text-sm sm:text-base">
-              This is the first season, so there are no players to retain from a previous season.
-            </p>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-8 sm:p-12 text-center backdrop-blur-xl">
+          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#E8A800] mx-auto mb-6">
+            <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          <div className="text-xl font-black text-white mb-2 uppercase tracking-wide">No Previous Season Found</div>
+          <p className="text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            There must be at least one previous season to perform player retention.
+          </p>
         </div>
       </div>
     )
@@ -136,60 +128,52 @@ export default async function RetentionModulePage({
   const maxRetentionsPerTeam = 5 // Default retention limit
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2 sm:pb-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                Player Retention
-              </span>
-            </h1>
-            <p className="text-[#D4CCBB] text-sm sm:text-base">
-              Retain players from {previousSeason.name} for {season.name}
-            </p>
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Player Retention
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Retain players from {previousSeason.name} for {season.name}
+        </p>
+      </div>
+
+      {/* Season Info */}
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-xl">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="text-center lg:text-left">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Current Season</div>
+            <div className="text-lg sm:text-xl font-black text-white">{season.name}</div>
+          </div>
+          <div className="text-center lg:text-left">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Previous Season</div>
+            <div className="text-lg sm:text-xl font-black text-[#E8A800]">{previousSeason.name}</div>
+          </div>
+          <div className="text-center lg:text-left">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Max Per Team</div>
+            <div className="text-lg sm:text-xl font-black text-purple-400 font-mono">{maxRetentionsPerTeam}</div>
+          </div>
+          <div className="text-center lg:text-left">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Already Retained</div>
+            <div className="text-lg sm:text-xl font-black text-emerald-400 font-mono">{existingRetentions.length}</div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        {/* Season Info */}
-        <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center lg:text-left">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 font-medium">Current Season</div>
-              <div className="text-lg sm:text-xl font-black text-white">{season.name}</div>
-            </div>
-            <div className="text-center lg:text-left">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 font-medium">Previous Season</div>
-              <div className="text-lg sm:text-xl font-black text-[#E8A800]">{previousSeason.name}</div>
-            </div>
-            <div className="text-center lg:text-left">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 font-medium">Max Per Team</div>
-              <div className="text-lg sm:text-xl font-black text-purple-400">{maxRetentionsPerTeam}</div>
-            </div>
-            <div className="text-center lg:text-left">
-              <div className="text-xs sm:text-sm text-[#7A7367] mb-1 font-medium">Already Retained</div>
-              <div className="text-lg sm:text-xl font-black text-emerald-400">{existingRetentions.length}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Retention Module */}
-        <RetentionModule
-          seasonId={seasonId}
-          previousSeasonId={previousSeason.id}
-          teamsWithPlayers={teamsWithPlayers}
-          maxRetentionsPerTeam={maxRetentionsPerTeam}
-          existingRetentions={existingRetentions.map(r => ({
-            basePlayerId: r.basePlayerId,
-            teamId: teamsWithPlayers.find(t => 
-              t.players.some(p => p.id === r.basePlayerId)
-            )?.teamId || ""
-          }))}
-        />
-      </div>
+      {/* Retention Module */}
+      <RetentionModule
+        seasonId={seasonId}
+        previousSeasonId={previousSeason.id}
+        teamsWithPlayers={teamsWithPlayers}
+        maxRetentionsPerTeam={maxRetentionsPerTeam}
+        existingRetentions={existingRetentions.map(r => ({
+          basePlayerId: r.basePlayerId,
+          teamId: teamsWithPlayers.find(t => 
+            t.players.some(p => p.id === r.basePlayerId)
+          )?.teamId || ""
+        }))}
+      />
     </div>
   )
 }

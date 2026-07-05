@@ -155,47 +155,41 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                Admin Tools
-              </span>
-            </h1>
-            <p className="text-[#D4CCBB] text-sm sm:text-base">
-              {season.name} - Player management and balance tools
-            </p>
-          </div>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Admin Tools
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          {season.name} - Player management and balance tools
+        </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {tools.map((tool) => (
-            <Link
-              key={tool.title}
-              href={tool.href}
-              className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-6 group"
-            >
-              <div className={`w-16 h-16 rounded-xl ${tool.bgColor} border ${tool.borderColor} flex items-center justify-center ${tool.textColor} mb-4 group-hover:scale-110 transition-transform`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {tools.map((tool) => (
+          <Link
+            key={tool.title}
+            href={tool.href}
+            className="rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all p-6 group backdrop-blur-xl shadow-xl flex flex-col justify-between"
+          >
+            <div>
+              <div className={`w-14 h-14 rounded-xl ${tool.bgColor} border ${tool.borderColor} flex items-center justify-center ${tool.textColor} mb-4 group-hover:scale-110 transition-transform`}>
                 {tool.icon}
               </div>
-              <h3 className="text-xl font-black text-white mb-2 group-hover:text-[#E8A800] transition-colors">
+              <h3 className="text-xl font-black text-white mb-2 group-hover:text-[#E8A800] transition-colors uppercase tracking-tight">
                 {tool.title}
               </h3>
-              <p className="text-[#7A7367] text-sm mb-4">{tool.description}</p>
-              <div className="flex items-center gap-2 text-[#E8A800] text-sm font-bold">
-                Open Tool
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
-          ))}
-        </div>
+              <p className="text-[#7A7367] text-xs font-medium mb-6 uppercase tracking-wider">{tool.description}</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] group-hover:text-[#FFC93A] transition-colors">
+              Open Tool
+              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   )

@@ -83,46 +83,39 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
   }))
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-                <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                  Auction Calendar
-                </span>
-              </h1>
-              <p className="text-[#D4CCBB] text-sm sm:text-base">
-                {season.name} - Manage auction dates and position slots
-              </p>
-            </div>
-            <Link
-              href={`/sub-admin/${seasonId}/calendar/new`}
-              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base whitespace-nowrap"
-            >
-              <PlusIcon />
-              <span className="hidden sm:inline">Add Auction Date</span>
-              <span className="sm:hidden">Add Date</span>
-            </Link>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Auction Calendar
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            {season.name} - Manage auction dates and position slots
+          </p>
         </div>
+        <Link
+          href={`/sub-admin/${seasonId}/calendar/new`}
+          className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
+        >
+          <PlusIcon />
+          <span>Add Auction Date</span>
+        </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <div>
         {season.auctionCalendar.length === 0 ? (
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4 sm:mb-6">
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-8 sm:p-12 text-center backdrop-blur-xl">
+            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#E8A800] mx-auto mb-6">
               <CalendarIcon />
             </div>
-            <div className="text-lg sm:text-xl font-black text-white mb-2">No auction dates scheduled</div>
-            <p className="text-[#D4CCBB] text-sm sm:text-base mb-6">
+            <div className="text-xl font-black text-white mb-2 uppercase tracking-wide">No auction dates scheduled</div>
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest font-mono mb-6">
               Create auction dates with position slots to start the auction process
             </p>
             <Link
               href={`/sub-admin/${seasonId}/calendar/new`}
-              className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer"
             >
               <PlusIcon />
               Create First Auction Date

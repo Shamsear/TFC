@@ -155,13 +155,13 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
       {/* Run Audit Button */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black text-white mb-1">Balance Audit Report</h2>
-          <p className="text-gray-400 text-sm">Check all team balances for discrepancies</p>
+          <h2 className="text-2xl font-black text-white mb-1 uppercase tracking-wider font-mono">Balance Audit Report</h2>
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Check all team balances for discrepancies</p>
         </div>
         <button
           onClick={runAudit}
           disabled={loading}
-          className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50"
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer shadow-md"
         >
           {loading ? 'Running...' : 'Run Audit'}
         </button>
@@ -170,34 +170,34 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
       {/* Summary */}
       {result && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-            <div className="text-sm text-gray-400 mb-2">Total Teams</div>
-            <div className="text-3xl font-black text-white">{result.totalTeams}</div>
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all hover:border-[#E8A800]/25 duration-300">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Total Teams</div>
+            <div className="text-2xl font-black text-white font-mono">{result.totalTeams}</div>
           </div>
 
-          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-6">
-            <div className="text-sm text-emerald-400 mb-2">Correct Balances</div>
-            <div className="text-3xl font-black text-emerald-400">{result.teamsWithoutErrors}</div>
+          <div className="rounded-2xl bg-emerald-500/[0.02] border border-emerald-500/10 p-5 backdrop-blur-xl shadow-md">
+            <div className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest font-mono mb-1">Correct Balances</div>
+            <div className="text-2xl font-black text-emerald-400 font-mono">{result.teamsWithoutErrors}</div>
           </div>
 
-          <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-6">
-            <div className="text-sm text-red-400 mb-2">Balance Errors</div>
-            <div className="text-3xl font-black text-red-400">{result.teamsWithErrors}</div>
+          <div className="rounded-2xl bg-red-500/[0.02] border border-red-500/10 p-5 backdrop-blur-xl shadow-md">
+            <div className="text-[10px] text-red-400 font-extrabold uppercase tracking-widest font-mono mb-1">Balance Errors</div>
+            <div className="text-2xl font-black text-red-400 font-mono">{result.teamsWithErrors}</div>
           </div>
 
-          <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-6">
-            <div className="text-sm text-orange-400 mb-2">Total Discrepancy</div>
-            <div className="text-3xl font-black text-orange-400">£{result.totalDiscrepancy}</div>
+          <div className="rounded-2xl bg-orange-500/[0.02] border border-orange-500/10 p-5 backdrop-blur-xl shadow-md">
+            <div className="text-[10px] text-orange-400 font-extrabold uppercase tracking-widest font-mono mb-1">Total Discrepancy</div>
+            <div className="text-2xl font-black text-orange-400 font-mono">£{result.totalDiscrepancy.toLocaleString()}</div>
           </div>
         </div>
       )}
 
       {/* Teams with Errors */}
       {result && result.audits.errors.length > 0 && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-black text-red-400 flex items-center gap-2">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+        <div className="rounded-2xl bg-red-500/[0.02] border border-red-500/10 p-6 backdrop-blur-xl shadow-md">
+          <div className="flex items-center justify-between mb-4 border-b border-red-500/10 pb-4">
+            <h3 className="text-lg font-black text-red-400 flex items-center gap-2 uppercase tracking-wider font-mono">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               Teams with Balance Errors
@@ -205,20 +205,20 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
             <button
               onClick={fixAllBalances}
               disabled={fixingAll || fixing !== null}
-              className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
             >
               {fixingAll ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Fixing All...
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Fix All Balances
                 </>
@@ -228,79 +228,73 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
 
           <div className="space-y-4">
             {result.audits.errors.map((team) => (
-              <div key={team.teamId} className="rounded-lg bg-black/30 border border-red-500/20 p-4">
+              <div key={team.teamId} className="rounded-xl bg-white/[0.01] border border-white/5 hover:border-red-500/20 transition-all p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="text-lg font-black text-white mb-1">{team.teamName}</div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-base sm:text-lg font-black text-white mb-1 uppercase tracking-tight">{team.teamName}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">
                       {team.transferCount} transfers • {team.ledgerEntryCount} ledger entries
                     </div>
                   </div>
                   <button
                     onClick={() => fixBalance(team.teamId, team.calculatedBalance, team.teamName)}
                     disabled={fixing === team.teamId}
-                    className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 font-bold text-sm transition-all disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {fixing === team.teamId ? 'Fixing...' : 'Fix Balance'}
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs border-t border-white/5 pt-3">
                   <div>
-                    <div className="text-gray-500 mb-1">Starting Purse</div>
-                    <div className="font-bold text-blue-400">£{team.initialPurse.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-0.5">Starting Purse</div>
+                    <div className="font-extrabold text-blue-400 font-mono">£{team.initialPurse.toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Total Spent</div>
-                    <div className="font-bold text-red-400">-£{team.totalSpent.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-0.5">Total Spent</div>
+                    <div className="font-extrabold text-red-400 font-mono">-£{team.totalSpent.toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Total Sales</div>
-                    <div className="font-bold text-emerald-400">+£{team.totalSales.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-0.5">Total Sales</div>
+                    <div className="font-extrabold text-emerald-400 font-mono">+£{team.totalSales.toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Total Refunds</div>
-                    <div className="font-bold text-cyan-400">+£{team.totalRefunds.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-0.5">Total Refunds</div>
+                    <div className="font-extrabold text-cyan-400 font-mono">+£{team.totalRefunds.toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Current</div>
-                    <div className="font-bold text-white">£{team.currentBalance.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-0.5">Current</div>
+                    <div className="font-extrabold text-white font-mono">£{team.currentBalance.toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Expected</div>
-                    <div className="font-bold text-emerald-400">£{team.calculatedBalance.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-0.5">Expected</div>
+                    <div className="font-extrabold text-emerald-400 font-mono">£{team.calculatedBalance.toLocaleString()}</div>
                   </div>
                 </div>
                 
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <div className="text-xs text-gray-500">
-                    {team.transferCount} transfers • {team.ledgerEntryCount} ledger entries
+                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">
+                    Calculated Summary
                     {team.totalAdjustments !== 0 && (
                       <span className="ml-2">• Adjustments: £{team.totalAdjustments.toLocaleString()}</span>
                     )}
                   </div>
-                  <div className="text-sm font-bold text-red-400 mt-1">
+                  <div className="text-xs font-black text-red-400 font-mono uppercase tracking-wider">
                     Difference: {team.difference > 0 ? '+' : ''}£{team.difference.toLocaleString()}
                   </div>
                 </div>
 
                 {fixResults[team.teamId] && (
                   <div
-                    className={`mt-3 p-3 rounded-lg ${
+                    className={`mt-3 p-3 rounded-xl font-mono text-xs uppercase tracking-wider ${
                       fixResults[team.teamId].success
-                        ? 'bg-emerald-500/10 border border-emerald-500/20'
-                        : 'bg-red-500/10 border border-red-500/20'
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                        : 'bg-red-500/10 border border-red-500/20 text-red-400'
                     }`}
                   >
-                    <div
-                      className={`text-sm font-bold ${
-                        fixResults[team.teamId].success ? 'text-emerald-400' : 'text-red-400'
-                      }`}
-                    >
-                      {fixResults[team.teamId].success
-                        ? `✓ Fixed: £${fixResults[team.teamId].oldBalance} → £${fixResults[team.teamId].newBalance}`
-                        : `✗ ${fixResults[team.teamId].error}`}
-                    </div>
+                    {fixResults[team.teamId].success
+                      ? `✓ Fixed: old £${fixResults[team.teamId].oldBalance} → new £${fixResults[team.teamId].newBalance}`
+                      : `✗ ${fixResults[team.teamId].error}`}
                   </div>
                 )}
               </div>
@@ -311,9 +305,9 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
 
       {/* Teams without Errors */}
       {result && result.audits.correct.length > 0 && (
-        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-6">
-          <h3 className="text-xl font-black text-emerald-400 mb-4 flex items-center gap-2">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+        <div className="rounded-2xl bg-emerald-500/[0.02] border border-emerald-500/10 p-6 backdrop-blur-xl shadow-md">
+          <h3 className="text-lg font-black text-emerald-400 mb-4 flex items-center gap-2 uppercase tracking-wider font-mono">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             Teams with Correct Balances ({result.audits.correct.length})
@@ -321,15 +315,14 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {result.audits.correct.map((team) => (
-              <div key={team.teamId} className="rounded-lg bg-black/30 border border-emerald-500/20 p-4">
-                <div className="font-bold text-white mb-1">{team.teamName}</div>
-                <div className="text-sm text-gray-400">
+              <div key={team.teamId} className="rounded-xl bg-white/[0.01] border border-white/5 p-4">
+                <div className="font-extrabold text-white mb-1 uppercase tracking-tight text-sm sm:text-base">{team.teamName}</div>
+                <div className="text-xs text-emerald-400 font-mono font-bold">
                   Balance: £{team.currentBalance.toLocaleString()}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-2 border-t border-white/5 pt-2">
                   {team.transferCount} transfers • £{team.totalSpent.toLocaleString()} spent
                   {team.totalSales > 0 && ` • £${team.totalSales.toLocaleString()} sales`}
-                  {team.totalRefunds > 0 && ` • £${team.totalRefunds.toLocaleString()} refunds`}
                 </div>
               </div>
             ))}
@@ -338,8 +331,8 @@ export default function BalanceAuditClient({ seasonId, isSuperAdmin }: BalanceAu
       )}
 
       {!loading && !result && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-12 text-center">
-          <div className="text-gray-400">Click "Run Audit" to check team balances</div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-12 text-center backdrop-blur-xl shadow-md">
+          <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">Click "Run Audit" to check team balances</div>
         </div>
       )}
     </div>

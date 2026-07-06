@@ -51,8 +51,8 @@ export default function AuditLogsFilters({
   ]
 
   return (
-    <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-6">
-      <h2 className="text-base sm:text-lg font-black text-white mb-4">Filters</h2>
+    <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 mb-6 backdrop-blur-xl shadow-md">
+      <h2 className="text-sm font-black text-white uppercase tracking-wider font-mono mb-4">Filters</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
         <SearchableSelect
           label="Sub-Admin"

@@ -167,17 +167,15 @@ export default async function ReleaseRequestsAdminPage({
   }))
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ReleaseRequestsAdminClient
-          seasonId={seasonId}
-          seasonName={season.name}
-          releaseWindowOpen={!!season.releaseWindowOpen}
-          requests={transformedRequests}
-          teamStats={teamStats}
-          releaseWindows={serializedReleaseWindows}
-        />
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      <ReleaseRequestsAdminClient
+        seasonId={seasonId}
+        seasonName={season.name}
+        releaseWindowOpen={!!season.releaseWindowOpen}
+        requests={transformedRequests}
+        teamStats={teamStats}
+        releaseWindows={serializedReleaseWindows}
+      />
     </div>
   )
 }

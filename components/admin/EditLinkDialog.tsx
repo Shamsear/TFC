@@ -158,85 +158,85 @@ export default function EditLinkDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl bg-[#121212] border border-white/10 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-lg rounded-3xl bg-[#0D0D0D]/90 border border-white/10 p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] backdrop-blur-xl animate-scale-up">
+        <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
           <div>
-            <h2 className="text-xl font-black text-white">Edit Tournament Link</h2>
-            <p className="text-xs text-[#7A7367] mt-0.5">
-              Targeting: <span className="text-[#E8A800] font-bold">{link.targetTournament?.name}</span>
+            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight font-mono">Edit Tournament Link</h2>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">
+              Targeting: <span className="text-[#E8A800] font-black">{link.targetTournament?.name}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors cursor-pointer"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {error && (
-          <div className="p-3 mb-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold">
-            ⚠️ {error}
+          <div className="p-4 mb-4 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider font-mono">
+            {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Link Type */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#7A7367] mb-2">
+            <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
               Link Type
             </label>
             <select
               value={linkType}
               onChange={e => setLinkType(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer"
+              className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono cursor-pointer"
             >
-              <option value="TOP_N">Top N Teams</option>
-              <option value="BOTTOM_N">Bottom N Teams</option>
-              <option value="POSITION_RANGE">Position Range</option>
-              <option value="WINNER">Winner Only</option>
-              <option value="RUNNER_UP">Runner-up Only</option>
-              <option value="GROUP_POSITION">Position from each Group</option>
-              <option value="MULTIPLE_POSITIONS_PER_GROUP">Multiple positions from Groups</option>
+              <option value="TOP_N" className="bg-[#0D0D0D]">Top N Teams</option>
+              <option value="BOTTOM_N" className="bg-[#0D0D0D]">Bottom N Teams</option>
+              <option value="POSITION_RANGE" className="bg-[#0D0D0D]">Position Range</option>
+              <option value="WINNER" className="bg-[#0D0D0D]">Winner Only</option>
+              <option value="RUNNER_UP" className="bg-[#0D0D0D]">Runner-up Only</option>
+              <option value="GROUP_POSITION" className="bg-[#0D0D0D]">Position from each Group</option>
+              <option value="MULTIPLE_POSITIONS_PER_GROUP" className="bg-[#0D0D0D]">Multiple positions from Groups</option>
             </select>
           </div>
 
           <div className="border-t border-white/5 pt-4 my-2">
-            <h3 className="text-xs font-black uppercase text-[#E8A800] tracking-wider mb-3">Configuration</h3>
+            <h3 className="text-[10px] font-extrabold uppercase text-[#E8A800] tracking-widest font-mono mb-3">Configuration</h3>
             
             {/* TOP_N / BOTTOM_N */}
             {(linkType === 'TOP_N' || linkType === 'BOTTOM_N') && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Number of Teams</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Number of Teams</label>
                     <input
                       type="number"
                       min={1}
                       value={count}
                       onChange={e => setCount(Number(e.target.value))}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Standings Grouping</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Standings Grouping</label>
                     <select
                       value={groupBy || ''}
                       onChange={e => setGroupBy(e.target.value || null)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono cursor-pointer"
                     >
-                      <option value="">Overall Standings</option>
-                      <option value="group">Per Group</option>
+                      <option value="" className="bg-[#0D0D0D]">Overall Standings</option>
+                      <option value="group" className="bg-[#0D0D0D]">Per Group</option>
                     </select>
                   </div>
                 </div>
 
                 {linkType === 'TOP_N' && (
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">
                       Seed Mapping (Optional, comma-separated e.g. 1, 3, 2, 4)
                     </label>
                     <input
@@ -244,7 +244,7 @@ export default function EditLinkDialog({
                       placeholder="e.g. 1, 2, 3, 4"
                       value={seedMappingText}
                       onChange={e => setSeedMappingText(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                 )}
@@ -256,35 +256,35 @@ export default function EditLinkDialog({
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Start Position</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Start Position</label>
                     <input
                       type="number"
                       min={1}
                       value={startPosition}
                       onChange={e => setStartPosition(Number(e.target.value))}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">End Position</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">End Position</label>
                     <input
                       type="number"
                       min={1}
                       value={endPosition}
                       onChange={e => setEndPosition(Number(e.target.value))}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">Standings Grouping</label>
+                  <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Standings Grouping</label>
                   <select
                     value={groupBy || ''}
                     onChange={e => setGroupBy(e.target.value || null)}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono cursor-pointer"
                   >
-                    <option value="">Overall Standings</option>
-                    <option value="group">Per Group</option>
+                    <option value="" className="bg-[#0D0D0D]">Overall Standings</option>
+                    <option value="group" className="bg-[#0D0D0D]">Per Group</option>
                   </select>
                 </div>
               </div>
@@ -293,7 +293,7 @@ export default function EditLinkDialog({
             {/* WINNER / RUNNER_UP */}
             {(linkType === 'WINNER' || linkType === 'RUNNER_UP') && (
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5">
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">
                   Target Seeding Slot (e.g. 1 for Seed 1, 2 for Seed 2)
                 </label>
                 <input
@@ -301,7 +301,7 @@ export default function EditLinkDialog({
                   min={1}
                   value={slotNumber}
                   onChange={e => setSlotNumber(Number(e.target.value))}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                 />
               </div>
             )}
@@ -311,32 +311,32 @@ export default function EditLinkDialog({
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-1">
-                    <label className="block text-xs text-gray-400 mb-1.5">Group Position</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Group Position</label>
                     <input
                       type="number"
                       min={1}
                       value={position}
                       onChange={e => setPosition(Number(e.target.value))}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs text-gray-400 mb-1.5">Groups (comma-separated)</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Groups (comma-separated)</label>
                     <input
                       type="text"
                       value={groupNamesText}
                       onChange={e => setGroupNamesText(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">Group Seed Mapping (e.g. Group A: 1, Group B: 2)</label>
+                  <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Group Seed Mapping (e.g. Group A: 1, Group B: 2)</label>
                   <input
                     type="text"
                     value={groupSeedMappingText}
                     onChange={e => setGroupSeedMappingText(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                   />
                 </div>
               </div>
@@ -347,34 +347,34 @@ export default function EditLinkDialog({
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Positions (comma-separated)</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Positions (comma-separated)</label>
                     <input
                       type="text"
                       placeholder="e.g. 1, 2"
                       value={positionsPerGroupText}
                       onChange={e => setPositionsPerGroupText(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Groups (comma-separated)</label>
+                    <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Groups (comma-separated)</label>
                     <input
                       type="text"
                       placeholder="e.g. Group A, Group B"
                       value={multipleGroupsText}
                       onChange={e => setMultipleGroupsText(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">Seed Mapping Order (comma-separated)</label>
+                  <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1.5">Seed Mapping Order (comma-separated)</label>
                   <input
                     type="text"
                     placeholder="e.g. 1, 3, 2, 4"
                     value={multipleSeedMappingText}
                     onChange={e => setMultipleSeedMappingText(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                   />
                 </div>
               </div>
@@ -382,18 +382,18 @@ export default function EditLinkDialog({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 border-t border-white/10 pt-4 mt-6">
+          <div className="flex justify-end gap-3 border-t border-white/5 pt-4 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-colors text-sm"
+              className="px-6 py-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white font-bold uppercase tracking-wider text-xs transition-all cursor-pointer font-mono"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-black font-black hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
+              className="px-6 py-2.5 rounded-xl bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-extrabold uppercase tracking-wider text-xs transition-all cursor-pointer font-mono shadow-[0_0_20px_rgba(232,168,0,0.15)] disabled:opacity-50"
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </button>

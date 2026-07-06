@@ -239,26 +239,27 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white px-4 sm:px-6 lg:px-8 pb-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
         <Link
           href={`/sub-admin/${seasonId}/calendar`}
-          className="inline-flex items-center gap-2 text-[#E8A800] hover:text-[#FFC93A] mb-4 sm:mb-6 transition-colors font-medium text-sm sm:text-base"
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
         >
           <ArrowLeftIcon />
           Back to Calendar
         </Link>
+      </div>
 
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-2">
-            Add Auction Date
-          </h1>
-          <p className="text-sm sm:text-base text-[#D4CCBB]">
-            Create new auction dates with position slots for the season
-          </p>
-        </div>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Add Auction Date
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Create new auction dates with position slots for the season
+        </p>
+      </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {error && (
@@ -272,7 +273,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
 
           {/* Auction Dates */}
           {auctionDates.map((auction, index) => (
-            <div key={index} className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div key={index} className="rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 space-y-4 sm:space-y-6 backdrop-blur-xl shadow-md">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg sm:text-xl font-black text-white">
                   Auction Date {index + 1}
@@ -292,7 +293,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Start Date */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                     Start Date <span className="text-red-400">*</span>
                   </label>
                   <div className="flex gap-2">
@@ -300,7 +301,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                       type="date"
                       value={auction.auctionDate}
                       onChange={(e) => updateAuctionDate(index, 'auctionDate', e.target.value)}
-                      className="flex-1 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                      className="flex-1 bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                       required
                     />
                     <button
@@ -309,7 +310,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                         const today = new Date().toISOString().split('T')[0]
                         updateAuctionDate(index, 'auctionDate', today)
                       }}
-                      className="px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/20 transition-all whitespace-nowrap"
+                      className="px-4 py-2 bg-white/[0.02] border border-white/10 text-white rounded-xl text-xs font-bold hover:bg-white/[0.04] hover:border-[#E8A800]/30 transition-all whitespace-nowrap uppercase tracking-wider font-mono cursor-pointer"
                       title="Set to today's date"
                     >
                       Today
@@ -319,34 +320,34 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
 
                 {/* Start Time */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                     Start Time <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="time"
                     value={auction.auctionTime}
                     onChange={(e) => updateAuctionDate(index, 'auctionTime', e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                     required
                   />
                 </div>
 
                 {/* End Date */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                     End Date (Deadline)
                   </label>
                   <input
                     type="date"
                     value={auction.endDate}
                     onChange={(e) => updateAuctionDate(index, 'endDate', e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                   />
                 </div>
 
                 {/* End Time */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                     End Time (Deadline)
                   </label>
                   <div className="flex gap-2">
@@ -354,7 +355,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                       type="time"
                       value={auction.endTime}
                       onChange={(e) => updateAuctionDate(index, 'endTime', e.target.value)}
-                      className="flex-1 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                      className="flex-1 bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                     />
                     <button
                       type="button"
@@ -366,7 +367,7 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                           updateAuctionDate(index, 'endTime', endDateTime.toTimeString().slice(0, 5))
                         }
                       }}
-                      className="px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/20 transition-all whitespace-nowrap"
+                      className="px-4 py-2 bg-white/[0.02] border border-white/10 text-white rounded-xl text-xs font-bold hover:bg-white/[0.04] hover:border-[#E8A800]/30 transition-all whitespace-nowrap uppercase tracking-wider font-mono cursor-pointer"
                       title="Set to +3 hours from start time"
                     >
                       +3h
@@ -376,14 +377,14 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
 
                 {/* Description */}
                 <div className="md:col-span-2">
-                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                     Description (Optional)
                   </label>
                   <input
                     type="text"
                     value={auction.description}
                     onChange={(e) => updateAuctionDate(index, 'description', e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white placeholder-gray-500 text-sm"
                     placeholder="e.g., Day 1 - Goalkeepers"
                   />
                 </div>
@@ -944,6 +945,5 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
           </div>
         </form>
       </div>
-    </div>
   )
 }

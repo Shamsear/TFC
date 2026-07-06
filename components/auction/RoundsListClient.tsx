@@ -131,17 +131,17 @@ export default function RoundsListClient({ seasonId, initialRounds, onNavigate }
   return (
     <div>
       {/* Live Indicator & Controls */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {isPolling && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-xs font-medium text-emerald-300">Live Updates</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest font-mono text-emerald-400">Live Updates</span>
             </div>
           )}
           <button
             onClick={() => setIsPolling(!isPolling)}
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs font-medium text-[#D4CCBB]"
+            className="px-3.5 py-1.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all text-xs font-bold uppercase tracking-wider text-gray-400 font-mono cursor-pointer"
           >
             {isPolling ? 'Pause' : 'Resume'} Updates
           </button>
@@ -152,40 +152,40 @@ export default function RoundsListClient({ seasonId, initialRounds, onNavigate }
       <div className="flex flex-wrap gap-2 mb-6">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+          className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
             filter === 'all'
-              ? 'bg-white/10 text-white border border-white/20'
-              : 'bg-white/5 text-[#7A7367] border border-white/10 hover:bg-white/10'
+              ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a]'
+              : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
           }`}
         >
           All ({rounds.length})
         </button>
         <button
           onClick={() => setFilter('draft')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+          className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
             filter === 'draft'
               ? 'bg-white/10 text-white border border-white/20'
-              : 'bg-white/5 text-[#7A7367] border border-white/10 hover:bg-white/10'
+              : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
           }`}
         >
           Draft ({rounds.filter(r => r.status === 'draft').length})
         </button>
         <button
           onClick={() => setFilter('active')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+          className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
             filter === 'active'
-              ? 'bg-white/10 text-white border border-white/20'
-              : 'bg-white/5 text-[#7A7367] border border-white/10 hover:bg-white/10'
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+              : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
           }`}
         >
           Active ({rounds.filter(r => r.status === 'active').length})
         </button>
         <button
           onClick={() => setFilter('completed')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+          className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
             filter === 'completed'
-              ? 'bg-white/10 text-white border border-white/20'
-              : 'bg-white/5 text-[#7A7367] border border-white/10 hover:bg-white/10'
+              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+              : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
           }`}
         >
           Completed ({rounds.filter(r => r.status === 'completed').length})
@@ -199,68 +199,68 @@ export default function RoundsListClient({ seasonId, initialRounds, onNavigate }
             key={round.id}
             href={`/sub-admin/${seasonId}/auction/rounds/${round.id}`}
             onClick={() => onNavigate?.(`Loading Round ${round.roundNumber} details...`)}
-            className="block rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all p-6"
+            className="block rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.02] transition-all p-5 backdrop-blur-xl shadow-md cursor-pointer group"
           >
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl font-bold text-white">
+                  <h3 className="text-lg font-black text-white group-hover:text-[#FFB347] transition-all uppercase tracking-tight">
                     Round {round.roundNumber}
                   </h3>
-                  <span className={`px-2 py-1 rounded-md text-xs font-medium border ${getRoundTypeColor(round.roundType)}`}>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono border ${getRoundTypeColor(round.roundType)}`}>
                     {getRoundTypeLabel(round.roundType)}
                   </span>
                 </div>
                 {round.position && (
-                  <p className="text-sm text-[#D4CCBB]">
-                    Position: {round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
+                    Position: <span className="text-white">{round.position}{round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}</span>
                   </p>
                 )}
               </div>
-              <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${getStatusColor(round.status)}`}>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono border ${getStatusColor(round.status)}`}>
                 {getStatusLabel(round.status)}
               </span>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <div className="text-xs text-[#7A7367] mb-1">Team Bids</div>
-                <div className="text-lg font-bold text-white">{round._count.teamRoundBids}</div>
+              <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
+                <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-0.5">Team Bids</div>
+                <div className="text-base font-black text-white font-mono">{round._count.teamRoundBids}</div>
               </div>
-              <div>
-                <div className="text-xs text-[#7A7367] mb-1">Tiebreakers</div>
-                <div className="text-lg font-bold text-white">{round._count.tiebreakers}</div>
+              <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
+                <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-0.5">Tiebreakers</div>
+                <div className="text-base font-black text-white font-mono">{round._count.tiebreakers}</div>
               </div>
             </div>
 
             {/* Details */}
-            <div className="space-y-2 text-sm">
+            <div className="space-y-1.5 text-xs border-t border-white/5 pt-3">
               {round.maxBidsPerTeam && (
-                <div className="flex justify-between text-[#D4CCBB]">
+                <div className="flex justify-between text-gray-500 font-bold uppercase tracking-wider font-mono">
                   <span>Max Bids:</span>
-                  <span className="font-medium text-white">{round.maxBidsPerTeam}</span>
+                  <span className="text-white font-mono">{round.maxBidsPerTeam}</span>
                 </div>
               )}
               {round.basePrice && (
-                <div className="flex justify-between text-[#D4CCBB]">
+                <div className="flex justify-between text-gray-500 font-bold uppercase tracking-wider font-mono">
                   <span>Base Price:</span>
-                  <span className="font-medium text-white">£{formatNumber(round.basePrice)}</span>
+                  <span className="text-white font-mono">£{formatNumber(round.basePrice)}</span>
                 </div>
               )}
               {round.startTime && (
-                <div className="flex justify-between text-[#D4CCBB]">
+                <div className="flex justify-between text-gray-500 font-bold uppercase tracking-wider font-mono">
                   <span>Started:</span>
-                  <span className="font-medium text-white">
+                  <span className="text-white font-mono">
                     {formatDate(round.startTime)}
                   </span>
                 </div>
               )}
               {round.endTime && (
-                <div className="flex justify-between text-[#D4CCBB]">
+                <div className="flex justify-between text-gray-500 font-bold uppercase tracking-wider font-mono">
                   <span>Ends:</span>
-                  <span className="font-medium text-white">
+                  <span className="text-white font-mono">
                     {formatDate(round.endTime)}
                   </span>
                 </div>
@@ -268,10 +268,10 @@ export default function RoundsListClient({ seasonId, initialRounds, onNavigate }
             </div>
 
             {/* Action Indicator */}
-            <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-              <span className="text-sm text-[#7A7367]">View Details</span>
-              <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-extrabold uppercase tracking-widest font-mono text-gray-500 group-hover:text-white transition-colors">
+              <span>View Details</span>
+              <svg className="w-4 h-4 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </div>
           </Link>
@@ -279,8 +279,8 @@ export default function RoundsListClient({ seasonId, initialRounds, onNavigate }
       </div>
 
       {filteredRounds.length === 0 && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-8 text-center">
-          <p className="text-[#D4CCBB]">No rounds found with status: {filter}</p>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-8 text-center backdrop-blur-xl shadow-md">
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">No rounds found with status: {filter}</p>
         </div>
       )}
     </div>

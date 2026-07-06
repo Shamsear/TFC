@@ -691,19 +691,17 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <RoundDetailClient
-          round={round}
-          teams={seasonTeams.map(st => st.team)}
-          auctionResults={auctionResults}
-          previewAllocations={previewAllocations ?? undefined}
-          bulkConflicts={bulkConflicts}
-          teamBidsWithDetails={teamBidsWithDetails ?? undefined}
-          bulkSelectionsWithDetails={bulkSelectionsWithDetails ?? undefined}
-          teamSquadSizes={Object.fromEntries(squadSizeMap)}
-        />
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      <RoundDetailClient
+        round={round}
+        teams={seasonTeams.map(st => st.team)}
+        auctionResults={auctionResults}
+        previewAllocations={previewAllocations ?? undefined}
+        bulkConflicts={bulkConflicts}
+        teamBidsWithDetails={teamBidsWithDetails ?? undefined}
+        bulkSelectionsWithDetails={bulkSelectionsWithDetails ?? undefined}
+        teamSquadSizes={Object.fromEntries(squadSizeMap)}
+      />
     </div>
   )
 }

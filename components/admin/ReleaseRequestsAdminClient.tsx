@@ -365,111 +365,123 @@ _All releases processed by admin_`
 
   return (
     <>
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}/tools`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Tools
+        </Link>
+      </div>
+
       {/* Header */}
-      <div className="mb-8 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-white mb-2">Release Requests</h1>
-            <p className="text-gray-400">{seasonName}</p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/sub-admin/${seasonId}/transfer-windows`}
-              className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg font-bold transition-all text-sm flex items-center gap-2"
-            >
-              <svg className="w-4 h-4 text-[#E8A800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-              </svg>
-              Manage Release Windows
-            </Link>
-          </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Release Requests
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            {seasonName} • Process player releases and refunds
+          </p>
         </div>
+        
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/sub-admin/${seasonId}/transfer-windows`}
+            className="px-6 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all hover:scale-105 text-xs uppercase tracking-wider cursor-pointer"
+          >
+            Manage Release Windows
+          </Link>
+        </div>
+      </div>
 
-        {/* Release Window Selection & Control */}
-        <div className="bg-[#111] border border-white/5 rounded-2xl p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1.5 flex-1">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#7A7367]">Select Release Window</label>
-              {releaseWindows.length === 0 ? (
-                <div className="text-sm text-[#7A7367]">No release windows created. Click "Manage Release Windows" above to create one.</div>
-              ) : (
-                <select
-                  value={selectedWindowId}
-                  onChange={e => setSelectedWindowId(e.target.value)}
-                  className="w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white font-medium focus:outline-none focus:border-[#E8A800]"
-                >
-                  <option value="ALL">All Windows</option>
-                  {releaseWindows.map(w => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} ({w.status})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {selectedWindow && selectedWindowId !== 'ALL' && (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={toggleWindow}
-                  disabled={isTogglingWindow}
-                  className={`px-6 py-2.5 rounded-xl font-bold transition-all text-sm shadow-lg disabled:opacity-50 ${
-                    selectedWindow.status === 'ACTIVE'
-                      ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30'
-                      : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30'
-                  }`}
-                >
-                  {isTogglingWindow ? 'Processing...' : selectedWindow.status === 'ACTIVE' ? 'Close Window' : 'Open Window'}
-                </button>
-                <Link
-                  href={`/sub-admin/${seasonId}/transfer-windows`}
-                  className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-semibold transition-all border border-white/10"
-                >
-                  Edit Window
-                </Link>
-              </div>
+      {/* Release Window Selection & Control */}
+      <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4 backdrop-blur-xl shadow-md mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5 flex-1">
+            <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Select Release Window</label>
+            {releaseWindows.length === 0 ? (
+              <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">No release windows created. Click "Manage Release Windows" above to create one.</div>
+            ) : (
+              <select
+                value={selectedWindowId}
+                onChange={e => setSelectedWindowId(e.target.value)}
+                className="w-full max-w-md bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white font-medium focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
+              >
+                <option value="ALL">All Windows</option>
+                {releaseWindows.map(w => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} ({w.status})
+                  </option>
+                ))}
+              </select>
             )}
           </div>
 
           {selectedWindow && selectedWindowId !== 'ALL' && (
-            <div className="border-t border-white/5 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-400">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-300">Status:</span>
-                <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
-                  selectedWindow.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' :
-                  selectedWindow.status === 'CLOSED' ? 'bg-red-500/20 text-red-400' :
-                  'bg-blue-500/20 text-blue-400'
-                }`}>
-                  {selectedWindow.status}
-                </span>
-              </div>
-              <div>
-                <span className="font-semibold text-gray-300">Duration:</span> {new Date(selectedWindow.startDate).toLocaleDateString()} - {new Date(selectedWindow.endDate).toLocaleDateString()}
-              </div>
-              <div>
-                <span className="font-semibold text-gray-300">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.releaseLimit} releases</span> per team
-              </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleWindow}
+                disabled={isTogglingWindow}
+                className={`px-6 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-wider shadow-lg disabled:opacity-50 cursor-pointer ${
+                  selectedWindow.status === 'ACTIVE'
+                    ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30'
+                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30'
+                }`}
+              >
+                {isTogglingWindow ? 'Processing...' : selectedWindow.status === 'ACTIVE' ? 'Close Window' : 'Open Window'}
+              </button>
+              <Link
+                href={`/sub-admin/${seasonId}/transfer-windows`}
+                className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold transition-all border border-white/10 uppercase tracking-wider"
+              >
+                Edit Window
+              </Link>
             </div>
           )}
         </div>
+
+        {selectedWindow && selectedWindowId !== 'ALL' && (
+          <div className="border-t border-white/5 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Status:</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                selectedWindow.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' :
+                selectedWindow.status === 'CLOSED' ? 'bg-red-500/20 text-red-400' :
+                'bg-blue-500/20 text-blue-400'
+              }`}>
+                {selectedWindow.status}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-400">Duration:</span> {new Date(selectedWindow.startDate).toLocaleDateString()} - {new Date(selectedWindow.endDate).toLocaleDateString()}
+            </div>
+            <div>
+              <span className="text-gray-400">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.releaseLimit} releases</span> per team
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <div className="text-sm text-gray-400 mb-1">Pending</div>
-          <div className="text-3xl font-black text-yellow-400">{pendingRequests.length}</div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all hover:border-yellow-400/20">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Pending</div>
+          <div className="text-2xl sm:text-3xl font-black text-yellow-400 font-mono">{pendingRequests.length}</div>
         </div>
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <div className="text-sm text-gray-400 mb-1">Approved</div>
-          <div className="text-3xl font-black text-emerald-400">
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all hover:border-emerald-400/20">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Approved</div>
+          <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
             {filteredRequests.filter(r => r.status === 'approved').length}
           </div>
         </div>
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <div className="text-sm text-gray-400 mb-1">Rejected</div>
-          <div className="text-3xl font-black text-red-400">
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all hover:border-red-400/20">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Rejected</div>
+          <div className="text-2xl sm:text-3xl font-black text-red-400 font-mono">
             {filteredRequests.filter(r => r.status === 'rejected').length}
           </div>
         </div>
@@ -479,16 +491,16 @@ _All releases processed by admin_`
       <div className="mb-8">
         <button
           onClick={() => setShowTeamStats(!showTeamStats)}
-          className="w-full rounded-xl bg-white/5 border border-white/10 p-4 hover:bg-white/10 transition-colors"
+          className="w-full rounded-2xl bg-white/[0.01] border border-white/5 p-4 hover:bg-white/[0.02] hover:border-white/10 transition-all backdrop-blur-xl shadow-md cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <svg className="w-6 h-6 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002-2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               <div className="text-left">
-                <h2 className="text-lg font-black text-white">Team Release Statistics</h2>
-                <p className="text-sm text-gray-400">View release usage for all {teamStats.length} teams</p>
+                <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider font-mono">Team Release Statistics</h2>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest font-mono">View release usage for all {teamStats.length} teams</p>
               </div>
             </div>
             <svg
@@ -503,56 +515,56 @@ _All releases processed by admin_`
         </button>
 
         {showTeamStats && (
-          <div className="mt-4 rounded-xl bg-white/5 border border-white/10 p-6">
+          <div className="mt-4 rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {teamStats.map(team => (
-                <div key={team.teamId} className="rounded-lg bg-[#111111] border border-white/10 p-4">
+                <div key={team.teamId} className="rounded-xl bg-white/[0.01] border border-white/5 p-4 hover:border-white/10 transition-all">
                   {/* Team Header */}
-                  <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/5">
                     {team.teamLogo && (
                       <div className="w-10 h-10 rounded overflow-hidden bg-white/5 flex-shrink-0">
                         <img src={team.teamLogo} alt={team.teamName} className="w-full h-full object-contain" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-black text-white truncate">{team.teamName}</h3>
-                      <p className="text-xs text-gray-400">Budget: {formatCurrency(team.currentBudget)}</p>
+                      <h3 className="font-bold text-white truncate uppercase tracking-tight">{team.teamName}</h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Budget: {formatCurrency(team.currentBudget)}</p>
                     </div>
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 font-mono">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Total Requests</span>
-                      <span className={`text-sm font-bold ${
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Requests</span>
+                      <span className={`text-xs font-bold ${
                         team.totalRequests >= 3 ? 'text-red-400' : 'text-white'
                       }`}>
                         {team.totalRequests}/3
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Approved</span>
-                      <span className={`text-sm font-bold ${
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Approved</span>
+                      <span className={`text-xs font-bold ${
                         team.approvedReleases >= 3 ? 'text-red-400' : 'text-emerald-400'
                       }`}>
                         {team.approvedReleases}/3
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Pending</span>
-                      <span className="text-sm font-bold text-yellow-400">{team.pendingRequests}</span>
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Pending</span>
+                      <span className="text-xs font-bold text-yellow-400">{team.pendingRequests}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Rejected</span>
-                      <span className="text-sm font-bold text-red-400">{team.rejectedRequests}</span>
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Rejected</span>
+                      <span className="text-xs font-bold text-red-400">{team.rejectedRequests}</span>
                     </div>
                   </div>
 
                   {/* Remaining Slots */}
-                  <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="mt-3 pt-3 border-t border-white/5 font-mono">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Remaining Slots</span>
-                      <span className={`text-sm font-bold ${
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Remaining Slots</span>
+                      <span className={`text-xs font-bold ${
                         team.remainingRequests === 0 ? 'text-red-400' : 'text-blue-400'
                       }`}>
                         {team.remainingRequests}

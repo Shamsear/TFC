@@ -53,28 +53,35 @@ export default async function EditTournamentPage({ params }: EditTournamentPageP
   }))
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <Link
-            href={`/sub-admin/${seasonId}/tournaments/${tournamentId}`}
-            className="text-[#E8A800] hover:text-[#FFB347] text-sm mb-2 inline-block transition-colors"
-          >
-            ← Back to Tournament Details
-          </Link>
-          <h1 className="text-2xl sm:text-3xl font-black">
-            Edit Tournament
-          </h1>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}/tournaments/${tournamentId}`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Tournament Details
+        </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <TournamentFormAdvanced 
-          seasonId={seasonId} 
-          teams={teams} 
-          initialTournament={tournament} 
-        />
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Edit Tournament
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Update settings, groups, and linked tournaments
+        </p>
       </div>
+
+      <TournamentFormAdvanced 
+        seasonId={seasonId} 
+        teams={teams} 
+        initialTournament={tournament} 
+      />
     </div>
   )
 }

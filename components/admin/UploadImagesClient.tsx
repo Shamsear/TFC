@@ -256,55 +256,56 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 lg:pb-12">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8 lg:mb-10">
-          <Link
-            href="/sub-admin"
-            className="inline-flex items-center gap-2 text-[#E8A800] hover:text-[#FFC93A] text-sm font-medium mb-4 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Dashboard
-          </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              Upload Player Images
-            </span>
-          </h1>
-          <p className="text-[#D4CCBB] text-sm sm:text-base">
-            Upload player photos (.webp) and cards (.png) directly to the Shamsear/TFC-Images GitHub repository storage.
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href="/sub-admin"
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Dashboard
+        </Link>
+      </div>
 
-        {/* GitHub Token Warning */}
-        {!hasToken && (
-          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 sm:py-4 rounded-xl flex items-start gap-3">
-            <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div className="text-sm">
-              <span className="font-bold block text-white mb-0.5">GitHub Integration Token Missing</span>
-              Please configure the <code className="bg-black/40 px-1.5 py-0.5 rounded border border-white/5 text-[#E8A800] font-mono text-xs">GITHUB_TOKEN</code> or <code className="bg-black/40 px-1.5 py-0.5 rounded border border-white/5 text-[#E8A800] font-mono text-xs">GITHUB_PAT</code> environment variable in your server's <code className="text-white font-semibold">.env</code> file. Uploads are currently disabled.
-            </div>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Upload Player Images
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Upload player photos (.webp) and cards (.png) directly to the Shamsear/TFC-Images GitHub repository storage.
+        </p>
+      </div>
+
+      {/* GitHub Token Warning */}
+      {!hasToken && (
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/20 text-amber-300 p-4 rounded-2xl flex items-start gap-3 font-mono text-xs uppercase tracking-wider">
+          <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <span className="font-extrabold block text-white mb-0.5">GitHub Integration Token Missing</span>
+            Please configure the <code className="bg-black/40 px-1.5 py-0.5 rounded border border-white/5 text-[#E8A800] font-mono text-xs">GITHUB_TOKEN</code> or <code className="bg-black/40 px-1.5 py-0.5 rounded border border-white/5 text-[#E8A800] font-mono text-xs">GITHUB_PAT</code> environment variable in your server's <code className="text-white font-semibold">.env</code> file. Uploads are currently disabled.
           </div>
-        )}
+        </div>
+      )}
 
         {generalError && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl flex items-center gap-3 font-mono text-xs uppercase tracking-wider">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{generalError}</span>
           </div>
         )}
 
         {generalSuccess && (
-          <div className="mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-xl flex items-center gap-3 text-sm animate-fade-in">
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-2xl flex items-center gap-3 font-mono text-xs uppercase tracking-wider animate-fade-in">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{generalSuccess}</span>
           </div>
@@ -350,44 +351,44 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
           </div>
 
           {/* Config sidebar */}
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-5 sm:p-6 flex flex-col justify-between">
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md flex flex-col justify-between">
             <div>
-              <h3 className="font-bold text-lg mb-4 text-white">Upload Settings</h3>
+              <h3 className="font-black text-white text-lg mb-4 uppercase tracking-tight">Upload Settings</h3>
               
               <div className="mb-6">
-                <label className="block text-xs sm:text-sm font-bold text-gray-400 mb-2">
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
                   Default Target Type
                 </label>
-                <div className="grid grid-cols-2 gap-2 bg-black/40 p-1.5 rounded-xl border border-white/5">
+                <div className="grid grid-cols-2 gap-2 bg-white/[0.02] p-1.5 rounded-xl border border-white/5">
                   <button
                     type="button"
                     onClick={() => handleGlobalTypeChange('photo')}
                     disabled={isUploadingAll}
-                    className={`py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${
+                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                       globalType === 'photo'
-                        ? 'bg-[#E8A800] text-black shadow-md'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-md'
+                        : 'text-gray-500 hover:text-white'
                     }`}
                   >
-                    Player Photos (.webp)
+                    Photos (.webp)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleGlobalTypeChange('card')}
                     disabled={isUploadingAll}
-                    className={`py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${
+                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                       globalType === 'card'
-                        ? 'bg-[#E8A800] text-black shadow-md'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-md'
+                        : 'text-gray-500 hover:text-white'
                     }`}
                   >
-                    Player Cards (.png)
+                    Cards (.png)
                   </button>
                 </div>
               </div>
 
-              <div className="text-xs text-[#7A7367] space-y-2 mb-6">
-                <p>💡 **Pro-Tip**: Name your image file as the eFootball Player ID (e.g. <code className="bg-black/50 px-1 py-0.5 text-white rounded">17592186045227.png</code>) to automatically fill the ID input!</p>
+              <div className="text-xs text-[#7A7367] space-y-2 mb-6 font-mono font-medium">
+                <p>💡 **Pro-Tip**: Name your image file as the eFootball Player ID (e.g. <code className="bg-white/5 px-1 py-0.5 text-white rounded">17592186045227.png</code>) to automatically fill the ID input!</p>
                 <p>📦 **Auto-Conversion**: Player photos are automatically compressed and saved as `.webp` files. Player cards are optimized as `.png` files in the browser.</p>
               </div>
             </div>
@@ -398,7 +399,7 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                   type="button"
                   onClick={clearAll}
                   disabled={isUploadingAll}
-                  className="flex-1 py-3 border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 text-sm font-bold rounded-xl transition-all disabled:opacity-40"
+                  className="flex-1 py-2.5 bg-white/[0.01] border border-white/5 hover:border-white/10 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all disabled:opacity-40 cursor-pointer"
                 >
                   Clear Queue
                 </button>
@@ -406,7 +407,7 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                   type="button"
                   onClick={uploadAll}
                   disabled={!hasToken || isUploadingAll}
-                  className="flex-1 py-3 bg-gradient-to-br from-[#E8A800] to-[#D49700] hover:shadow-lg hover:shadow-[#E8A800]/20 text-black font-black text-sm rounded-xl transition-all disabled:opacity-40"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold text-xs uppercase tracking-wider rounded-xl transition-all disabled:opacity-40 cursor-pointer"
                 >
                   {isUploadingAll ? 'Uploading...' : 'Upload All'}
                 </button>
@@ -417,10 +418,10 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
 
         {/* Upload List */}
         {items.length > 0 && (
-          <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
-              <h3 className="font-bold text-base sm:text-lg">Upload Queue ({items.length} files)</h3>
-              <span className="text-xs sm:text-sm text-gray-400">
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 overflow-hidden backdrop-blur-xl shadow-md">
+            <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <h3 className="font-black text-base sm:text-lg uppercase tracking-tight">Upload Queue ({items.length} files)</h3>
+              <span className="text-xs font-mono font-bold text-gray-500 uppercase tracking-widest">
                 {items.filter(i => i.status === 'success').length} of {items.length} succeeded
               </span>
             </div>
@@ -430,7 +431,7 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                 <div key={item.id} className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   {/* Left Side: Thumbnail & File info */}
                   <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                    <div className="relative w-14 h-14 bg-black/50 border border-white/10 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    <div className="relative w-14 h-14 bg-white/5 border border-white/10 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
                       <img
                         src={item.previewUrl}
                         alt="preview"
@@ -438,7 +439,7 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold text-white truncate max-w-[250px] sm:max-w-xs md:max-w-[180px] lg:max-w-xs">
+                      <div className="text-sm font-bold text-white truncate max-w-[250px] sm:max-w-xs md:max-w-[180px] lg:max-w-xs uppercase tracking-tight">
                         {item.file.name}
                       </div>
                       <div className="text-xs text-gray-500 font-mono">
@@ -460,7 +461,7 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                         onChange={(e) => updateItem(item.id, { playerId: e.target.value })}
                         disabled={item.status !== 'pending' && item.status !== 'error'}
                         placeholder="Enter Player ID..."
-                        className="w-full sm:w-44 px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800]/20 font-mono"
+                        className="w-full sm:w-44 px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-sm text-white placeholder-gray-600 focus:border-[#E8A800]/30 focus:outline-none font-mono transition-all"
                       />
                     </div>
 
@@ -473,10 +474,10 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                         value={item.imageType}
                         onChange={(e) => updateItem(item.id, { imageType: e.target.value as 'photo' | 'card' })}
                         disabled={item.status !== 'pending' && item.status !== 'error'}
-                        className="w-full sm:w-32 px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-sm text-white focus:border-[#E8A800] focus:outline-none"
+                        className="w-full sm:w-32 px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-sm text-white focus:border-[#E8A800]/30 focus:outline-none transition-all cursor-pointer font-mono"
                       >
-                        <option value="photo">Photo (.webp)</option>
-                        <option value="card">Card (.png)</option>
+                        <option value="photo" className="bg-[#121212] text-white">Photo (.webp)</option>
+                        <option value="card" className="bg-[#121212] text-white">Card (.png)</option>
                       </select>
                     </div>
                   </div>
@@ -535,9 +536,9 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                     {/* Action Button */}
                     <div className="flex-shrink-0">
                       {item.status === 'success' ? (
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
                       ) : (
@@ -545,10 +546,10 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
                           type="button"
                           onClick={() => removeItem(item.id)}
                           disabled={isUploadingAll}
-                          className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all disabled:opacity-30"
+                          className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all disabled:opacity-30 cursor-pointer"
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       )}
@@ -560,6 +561,5 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
           </div>
         )}
       </div>
-    </div>
   )
 }

@@ -32,11 +32,9 @@ export default async function ReleaseWindowsPage({ params }: ReleaseWindowsPageP
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <ReleaseWindowsClient 
-        seasonId={seasonId}
-        seasonName={season.name}
-      />
-    </div>
+    <ReleaseWindowsClient 
+      seasonId={seasonId}
+      seasonName={season.name}
+    />
   )
 }

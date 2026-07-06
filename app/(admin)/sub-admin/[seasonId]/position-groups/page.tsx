@@ -256,122 +256,126 @@ export default function PositionGroupsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <Link
-            href={`/sub-admin/${seasonId}/all-players`}
-            className="inline-flex items-center gap-2 text-[#E8A800] hover:text-[#FFC93A] text-sm font-medium mb-4 transition-colors"
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}/all-players`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Players
+        </Link>
+      </div>
+
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Position Groups
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Distribute players into balanced groups for auction rounds
+        </p>
+      </div>
+
+      {error && (
+        <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl font-mono text-xs uppercase tracking-wider">
+          {error}
+        </div>
+      )}
+
+      {/* Position Tabs */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        {POSITIONS.map(pos => (
+          <button
+            key={pos.code}
+            onClick={() => setSelectedPosition(pos.code)}
+            className={`px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all text-xs uppercase tracking-wider cursor-pointer ${
+              selectedPosition === pos.code
+                ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] shadow-md'
+                : 'bg-white/[0.02] border border-white/5 hover:border-white/10 text-gray-400'
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Players
-          </Link>
-          <h1 className="text-3xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              Position Groups
-            </span>
-          </h1>
-          <p className="text-[#D4CCBB] text-sm">
-            Distribute players into balanced groups for auction rounds
-          </p>
-        </div>
+            {pos.code} - {pos.name}
+          </button>
+        ))}
+      </div>
 
-        {error && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        {/* Position Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {POSITIONS.map(pos => (
-            <button
-              key={pos.code}
-              onClick={() => setSelectedPosition(pos.code)}
-              className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap transition-all ${
-                selectedPosition === pos.code
-                  ? 'bg-[#E8A800] text-[#0a0a0a]'
-                  : 'bg-white/5 text-[#D4CCBB] hover:bg-white/10'
-              }`}
-            >
-              {pos.code} - {pos.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search players by name or club..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pl-11 text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800]/50 focus:bg-white/[0.07] transition-all"
-            />
-            <svg 
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A7367]" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A7367] hover:text-white transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
+      {/* Search Bar */}
+      <div className="mb-8">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search players by name or club..."
+            className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 pl-11 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
+          />
+          <svg 
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
           {searchQuery && (
-            <div className="mt-2 text-sm text-[#D4CCBB]">
-              Found: {filteredGroupA.length} in Group A, {filteredGroupB.length} in Group B, {filteredUnassigned.length} unassigned
-            </div>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           )}
         </div>
+        {searchQuery && (
+          <div className="mt-2 text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">
+            Found: {filteredGroupA.length} in Group A, {filteredGroupB.length} in Group B, {filteredUnassigned.length} unassigned
+          </div>
+        )}
+      </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
-            <div className="text-blue-400 text-sm font-bold mb-1">Group A</div>
-            <div className="text-2xl font-black text-white">{currentStats.groupA.count} players</div>
-            <div className="text-sm text-[#D4CCBB]">Avg Rating: {currentStats.groupA.avgRating}</div>
-          </div>
-          <div className="rounded-xl bg-purple-500/10 border border-purple-500/20 p-4">
-            <div className="text-purple-400 text-sm font-bold mb-1">Group B</div>
-            <div className="text-2xl font-black text-white">{currentStats.groupB.count} players</div>
-            <div className="text-sm text-[#D4CCBB]">Avg Rating: {currentStats.groupB.avgRating}</div>
-          </div>
-          <div className="rounded-xl bg-gray-500/10 border border-gray-500/20 p-4">
-            <div className="text-gray-400 text-sm font-bold mb-1">Unassigned</div>
-            <div className="text-2xl font-black text-white">{currentStats.unassigned} players</div>
-            <button
-              onClick={handleAutoDistribute}
-              disabled={isSaving || currentStats.unassigned === 0}
-              className="mt-2 text-xs bg-[#E8A800] hover:bg-[#FFC93A] disabled:bg-gray-600 disabled:cursor-not-allowed text-[#0a0a0a] px-3 py-1 rounded font-bold transition-all flex items-center gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                'Auto-Distribute'
-              )}
-            </button>
-          </div>
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="rounded-2xl bg-blue-500/[0.02] border border-blue-500/10 p-5 backdrop-blur-xl shadow-md transition-all">
+          <div className="text-[10px] text-blue-400 font-extrabold uppercase tracking-widest font-mono mb-1">Group A</div>
+          <div className="text-2xl font-black text-white font-mono">{currentStats.groupA.count} players</div>
+          <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">Avg Rating: {currentStats.groupA.avgRating}</div>
         </div>
+        <div className="rounded-2xl bg-purple-500/[0.02] border border-purple-500/10 p-5 backdrop-blur-xl shadow-md transition-all">
+          <div className="text-[10px] text-purple-400 font-extrabold uppercase tracking-widest font-mono mb-1">Group B</div>
+          <div className="text-2xl font-black text-white font-mono">{currentStats.groupB.count} players</div>
+          <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">Avg Rating: {currentStats.groupB.avgRating}</div>
+        </div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Unassigned</div>
+            <div className="text-2xl font-black text-white font-mono">{currentStats.unassigned} players</div>
+          </div>
+          <button
+            onClick={handleAutoDistribute}
+            disabled={isSaving || currentStats.unassigned === 0}
+            className="mt-4 w-fit bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] disabled:opacity-40 disabled:cursor-not-allowed text-[#0a0a0a] px-4 py-2 rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer shadow-md flex items-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              'Auto-Distribute'
+            )}
+          </button>
+        </div>
+      </div>
 
         {/* Groups */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -379,17 +383,17 @@ export default function PositionGroupsPage() {
           <div
             onDragOver={handleDragOver}
             onDrop={() => handleDrop('A')}
-            className="rounded-xl bg-blue-500/5 border-2 border-blue-500/20 p-4"
+            className="rounded-2xl bg-blue-500/[0.01] border-2 border-blue-500/10 p-5 shadow-md backdrop-blur-xl"
           >
-            <h2 className="text-xl font-black text-blue-400 mb-4">
+            <h2 className="text-lg font-black text-blue-400 mb-4 uppercase tracking-tight font-mono">
               Group A ({filteredGroupA.length})
               {searchQuery && filteredGroupA.length !== currentData.groupA.length && (
-                <span className="text-sm font-normal text-[#D4CCBB] ml-2">
+                <span className="text-xs font-bold text-gray-500 ml-2 uppercase tracking-wider">
                   (filtered from {currentData.groupA.length})
                 </span>
               )}
             </h2>
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
               {paginatedGroupA.map(player => (
                 <PlayerCard
                   key={player.id}
@@ -399,27 +403,27 @@ export default function PositionGroupsPage() {
                 />
               ))}
               {filteredGroupA.length === 0 && (
-                <div className="text-center py-8 text-[#7A7367]">
+                <div className="text-center py-8 text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">
                   {searchQuery ? 'No players found' : 'No players in Group A'}
                 </div>
               )}
             </div>
             {totalPagesA > 1 && (
-              <div className="mt-4 flex items-center justify-between border-t border-blue-500/20 pt-4">
+              <div className="mt-4 flex items-center justify-between border-t border-blue-500/10 pt-4">
                 <button
                   onClick={() => setCurrentPageA(prev => Math.max(1, prev - 1))}
                   disabled={currentPageA === 1}
-                  className="px-3 py-1 rounded bg-blue-500/20 text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500/30 transition-all text-sm font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500/20 transition-all text-xs font-bold uppercase tracking-wider font-mono cursor-pointer"
                 >
                   Previous
                 </button>
-                <span className="text-sm text-[#D4CCBB]">
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                   Page {currentPageA} of {totalPagesA}
                 </span>
                 <button
                   onClick={() => setCurrentPageA(prev => Math.min(totalPagesA, prev + 1))}
                   disabled={currentPageA === totalPagesA}
-                  className="px-3 py-1 rounded bg-blue-500/20 text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500/30 transition-all text-sm font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500/20 transition-all text-xs font-bold uppercase tracking-wider font-mono cursor-pointer"
                 >
                   Next
                 </button>
@@ -431,17 +435,17 @@ export default function PositionGroupsPage() {
           <div
             onDragOver={handleDragOver}
             onDrop={() => handleDrop('B')}
-            className="rounded-xl bg-purple-500/5 border-2 border-purple-500/20 p-4"
+            className="rounded-2xl bg-purple-500/[0.01] border-2 border-purple-500/10 p-5 shadow-md backdrop-blur-xl"
           >
-            <h2 className="text-xl font-black text-purple-400 mb-4">
+            <h2 className="text-lg font-black text-purple-400 mb-4 uppercase tracking-tight font-mono">
               Group B ({filteredGroupB.length})
               {searchQuery && filteredGroupB.length !== currentData.groupB.length && (
-                <span className="text-sm font-normal text-[#D4CCBB] ml-2">
+                <span className="text-xs font-bold text-gray-500 ml-2 uppercase tracking-wider">
                   (filtered from {currentData.groupB.length})
                 </span>
               )}
             </h2>
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
               {paginatedGroupB.map(player => (
                 <PlayerCard
                   key={player.id}
@@ -451,27 +455,27 @@ export default function PositionGroupsPage() {
                 />
               ))}
               {filteredGroupB.length === 0 && (
-                <div className="text-center py-8 text-[#7A7367]">
+                <div className="text-center py-8 text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">
                   {searchQuery ? 'No players found' : 'No players in Group B'}
                 </div>
               )}
             </div>
             {totalPagesB > 1 && (
-              <div className="mt-4 flex items-center justify-between border-t border-purple-500/20 pt-4">
+              <div className="mt-4 flex items-center justify-between border-t border-purple-500/10 pt-4">
                 <button
                   onClick={() => setCurrentPageB(prev => Math.max(1, prev - 1))}
                   disabled={currentPageB === 1}
-                  className="px-3 py-1 rounded bg-purple-500/20 text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500/30 transition-all text-sm font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500/20 transition-all text-xs font-bold uppercase tracking-wider font-mono cursor-pointer"
                 >
                   Previous
                 </button>
-                <span className="text-sm text-[#D4CCBB]">
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                   Page {currentPageB} of {totalPagesB}
                 </span>
                 <button
                   onClick={() => setCurrentPageB(prev => Math.min(totalPagesB, prev + 1))}
                   disabled={currentPageB === totalPagesB}
-                  className="px-3 py-1 rounded bg-purple-500/20 text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500/30 transition-all text-sm font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500/20 transition-all text-xs font-bold uppercase tracking-wider font-mono cursor-pointer"
                 >
                   Next
                 </button>
@@ -485,17 +489,17 @@ export default function PositionGroupsPage() {
           <div
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(null)}
-            className="mt-6 rounded-xl bg-gray-500/5 border-2 border-gray-500/20 p-4"
+            className="mt-6 rounded-2xl bg-white/[0.01] border-2 border-white/5 p-5 shadow-md backdrop-blur-xl"
           >
-            <h2 className="text-xl font-black text-gray-400 mb-4">
+            <h2 className="text-lg font-black text-gray-400 mb-4 uppercase tracking-tight font-mono">
               Unassigned ({filteredUnassigned.length})
               {searchQuery && filteredUnassigned.length !== currentData.unassigned.length && (
-                <span className="text-sm font-normal text-[#D4CCBB] ml-2">
+                <span className="text-xs font-bold text-gray-500 ml-2 uppercase tracking-wider">
                   (filtered from {currentData.unassigned.length})
                 </span>
               )}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pr-1">
               {paginatedUnassigned.map(player => (
                 <PlayerCard
                   key={player.id}
@@ -506,21 +510,21 @@ export default function PositionGroupsPage() {
               ))}
             </div>
             {totalPagesUnassigned > 1 && (
-              <div className="mt-4 flex items-center justify-between border-t border-gray-500/20 pt-4">
+              <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4">
                 <button
                   onClick={() => setCurrentPageUnassigned(prev => Math.max(1, prev - 1))}
                   disabled={currentPageUnassigned === 1}
-                  className="px-3 py-1 rounded bg-gray-500/20 text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500/30 transition-all text-sm font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 transition-all text-xs font-bold uppercase tracking-wider font-mono cursor-pointer"
                 >
                   Previous
                 </button>
-                <span className="text-sm text-[#D4CCBB]">
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                   Page {currentPageUnassigned} of {totalPagesUnassigned}
                 </span>
                 <button
                   onClick={() => setCurrentPageUnassigned(prev => Math.min(totalPagesUnassigned, prev + 1))}
                   disabled={currentPageUnassigned === totalPagesUnassigned}
-                  className="px-3 py-1 rounded bg-gray-500/20 text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500/30 transition-all text-sm font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 transition-all text-xs font-bold uppercase tracking-wider font-mono cursor-pointer"
                 >
                   Next
                 </button>
@@ -528,7 +532,6 @@ export default function PositionGroupsPage() {
             )}
           </div>
         )}
-      </div>
     </div>
   )
 }
@@ -546,7 +549,7 @@ function PlayerCard({
     <div
       draggable
       onDragStart={onDragStart}
-      className="flex items-center gap-3 bg-black/30 rounded-lg p-3 cursor-move hover:bg-black/50 transition-all"
+      className="flex items-center gap-3 bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 rounded-xl p-3 cursor-move transition-all shadow-sm"
     >
       <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
         <img
@@ -556,16 +559,16 @@ function PlayerCard({
         />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-bold text-white truncate">{player.basePlayer.name}</div>
-        <div className="text-xs text-[#D4CCBB] truncate">{player.realWorldClub}</div>
+        <div className="font-extrabold text-white truncate text-sm uppercase tracking-tight">{player.basePlayer.name}</div>
+        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5 truncate">{player.realWorldClub}</div>
       </div>
       <div className="text-right flex-shrink-0">
-        <div className="text-lg font-black text-[#E8A800]">{player.overallRating}</div>
-        <div className="flex gap-1 mt-1">
+        <div className="text-lg font-black text-[#E8A800] font-mono">{player.overallRating}</div>
+        <div className="flex gap-1 mt-1 font-mono">
           {player.position_group !== 'A' && (
             <button
               onClick={() => onMove(player.id, 'A')}
-              className="text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-2 py-0.5 rounded"
+              className="text-[10px] bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-lg font-extrabold transition-all cursor-pointer"
             >
               →A
             </button>
@@ -573,7 +576,7 @@ function PlayerCard({
           {player.position_group !== 'B' && (
             <button
               onClick={() => onMove(player.id, 'B')}
-              className="text-xs bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-2 py-0.5 rounded"
+              className="text-[10px] bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-lg font-extrabold transition-all cursor-pointer"
             >
               →B
             </button>

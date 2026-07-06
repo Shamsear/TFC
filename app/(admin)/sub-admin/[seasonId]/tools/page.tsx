@@ -156,13 +156,26 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Season
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
           Admin Tools
         </h1>
         <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-          {season.name} - Player management and balance tools
+          {season.name} • Player management and balance tools
         </p>
       </div>
 
@@ -180,7 +193,7 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
               <h3 className="text-xl font-black text-white mb-2 group-hover:text-[#E8A800] transition-colors uppercase tracking-tight">
                 {tool.title}
               </h3>
-              <p className="text-[#7A7367] text-xs font-medium mb-6 uppercase tracking-wider">{tool.description}</p>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-6">{tool.description}</p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] group-hover:text-[#FFC93A] transition-colors">
               Open Tool

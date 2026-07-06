@@ -66,12 +66,10 @@ export default async function TransfersPage({ params }: TransfersPageProps) {
   })
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <TransfersClient 
-        transfers={transfers} 
-        seasonId={seasonId}
-        seasonName={season.name}
-      />
-    </div>
+    <TransfersClient 
+      transfers={transfers} 
+      seasonId={seasonId}
+      seasonName={season.name}
+    />
   )
 }

@@ -66,27 +66,21 @@ export default async function SuperAdminNotificationsPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              Notification Hub
-            </span>
-          </h1>
-          <p className="text-[#D4CCBB] text-sm sm:text-base">
-            Broadcast test payloads and audit client subscriptions
-          </p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Notification Hub
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          Broadcast test payloads and audit client subscriptions
+        </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <SuperAdminNotificationsClient 
-          subscriptions={parsedSubscriptions}
-          users={parsedUsers}
-        />
-      </div>
+      <SuperAdminNotificationsClient 
+        subscriptions={parsedSubscriptions}
+        users={parsedUsers}
+      />
     </div>
   )
 }

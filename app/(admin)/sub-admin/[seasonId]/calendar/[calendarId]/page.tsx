@@ -242,22 +242,22 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
-      <div className="border-b border-white/5 bg-black/50 backdrop-blur-xl mb-8">
+      <div className="border-b border-white/5 bg-white/[0.01] backdrop-blur-xl mb-8">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
           <Link
             href={`/sub-admin/${seasonId}/calendar`}
-            className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm font-medium mb-4 transition-colors"
+            className="inline-flex items-center gap-2 text-[#E8A800] hover:text-[#FFC93A] text-sm font-medium mb-4 transition-colors"
           >
             <ArrowLeftIcon />
             Back to Calendar
           </Link>
           <h1 className="text-4xl font-black mb-2">
-            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
               {formatDate(calendar.auctionDate)}
             </span>
           </h1>
           {calendar.description && (
-            <p className="text-gray-400">{calendar.description}</p>
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-wider font-mono">{calendar.description}</p>
           )}
         </div>
       </div>
@@ -267,7 +267,7 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
           {/* Left Column - Position Selection & Player List */}
           <div className="lg:col-span-2 space-y-6">
             {/* Position Tabs */}
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-4 shadow-sm">
               <div className="flex gap-2 flex-wrap">
                 {calendar?.auction_slots?.map((slot: any) => {
                   const isSelected = selectedPosition === slot.position;
@@ -276,14 +276,14 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                     <button
                       key={slot.id}
                       onClick={() => setSelectedPosition(slot.position)}
-                      className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 border ${
+                      className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 border text-xs uppercase tracking-wider font-mono cursor-pointer ${
                         isSelected
                           ? isBulk
                             ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20'
                             : 'bg-[#E8A800] border-[#E8A800] text-[#0a0a0a] shadow-lg shadow-[#E8A800]/20'
                           : isBulk
                             ? 'bg-purple-500/5 border-purple-500/20 text-purple-400 hover:bg-purple-500/10'
-                            : 'bg-[#E8A800]/5 border-dashed border-[#E8A800]/20 text-[#E8A800] hover:bg-[#E8A800]/10'
+                            : 'bg-white/[0.02] border-white/10 text-white hover:bg-white/[0.04]'
                       }`}
                     >
                       <span>{slot.position}</span>
@@ -298,19 +298,19 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                       )}
                     </button>
                   );
-                }) || <div className="text-gray-400">No position slots available</div>}
+                }) || <div className="text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">No position slots available</div>}
               </div>
             </div>
 
             {/* Search Bar */}
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-4 shadow-sm">
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search players by name or club..."
-                  className="w-full bg-black/50 border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all text-white placeholder-gray-500"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white placeholder-gray-500 font-mono text-sm"
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <SearchIcon />
@@ -328,15 +328,15 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white">Round Completed</h3>
-                    <p className="text-sm text-emerald-300">{roundResults.length} players sold</p>
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight font-mono">Round Completed</h3>
+                    <p className="text-xs text-emerald-300 font-bold uppercase tracking-wider font-mono">{roundResults.length} players sold</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   {roundResults.map((result: any) => {
                     const playerStats = result.basePlayer.seasonalPlayerStats[0]
                     return (
-                      <div key={result.id} className="flex items-center justify-between p-4 rounded-xl bg-black/30 border border-emerald-500/20">
+                      <div key={result.id} className="flex items-center justify-between p-4 rounded-xl bg-black/30 border border-emerald-500/20 font-mono text-xs">
                         <div className="flex items-center gap-3 flex-1">
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
                             {result.basePlayer.photoUrl && (
@@ -349,14 +349,14 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-bold text-white truncate">{result.basePlayer.name}</div>
+                            <div className="font-extrabold text-white truncate text-sm uppercase tracking-tight">{result.basePlayer.name}</div>
                             <div className="flex items-center gap-2 mt-1">
                               {playerStats && (
                                 <>
-                                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                                  <span className="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-extrabold uppercase tracking-widest font-mono border border-white/15">
                                     {playerStats.position}
                                   </span>
-                                  <span className="text-emerald-400 font-bold text-sm">
+                                  <span className="text-emerald-400 font-bold">
                                     OVR {playerStats.overallRating}
                                   </span>
                                 </>
@@ -366,7 +366,7 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <div className="text-right">
-                            <div className="text-xs text-gray-400">Sold to</div>
+                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Sold to</div>
                             <div className="flex items-center gap-2">
                               {result.team.logoUrl && (
                                 <div className="relative w-6 h-6 rounded overflow-hidden bg-gray-800">
@@ -378,12 +378,12 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                                   />
                                 </div>
                               )}
-                              <span className="font-bold text-white text-sm">{result.team.name}</span>
+                              <span className="font-bold text-white text-sm uppercase tracking-tight">{result.team.name}</span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-400">Price</div>
-                            <div className="text-xl font-black text-emerald-400">
+                          <div className="text-right ml-4">
+                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Price</div>
+                            <div className="text-lg font-black text-emerald-400">
                               £{result.soldPrice.toLocaleString()}
                             </div>
                           </div>
@@ -398,8 +398,8 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
             {/* Players Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredPlayers.length === 0 ? (
-                <div className="col-span-2 rounded-2xl bg-white/5 border border-white/10 p-12 text-center">
-                  <div className="text-gray-400">
+                <div className="col-span-2 rounded-2xl bg-white/[0.01] border border-white/5 p-12 text-center">
+                  <div className="text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">
                     {searchQuery ? 'No players found matching your search' : 'No available players for this position'}
                   </div>
                 </div>
@@ -408,10 +408,10 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                   <button
                     key={player.id}
                     onClick={() => setSelectedPlayer(player)}
-                    className={`text-left rounded-2xl border-2 p-4 transition-all ${
+                    className={`text-left rounded-2xl border p-4 transition-all cursor-pointer ${
                       selectedPlayer?.id === player.id
-                        ? 'bg-purple-500/20 border-purple-500'
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                        ? 'bg-purple-500/10 border-purple-500/50'
+                        : 'bg-white/[0.01] border-white/5 hover:border-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -424,14 +424,14 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                         />
                       </div>
                       <div className="flex-1">
-                        <div className="font-bold text-white">{player.name}</div>
-                        <div className="text-sm text-gray-400">{player.realWorldClub}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-xs font-bold">
+                        <div className="font-extrabold text-white text-sm sm:text-base uppercase tracking-tight">{player.name}</div>
+                        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5">{player.realWorldClub}</div>
+                        <div className="flex items-center gap-2 mt-2 font-mono">
+                          <span className="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-extrabold uppercase tracking-widest border border-white/15">
                             {player.position}
                           </span>
-                          <span className="text-emerald-400 font-bold text-sm">
-                            {player.overallRating}
+                          <span className="text-emerald-400 font-bold text-xs">
+                            OVR {player.overallRating}
                           </span>
                         </div>
                       </div>
@@ -446,9 +446,9 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
           <div className="space-y-6">
             {/* Selected Player */}
             {selectedPlayer && (
-              <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-6">
-                <div className="text-sm font-bold text-purple-400 uppercase tracking-wider mb-4">Selected Player</div>
-                <div className="flex items-center gap-4 mb-4">
+              <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 shadow-md backdrop-blur-xl">
+                <div className="text-xs font-bold text-purple-400 uppercase tracking-widest font-mono mb-4">Selected Player</div>
+                <div className="flex items-center gap-4 mb-6">
                   <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-800">
                     <Image
                       src={selectedPlayer.photoUrl}
@@ -458,10 +458,10 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                     />
                   </div>
                   <div>
-                    <div className="text-xl font-black text-white">{selectedPlayer.name}</div>
-                    <div className="text-sm text-gray-400">{selectedPlayer.realWorldClub}</div>
-                    <div className="text-2xl font-black text-emerald-400 mt-1">
-                      {selectedPlayer.overallRating}
+                    <div className="text-lg font-extrabold text-white uppercase tracking-tight">{selectedPlayer.name}</div>
+                    <div className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5">{selectedPlayer.realWorldClub}</div>
+                    <div className="text-xl font-black text-emerald-400 mt-1 font-mono">
+                      OVR {selectedPlayer.overallRating}
                     </div>
                   </div>
                 </div>
@@ -475,7 +475,7 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                       { value: '', label: 'Choose a team...' },
                       ...teams.map(team => ({
                         value: team.id,
-                        label: `${team.name} ($${team.currentBudget.toLocaleString()})`
+                        label: `${team.name} (£${team.currentBudget.toLocaleString()})`
                       }))
                     ]}
                     onChange={setSelectedTeam}
@@ -485,24 +485,24 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                 </div>
 
                 {/* Price Input */}
-                <div className="mb-4">
-                  <label className="block text-sm font-bold mb-2 text-white">
+                <div className="mb-6 font-mono">
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">
                     Sold Price <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-extrabold">£</span>
                     <input
                       type="number"
                       value={soldPrice}
                       onChange={(e) => setSoldPrice(e.target.value)}
                       placeholder="Enter amount"
-                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all text-white placeholder-gray-500"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white placeholder-gray-500 font-mono text-lg font-black"
                     />
                   </div>
                 </div>
 
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2 rounded-lg text-sm mb-4">
+                  <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs font-bold uppercase tracking-wider font-mono mb-4">
                     {error}
                   </div>
                 )}
@@ -511,7 +511,7 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                 <button
                   onClick={handleSellPlayer}
                   disabled={isSelling || !selectedTeam || !soldPrice}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-emerald-500/50"
+                  className="w-full bg-[#E8A800] hover:bg-[#E8A800]/90 text-black px-6 py-3 rounded-xl font-extrabold uppercase tracking-wider text-xs transition-all cursor-pointer shadow-[0_0_20px_rgba(232,168,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSelling ? 'Selling...' : 'SOLD!'}
                 </button>
@@ -519,8 +519,8 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
             )}
 
             {/* Teams Budget */}
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-              <div className="text-sm font-bold text-white uppercase tracking-wider mb-4">Teams Budget</div>
+            <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
+              <div className="text-xs font-bold text-white uppercase tracking-widest font-mono mb-4">Teams Budget</div>
               <div className="space-y-3">
                 {teams.map((team) => (
                   <div key={team.id} className="flex items-center justify-between">
@@ -535,10 +535,10 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
                           />
                         )}
                       </div>
-                      <span className="text-sm font-medium text-white">{team.name}</span>
+                      <span className="text-sm font-medium text-white uppercase tracking-tight">{team.name}</span>
                     </div>
-                    <span className="text-sm font-bold text-emerald-400">
-                      ${team.currentBudget.toLocaleString()}
+                    <span className="text-sm font-extrabold text-emerald-400 font-mono">
+                      £{team.currentBudget.toLocaleString()}
                     </span>
                   </div>
                 ))}

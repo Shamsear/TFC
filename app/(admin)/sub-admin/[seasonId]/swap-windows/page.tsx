@@ -32,11 +32,9 @@ export default async function SwapWindowsPage({ params }: SwapWindowsPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <SwapWindowsClient 
-        seasonId={seasonId}
-        seasonName={season.name}
-      />
-    </div>
+    <SwapWindowsClient 
+      seasonId={seasonId}
+      seasonName={season.name}
+    />
   )
 }

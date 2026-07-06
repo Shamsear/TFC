@@ -96,46 +96,39 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-                <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                  Tournaments
-                </span>
-              </h1>
-              <p className="text-[#D4CCBB] text-sm sm:text-base">
-                {season.name} - Manage tournaments and competitions
-              </p>
-            </div>
-            <Link
-              href={`/sub-admin/${seasonId}/tournaments/new`}
-              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base whitespace-nowrap"
-            >
-              <PlusIcon />
-              <span className="hidden sm:inline">Create Tournament</span>
-              <span className="sm:hidden">Create</span>
-            </Link>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Tournaments
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            {season.name} - Manage tournaments and competitions
+          </p>
         </div>
+        <Link
+          href={`/sub-admin/${seasonId}/tournaments/new`}
+          className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
+        >
+          <PlusIcon />
+          <span>Create Tournament</span>
+        </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <div>
         {season.tournaments.length === 0 ? (
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4 sm:mb-6">
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-8 sm:p-12 text-center backdrop-blur-xl">
+            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#E8A800] mx-auto mb-6">
               <TrophyIcon />
             </div>
-            <div className="text-lg sm:text-xl font-black text-white mb-2">No tournaments created</div>
-            <p className="text-[#D4CCBB] text-sm sm:text-base mb-6">
+            <div className="text-xl font-black text-white mb-2 uppercase tracking-wide">No tournaments created</div>
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest font-mono mb-6">
               Create your first tournament to start scheduling matches
             </p>
             <Link
               href={`/sub-admin/${seasonId}/tournaments/new`}
-              className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer"
             >
               <PlusIcon />
               Create First Tournament
@@ -147,43 +140,43 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
               <Link
                 key={tournament.id}
                 href={`/sub-admin/${seasonId}/tournaments/${tournament.id}`}
-                className="group rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-4 sm:p-6"
+                className="group rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all p-4 sm:p-6 backdrop-blur-xl shadow-md block"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] flex-shrink-0">
+                        <div className="w-12 h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] flex-shrink-0">
                           <TrophyIcon />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-lg sm:text-2xl font-black text-white truncate">
+                          <div className="text-lg sm:text-2xl font-black text-white truncate uppercase tracking-tight">
                             {tournament.name}
                           </div>
-                          <div className="text-xs sm:text-sm text-[#7A7367] mt-1">
+                          <div className="text-[10px] font-bold text-[#7A7367] uppercase tracking-wider font-mono mt-0.5">
                             {getTournamentTypeLabel(tournament.tournamentType)}
                           </div>
                         </div>
                       </div>
-                      <span className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full border text-xs font-bold self-start sm:self-auto ${getStatusColor(tournament.status)}`}>
+                      <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-mono font-black uppercase tracking-wider self-start sm:self-auto ${getStatusColor(tournament.status)}`}>
                         {tournament.status.replace('_', ' ')}
                       </span>
                     </div>
 
                     {tournament.description && (
-                      <div className="text-sm text-[#D4CCBB] mb-3 line-clamp-2">{tournament.description}</div>
+                      <div className="text-xs font-mono font-black text-gray-500 uppercase tracking-widest mb-4 line-clamp-2">{tournament.description}</div>
                     )}
 
                     {/* Linked Tournaments Status */}
                     {tournament.outgoingLinks && tournament.outgoingLinks.length > 0 && (
-                      <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/5 text-xs">
-                        <div className="flex items-center gap-1.5 font-bold text-[#E8A800] mb-2">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-mono">
+                        <div className="flex items-center gap-1.5 font-bold text-[#E8A800] uppercase tracking-wider mb-2">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                           </svg>
                           <span>Linked to Target:</span>
                         </div>
-                        <ul className="space-y-1.5 text-[#D4CCBB]">
+                        <ul className="space-y-1.5 text-gray-400">
                           {tournament.outgoingLinks.map((link: any) => {
                             const config = link.qualificationConfig as any;
                             let label = '';
@@ -197,10 +190,10 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
                             
                             return (
                               <li key={link.id} className="flex items-center justify-between gap-2 border-b border-white/5 pb-1 last:border-0 last:pb-0">
-                                <span className="font-semibold truncate text-[#fff]">
+                                <span className="font-extrabold truncate text-white uppercase tracking-wider">
                                   {link.targetTournament?.name}
                                 </span>
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-[#E8A800]/10 text-[#E8A800] border border-[#E8A800]/20 whitespace-nowrap">
+                                <span className="text-[9px] px-2 py-0.5 rounded bg-[#E8A800]/10 text-[#E8A800] border border-[#E8A800]/20 font-bold whitespace-nowrap uppercase tracking-wider">
                                   {label}
                                 </span>
                               </li>
@@ -210,31 +203,31 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-[#7A7367]">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs font-bold uppercase tracking-wider text-[#7A7367] font-mono">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span className="truncate">Start: <span className="text-[#E8A800] font-bold">{formatDate(tournament.startDate)}</span></span>
+                        <span className="truncate">Start: <span className="text-white font-mono">{formatDate(tournament.startDate)}</span></span>
                       </div>
                       {tournament.endDate && (
-                        <div className="flex items-center gap-2 text-[#7A7367]">
-                          <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          <span className="truncate">End: <span className="text-[#FFB347] font-bold">{formatDate(tournament.endDate)}</span></span>
+                          <span className="truncate">End: <span className="text-white font-mono">{formatDate(tournament.endDate)}</span></span>
                         </div>
                       )}
-                      <div className="flex items-center gap-2 text-[#7A7367]">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        <span><span className="text-white font-bold">{tournament._count.matches}</span> matches</span>
+                        <span><span className="text-white font-mono">{tournament._count.matches}</span> matches</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-[#E8A800] opacity-0 group-hover:opacity-100 transition-opacity self-center hidden sm:block">
+                  <div className="text-[#E8A800] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all self-center hidden sm:block">
                     <ArrowRightIcon />
                   </div>
                 </div>

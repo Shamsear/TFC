@@ -999,91 +999,83 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   return (
     <>
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div className="flex items-center gap-4 mb-4">
+      <div className="pt-6 mb-8">
+        <div className="mb-6">
           <Link
             href={`/sub-admin/${round.season.id}/auction`}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
           >
-            ← Back to Rounds
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Rounds
           </Link>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                Round {round.roundNumber}
-              </span>
+            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 uppercase tracking-wider leading-none">
+              Round {round.roundNumber}
             </h1>
-            <p className="text-[#D4CCBB] text-sm sm:text-base">
+            <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
               {round.season.name} • {round.position || 'All Positions'}{round.position_group && round.position_group.toLowerCase() !== 'all' ? ` (${round.position_group.toUpperCase()})` : ''} • {round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}
             </p>
           </div>
           <div className="flex items-center gap-3">
             {/* Live Indicator */}
             {isPolling && (round.status === 'active' || round.status === 'pending_finalization' || round.status === 'tiebreaker_pending' || round.status === 'finalizing') && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-xs font-medium text-emerald-300">Live</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest font-mono text-emerald-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span>Live</span>
               </div>
             )}
             <button
               onClick={() => setIsPolling(!isPolling)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs font-medium text-[#D4CCBB]"
+              className="px-3.5 py-1.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white font-mono cursor-pointer"
               title={isPolling ? 'Pause live updates' : 'Resume live updates'}
             >
-              {isPolling ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
+              {isPolling ? 'Pause' : 'Resume'}
             </button>
-            <div className={`px-4 py-2 rounded-lg border font-bold text-sm ${getStatusColor(round.status)}`}>
-              {round.status.toUpperCase()}
+            <div className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono border ${getStatusColor(round.status)}`}>
+              {round.status}
             </div>
           </div>
         </div>
 
         {/* Live Timer for Active Rounds */}
         {round.status === 'active' && timeRemaining !== null && (
-          <div className="mt-4 rounded-xl bg-gradient-to-r from-[#E8A800]/20 to-[#FFB347]/20 border-2 border-[#E8A800]/50 p-4">
+          <div className="mt-6 rounded-2xl bg-white/[0.01] border border-[#E8A800]/30 p-5 backdrop-blur-xl shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#E8A800] flex items-center justify-center animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-[#E8A800] flex items-center justify-center animate-pulse">
                   <svg className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <div className="text-xs text-[#D4CCBB] mb-1">Time Remaining</div>
-                  <div className={`text-2xl sm:text-3xl font-black ${timeRemaining < 3600000 ? 'text-red-400' : 'text-[#FFB347]'}`}>
+                  <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-0.5">Time Remaining</div>
+                  <div className={`text-2xl font-black font-mono ${timeRemaining < 3600000 ? 'text-red-400' : 'text-[#FFB347]'}`}>
                     {isMounted ? formatTimeRemaining(timeRemaining) : '--:--:--'}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-[#E8A800]/20 pt-3 sm:border-t-0 sm:pt-0">
+              <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-white/5 pt-3 sm:border-t-0 sm:pt-0">
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowExtendModal(true)}
-                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 font-bold text-sm transition-all"
+                    className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/15 hover:border-emerald-500/30 text-emerald-400 font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer font-mono"
                   >
                     + Add Time
                   </button>
                   <button
                     onClick={() => setShowReduceModal(true)}
-                    className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 font-bold text-sm transition-all"
+                    className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/15 hover:border-red-500/30 text-red-400 font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer font-mono"
                   >
                     − Reduce Time
                   </button>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-[#D4CCBB] mb-1">Ends At</div>
-                  <div className="text-sm font-bold text-white">
+                <div className="text-right font-mono">
+                  <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Ends At</div>
+                  <div className="text-xs font-bold text-white">
                     {formatDateTime(localEndTime ? new Date(localEndTime) : null)}
                   </div>
                 </div>
@@ -1094,35 +1086,38 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       </div>
 
       {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-red-400 mb-6">
+        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-red-400 text-xs font-bold font-mono uppercase tracking-wider mb-6">
           {error}
         </div>
       )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6">
-          <div className="text-sm text-gray-400 mb-2">Submissions Status</div>
-          <div className="text-3xl font-black text-white mb-2">{submittedTeamsList.length}/{totalTeams}</div>
-          <div className="flex flex-col gap-1.5 text-xs">
-            <span className="text-emerald-400 font-bold">✓ {submittedTeamsList.length} Submitted</span>
-            <span className="text-yellow-400 font-bold">⏳ {inProgressTeamsList.length} In Progress</span>
-            <span className="text-gray-400 font-bold">💤 {notStartedTeamsList.length} Not Started</span>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all duration-300 hover:border-[#E8A800]/25">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Submissions Status</div>
+          <div className="text-2xl font-black text-white mb-2 font-mono">{submittedTeamsList.length}/{totalTeams}</div>
+          <div className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-widest font-mono">
+            <span className="text-emerald-400">✓ {submittedTeamsList.length} Submitted</span>
+            <span className="text-yellow-400">⏳ {inProgressTeamsList.length} In Progress</span>
+            <span className="text-gray-400">💤 {notStartedTeamsList.length} Not Started</span>
           </div>
         </div>
-        <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6">
-          <div className="text-sm text-gray-400 mb-2">Tiebreakers</div>
-          <div className="text-3xl font-black text-[#FFB347]">{round._count.tiebreakers}</div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all duration-300 hover:border-[#FFB347]/25">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Tiebreakers</div>
+          <div className="text-2xl font-black text-[#FFB347] font-mono mb-2">{round._count.tiebreakers}</div>
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono">Requires Resolution</div>
         </div>
-        <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6">
-          <div className="text-sm text-gray-400 mb-2">Duration</div>
-          <div className="text-3xl font-black text-[#E8A800]">{formatDuration(round.durationSeconds)}</div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all duration-300 hover:border-[#E8A800]/25">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Duration</div>
+          <div className="text-2xl font-black text-[#E8A800] font-mono mb-2">{formatDuration(round.durationSeconds)}</div>
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono">Original Limit</div>
         </div>
-        <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6">
-          <div className="text-sm text-gray-400 mb-2">Base Price</div>
-          <div className="text-3xl font-black text-emerald-400">
-            ${(round.basePrice || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all duration-300 hover:border-emerald-500/25">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Base Price</div>
+          <div className="text-2xl font-black text-emerald-400 font-mono mb-2">
+            £{(round.basePrice || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
           </div>
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono">Minimum bid amount</div>
         </div>
       </div>
 
@@ -1131,29 +1126,29 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
         <div className="mb-8">
           <button
             onClick={() => setShowEditSettings(!showEditSettings)}
-            className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+            className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 hover:border-white/10 hover:bg-white/[0.02] transition-all backdrop-blur-xl shadow-md cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
                 <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div className="text-left">
-                <h3 className="font-bold text-white">Edit Round Settings</h3>
-                <p className="text-xs text-[#D4CCBB]">
+                <h3 className="font-extrabold text-white text-sm uppercase tracking-wider font-mono">Edit Round Settings</h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-0.5">
                   Modify bids limit, base price, and finalization mode
                 </p>
               </div>
             </div>
             <svg 
-              className={`w-5 h-5 text-[#D4CCBB] transition-transform ${showEditSettings ? 'rotate-180' : ''}`} 
+              className={`w-5 h-5 text-gray-500 transition-transform ${showEditSettings ? 'rotate-180' : ''}`} 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
@@ -1191,7 +1186,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest font-mono mb-2">
                       Max Bids Per Team
                     </label>
                     <input
@@ -1202,16 +1197,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                         ...prev,
                         maxBidsPerTeam: parseInt(e.target.value) || 0
                       }))}
-                      className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
                       placeholder="0 = unlimited"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">
                       0 = unlimited bids
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest font-mono mb-2">
                       Base Price (£)
                     </label>
                     <input
@@ -1222,7 +1217,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                         ...prev,
                         basePrice: parseInt(e.target.value) || 0
                       }))}
-                      className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E8A800]"
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
                       required
                     />
                   </div>
@@ -1241,7 +1236,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       }))}
                       enableSearch={false}
                     />
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">
                       {editForm.finalizationMode === 'auto' 
                         ? 'Results finalize automatically when timer ends'
                         : 'Preview results before making them public'}
@@ -1250,7 +1245,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 </div>
 
                 {error && (
-                  <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                  <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold font-mono uppercase tracking-wider">
                     {error}
                   </div>
                 )}
@@ -1267,14 +1262,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       })
                     }}
                     disabled={editingSettings}
-                    className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 font-medium"
+                    className="flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 text-gray-400 hover:text-white font-mono"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={editingSettings}
-                    className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-mono"
                   >
                     {editingSettings ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -1287,17 +1282,17 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Finalization Mode Info */}
       {round.finalizationMode === 'manual' && ['draft', 'active'].includes(round.status) && (
-        <div className="rounded-xl bg-blue-500/10 border-2 border-blue-500/30 p-6 mb-8">
+        <div className="rounded-2xl bg-blue-500/[0.02] border border-blue-500/20 p-6 mb-8 backdrop-blur-xl shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-black text-blue-300">Manual Preview Mode</h3>
-              <p className="text-sm text-blue-200">
+              <h3 className="text-sm font-black text-blue-400 mb-1.5 uppercase tracking-wider font-mono">Manual Preview Mode</h3>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono leading-relaxed">
                 When the timer ends, you'll be able to preview results before making them public
               </p>
             </div>
@@ -1307,29 +1302,29 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Timeline - Show when round is active or completed */}
       {(round.status === 'active' || round.status === 'completed') && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-8">
-          <h2 className="text-xl font-black text-white mb-4">Round Timeline</h2>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-md">
+          <h2 className="text-lg font-black text-white mb-4 uppercase tracking-tight font-mono">Round Timeline</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <div className="text-sm text-gray-400 mb-2">Start Time</div>
-              <div className="text-lg font-bold text-emerald-400">{formatDateTime(round.startTime)}</div>
+              <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Start Time</div>
+              <div className="text-sm font-extrabold text-white font-mono">{formatDateTime(round.startTime)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-400 mb-2">End Time</div>
-              <div className="text-lg font-bold text-[#FFB347]">{formatDateTime(localEndTime ? new Date(localEndTime) : null)}</div>
+              <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">End Time</div>
+              <div className="text-sm font-extrabold text-white font-mono">{formatDateTime(localEndTime ? new Date(localEndTime) : null)}</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Actions */}
-      <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-8">
-        <h2 className="text-xl font-black text-white mb-4">Round Actions</h2>
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-md">
+        <h2 className="text-lg font-black text-white mb-4 uppercase tracking-tight font-mono">Round Actions</h2>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-3 sm:gap-4">
           {/* View Team Bids - Available for all statuses */}
           <Link
             href={`/sub-admin/${round.season.id}/auction/rounds/${round.id}/bids`}
-            className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#E8A800]/50 text-white font-bold transition-all"
+            className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-[#E8A800]/25 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer font-mono"
           >
             👁️ View Team Bids
           </Link>
@@ -1338,7 +1333,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             <button
               onClick={handleStartRound}
               disabled={loading}
-              className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold transition-all disabled:opacity-50"
+              className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/15 hover:border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
             >
               {loading ? 'Starting...' : 'Start Round'}
             </button>
@@ -1348,14 +1343,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               <button
                 onClick={handlePreviewResults}
                 disabled={loading}
-                className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold transition-all disabled:opacity-50"
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/15 hover:border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 {loading ? 'Starting...' : 'Start Preview Finalization'}
               </button>
               <button
                 onClick={handleStopRound}
                 disabled={loading}
-                className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold transition-all disabled:opacity-50"
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/15 hover:border-orange-500/30 text-orange-400 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 {loading ? 'Stopping...' : 'Stop & Finalize Now'}
               </button>
@@ -1367,7 +1362,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 <button
                   onClick={handlePreviewResults}
                   disabled={loading}
-                  className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold transition-all disabled:opacity-50"
+                  className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/15 hover:border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
                 >
                   {loading ? 'Starting...' : 'Preview Results'}
                 </button>
@@ -1376,14 +1371,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   <button
                     onClick={handleFinalizeRound}
                     disabled={loading}
-                    className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50"
+                    className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
                   >
                     {loading ? 'Finalizing...' : 'Finalize Round'}
                   </button>
                   {finalizationLogs.length > 0 && (
                     <button
                       onClick={() => setShowLogModal(true)}
-                      className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-blue-500/50 text-white font-bold transition-all"
+                      className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-blue-500/25 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer font-mono"
                     >
                       📋 View Logs
                     </button>
@@ -1393,8 +1388,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             </>
           )}
           {round.status === 'tiebreaker_pending' && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
-              <div className="text-purple-400 font-bold text-sm sm:text-base">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
+              <div className="w-full sm:flex-1 text-purple-400 font-bold text-center sm:text-left text-xs uppercase tracking-wider font-mono bg-purple-500/10 border border-purple-500/20 px-4 py-2.5 rounded-xl flex items-center justify-center sm:justify-start">
                 ⏳ Waiting for tiebreaker resolution...
               </div>
               <button
@@ -1421,15 +1416,15 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   }
                 }}
                 disabled={loading}
-                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 hover:bg-purple-500/30 transition-all text-sm font-bold disabled:opacity-50"
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 text-purple-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 {loading ? 'Processing...' : '🔄 Force Re-finalize'}
               </button>
             </div>
           )}
           {round.status === 'finalizing' && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
-              <div className="text-blue-400 font-bold text-sm sm:text-base">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
+              <div className="w-full sm:flex-1 text-blue-400 font-bold text-center sm:text-left text-xs uppercase tracking-wider font-mono bg-blue-500/10 border border-blue-500/20 px-4 py-2.5 rounded-xl flex items-center justify-center sm:justify-start">
                 ⏳ Finalization in progress...
               </div>
               <button
@@ -1457,7 +1452,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   }
                 }}
                 disabled={loading}
-                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-300 hover:bg-blue-500/30 transition-all text-sm font-bold disabled:opacity-50"
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 {loading ? 'Processing...' : '🔄 Force Finalize'}
               </button>
@@ -1465,19 +1460,19 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           )}
           {round.status === 'preview_finalized' && (
             <>
-              <div className="w-full sm:flex-1 text-blue-400 font-bold text-center sm:text-left text-sm sm:text-base">
+              <div className="w-full sm:flex-1 text-blue-400 font-bold text-center sm:text-left text-xs uppercase tracking-wider font-mono bg-blue-500/10 border border-blue-500/20 px-4 py-2.5 rounded-xl flex items-center justify-center sm:justify-start">
                 👁️ Preview Mode - Results hidden from teams
               </div>
               <button
                 onClick={handleExportToExcel}
-                className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-emerald-500/50 text-white font-bold transition-all"
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-emerald-500/25 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer font-mono"
               >
                 📊 Export to Excel
               </button>
               <button
                 onClick={handleMakePublic}
                 disabled={loading}
-                className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50"
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 {loading ? 'Publishing...' : 'Make Results Public'}
               </button>
@@ -1485,12 +1480,12 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
           )}
           {round.status === 'completed' && (
             <>
-              <div className="w-full sm:flex-1 text-emerald-400 font-bold text-center sm:text-left text-sm sm:text-base">
+              <div className="w-full sm:flex-1 text-emerald-400 font-bold text-center sm:text-left text-xs uppercase tracking-wider font-mono bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 rounded-xl flex items-center justify-center sm:justify-start">
                 ✓ Round completed
               </div>
               <button
                 onClick={handleExportToExcel}
-                className="w-full sm:w-auto text-center justify-center px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-emerald-500/50 text-white font-bold transition-all"
+                className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-emerald-500/25 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer font-mono"
               >
                 📊 Export to Excel
               </button>
@@ -1501,16 +1496,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Active Tiebreakers - Show when tiebreaker_pending */}
       {localStatus === 'tiebreaker_pending' && liveTiebreakers && liveTiebreakers.length > 0 && (
-        <div className="rounded-xl bg-purple-500/10 border-2 border-purple-500/30 p-4 sm:p-6 mb-8">
+        <div className="rounded-2xl bg-purple-500/[0.02] border border-purple-500/20 p-6 mb-8 backdrop-blur-xl shadow-md">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-black text-purple-300">Active Tiebreakers</h2>
-              <p className="text-sm text-purple-200">Teams must submit new bids to resolve ties</p>
+              <h2 className="text-sm font-black text-purple-400 mb-1.5 uppercase tracking-wider font-mono">Active Tiebreakers</h2>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono leading-relaxed">Teams must submit new bids to resolve ties</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -1523,15 +1518,15 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 const totalBids = tiebreaker.teamTiebreakerBids?.length || 0
                 
                 return (
-                  <div key={tiebreaker.id} className="rounded-lg bg-black/30 border border-purple-500/20 p-3 sm:p-4">
+                  <div key={tiebreaker.id} className="rounded-2xl bg-white/[0.01] border border-purple-500/10 p-5 backdrop-blur-xl shadow-md transition-all">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 rounded-xl bg-black/40 border border-white/5 overflow-hidden flex-shrink-0 relative p-1">
                           {player?.photoUrl ? (
                             <img
                               src={player.photoUrl}
                               alt={player?.name || ''}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover rounded-lg"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none'
                                 e.currentTarget.nextElementSibling?.removeAttribute('hidden')
@@ -1544,35 +1539,35 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <span className="font-black text-white text-lg truncate">{player?.name || 'Unknown Player'}</span>
+                            <span className="font-extrabold text-white text-base sm:text-lg truncate uppercase tracking-tight">{player?.name || 'Unknown Player'}</span>
                             {playerStats && (
                               <div className="flex gap-1.5 flex-wrap">
-                                <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 flex-shrink-0">
+                                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-purple-500/25 text-purple-400 border border-purple-500/25">
                                   {playerStats.position}
                                 </span>
-                                <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20">
                                   OVR {playerStats.overallRating}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">
                             Original bid: £{tiebreaker.originalAmount.toLocaleString()} • {tiebreaker.tiedTeamsCount} teams tied
                           </div>
                         </div>
                       </div>
                       <div className="text-left sm:text-right w-full sm:w-auto flex flex-col gap-2">
-                        <div className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
+                        <div className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono border self-start sm:self-end ${
                           submittedBids === totalBids 
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                            ? 'bg-emerald-500/25 text-emerald-400 border-emerald-500/25'
+                            : 'bg-yellow-500/25 text-yellow-400 border-yellow-500/25'
                         }`}>
                           {submittedBids}/{totalBids} Submitted
                         </div>
                         <button
                           onClick={() => handleSpinResolve(tiebreaker)}
                           disabled={spinningTiebreaker === tiebreaker.id}
-                          className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-mono flex items-center justify-center gap-2"
                         >
                           {spinningTiebreaker === tiebreaker.id ? (
                             <>
@@ -1592,34 +1587,36 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                     </div>
                     
                     {/* Team bid status */}
-                    <div className="space-y-2 mt-3 pt-3 border-t border-purple-500/20">
-                      <div className="text-xs text-gray-400 mb-2">Team Bid Status:</div>
+                    <div className="space-y-2 mt-3 pt-3 border-t border-purple-500/10">
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mb-2">Team Bid Status:</div>
                       {tiebreaker.teamTiebreakerBids?.map((bid: any) => {
                         const team = teams.find(t => t.id === bid.teamId)
                         return (
-                          <div key={bid.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-2 rounded bg-black/20 gap-2">
+                          <div key={bid.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-white/[0.01] border border-white/5 gap-2">
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                               {team?.logoUrl && (
-                                <img src={team.logoUrl} alt={team.name} className="w-6 h-6 rounded" />
+                                <div className="w-6 h-6 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative">
+                                  <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover p-0.5" />
+                                </div>
                               )}
-                              <span className="text-sm font-bold text-white truncate">{team?.name || bid.teamId}</span>
+                              <span className="text-sm font-extrabold text-white truncate uppercase tracking-tight">{team?.name || bid.teamId}</span>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs font-bold text-gray-500 font-mono">
                                 Old: £{bid.oldBidAmount.toLocaleString()}
                               </span>
                               {bid.submitted ? (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 flex-shrink-0">
+                                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                                   ✓ Submitted
                                 </span>
                               ) : (
                                 <div className="flex items-center gap-2">
-                                  <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30 flex-shrink-0">
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                                     Pending
                                   </span>
                                   <button
                                     onClick={() => openSubmitBidModal(tiebreaker, bid, team)}
-                                    className="px-3 py-1 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black text-xs font-bold transition-all"
+                                    className="px-3 py-1 rounded-xl bg-[#E8A800] hover:bg-[#E8A800]/90 text-black text-[10px] font-extrabold uppercase tracking-widest transition-all font-mono cursor-pointer"
                                   >
                                     Submit Bid
                                   </button>
@@ -1639,16 +1636,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Bulk Round Conflicts - Show when tiebreaker_pending for bulk rounds */}
       {round.status === 'tiebreaker_pending' && round.roundType === 'bulk' && bulkConflicts && bulkConflicts.length > 0 && (
-        <div className="rounded-xl bg-orange-500/10 border-2 border-orange-500/30 p-6 mb-8">
+        <div className="rounded-2xl bg-orange-500/[0.02] border border-orange-500/20 p-6 mb-8 backdrop-blur-xl shadow-md">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-black text-orange-300">Bulk Tiebreakers</h2>
-              <p className="text-sm text-orange-200">
+              <h2 className="text-sm font-black text-orange-400 mb-1.5 uppercase tracking-wider font-mono">Bulk Tiebreakers</h2>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono leading-relaxed">
                 {bulkConflicts.filter(c => c.status === 'pending').length} pending • 
                 {bulkConflicts.filter(c => c.status === 'active').length} active • 
                 {bulkConflicts.filter(c => c.status === 'completed').length} completed
@@ -1662,54 +1659,58 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               const isCompleted = conflict.status === 'completed'
               
               return (
-                <div key={conflict.tiebreakerId} className={`rounded-lg border p-4 ${
-                  isPending ? 'bg-yellow-500/5 border-yellow-500/20' :
-                  isActive ? 'bg-purple-500/5 border-purple-500/20' :
-                  'bg-emerald-500/5 border-emerald-500/20'
+                <div key={conflict.tiebreakerId} className={`rounded-2xl border p-4 backdrop-blur-xl shadow-md transition-all ${
+                  isPending ? 'bg-yellow-500/[0.01] border-yellow-500/10 hover:border-yellow-500/20' :
+                  isActive ? 'bg-purple-500/[0.01] border-purple-500/10 hover:border-purple-500/20' :
+                  'bg-emerald-500/[0.01] border-emerald-500/10 hover:border-emerald-500/20'
                 }`}>
                   <div className="flex items-start gap-3 mb-3">
-                    <img 
-                      src={conflict.photoUrl} 
-                      alt={conflict.playerName} 
-                      className="w-16 h-16 rounded-lg object-cover bg-white/5"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder-player.png'
-                      }}
-                    />
-                    <div className="flex-1">
-                      <div className="font-black text-white text-lg mb-1">{conflict.playerName}</div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
-                          isPending ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
-                          isActive ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
-                          'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/40 border border-white/5 relative p-1 flex-shrink-0">
+                      <img 
+                        src={conflict.photoUrl} 
+                        alt={conflict.playerName} 
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-player.png'
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-extrabold text-white text-base sm:text-lg mb-1 uppercase tracking-tight truncate">{conflict.playerName}</div>
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono border ${
+                          isPending ? 'bg-yellow-500/25 text-yellow-400 border-yellow-500/25' :
+                          isActive ? 'bg-purple-500/25 text-purple-400 border-purple-500/25' :
+                          'bg-emerald-500/25 text-emerald-400 border-emerald-500/25'
                         }`}>
-                          {conflict.status.toUpperCase()}
+                          {conflict.status}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 text-xs font-bold border border-orange-500/30">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-orange-500/25 text-orange-400 border border-orange-500/25">
                           {conflict.position}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20">
                           OVR {conflict.overallRating}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-400">
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                         Base Price: £{conflict.basePrice} • {conflict.teams.length} teams
                       </div>
                     </div>
                   </div>
                   
                   {/* Participating teams */}
-                  <div className="space-y-2 mb-3 pt-3 border-t border-white/10">
-                    <div className="text-xs text-gray-400 mb-2">Participating Teams:</div>
+                  <div className="space-y-2 mb-3 pt-3 border-t border-white/5">
+                    <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mb-2">Participating Teams:</div>
                     {conflict.teams.map(team => (
-                      <div key={team.id} className="flex items-center gap-2 p-2 rounded bg-black/20">
+                      <div key={team.id} className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.01] border border-white/5">
                         {team.logoUrl && (
-                          <img src={team.logoUrl} alt={team.name} className="w-6 h-6 rounded" />
+                          <div className="w-6 h-6 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative">
+                            <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover p-0.5" />
+                          </div>
                         )}
-                        <span className="text-sm font-bold text-white flex-1">{team.name}</span>
+                        <span className="text-sm font-extrabold text-white flex-1 uppercase tracking-tight">{team.name}</span>
                         {team.participantStatus !== 'active' && (
-                          <span className="text-xs text-gray-400">({team.participantStatus})</span>
+                          <span className="text-xs font-bold text-gray-500 font-mono">({team.participantStatus.toUpperCase()})</span>
                         )}
                       </div>
                     ))}
@@ -1742,7 +1743,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                         }
                       }}
                       disabled={loading}
-                      className="w-full px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-all disabled:opacity-50"
+                      className="w-full px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/30 text-emerald-400 font-mono"
                     >
                       {loading ? 'Starting...' : '▶ Start Tiebreaker'}
                     </button>
@@ -1751,7 +1752,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   {(isActive || isCompleted) && (
                     <a
                       href={`/sub-admin/${round.season.id}/auction/bulk-tiebreakers/${conflict.tiebreakerId}`}
-                      className="block w-full px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:bg-purple-500/30 transition-all text-center font-medium"
+                      className="block w-full px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-center cursor-pointer bg-purple-500/10 border border-purple-500/15 hover:border-purple-500/30 text-purple-300 font-mono"
                     >
                       {isActive ? '👁 Monitor Tiebreaker' : '✓ View Results'}
                     </a>
@@ -1765,39 +1766,41 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Preview Results - Show for preview_finalized rounds (admin only) */}
       {round.status === 'preview_finalized' && previewAllocations && previewAllocations.length > 0 && (
-        <div className="rounded-xl bg-blue-500/10 border-2 border-blue-500/30 p-4 sm:p-6 mb-8">
+        <div className="rounded-2xl bg-blue-500/[0.02] border border-blue-500/20 p-6 mb-8 backdrop-blur-xl shadow-md">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-black text-blue-300">Preview Results (Admin Only)</h2>
-              <p className="text-sm text-blue-200">These results are NOT visible to teams yet</p>
+              <h2 className="text-sm font-black text-blue-400 mb-1.5 uppercase tracking-wider font-mono">Preview Results (Admin Only)</h2>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono leading-relaxed">These results are NOT visible to teams yet</p>
             </div>
           </div>
           <div className="space-y-3">
             {previewAllocations.map((alloc: any, idx: number) => {
               const team = teams.find(t => t.id === alloc.teamId)
               return (
-                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/30 border border-blue-500/20 gap-3">
+                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-blue-500/10 gap-3 backdrop-blur-xl shadow-md">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="font-black text-white text-lg truncate">{alloc.playerName}</span>
-                      <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30 flex-shrink-0">
+                      <span className="font-extrabold text-white text-base sm:text-lg truncate uppercase tracking-tight">{alloc.playerName}</span>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-blue-500/25 text-blue-400 border border-blue-500/25 flex-shrink-0">
                         {formatAcquisitionType(alloc.acquisitionType)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       {team?.logoUrl && (
-                        <img src={team.logoUrl} alt={team.name} className="w-5 h-5 rounded" />
+                        <div className="w-5 h-5 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative">
+                          <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover p-0.5" />
+                        </div>
                       )}
-                      <span className="text-sm text-gray-400 truncate">{team?.name || alloc.teamId}</span>
+                      <span className="text-sm font-extrabold text-white truncate uppercase tracking-tight">{team?.name || alloc.teamId}</span>
                     </div>
                     {alloc.acquisitionNotes && (
-                      <div className="text-xs text-gray-500 mt-1">{alloc.acquisitionNotes}</div>
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">{alloc.acquisitionNotes}</div>
                     )}
                   </div>
                   <div className="text-left sm:text-right flex-shrink-0">
@@ -1814,16 +1817,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Auction Results - Player-wise with all bids */}
       {round.status === 'completed' && auctionResults && auctionResults.length > 0 && teamBidsWithDetails && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6 mb-8">
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 mb-8 backdrop-blur-xl shadow-md">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-black text-white">Auction Results</h2>
-              <p className="text-sm text-[#D4CCBB]">{auctionResults.length} players sold • Click to see all bids</p>
+              <h2 className="text-lg font-black text-white mb-2 uppercase tracking-tight font-mono">Auction Results</h2>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">{auctionResults.length} players sold • Click to see all bids</p>
             </div>
           </div>
           <div className="space-y-3">
@@ -1846,7 +1849,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 .sort((a, b) => b.amount - a.amount) // Sort by bid amount descending
               
               return (
-                <div key={result.id} className="rounded-lg bg-black/30 border border-white/10 overflow-hidden">
+                <div key={result.id} className="rounded-2xl bg-white/[0.01] border border-white/5 overflow-hidden shadow-md">
                   {/* Player Header - Clickable to expand/collapse */}
                   <button
                     onClick={() => {
@@ -1859,50 +1862,52 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       }
                       setExpandedTeams(newExpanded)
                     }}
-                    className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 hover:bg-white/5 transition-colors gap-3"
+                    className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 hover:bg-white/[0.02] transition-colors gap-3 cursor-pointer"
                   >
                     {/* Player Info */}
                     <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
                       {result.basePlayer.photoUrl && (
-                        <img 
-                          src={result.basePlayer.photoUrl} 
-                          alt={result.basePlayer.name} 
-                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover bg-white/5 flex-shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.src = '/placeholder-player.png'
-                          }}
-                        />
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-black/40 border border-white/5 relative p-1 flex-shrink-0">
+                          <img 
+                            src={result.basePlayer.photoUrl} 
+                            alt={result.basePlayer.name} 
+                            className="w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder-player.png'
+                            }}
+                          />
+                        </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                          <span className="font-black text-white text-sm sm:text-base truncate">{result.basePlayer.name}</span>
+                          <span className="font-extrabold text-white text-sm sm:text-base truncate uppercase tracking-tight">{result.basePlayer.name}</span>
                           {playerStats && (
                             <>
-                              <span className="px-2 py-0.5 rounded bg-[#E8A800]/20 text-[#E8A800] text-xs font-bold border border-[#E8A800]/30 flex-shrink-0">
+                              <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-[#E8A800]/25 text-[#E8A800] border border-[#E8A800]/25 flex-shrink-0">
                                 {playerStats.position}
                               </span>
-                              <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                              <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                                 OVR {playerStats.overallRating}
                               </span>
                             </>
                           )}
                           {result.acquisitionType && (
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold flex-shrink-0 border ${
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono flex-shrink-0 border ${
                               result.acquisitionType === 'auto_assigned' 
-                                ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                                ? 'bg-blue-500/25 text-blue-400 border border-blue-500/25'
                                 : result.acquisitionType === 'tiebreaker_won'
-                                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                  ? 'bg-purple-500/25 text-purple-400 border border-purple-500/25'
+                                  : 'bg-emerald-500/25 text-emerald-400 border border-emerald-500/25'
                             }`}>
                               {formatAcquisitionType(result.acquisitionType)}
                             </span>
                           )}
                         </div>
                         {result.acquisitionNotes && (
-                          <div className="text-xs text-gray-500 mb-1">{result.acquisitionNotes}</div>
+                          <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mb-1">{result.acquisitionNotes}</div>
                         )}
                         {playerStats?.nationality && (
-                          <div className="text-xs text-gray-400 truncate">{playerStats.nationality}</div>
+                          <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono truncate">{playerStats.nationality}</div>
                         )}
                       </div>
                     </div>
@@ -1912,24 +1917,26 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       {/* Team Info */}
                       <div className="flex items-center gap-2 min-w-0">
                         {result.team.logoUrl && (
-                          <img 
-                            src={result.team.logoUrl} 
-                            alt={result.team.name} 
-                            className="w-5 h-5 sm:w-6 sm:h-6 rounded flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative p-0.5">
+                            <img 
+                              src={result.team.logoUrl} 
+                              alt={result.team.name} 
+                              className="w-full h-full object-cover rounded"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          </div>
                         )}
                         <div className="min-w-0">
-                          <div className="text-xs text-gray-400 hidden sm:block">Sold To</div>
-                          <span className="font-bold text-white text-xs sm:text-sm truncate block">{result.team.name}</span>
+                          <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest font-mono hidden sm:block">Sold To</div>
+                          <span className="font-extrabold text-white text-xs sm:text-sm truncate block uppercase tracking-tight">{result.team.name}</span>
                         </div>
                       </div>
 
                       {/* Price */}
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-xs text-gray-400 hidden sm:block mb-1">Price</div>
+                      <div className="text-right flex-shrink-0 font-mono">
+                        <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-1 hidden sm:block">Price</div>
                         <div className="text-lg sm:text-xl font-black text-emerald-400">
                           £{result.soldPrice.toLocaleString()}
                         </div>
@@ -1938,12 +1945,13 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       {/* Expand/Collapse Icon */}
                       {allBidsOnPlayer.length > 0 && (
                         <svg 
-                          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                           fill="none" 
                           viewBox="0 0 24 24" 
                           stroke="currentColor"
+                          strokeWidth={2.5}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
                       )}
                     </div>
@@ -1951,43 +1959,45 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
                   {/* Expanded Bids List - Show all bids made on this player */}
                   {isExpanded && allBidsOnPlayer.length > 0 && (
-                    <div className="border-t border-white/10 p-4 space-y-2 bg-black/20">
-                      <div className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wide">
+                    <div className="border-t border-white/5 p-4 space-y-2 bg-white/[0.01] backdrop-blur-xl">
+                      <div className="text-[10px] font-extrabold text-gray-500 mb-3 uppercase tracking-widest font-mono">
                         All Bids on {result.basePlayer.name} ({allBidsOnPlayer.length})
                       </div>
                       {allBidsOnPlayer.map((bid, idx) => (
                         <div 
                           key={idx} 
-                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border gap-3 ${
+                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border gap-3 ${
                             bid.won 
-                              ? 'bg-emerald-500/10 border-emerald-500/30' 
-                              : 'bg-white/5 border-white/10'
+                              ? 'bg-emerald-500/5 border-emerald-500/20' 
+                              : 'bg-white/[0.01] border-white/5'
                           }`}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             {bid.teamLogo && (
-                              <img 
-                                src={bid.teamLogo} 
-                                alt={bid.teamName} 
-                                className="w-8 h-8 rounded flex-shrink-0"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none'
-                                }}
-                              />
+                              <div className="w-8 h-8 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative p-0.5">
+                                <img 
+                                  src={bid.teamLogo} 
+                                  alt={bid.teamName} 
+                                  className="w-full h-full object-cover rounded"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className={`font-bold truncate ${bid.won ? 'text-emerald-300' : 'text-white'}`}>
+                              <div className={`font-extrabold truncate uppercase tracking-tight text-sm ${bid.won ? 'text-emerald-400' : 'text-white'}`}>
                                 {bid.teamName}
                               </div>
                               {bid.won && (
-                                <div className="text-xs text-emerald-300 mt-0.5">
+                                <div className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-widest font-mono mt-0.5">
                                   ✓ Won • {formatAcquisitionType(bid.acquisitionType || 'bid_won')}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <div className="text-left sm:text-right flex-shrink-0">
-                            <div className={`text-lg font-bold ${bid.won ? 'text-emerald-400' : 'text-gray-400'}`}>
+                          <div className="text-left sm:text-right flex-shrink-0 font-mono">
+                            <div className={`text-base font-black ${bid.won ? 'text-emerald-400' : 'text-gray-500'}`}>
                               £{bid.amount.toLocaleString()}
                             </div>
                           </div>
@@ -2003,12 +2013,12 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       )}
 
       {/* Team Bids Status - Enhanced for Completed Rounds */}
-      <div className="rounded-xl bg-white/5 border border-white/10 p-6">
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h2 className="text-xl font-black text-white">Team Bid Status</h2>
+          <h2 className="text-lg font-black text-white uppercase tracking-tight font-mono">Team Bid Status</h2>
           <button
             onClick={handleCopyWhatsApp}
-            className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
+            className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all cursor-pointer font-mono ${
               copied 
                 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
                 : 'bg-[#25D366]/10 hover:bg-[#25D366]/20 border-[#25D366]/30 text-[#25D366]'
@@ -2029,9 +2039,9 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               const lostBids = teamBid.bids.filter(b => !b.won)
               
               return (
-                <div key={teamBid.teamId} className="rounded-lg bg-black/30 border border-white/10 overflow-hidden">
+                <div key={teamBid.teamId} className="rounded-2xl bg-white/[0.01] border border-white/5 overflow-hidden mb-3 shadow-md">
                   {/* Team Header - Clickable to expand/collapse */}
-                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/5 transition-colors gap-3">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/[0.02] transition-colors gap-3">
                     <div 
                       onClick={() => {
                         const newExpanded = new Set(expandedTeams)
@@ -2045,18 +2055,20 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       className="flex items-center gap-3 w-full sm:w-auto text-left cursor-pointer flex-1"
                     >
                       {teamBid.teamLogo && (
-                        <img src={teamBid.teamLogo} alt={teamBid.teamName} className="w-8 h-8 rounded" />
+                        <div className="w-8 h-8 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative p-0.5">
+                          <img src={teamBid.teamLogo} alt={teamBid.teamName} className="w-full h-full object-cover rounded" />
+                        </div>
                       )}
-                      <span className="font-bold text-white truncate">{teamBid.teamName}</span>
+                      <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{teamBid.teamName}</span>
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                       <div className="flex items-center gap-3">
                         {wonBids.length > 0 && (
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30 flex-shrink-0">
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                             ✓ {wonBids.length} Won
                           </span>
                         )}
-                        <span className="text-sm text-gray-400 flex-shrink-0">
+                        <span className="text-xs font-bold text-gray-500 font-mono flex-shrink-0">
                           {round.roundType === 'bulk' ? `${teamBid.bidCount} players` : `${teamBid.bidCount} bids`}
                         </span>
                         <button
@@ -2075,10 +2087,10 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                               btn.innerHTML = originalHTML
                             }, 1500)
                           }}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex-shrink-0"
+                          className="p-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 transition-colors flex-shrink-0 cursor-pointer"
                           title="Copy bids to clipboard"
                         >
-                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
                         </button>
@@ -2093,16 +2105,17 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                           }
                           setExpandedTeams(newExpanded)
                         }}
-                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        className="p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
                         aria-label={isExpanded ? 'Collapse' : 'Expand'}
                       >
                         <svg 
-                          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                           fill="none" 
                           viewBox="0 0 24 24" 
                           stroke="currentColor"
+                          strokeWidth={2.5}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
                     </div>
@@ -2110,47 +2123,49 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
                   {/* Expanded Bids List */}
                   {isExpanded && (
-                    <div className="border-t border-white/10 p-4 space-y-2 bg-black/20">
+                    <div className="border-t border-white/5 p-4 space-y-2 bg-white/[0.01] backdrop-blur-xl">
                       {/* Won/Auto-Allocated Players First */}
                       {wonBids.length > 0 && (
                         <div className="mb-4">
-                          <div className="text-xs font-bold text-emerald-400 mb-2 uppercase tracking-wide">
+                          <div className="text-[10px] font-extrabold text-emerald-400 mb-2 uppercase tracking-widest font-mono">
                             ✓ Player Acquired
                           </div>
                           {wonBids.map((bid, idx) => (
-                            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-emerald-500/10 border-2 border-emerald-500/30 mb-2 gap-3">
+                            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 mb-2 gap-3">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <img 
-                                  src={bid.photoUrl} 
-                                  alt={bid.playerName} 
-                                  className="w-12 h-12 rounded-lg object-cover bg-white/5 flex-shrink-0"
-                                  onError={(e) => {
-                                    e.currentTarget.src = '/placeholder-player.png'
-                                  }}
-                                />
+                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-black/40 border border-white/5 relative p-1 flex-shrink-0">
+                                  <img 
+                                    src={bid.photoUrl} 
+                                    alt={bid.playerName} 
+                                    className="w-full h-full object-cover rounded-lg"
+                                    onError={(e) => {
+                                      e.currentTarget.src = '/placeholder-player.png'
+                                    }}
+                                  />
+                                </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                                    <span className="font-bold text-white truncate">{bid.playerName}</span>
-                                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 flex-shrink-0">
+                                    <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{bid.playerName}</span>
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                                       {bid.position}
                                     </span>
-                                    <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                                       {bid.overallRating}
                                     </span>
                                   </div>
                                   {bid.acquisitionType && (
-                                    <div className="text-xs text-emerald-300">
+                                    <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider font-mono">
                                       {formatAcquisitionType(bid.acquisitionType)}
                                       {bid.acquisitionNotes && ` • ${bid.acquisitionNotes}`}
                                     </div>
                                   )}
                                 </div>
                               </div>
-                              <div className="text-left sm:text-right flex-shrink-0 ml-0 sm:ml-3">
+                              <div className="text-left sm:text-right flex-shrink-0 ml-0 sm:ml-3 font-mono">
                                 <div className="text-xl font-black text-emerald-400">
                                   £{bid.amount.toLocaleString()}
                                 </div>
-                                <div className="text-xs text-emerald-300 font-bold">
+                                <div className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-widest">
                                   {bid.acquisitionType === 'auto_assigned' ? 'AUTO' : 'WON'}
                                 </div>
                               </div>
@@ -2162,48 +2177,50 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       {/* All Bids Placed */}
                       {teamBid.bids.length > 0 && (
                         <div>
-                          <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
+                          <div className="text-[10px] font-extrabold text-gray-500 mb-2 uppercase tracking-widest font-mono">
                             All Bids Placed ({teamBid.bids.length})
                           </div>
                           {teamBid.bids.map((bid, idx) => (
-                            <div key={idx} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border mb-2 gap-3 ${
+                            <div key={idx} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border mb-2 gap-3 ${
                               bid.won 
                                 ? 'bg-emerald-500/5 border-emerald-500/20' 
-                                : 'bg-white/5 border-white/10'
+                                : 'bg-white/[0.01] border-white/5'
                             }`}>
                               <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <img 
-                                  src={bid.photoUrl} 
-                                  alt={bid.playerName} 
-                                  className="w-10 h-10 rounded-lg object-cover bg-white/5 flex-shrink-0"
-                                  onError={(e) => {
-                                    e.currentTarget.src = '/placeholder-player.png'
-                                  }}
-                                />
+                                <div className="w-10 h-10 rounded-xl overflow-hidden bg-black/40 border border-white/5 relative p-1 flex-shrink-0">
+                                  <img 
+                                    src={bid.photoUrl} 
+                                    alt={bid.playerName} 
+                                    className="w-full h-full object-cover rounded-lg"
+                                    onError={(e) => {
+                                      e.currentTarget.src = '/placeholder-player.png'
+                                    }}
+                                  />
+                                </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                                    <span className={`font-bold truncate ${bid.won ? 'text-emerald-300' : 'text-white'}`}>
+                                    <span className={`font-extrabold truncate uppercase tracking-tight text-sm ${bid.won ? 'text-emerald-400' : 'text-white'}`}>
                                       {bid.playerName}
                                     </span>
-                                    <span className={`px-2 py-0.5 rounded text-xs font-bold border flex-shrink-0 ${
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono border flex-shrink-0 ${
                                       bid.won 
-                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                                        : 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                                        ? 'bg-emerald-500/25 text-emerald-400 border-emerald-500/25'
+                                        : 'bg-white/10 text-white border border-white/20'
                                     }`}>
                                       {bid.position}
                                     </span>
-                                    <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                                       {bid.overallRating}
                                     </span>
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-left sm:text-right flex-shrink-0 ml-0 sm:ml-3">
-                                <div className={`text-lg font-bold ${bid.won ? 'text-emerald-400' : 'text-gray-400'}`}>
+                              <div className="text-left sm:text-right flex-shrink-0 ml-0 sm:ml-3 font-mono">
+                                <div className={`text-base font-black ${bid.won ? 'text-emerald-400' : 'text-gray-500'}`}>
                                   £{bid.amount.toLocaleString()}
                                 </div>
                                 {bid.won && (
-                                  <div className="text-xs text-emerald-300">✓ Won</div>
+                                  <div className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-widest">✓ Won</div>
                                 )}
                               </div>
                             </div>
@@ -2213,7 +2230,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
                       {/* No Bids Message */}
                       {teamBid.bids.length === 0 && wonBids.length === 0 && (
-                        <div className="text-center py-4 text-gray-400 text-sm">
+                        <div className="text-center py-4 text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">
                           No bids placed
                         </div>
                       )}
@@ -2222,8 +2239,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
                   {/* Show message if team didn't submit */}
                   {!teamBid.submitted && (
-                    <div className="border-t border-white/10 p-3 bg-yellow-500/5">
-                      <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                    <div className="border-t border-white/5 p-3 bg-yellow-500/[0.02]">
+                      <div className="flex items-center gap-2 text-yellow-400 text-xs font-bold uppercase tracking-wider font-mono">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -2277,37 +2294,39 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 const remainingSlots = Math.max(0, maxSquadSize - currentSquadSize)
                 
                 return (
-                  <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10 gap-3">
+                  <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 gap-3 shadow-md backdrop-blur-xl">
                     <div className="flex items-center gap-3 w-full sm:w-auto text-left">
                       {team.logoUrl && (
-                        <img src={team.logoUrl} alt={team.name} className="w-8 h-8 rounded" />
+                        <div className="w-8 h-8 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative p-0.5">
+                          <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover rounded" />
+                        </div>
                       )}
-                      <span className="font-bold text-white truncate">{team.name}</span>
+                      <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{team.name}</span>
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                       {selection ? (
                         <div className="flex items-center gap-3 w-full justify-between sm:justify-end">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-cyan-400 font-bold">{selectedCount}/{remainingSlots}</span>
-                            <span className="text-xs text-gray-500">({selectedCount} selected, {remainingSlots} slots)</span>
+                          <div className="flex items-center gap-2 font-mono">
+                            <span className="text-xs text-cyan-400 font-bold">{selectedCount}/{remainingSlots}</span>
+                            <span className="text-[10px] text-gray-500">({selectedCount} selected, {remainingSlots} slots)</span>
                           </div>
                           {selection.submitted ? (
-                            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30 flex-shrink-0">
+                            <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                               Submitted
                             </span>
                           ) : (
-                            <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold border border-yellow-500/30 flex-shrink-0">
+                            <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-yellow-500/25 text-yellow-400 border border-yellow-500/25 flex-shrink-0">
                               In Progress
                             </span>
                           )}
                         </div>
                       ) : (
                         <div className="flex items-center justify-between sm:justify-end gap-3 w-full">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-cyan-400 font-bold">0/{remainingSlots}</span>
-                            <span className="text-xs text-gray-500">({remainingSlots} slots available)</span>
+                          <div className="flex items-center gap-2 font-mono">
+                            <span className="text-xs text-cyan-400 font-bold">0/{remainingSlots}</span>
+                            <span className="text-[10px] text-gray-500">({remainingSlots} slots available)</span>
                           </div>
-                          <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-bold border border-gray-500/30 flex-shrink-0">
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                             Not Started
                           </span>
                         </div>
@@ -2319,30 +2338,32 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
               const teamBid = liveTeamBids.find((bid: any) => bid.teamId === team.id)
               return (
-                <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/30 border border-white/10 gap-3">
+                <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 gap-3 shadow-md backdrop-blur-xl">
                   <div className="flex items-center gap-3 w-full sm:w-auto text-left">
                     {team.logoUrl && (
-                      <img src={team.logoUrl} alt={team.name} className="w-8 h-8 rounded" />
+                      <div className="w-8 h-8 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative p-0.5">
+                        <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover rounded" />
+                      </div>
                     )}
-                    <span className="font-bold text-white truncate">{team.name}</span>
+                    <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{team.name}</span>
                   </div>
                   <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                     {teamBid ? (
                       <div className="flex items-center gap-3 w-full justify-between sm:justify-end">
-                        <span className="text-sm text-gray-400">{teamBid.bidCount} bids</span>
+                        <span className="text-xs font-bold text-gray-500 font-mono">{teamBid.bidCount} bids</span>
                         {teamBid.submitted ? (
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30 flex-shrink-0">
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                             Submitted
                           </span>
                         ) : (
-                          <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold border border-yellow-500/30 flex-shrink-0">
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-yellow-500/25 text-yellow-400 border border-yellow-500/25 flex-shrink-0">
                             In Progress
                           </span>
                         )}
                       </div>
                     ) : (
                       <div className="flex items-center justify-end w-full">
-                        <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-bold border border-gray-500/30 flex-shrink-0">
+                        <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                           Not Started
                         </span>
                       </div>
@@ -2358,16 +2379,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Bulk Round Team Selections - Show for tiebreaker_pending or expired_pending_finalization */}
       {round.roundType === 'bulk' && (round.status === 'tiebreaker_pending' || round.status === 'expired_pending_finalization') && bulkSelectionsWithDetails && bulkSelectionsWithDetails.length > 0 && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6 mb-8">
-          <h3 className="text-xl font-black text-white mb-4">Team Selections</h3>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-md">
+          <h3 className="text-lg font-black text-white mb-4 uppercase tracking-tight font-mono">Team Selections</h3>
           <div className="space-y-2">
             {bulkSelectionsWithDetails.map(teamSelection => {
               const isExpanded = expandedTeams.has(teamSelection.teamId)
               
               return (
-                <div key={teamSelection.teamId} className="rounded-lg bg-black/30 border border-white/10 overflow-hidden">
+                <div key={teamSelection.teamId} className="rounded-2xl bg-white/[0.01] border border-white/5 overflow-hidden shadow-md mb-3">
                   {/* Team Header */}
-                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/5 transition-colors gap-3">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-white/[0.02] transition-colors gap-3">
                     <div 
                       onClick={() => {
                         const newExpanded = new Set(expandedTeams)
@@ -2381,14 +2402,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       className="flex items-center gap-3 w-full sm:w-auto text-left cursor-pointer flex-1"
                     >
                       {teamSelection.teamLogo && (
-                        <img src={teamSelection.teamLogo} alt={teamSelection.teamName} className="w-8 h-8 rounded" />
+                        <div className="w-8 h-8 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative p-0.5">
+                          <img src={teamSelection.teamLogo} alt={teamSelection.teamName} className="w-full h-full object-cover rounded" />
+                        </div>
                       )}
-                      <span className="font-bold text-white truncate">{teamSelection.teamName}</span>
+                      <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{teamSelection.teamName}</span>
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                       <div className="flex items-center gap-3">
                         {teamSelection.submitted && teamSelection.selections.length > 0 && (
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30 flex-shrink-0">
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                             ✓ {teamSelection.selections.length} Selected
                           </span>
                         )}
@@ -2409,10 +2432,10 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                                 btn.innerHTML = originalHTML
                               }, 1500)
                             }}
-                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex-shrink-0"
+                            className="p-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 transition-colors flex-shrink-0 cursor-pointer"
                             title="Copy selections to clipboard"
                           >
-                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                             </svg>
                           </button>
@@ -2429,16 +2452,17 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                             }
                             setExpandedTeams(newExpanded)
                           }}
-                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                          className="p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
                           aria-label={isExpanded ? 'Collapse' : 'Expand'}
                         >
                           <svg 
-                            className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             fill="none" 
                             viewBox="0 0 24 24" 
                             stroke="currentColor"
+                            strokeWidth={2.5}
                           >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                       )}
@@ -2447,31 +2471,33 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
                   {/* Expanded Selections List */}
                   {isExpanded && teamSelection.selections.length > 0 && (
-                    <div className="border-t border-white/10 p-4 space-y-2 bg-black/20">
-                      <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
+                    <div className="border-t border-white/5 p-4 space-y-2 bg-white/[0.01] backdrop-blur-xl">
+                      <div className="text-[10px] font-extrabold text-gray-500 mb-2 uppercase tracking-widest font-mono">
                         Selected Players (Priority Order)
                       </div>
                       {teamSelection.selections.map((selection: any, idx: number) => (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 gap-3">
+                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-white/[0.01] border border-white/5 gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-[#E8A800]/20 border border-[#E8A800]/30 flex items-center justify-center flex-shrink-0">
-                              <span className="text-sm font-bold text-[#E8A800]">{selection.priority}</span>
+                            <div className="w-8 h-8 rounded-xl bg-[#E8A800]/25 border border-[#E8A800]/25 flex items-center justify-center flex-shrink-0 font-mono text-sm font-extrabold text-[#E8A800]">
+                              <span>{selection.priority}</span>
                             </div>
-                            <img 
-                              src={selection.photoUrl} 
-                              alt={selection.playerName} 
-                              className="w-10 h-10 rounded-lg object-cover bg-white/5 flex-shrink-0"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder-player.png'
-                              }}
-                            />
+                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-black/40 border border-white/5 relative p-1 flex-shrink-0">
+                              <img 
+                                src={selection.photoUrl} 
+                                alt={selection.playerName} 
+                                className="w-full h-full object-cover rounded-lg"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/placeholder-player.png'
+                                }}
+                              />
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2 mb-1">
-                                <span className="font-bold text-white truncate">{selection.playerName}</span>
-                                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/30 flex-shrink-0">
+                                <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{selection.playerName}</span>
+                                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-cyan-500/25 text-cyan-400 border border-cyan-500/25 flex-shrink-0">
                                   {selection.position}
                                 </span>
-                                <span className="px-2 py-0.5 rounded bg-white/10 text-white text-xs font-bold flex-shrink-0">
+                                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                                   {selection.overallRating}
                                 </span>
                               </div>
@@ -2484,8 +2510,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
                   {/* Show message if team didn't submit */}
                   {!teamSelection.submitted && (
-                    <div className="border-t border-white/10 p-3 bg-yellow-500/5">
-                      <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                    <div className="border-t border-white/5 p-3 bg-yellow-500/[0.02]">
+                      <div className="flex items-center gap-2 text-yellow-400 text-xs font-bold uppercase tracking-wider font-mono">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -2496,8 +2522,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
                   {/* Show message if team submitted but no selections */}
                   {teamSelection.submitted && teamSelection.selections.length === 0 && (
-                    <div className="border-t border-white/10 p-3 bg-gray-500/5">
-                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <div className="border-t border-white/5 p-3 bg-white/[0.02]">
+                      <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-wider font-mono">
                         <span>Team submitted with no selections</span>
                       </div>
                     </div>
@@ -2512,40 +2538,40 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       {/* Extend Time Modal */}
       {/* Extend Time Modal */}
       {showExtendModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-2xl font-black text-white mb-4">Extend Round Time</h3>
-            <p className="text-[#D4CCBB] text-sm mb-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0D0D0D]/90 border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl backdrop-blur-xl">
+            <h3 className="text-xl sm:text-2xl font-black text-white mb-2 uppercase tracking-tight font-mono">Extend Round Time</h3>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider font-mono leading-relaxed mb-6">
               Add extra time to this round. The end time will be updated immediately.
             </p>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-6 font-mono">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Hours</label>
+                <label className="block text-[10px] font-extrabold text-gray-500 mb-2 uppercase tracking-widest">Hours</label>
                 <input
                   type="number"
                   min="0"
                   max="24"
                   value={extendHours}
                   onChange={(e) => setExtendHours(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg focus:outline-none focus:border-[#E8A800]/50"
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white font-black text-lg focus:outline-none focus:border-[#E8A800]/50 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Minutes</label>
+                <label className="block text-[10px] font-extrabold text-gray-500 mb-2 uppercase tracking-widest">Minutes</label>
                 <input
                   type="number"
                   min="0"
                   max="59"
                   value={extendMinutes}
                   onChange={(e) => setExtendMinutes(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg focus:outline-none focus:border-[#E8A800]/50"
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white font-black text-lg focus:outline-none focus:border-[#E8A800]/50 transition-all"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              <div className="mb-6 p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider font-mono">
                 {error}
               </div>
             )}
@@ -2557,14 +2583,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   setError('')
                 }}
                 disabled={extending}
-                className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white font-bold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExtendTime}
                 disabled={extending || (extendHours === 0 && extendMinutes === 0)}
-                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-extrabold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono shadow-[0_0_20px_rgba(232,168,0,0.15)] hover:shadow-[0_0_25px_rgba(232,168,0,0.3)]"
               >
                 {extending ? 'Extending...' : 'Extend Time'}
               </button>
@@ -2575,48 +2601,48 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Reduce Time Modal */}
       {showReduceModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-2xl font-black text-white mb-4">Reduce Round Time</h3>
-            <p className="text-[#D4CCBB] text-sm mb-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0D0D0D]/90 border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl backdrop-blur-xl">
+            <h3 className="text-xl sm:text-2xl font-black text-white mb-2 uppercase tracking-tight font-mono">Reduce Round Time</h3>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider font-mono leading-relaxed mb-6">
               Reduce the remaining time of this round. The end time will be updated immediately.
             </p>
 
             {timeRemaining !== null && (
-              <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <div className="text-sm text-blue-300">
-                  <strong>Current time remaining:</strong> {formatTimeRemaining(timeRemaining)}
+              <div className="mb-6 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 font-mono">
+                <div className="text-xs font-bold text-blue-400 uppercase tracking-wider">
+                  Current time remaining: <span className="text-white ml-1">{formatTimeRemaining(timeRemaining)}</span>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-6 font-mono">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Hours</label>
+                <label className="block text-[10px] font-extrabold text-gray-500 mb-2 uppercase tracking-widest">Hours</label>
                 <input
                   type="number"
                   min="0"
                   max="24"
                   value={reduceHours}
                   onChange={(e) => setReduceHours(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg focus:outline-none focus:border-red-500/50"
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white font-black text-lg focus:outline-none focus:border-red-500/50 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Minutes</label>
+                <label className="block text-[10px] font-extrabold text-gray-500 mb-2 uppercase tracking-widest">Minutes</label>
                 <input
                   type="number"
                   min="0"
                   max="59"
                   value={reduceMinutes}
                   onChange={(e) => setReduceMinutes(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg focus:outline-none focus:border-red-500/50"
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white font-black text-lg focus:outline-none focus:border-red-500/50 transition-all"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              <div className="mb-6 p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider font-mono">
                 {error}
               </div>
             )}
@@ -2628,14 +2654,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   setError('')
                 }}
                 disabled={reducing}
-                className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white font-bold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReduceTime}
                 disabled={reducing || (reduceHours === 0 && reduceMinutes === 0)}
-                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-extrabold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 {reducing ? 'Reducing...' : 'Reduce Time'}
               </button>
@@ -2646,31 +2672,31 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Preview Results Modal */}
       {showPreviewModal && previewResults && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#0D0D0D]/90 border border-white/10 rounded-3xl p-6 sm:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl backdrop-blur-xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-black text-white">Preview Results</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight font-mono">Preview Results</h3>
               <button
                 onClick={() => setShowPreviewModal(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {previewResults.tieDetected && previewResults.ties && (
-              <div className="mb-6 p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
-                <h4 className="text-lg font-bold text-purple-300 mb-2">⚠️ Tiebreakers Required</h4>
-                <p className="text-sm text-[#D4CCBB] mb-4">
+              <div className="mb-6 p-4 rounded-2xl bg-purple-500/[0.02] border border-purple-500/20 font-mono animate-pulse">
+                <h4 className="text-sm font-black text-purple-400 mb-1 uppercase tracking-wider">⚠️ Tiebreakers Required</h4>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider leading-relaxed mb-4">
                   The following players have tied bids. Tiebreakers will be created when you finalize.
                 </p>
                 <div className="space-y-2">
                   {previewResults.ties.map((tie: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-lg bg-black/30 border border-purple-500/20">
-                      <div className="font-bold text-white">{tie.playerName}</div>
-                      <div className="text-sm text-gray-400">
+                    <div key={idx} className="p-3 rounded-xl bg-white/[0.01] border border-purple-500/10">
+                      <div className="font-extrabold text-white text-sm uppercase tracking-tight">{tie.playerName}</div>
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">
                         Amount: £{tie.amount.toLocaleString()} • Teams: {tie.tiedTeams.join(', ')}
                       </div>
                     </div>
@@ -2681,26 +2707,28 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
             {previewResults.allocations && previewResults.allocations.length > 0 && (
               <div className="mb-6">
-                <h4 className="text-lg font-bold text-white mb-4">Allocations ({previewResults.allocations.length})</h4>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider font-mono">Allocations ({previewResults.allocations.length})</h4>
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
                   {previewResults.allocations.map((alloc: any, idx: number) => {
                     const team = teams.find(t => t.id === alloc.teamId)
                     return (
-                      <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+                      <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-white/[0.01] border border-white/5 shadow-md backdrop-blur-xl">
                         <div>
-                          <div className="font-bold text-white">{alloc.playerName}</div>
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
+                          <div className="font-extrabold text-white uppercase tracking-tight text-sm sm:text-base">{alloc.playerName}</div>
+                          <div className="flex items-center gap-2 mt-1">
                             {team?.logoUrl && (
-                              <img src={team.logoUrl} alt={team.name} className="w-4 h-4 rounded" />
+                              <div className="w-4 h-4 rounded overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative p-0.5">
+                                <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover rounded" />
+                              </div>
                             )}
-                            <span>{team?.name || alloc.teamId}</span>
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">{team?.name || alloc.teamId}</span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold text-emerald-400">
+                          <div className="text-lg font-black text-emerald-400 font-mono">
                             £{alloc.amount.toLocaleString()}
                           </div>
-                          <div className="text-xs text-gray-400">{formatAcquisitionType(alloc.acquisitionType)}</div>
+                          <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mt-0.5">{formatAcquisitionType(alloc.acquisitionType)}</div>
                         </div>
                       </div>
                     )
@@ -2710,16 +2738,16 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             )}
 
             {previewResults.conflicts && previewResults.conflicts.length > 0 && (
-              <div className="mb-6 p-4 rounded-lg bg-orange-500/10 border border-orange-500/30">
-                <h4 className="text-lg font-bold text-orange-300 mb-2">⚠️ Conflicts (Bulk Round)</h4>
-                <p className="text-sm text-[#D4CCBB] mb-4">
+              <div className="mb-6 p-4 rounded-2xl bg-orange-500/[0.02] border border-orange-500/20 font-mono">
+                <h4 className="text-sm font-black text-orange-400 mb-1 uppercase tracking-wider">⚠️ Conflicts (Bulk Round)</h4>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider leading-relaxed mb-4">
                   Multiple teams bid on these players. Create bulk tiebreakers to resolve.
                 </p>
                 <div className="space-y-2">
                   {previewResults.conflicts.map((conflict: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-lg bg-black/30 border border-orange-500/20">
-                      <div className="font-bold text-white">{conflict.playerName}</div>
-                      <div className="text-sm text-gray-400">
+                    <div key={idx} className="p-3 rounded-xl bg-white/[0.01] border border-orange-500/10">
+                      <div className="font-extrabold text-white text-sm uppercase tracking-tight">{conflict.playerName}</div>
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">
                         Teams: {conflict.teamIds.join(', ')}
                       </div>
                     </div>
@@ -2732,14 +2760,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               <button
                 onClick={() => setShowPreviewModal(false)}
                 disabled={loading}
-                className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white font-bold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 Close Preview
               </button>
               <button
                 onClick={handleFinalizeFromPreview}
                 disabled={loading}
-                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-extrabold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono shadow-[0_0_20px_rgba(232,168,0,0.15)] hover:shadow-[0_0_25px_rgba(232,168,0,0.3)]"
               >
                 {loading ? 'Finalizing...' : 'Finalize & Make Public'}
               </button>
@@ -2750,39 +2778,39 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Spin Result Modal */}
       {showSpinModal && spinResult && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-purple-900/90 to-pink-900/90 border-2 border-purple-500/50 rounded-2xl max-w-lg w-full p-8 text-center">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-gradient-to-br from-purple-950/80 to-indigo-950/80 border border-purple-500/30 rounded-3xl max-w-lg w-full p-8 text-center shadow-[0_0_50px_rgba(168,85,247,0.15)] backdrop-blur-xl animate-scale-up">
             <div className="mb-6">
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center animate-bounce">
                 <span className="text-4xl">🎰</span>
               </div>
-              <h2 className="text-3xl font-black text-white mb-2">Tiebreaker Resolved!</h2>
-              <p className="text-purple-200 text-sm">The wheel has spoken...</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight font-mono mb-2">Tiebreaker Resolved!</h2>
+              <p className="text-purple-300 text-xs font-bold uppercase tracking-wider font-mono">The wheel has spoken...</p>
             </div>
 
-            <div className="mb-6 p-6 rounded-xl bg-black/40 border border-purple-500/30">
+            <div className="mb-6 p-6 rounded-2xl bg-black/40 border border-purple-500/20 backdrop-blur-xl">
               <div className="mb-4">
-                <div className="text-sm text-purple-300 mb-1">Winner</div>
-                <div className="text-2xl font-black text-yellow-400 mb-2">
+                <div className="text-[10px] text-purple-400 font-extrabold uppercase tracking-widest font-mono mb-1">Winner</div>
+                <div className="text-xl sm:text-2xl font-black text-yellow-400 mb-2 uppercase tracking-tight">
                   🏆 {spinResult.winnerName}
                 </div>
-                <div className="text-lg text-white">
+                <div className="text-base font-extrabold text-white uppercase tracking-wide">
                   {spinResult.playerName}
                 </div>
               </div>
-              <div className="pt-4 border-t border-purple-500/30">
-                <div className="text-sm text-purple-300 mb-1">Winning Bid</div>
-                <div className="text-3xl font-black text-emerald-400">
+              <div className="pt-4 border-t border-purple-500/20">
+                <div className="text-[10px] text-purple-400 font-extrabold uppercase tracking-widest font-mono mb-1">Winning Bid</div>
+                <div className="text-3xl font-black text-emerald-400 font-mono">
                   £{spinResult.winningBid.toLocaleString()}
                 </div>
               </div>
             </div>
 
-            <div className="text-sm text-purple-200 mb-4">
+            <div className="text-xs text-purple-300 font-bold uppercase tracking-wider font-mono mb-4">
               {spinResult.message}
             </div>
 
-            <div className="text-xs text-purple-300">
+            <div className="text-[10px] text-purple-400 font-extrabold uppercase tracking-widest font-mono">
               Refreshing page in 3 seconds...
             </div>
           </div>
@@ -2791,10 +2819,10 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Submit Bid Modal */}
       {showSubmitBidModal && selectedTiebreaker && selectedTeamForBid && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-[#0D0D0D]/90 border border-white/10 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl backdrop-blur-xl animate-scale-up">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white">Submit Bid for {selectedTeamForBid.name}</h3>
+              <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight font-mono">Submit Bid</h3>
               <button
                 onClick={() => {
                   setShowSubmitBidModal(false)
@@ -2802,31 +2830,31 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   setSelectedTeamForBid(null)
                   setAdminBidAmount(0)
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              <div className="mb-4 p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider font-mono">
                 {error}
               </div>
             )}
 
-            <div className="mb-4 p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
-              <div className="text-sm text-purple-200 mb-2">
+            <div className="mb-4 p-4 rounded-2xl bg-purple-500/[0.02] border border-purple-500/20 font-mono">
+              <div className="text-xs text-purple-300 font-bold uppercase tracking-wider mb-2">
                 <strong>Player:</strong> {selectedTiebreaker.basePlayer?.name || 'Unknown'}
               </div>
-              <div className="text-sm text-purple-200">
+              <div className="text-xs text-purple-300 font-bold uppercase tracking-wider">
                 <strong>Original Bid:</strong> £{selectedTiebreaker.originalAmount.toLocaleString()}
               </div>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+            <div className="mb-6 font-mono">
+              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest font-mono">
                 New Bid Amount (must be higher than £{selectedTiebreaker.originalAmount.toLocaleString()})
               </label>
               <input
@@ -2835,32 +2863,32 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 onChange={(e) => setAdminBidAmount(parseInt(e.target.value) || 0)}
                 min={selectedTiebreaker.originalAmount + 1}
                 step={1}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white text-xl font-bold focus:outline-none focus:border-[#E8A800]"
+                className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 text-white text-2xl font-black focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
               />
               
               {/* Quick Increment Buttons */}
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-3 font-mono">
                 <button
                   onClick={() => setAdminBidAmount(prev => prev + 5)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all font-medium text-sm"
+                  className="flex-1 px-4 py-2 rounded-xl bg-white/[0.02] border border-white/10 text-white hover:bg-white/[0.04] hover:border-[#E8A800]/30 transition-all font-bold text-xs cursor-pointer uppercase tracking-wider"
                 >
                   +£5
                 </button>
                 <button
                   onClick={() => setAdminBidAmount(prev => prev + 10)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all font-medium text-sm"
+                  className="flex-1 px-4 py-2 rounded-xl bg-white/[0.02] border border-white/10 text-white hover:bg-white/[0.04] hover:border-[#E8A800]/30 transition-all font-bold text-xs cursor-pointer uppercase tracking-wider"
                 >
                   +£10
                 </button>
                 <button
                   onClick={() => setAdminBidAmount(prev => prev + 50)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-[#E8A800]/50 transition-all font-medium text-sm"
+                  className="flex-1 px-4 py-2 rounded-xl bg-white/[0.02] border border-white/10 text-white hover:bg-white/[0.04] hover:border-[#E8A800]/30 transition-all font-bold text-xs cursor-pointer uppercase tracking-wider"
                 >
                   +£50
                 </button>
               </div>
               
-              <p className="text-xs text-[#7A7367] mt-2">
+              <p className="text-[10px] text-gray-600 font-extrabold uppercase tracking-widest mt-2">
                 Minimum: £{(selectedTiebreaker.originalAmount + 1).toLocaleString()}
               </p>
             </div>
@@ -2874,14 +2902,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   setAdminBidAmount(0)
                 }}
                 disabled={submittingAdminBid}
-                className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white font-bold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdminSubmitBid}
                 disabled={submittingAdminBid || adminBidAmount <= selectedTiebreaker.originalAmount}
-                className="flex-1 px-6 py-3 rounded-lg bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-bold transition-all disabled:opacity-50"
+                className="flex-1 px-6 py-3 rounded-xl bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-extrabold uppercase tracking-wider text-xs transition-all disabled:opacity-50 cursor-pointer font-mono shadow-[0_0_20px_rgba(232,168,0,0.15)]"
               >
                 {submittingAdminBid ? 'Submitting...' : `Submit £${adminBidAmount.toLocaleString()}`}
               </button>
@@ -2892,15 +2920,15 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
       {/* Finalization Log Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-[#0D0D0D]/90 border border-white/10 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl backdrop-blur-xl animate-scale-up">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
+            <div className="flex items-center justify-between p-6 border-b border-white/5">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border flex-shrink-0 ${
                   isStreamingLogs 
-                    ? 'bg-blue-500/20 border border-blue-500/30' 
-                    : 'bg-emerald-500/20 border border-emerald-500/30'
+                    ? 'bg-blue-500/10 border-blue-500/20' 
+                    : 'bg-emerald-500/10 border-emerald-500/20'
                 }`}>
                   {isStreamingLogs ? (
                     <svg className="w-5 h-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -2908,14 +2936,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Finalization Log</h3>
-                  <p className="text-sm text-gray-400">
+                  <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight font-mono">Finalization Log</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                     {isStreamingLogs ? 'Processing...' : 'Completed'}
                   </p>
                 </div>
@@ -2928,20 +2956,20 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                   }
                 }}
                 disabled={isStreamingLogs}
-                className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-gray-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 title={isStreamingLogs ? 'Please wait for finalization to complete' : 'Close'}
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {/* Log Content */}
-            <div className="flex-1 overflow-y-auto p-6 font-mono text-sm">
-              <div className="bg-black/50 rounded-lg p-4 border border-white/10">
+            <div className="flex-1 overflow-y-auto p-6 font-mono text-xs">
+              <div className="bg-black/40 rounded-2xl p-4 border border-white/5 max-h-[50vh] overflow-y-auto">
                 {finalizationLogs.length === 0 ? (
-                  <div className="text-gray-400 text-center py-8">
+                  <div className="text-gray-500 font-bold uppercase tracking-wider font-mono text-center py-8">
                     Waiting for logs...
                   </div>
                 ) : (
@@ -2971,9 +2999,9 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-white/10">
+            <div className="p-6 border-t border-white/5">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-400">
+                <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                   {finalizationLogs.length} log entries
                 </div>
                 <button
@@ -2984,7 +3012,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                     }
                   }}
                   disabled={isStreamingLogs}
-                  className="px-6 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white font-bold uppercase tracking-wider text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-mono"
                 >
                   {isStreamingLogs ? 'Processing...' : 'Close'}
                 </button>

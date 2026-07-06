@@ -191,19 +191,19 @@ export default function PlayerReplacementClient({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
-        <p className="text-[#D4CCBB] mb-6">
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
+        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mb-6 leading-relaxed">
           Replace a player that was incorrectly allocated with another player from the team's complete bid history. 
           Select a team to see all their bids grouped by round, then choose which player to replace.
         </p>
 
         {message && (
-          <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+          <div className={`mb-6 p-4 rounded-xl font-mono text-xs uppercase tracking-wider ${message.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
             {message.text}
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Team Selection */}
           <SearchableSelect
             label="1. Select Team"
@@ -237,7 +237,7 @@ export default function PlayerReplacementClient({
           {selectedOldPlayer && allBids.length > 0 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#D4CCBB] mb-2">
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
                   3. Select Replacement Player from {highlightedRoundId ? 'Acquisition Round' : 'Team\'s Bid History'} ({bidsToShow.length} {highlightedRoundId ? 'bids in this round' : 'total bids across ' + roundGroups.length + ' rounds'})
                 </label>
                 
@@ -247,11 +247,11 @@ export default function PlayerReplacementClient({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search players..."
-                  className="w-full px-4 py-2 mb-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] transition-colors"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono mb-4"
                 />
 
                 {/* Rounds */}
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
                   {roundGroups.map(round => {
                     const soldCount = round.bids.filter(b => b.isSold).length;
                     const unsoldAvailableCount = round.bids.filter(b => !b.isSold && !b.soldToOther).length;
@@ -262,26 +262,26 @@ export default function PlayerReplacementClient({
                       <div 
                         key={round.roundId} 
                         id={`round-${round.roundId}`}
-                        className={`bg-white/5 rounded-lg border overflow-hidden transition-all ${
+                        className={`bg-white/[0.01] rounded-2xl border transition-all backdrop-blur-xl shadow-md ${
                           isHighlighted 
-                            ? 'border-[#E8A800] shadow-lg shadow-[#E8A800]/20' 
-                            : 'border-white/10'
+                            ? 'border-[#E8A800] shadow-[#E8A800]/10' 
+                            : 'border-white/5'
                         }`}
                       >
                         {/* Round Header */}
                         <div className={`border-b px-4 py-3 ${
                           isHighlighted 
-                            ? 'bg-[#E8A800]/20 border-[#E8A800]/30' 
-                            : 'bg-[#E8A800]/10 border-white/10'
+                            ? 'bg-[#E8A800]/5 border-[#E8A800]/20' 
+                            : 'bg-white/[0.02] border-white/5'
                         }`}>
                           <div className="flex items-center justify-between">
-                            <h4 className={`font-bold ${
-                              isHighlighted ? 'text-[#E8A800] text-base' : 'text-[#E8A800]'
+                            <h4 className={`font-black uppercase tracking-wider text-xs font-mono ${
+                              isHighlighted ? 'text-[#E8A800]' : 'text-gray-400'
                             }`}>
                               {round.roundName}
-                              {isHighlighted && <span className="ml-2 text-xs text-white/80">(Player acquired here)</span>}
+                              {isHighlighted && <span className="ml-2 text-[10px] text-white font-normal lowercase tracking-normal">(Player acquired here)</span>}
                             </h4>
-                            <div className="flex items-center gap-3 text-xs">
+                            <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider font-mono">
                               <span className="text-green-400">✓ {soldCount} Owned</span>
                               <span className="text-blue-400">◯ {unsoldAvailableCount} Available</span>
                               <span className="text-red-400">✗ {soldToOthersCount} Lost</span>
@@ -290,7 +290,7 @@ export default function PlayerReplacementClient({
                         </div>
 
                         {/* Bids List */}
-                        <div className="divide-y divide-white/10">
+                        <div className="divide-y divide-white/5">
                           {round.bids.map(bid => {
                             const isOwned = bid.isSold;
                             const isLost = bid.soldToOther;
@@ -307,42 +307,42 @@ export default function PlayerReplacementClient({
                                     setNewAmount(bid.bidAmount.toString());
                                   }
                                 }}
-                                className={`p-3 transition-colors ${
+                                className={`p-3.5 transition-all duration-300 ${
                                   isAvailable 
-                                    ? 'cursor-pointer hover:bg-white/10' 
-                                    : 'opacity-60 cursor-not-allowed'
+                                    ? 'cursor-pointer hover:bg-white/[0.02]' 
+                                    : 'opacity-40 cursor-not-allowed'
                                 } ${
-                                  isSelected ? 'bg-[#E8A800]/10 border-l-4 border-l-[#E8A800]' : ''
+                                  isSelected ? 'bg-[#E8A800]/5 border-l-4 border-l-[#E8A800]' : ''
                                 } ${
-                                  isReplacingThisPlayer ? 'bg-red-500/10 border-l-4 border-l-red-500' : ''
+                                  isReplacingThisPlayer ? 'bg-red-500/5 border-l-4 border-l-red-500' : ''
                                 }`}
                               >
                                 <div className="flex justify-between items-start">
                                   <div className="flex-1">
-                                    <div className={`font-medium ${isOwned || isLost ? 'italic text-white/80' : 'text-white'} ${
-                                      isReplacingThisPlayer ? 'text-red-400 font-bold' : ''
+                                    <div className={`text-sm font-bold uppercase tracking-tight ${isOwned || isLost ? 'italic text-gray-400' : 'text-white'} ${
+                                      isReplacingThisPlayer ? 'text-red-400 font-black' : ''
                                     }`}>
                                       {bid.playerName}
-                                      {isReplacingThisPlayer && <span className="ml-2 text-xs">(TO BE REPLACED)</span>}
+                                      {isReplacingThisPlayer && <span className="ml-2 text-[10px] text-red-500 font-extrabold uppercase tracking-widest font-mono">(TO BE REPLACED)</span>}
                                     </div>
-                                    <div className="flex items-center gap-3 mt-1 text-xs">
+                                    <div className="flex items-center gap-3 mt-1.5 text-[10px] font-bold uppercase tracking-wider font-mono">
                                       {isOwned && (
                                         <>
-                                          <span className="text-green-400 font-semibold">✓ OWNED</span>
-                                          <span className="text-white/60">Bid: £{bid.bidAmount.toLocaleString()}</span>
+                                          <span className="text-green-400">✓ OWNED</span>
+                                          <span className="text-gray-500">Bid: £{bid.bidAmount.toLocaleString()}</span>
                                           <span className="text-green-400">Sold: £{(bid.soldPrice || 0).toLocaleString()}</span>
                                         </>
                                       )}
                                       {isAvailable && (
                                         <>
-                                          <span className="text-blue-400 font-semibold">◯ AVAILABLE</span>
-                                          <span className="text-white/60">Bid: £{bid.bidAmount.toLocaleString()}</span>
+                                          <span className="text-blue-400">◯ AVAILABLE</span>
+                                          <span className="text-gray-500">Bid: £{bid.bidAmount.toLocaleString()}</span>
                                         </>
                                       )}
                                       {isLost && (
                                         <>
-                                          <span className="text-red-400 font-semibold">✗ LOST</span>
-                                          <span className="text-white/60">Bid: £{bid.bidAmount.toLocaleString()}</span>
+                                          <span className="text-red-400">✗ LOST</span>
+                                          <span className="text-gray-500">Bid: £{bid.bidAmount.toLocaleString()}</span>
                                           <span className="text-red-400">to {bid.ownedByTeam}</span>
                                         </>
                                       )}
@@ -364,15 +364,15 @@ export default function PlayerReplacementClient({
           {/* New Amount */}
           {selectedNewBid && (
             <div>
-              <label className="block text-sm font-medium text-[#D4CCBB] mb-2">4. Adjust Transfer Amount (£)</label>
+              <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">4. Adjust Transfer Amount (£)</label>
               <input
                 type="number"
                 value={newAmount}
                 onChange={(e) => setNewAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-[#7A7367] focus:outline-none focus:border-[#E8A800] transition-colors"
+                className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
               />
-              <p className="text-xs text-[#7A7367] mt-1">Original bid amount: £{selectedNewBid.bidAmount.toLocaleString()}</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-2">Original bid amount: £{selectedNewBid.bidAmount.toLocaleString()}</p>
             </div>
           )}
 
@@ -381,7 +381,7 @@ export default function PlayerReplacementClient({
             <button
               onClick={handleReplace}
               disabled={loading}
-              className="w-full px-6 py-3 bg-[#E8A800] text-black font-bold rounded-lg hover:bg-[#E8A800]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full px-6 py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer shadow-md hover:shadow-[#E8A800]/25"
             >
               {loading ? 'Replacing...' : 'Replace Player & Update Ledger'}
             </button>

@@ -136,42 +136,42 @@ export default function LinksPage({ params }: LinksPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4 pt-6">
-          <Link
-            href={`/sub-admin/${seasonId}/tournaments/${tournamentId}`}
-            className="text-[#E8A800] hover:text-[#FFB347] text-sm mb-4 inline-block transition-colors"
-          >
-            ← Back to Tournament Management
-          </Link>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-                <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                  Tournament Links
-                </span>
-              </h1>
-              <p className="text-[#D4CCBB] text-sm sm:text-base">
-                {tournament?.name || 'Tournament'} - Configure team qualifications and sequential flows
-              </p>
-            </div>
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black rounded-xl font-bold transition-all text-sm whitespace-nowrap self-start sm:self-auto shadow-lg"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Qualification Link
-            </button>
-          </div>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}/tournaments/${tournamentId}`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Tournament Details
+        </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Tournament Links
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            {tournament?.name || 'Tournament'} - Configure team qualifications and sequential flows
+          </p>
+        </div>
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Add Qualification Link
+        </button>
+      </div>
+
+      <div className="space-y-8">
         {error && (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold">
             ⚠️ {error}

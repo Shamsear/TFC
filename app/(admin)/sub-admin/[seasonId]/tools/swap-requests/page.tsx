@@ -183,17 +183,15 @@ export default async function SwapRequestsAdminPage({
   })
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SwapRequestsAdminClient
-          seasonId={seasonId}
-          seasonName={season.name}
-          swapWindowOpen={!!season.swapWindowOpen}
-          requests={transformedRequests}
-          teamStats={teamStats}
-          swapWindows={serializedSwapWindows}
-        />
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      <SwapRequestsAdminClient
+        seasonId={seasonId}
+        seasonName={season.name}
+        swapWindowOpen={!!season.swapWindowOpen}
+        requests={transformedRequests}
+        teamStats={teamStats}
+        swapWindows={serializedSwapWindows}
+      />
     </div>
   )
 }

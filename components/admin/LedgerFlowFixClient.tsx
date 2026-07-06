@@ -108,9 +108,9 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="text-xl font-bold text-white mb-4">Financial Ledger Flow Fix</h2>
-        <p className="text-[#D4CCBB] mb-4">
+      <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 backdrop-blur-xl shadow-md">
+        <h2 className="text-xl sm:text-2xl font-black text-white mb-4 uppercase tracking-wider font-mono">Financial Ledger Flow Fix</h2>
+        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mb-6 leading-relaxed">
           This tool recalculates all financial ledger entries to ensure the previousBalance and newBalance 
           flow correctly from one entry to the next. It will also update team current budgets to match 
           the final ledger balance.
@@ -120,7 +120,7 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
           <button
             onClick={handlePreview}
             disabled={loading}
-            className="px-6 py-2 bg-[#E8A800] text-black font-bold rounded-lg hover:bg-[#E8A800]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-bold transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer shadow-md"
           >
             {loading && !data ? 'Loading...' : 'Preview Changes'}
           </button>
@@ -129,7 +129,7 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
             <button
               onClick={handleApply}
               disabled={loading}
-              className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#34D399] hover:from-[#059669] hover:to-[#34D399] text-[#0a0a0a] font-bold transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer shadow-md"
             >
               {loading ? 'Applying...' : 'Apply Fixes'}
             </button>
@@ -138,23 +138,23 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
       </div>
 
       {data && (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+        <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 backdrop-blur-xl shadow-md">
           <div className="mb-6">
-            <h3 className="text-lg font-bold text-white mb-3">
+            <h3 className="text-lg font-black text-white mb-4 uppercase tracking-wider font-mono">
               {data.summary.mode === 'apply' ? '✅ Fixes Applied' : '📋 Preview Results'}
             </h3>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3">
-                <div className="text-[#7A7367]">Teams Processed</div>
-                <div className="text-2xl font-bold text-white">{data.summary.teamsProcessed}</div>
+            <div className="grid grid-cols-3 gap-4 text-xs">
+              <div className="bg-white/[0.01] border border-white/5 rounded-xl p-3 shadow-md">
+                <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Teams Processed</div>
+                <div className="text-2xl font-black text-white font-mono">{data.summary.teamsProcessed}</div>
               </div>
-              <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3">
-                <div className="text-[#7A7367]">Teams Needing Fix</div>
-                <div className="text-2xl font-bold text-orange-400">{data.summary.teamsNeedingFix}</div>
+              <div className="bg-white/[0.01] border border-white/5 rounded-xl p-3 shadow-md">
+                <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Teams Needing Fix</div>
+                <div className="text-2xl font-black text-orange-400 font-mono">{data.summary.teamsNeedingFix}</div>
               </div>
-              <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3">
-                <div className="text-[#7A7367]">Teams Fixed</div>
-                <div className="text-2xl font-bold text-green-400">{data.summary.teamsFixed}</div>
+              <div className="bg-white/[0.01] border border-white/5 rounded-xl p-3 shadow-md">
+                <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Teams Fixed</div>
+                <div className="text-2xl font-black text-green-400 font-mono">{data.summary.teamsFixed}</div>
               </div>
             </div>
           </div>
@@ -163,12 +163,12 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
             {data.results.map((result) => (
               <div
                 key={result.teamName}
-                className={`rounded-lg p-4 border ${
+                className={`rounded-xl p-4 border transition-all ${
                   result.status === 'correct'
-                    ? 'bg-green-500/10 border-green-500/30'
+                    ? 'bg-green-500/[0.02] border-green-500/10'
                     : result.status === 'needs_fix'
-                    ? 'bg-orange-500/10 border-orange-500/30'
-                    : 'bg-white/5 border-white/10'
+                    ? 'bg-orange-500/[0.02] border-orange-500/10'
+                    : 'bg-white/[0.01] border-white/5'
                 }`}
               >
                 <div
@@ -176,30 +176,30 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
                   onClick={() => result.updates && toggleTeam(result.teamName)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-white">{result.teamName}</span>
+                    <span className="text-base sm:text-lg font-black text-white uppercase tracking-tight">{result.teamName}</span>
                     {result.status === 'correct' && (
-                      <span className="text-xs bg-green-600 text-white px-2 py-1 rounded">✓ Correct</span>
+                      <span className="text-[10px] bg-green-500/20 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">✓ Correct</span>
                     )}
                     {result.status === 'needs_fix' && (
-                      <span className="text-xs bg-orange-600 text-white px-2 py-1 rounded">
+                      <span className="text-[10px] bg-orange-500/20 border border-orange-500/30 text-orange-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">
                         {result.entriesFixed} entries need fixing
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="text-[#7A7367]">
-                      Entries: <span className="text-white">{result.entriesChecked}</span>
+                  <div className="flex items-center gap-4 text-xs font-mono">
+                    <div className="text-gray-500 font-bold uppercase tracking-wider">
+                      Entries: <span className="text-white font-extrabold">{result.entriesChecked}</span>
                     </div>
-                    <div className="text-[#7A7367]">
-                      Final Balance: <span className="text-white">{formatCurrency(result.finalBalance)}</span>
+                    <div className="text-gray-500 font-bold uppercase tracking-wider">
+                      Final Balance: <span className="text-white font-extrabold">{formatCurrency(result.finalBalance)}</span>
                     </div>
                     {result.finalBalance !== result.currentBudget && (
-                      <div className="text-orange-400">
+                      <div className="text-orange-400 font-bold uppercase tracking-wider">
                         Current: {formatCurrency(result.currentBudget)}
                       </div>
                     )}
                     {result.updates && (
-                      <span className="text-[#7A7367]">
+                      <span className="text-gray-500">
                         {expandedTeams.has(result.teamName) ? '▼' : '▶'}
                       </span>
                     )}
@@ -207,32 +207,32 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
                 </div>
 
                 {result.updates && expandedTeams.has(result.teamName) && (
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-4 space-y-3 border-t border-white/5 pt-3">
                     {result.updates.map((update, idx) => (
-                      <div key={update.id} className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-sm">
-                        <div className="font-medium text-white mb-2">
+                      <div key={update.id} className="bg-white/[0.01] border border-white/5 rounded-xl p-3 text-xs">
+                        <div className="font-bold text-white mb-2 uppercase tracking-tight">
                           {idx + 1}. {update.description}
                         </div>
-                        <div className="grid grid-cols-3 gap-4 text-xs">
+                        <div className="grid grid-cols-3 gap-4 font-mono text-[10px] uppercase tracking-wider">
                           <div>
-                            <div className="text-[#7A7367]">Amount</div>
-                            <div className="text-white">{formatCurrency(update.amount)}</div>
+                            <div className="text-gray-500 font-bold mb-0.5">Amount</div>
+                            <div className="text-white font-bold">{formatCurrency(update.amount)}</div>
                           </div>
                           <div>
-                            <div className="text-[#7A7367]">Current Values</div>
-                            <div className="text-red-400">
+                            <div className="text-gray-500 font-bold mb-0.5">Current Values</div>
+                            <div className="text-red-400 font-bold">
                               Prev: {formatCurrency(update.current.previousBalance)}
                             </div>
-                            <div className="text-red-400">
+                            <div className="text-red-400 font-bold">
                               New: {formatCurrency(update.current.newBalance)}
                             </div>
                           </div>
                           <div>
-                            <div className="text-[#7A7367]">Expected Values</div>
-                            <div className="text-green-400">
+                            <div className="text-gray-500 font-bold mb-0.5">Expected Values</div>
+                            <div className="text-green-400 font-bold">
                               Prev: {formatCurrency(update.expected.previousBalance)}
                             </div>
-                            <div className="text-green-400">
+                            <div className="text-green-400 font-bold">
                               New: {formatCurrency(update.expected.newBalance)}
                             </div>
                           </div>

@@ -175,39 +175,40 @@ export default async function RoundBidsPage({
   const teamsWithInvalidBids = teamBidsData.filter(td => td.hasInvalidBids).length
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="border-b border-white/10 pb-6 mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link
-              href={`/sub-admin/${seasonId}/auction/rounds/${roundId}`}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              ← Back to Round
-            </Link>
-          </div>
-          <h1 className="text-4xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              Round {round.roundNumber} - Team Bids
-            </span>
-          </h1>
-          <p className="text-[#D4CCBB]">
-            {round.season.name} • {round.position || 'All Positions'} • {round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}
-          </p>
-        </div>
-
-        <TeamBidsClient
-          round={round}
-          teams={teams.map(st => st.team)}
-          teamBidsData={teamBidsData}
-          validationStats={{
-            totalBids,
-            invalidBids,
-            teamsWithInvalidBids
-          }}
-        />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}/auction/rounds/${roundId}`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Round
+        </Link>
       </div>
+
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          Round {round.roundNumber} - Team Bids
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          {round.season.name} • {round.position || 'All Positions'} • {round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}
+        </p>
+      </div>
+
+      <TeamBidsClient
+        round={round}
+        teams={teams.map(st => st.team)}
+        teamBidsData={teamBidsData}
+        validationStats={{
+          totalBids,
+          invalidBids,
+          teamsWithInvalidBids
+        }}
+      />
     </div>
   )
 }

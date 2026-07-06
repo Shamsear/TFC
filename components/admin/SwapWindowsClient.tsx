@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface SwapWindow {
   id: string
@@ -187,60 +188,73 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-8 text-white">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link
+          href={`/sub-admin/${seasonId}`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Season
+        </Link>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent uppercase tracking-tight">
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
             Swap Windows
           </h1>
-          <p className="text-sm text-[#7A7367] mt-1">
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
             Manage player swap periods for {seasonName}
           </p>
         </div>
         
         <button
           onClick={toggleCreateCollapse}
-          className="px-6 py-2.5 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-all hover:scale-105"
+          className="px-6 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all hover:scale-105 text-xs uppercase tracking-wider cursor-pointer"
         >
           {isCreateExpanded ? 'Cancel' : 'Create Window'}
         </button>
       </div>
       
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl mb-6">
           {error}
         </div>
       )}
 
       {isCreateExpanded && (
-        <div className="w-full bg-[#111] border border-white/10 rounded-2xl p-6 sm:p-8 transition-all shadow-xl">
-          <h2 className="text-xl font-bold mb-4 text-[#E8A800]">
+        <div className="w-full bg-white/[0.01] border border-white/5 rounded-2xl p-6 sm:p-8 transition-all shadow-md backdrop-blur-xl mb-6">
+          <h2 className="text-lg font-black text-[#E8A800] mb-4 uppercase tracking-tight font-mono">
             {isEditing ? `Edit Swap Window: ${formData.name}` : 'Create Swap Window'}
           </h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#7A7367] mb-1">Name</label>
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Name</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#E8A800]"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
                   placeholder="e.g. Mid-Season Swaps"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-[#7A7367] mb-1">Swap Limit</label>
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Swap Limit</label>
                 <input
                   type="number"
                   required
                   min="1"
                   value={formData.swapLimit}
                   onChange={e => setFormData({ ...formData, swapLimit: parseInt(e.target.value) || 5 })}
-                  className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#E8A800]"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
                   placeholder="e.g. 5"
                 />
               </div>
@@ -248,34 +262,34 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#7A7367] mb-1">Start Date</label>
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Start Date</label>
                 <input
                   type="datetime-local"
                   required
                   value={formData.startDate}
                   onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#E8A800]"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-[#7A7367] mb-1">End Date</label>
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">End Date</label>
                 <input
                   type="datetime-local"
                   required
                   value={formData.endDate}
                   onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#E8A800]"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
                 />
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-[#7A7367] mb-1">Status</label>
+              <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Status</label>
               <select
                 value={formData.status}
                 onChange={e => setFormData({ ...formData, status: e.target.value })}
-                className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#E8A800]"
+                className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
               >
                 <option value="UPCOMING">UPCOMING</option>
                 <option value="ACTIVE">ACTIVE</option>
@@ -290,13 +304,13 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
                   setIsCreateExpanded(false)
                   setIsEditing(false)
                 }}
-                className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg font-bold transition-colors"
+                className="px-6 py-2.5 bg-white/[0.01] border border-white/5 hover:border-white/10 text-white rounded-xl font-bold transition-all text-xs uppercase tracking-wider text-center cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] rounded-lg font-bold transition-colors"
+                className="px-6 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer"
               >
                 {isEditing ? 'Save Changes' : 'Create Window'}
               </button>
@@ -307,29 +321,29 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
       
       <div className="grid gap-4">
         {windows.length === 0 ? (
-          <div className="p-8 bg-[#1a1a1a] border border-white/5 rounded-2xl text-center text-[#7A7367]">
+          <div className="p-8 bg-white/[0.01] border border-white/5 rounded-2xl text-center text-gray-500 font-bold uppercase tracking-wider text-xs">
             No swap windows found for this season.
           </div>
         ) : (
           windows.map(window => (
-            <div key={window.id} className="bg-[#1a1a1a] border border-white/5 rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div key={window.id} className="bg-white/[0.01] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 backdrop-blur-xl shadow-md">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-lg">{window.name}</h3>
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
-                    window.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' :
-                    window.status === 'CLOSED' ? 'bg-red-500/20 text-red-400' :
-                    'bg-blue-500/20 text-blue-400'
+                  <h3 className="font-bold text-lg text-white">{window.name}</h3>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider font-mono ${
+                    window.status === 'ACTIVE' ? 'bg-emerald-500/25 text-emerald-400 border border-emerald-500/25' :
+                    window.status === 'CLOSED' ? 'bg-red-500/25 text-red-400 border border-red-500/25' :
+                    'bg-blue-500/25 text-blue-400 border border-blue-500/25'
                   }`}>
                     {window.status}
                   </span>
                 </div>
-                <div className="text-sm text-[#7A7367] flex gap-4 flex-wrap">
-                  <div>Starts: {new Date(window.startDate).toLocaleString()}</div>
-                  <div>Ends: {new Date(window.endDate).toLocaleString()}</div>
+                <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono flex gap-4 flex-wrap">
+                  <div>Starts: <span className="text-gray-300">{new Date(window.startDate).toLocaleString()}</span></div>
+                  <div>Ends: <span className="text-gray-300">{new Date(window.endDate).toLocaleString()}</span></div>
                   <div>Limit: <span className="text-white font-medium">{window.swapLimit || 5}</span></div>
                 </div>
-                <div className="text-sm font-medium">
+                <div className="text-xs font-bold uppercase tracking-wider font-mono text-gray-500">
                   Requests: <span className="text-[#E8A800]">{window._count?.swapRequests || 0}</span>
                 </div>
               </div>
@@ -337,14 +351,14 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
               <div className="flex gap-2">
                 <button
                   onClick={() => openEditModal(window)}
-                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(window.id, window._count?.swapRequests || 0)}
                   disabled={(window._count?.swapRequests || 0) > 0}
-                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/10 hover:border-red-500/20 text-red-400 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >
                   Delete
                 </button>

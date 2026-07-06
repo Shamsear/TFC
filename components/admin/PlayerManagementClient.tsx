@@ -153,20 +153,20 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
       <div className="flex gap-2">
         <button
           onClick={() => setActiveTab('transfer')}
-          className={`px-6 py-3 rounded-xl font-bold transition-all ${
+          className={`px-6 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer shadow-md ${
             activeTab === 'transfer'
               ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a]'
-              : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+              : 'bg-white/[0.01] border border-white/5 text-gray-400 hover:text-white'
           }`}
         >
           Transfer Players
         </button>
         <button
           onClick={() => setActiveTab('release')}
-          className={`px-6 py-3 rounded-xl font-bold transition-all ${
+          className={`px-6 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer shadow-md ${
             activeTab === 'release'
               ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a]'
-              : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+              : 'bg-white/[0.01] border border-white/5 text-gray-400 hover:text-white'
           }`}
         >
           Release Players
@@ -183,33 +183,33 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
         ]}
         onChange={handleTeamChange}
         enableSearch={true}
-        className="rounded-xl bg-white/5 border border-white/10 p-6"
+        className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md"
       />
 
       {/* Players List */}
       {selectedTeam && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <h3 className="text-xl font-black text-white mb-4">
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
+          <h3 className="text-base sm:text-lg font-black text-white mb-4 uppercase tracking-wider font-mono">
             Select Players ({selectedPlayers.size} selected)
           </h3>
 
           {loading ? (
-            <div className="text-center py-12 text-gray-400">Loading players...</div>
+            <div className="text-center py-12 text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">Loading players...</div>
           ) : players.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">No players in this team</div>
+            <div className="text-center py-12 text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">No players in this team</div>
           ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {players.map((player) => (
                 <button
                   key={player.id}
                   onClick={() => togglePlayer(player.id)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-lg transition-all ${
+                  className={`w-full flex items-center gap-4 p-3.5 rounded-xl transition-all duration-300 border cursor-pointer ${
                     selectedPlayers.has(player.id)
-                      ? 'bg-[#E8A800]/20 border-2 border-[#E8A800]'
-                      : 'bg-black/30 border border-white/10 hover:border-white/20'
+                      ? 'bg-[#E8A800]/5 border-[#E8A800]/30 shadow-md shadow-[#E8A800]/5'
+                      : 'bg-white/[0.01] border-white/5 hover:border-white/10 hover:bg-white/[0.02]'
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 relative">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 relative">
                     <Image
                       src={getPlayerPhotoUrl(player.photoUrl)}
                       alt={player.name}
@@ -218,13 +218,13 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
                     />
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="font-bold text-white">{player.name}</div>
-                    <div className="text-sm text-gray-400">
-                      {player.position} • {player.overallRating} OVR • £{player.soldPrice.toLocaleString()}
+                    <div className="font-extrabold text-white text-sm sm:text-base uppercase tracking-tight">{player.name}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">
+                      {player.position} • {player.overallRating} OVR • <span className="text-[#E8A800] font-extrabold">£{player.soldPrice.toLocaleString()}</span>
                     </div>
                   </div>
                   {selectedPlayers.has(player.id) && (
-                    <svg className="w-6 h-6 text-[#E8A800]" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-6 h-6 text-[#E8A800] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   )}
@@ -248,20 +248,20 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
           ]}
           onChange={setDestinationTeam}
           enableSearch={true}
-          className="rounded-xl bg-white/5 border border-white/10 p-6"
+          className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md"
         />
       )}
 
       {/* Notes */}
       {selectedPlayers.size > 0 && (
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <label className="block text-sm font-bold text-white mb-2">Notes (Optional)</label>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
+          <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Notes (Optional)</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Add a reason or note..."
             rows={3}
-            className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/10 text-white focus:border-[#E8A800] focus:outline-none resize-none"
+            className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono resize-none"
           />
         </div>
       )}
@@ -271,7 +271,7 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
         <button
           onClick={activeTab === 'transfer' ? handleTransfer : handleRelease}
           disabled={processing || (activeTab === 'transfer' && !destinationTeam)}
-          className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] font-black text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-6 py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer shadow-md hover:shadow-[#E8A800]/25"
         >
           {processing
             ? 'Processing...'
@@ -284,10 +284,10 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
       {/* Result */}
       {result && (
         <div
-          className={`rounded-xl border p-6 ${
+          className={`rounded-2xl border p-6 backdrop-blur-xl shadow-md ${
             result.success
-              ? 'bg-emerald-500/10 border-emerald-500/20'
-              : 'bg-red-500/10 border-red-500/20'
+              ? 'bg-emerald-500/[0.02] border-emerald-500/10'
+              : 'bg-red-500/[0.02] border-red-500/10'
           }`}
         >
           <div className="flex items-start gap-3">
@@ -301,10 +301,10 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
               </svg>
             )}
             <div className="flex-1">
-              <div className={`font-bold mb-1 ${result.success ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`font-black uppercase tracking-wider text-sm font-mono mb-1.5 ${result.success ? 'text-emerald-400' : 'text-red-400'}`}>
                 {result.success ? 'Success!' : 'Error'}
               </div>
-              <div className="text-sm text-gray-300">
+              <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                 {result.success
                   ? activeTab === 'transfer'
                     ? `Successfully transferred ${result.transferred} player(s)`
@@ -312,7 +312,7 @@ export default function PlayerManagementClient({ seasonId, teams }: PlayerManage
                   : result.error || 'Operation failed'}
               </div>
               {result.details?.errors?.length > 0 && (
-                <div className="mt-2 text-sm text-red-400">
+                <div className="mt-2 text-xs text-red-400 font-mono font-bold uppercase tracking-wider">
                   {result.details.errors.map((err: any, idx: number) => (
                     <div key={idx}>• {err.playerName || err.playerId}: {err.error}</div>
                   ))}

@@ -88,9 +88,9 @@ export default function AuditLogViewer({ logs }: AuditLogViewerProps) {
   }
 
   return (
-    <div className="rounded-xl bg-white/[0.02] border border-white/10 p-6">
+    <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h2 className="text-xl font-black text-[#F5F0E8]">Activity Log</h2>
+        <h2 className="text-lg font-black text-white uppercase tracking-tight font-mono">Activity Log</h2>
         
         <div className="flex flex-col sm:flex-row gap-3">
           <input
@@ -98,7 +98,7 @@ export default function AuditLogViewer({ logs }: AuditLogViewerProps) {
             placeholder="Search logs..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 bg-[#111111] border border-white/10 rounded-lg text-white text-sm focus:border-[#E8A800] focus:outline-none"
+            className="px-4 py-2 bg-white/[0.02] border border-white/10 rounded-xl text-white text-xs focus:border-[#E8A800]/50 focus:outline-none transition-all font-mono"
           />
           <SearchableSelect
             value={actionFilter}
@@ -118,14 +118,14 @@ export default function AuditLogViewer({ logs }: AuditLogViewerProps) {
 
       {filteredLogs.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-[#7A7367]">No audit logs found</p>
+          <p className="text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">No audit logs found</p>
         </div>
       ) : (
         <div className="space-y-2">
           {filteredLogs.map((log) => (
             <div
               key={log.id}
-              className="rounded-lg bg-[#111111] border border-white/10 overflow-hidden"
+              className="rounded-xl bg-white/[0.01] border border-white/5 overflow-hidden transition-all shadow-sm"
             >
               <div
                 className="p-4 cursor-pointer hover:bg-white/[0.02] transition-all"
@@ -137,17 +137,19 @@ export default function AuditLogViewer({ logs }: AuditLogViewerProps) {
                       {getActionIcon(log.action)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-bold text-sm ${getActionColor(log.action)}`}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className={`font-extrabold text-xs sm:text-sm uppercase tracking-wider font-mono ${getActionColor(log.action)}`}>
                           {log.action.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-xs text-[#7A7367]">•</span>
-                        <span className="text-xs text-[#D4CCBB]">{log.entity_type}</span>
+                        <span className="text-xs text-gray-500 font-bold">•</span>
+                        <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20">
+                          {log.entity_type}
+                        </span>
                       </div>
                       {log.entity_name && (
-                        <div className="text-sm text-[#F5F0E8] mb-1">{log.entity_name}</div>
+                        <div className="font-extrabold text-white text-sm sm:text-base mb-1 uppercase tracking-tight">{log.entity_name}</div>
                       )}
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[#7A7367]">
+                      <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">
                         <span>{formatDate(log.created_at)}</span>
                         {log.season_name && (
                           <>
@@ -164,24 +166,25 @@ export default function AuditLogViewer({ logs }: AuditLogViewerProps) {
                       </div>
                     </div>
                   </div>
-                  <button className="text-[#7A7367] hover:text-[#E8A800] transition-colors">
+                  <button className="text-gray-500 hover:text-white transition-colors cursor-pointer">
                     <svg 
-                      className={`w-5 h-5 transition-transform ${expandedLog === log.id ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 transition-transform ${expandedLog === log.id ? 'rotate-180' : ''}`}
                       fill="none" 
                       viewBox="0 0 24 24" 
                       stroke="currentColor"
+                      strokeWidth={2.5}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                 </div>
               </div>
 
               {expandedLog === log.id && log.details && (
-                <div className="px-4 pb-4 border-t border-white/10">
-                  <div className="mt-3 p-3 rounded bg-[#0a0a0a] border border-white/10">
-                    <div className="text-xs font-bold text-[#F5F0E8] mb-2">Details:</div>
-                    <pre className="text-xs text-[#D4CCBB] overflow-x-auto">
+                <div className="px-4 pb-4 border-t border-white/5">
+                  <div className="mt-3 p-4 rounded-xl bg-black/40 border border-white/5">
+                    <div className="text-[10px] font-extrabold text-[#F5F0E8] mb-2 uppercase tracking-widest font-mono">Details:</div>
+                    <pre className="text-xs text-gray-400 overflow-x-auto font-mono whitespace-pre-wrap">
                       {JSON.stringify(JSON.parse(log.details), null, 2)}
                     </pre>
                   </div>

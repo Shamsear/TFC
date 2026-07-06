@@ -92,81 +92,79 @@ export function AllTeamsAchievementsClient({ teams, season }: AllTeamsAchievemen
       });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-16 px-4 md:px-8 font-sans selection:bg-[#E8A800] selection:text-black relative overflow-hidden">
-      {/* Background spotlights */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#E8A800]/5 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-1/3 left-10 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
+    <>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <Link 
+          href={`/sub-admin/${season.id}`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4 text-[#E8A800] transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Dashboard
+        </Link>
+      </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <Link 
-            href={`/sub-admin/${season.id}`}
-            className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-gray-300 hover:text-white transition-all text-xs font-black uppercase tracking-wider transform active:scale-95 group"
-          >
-            <svg className="w-4 h-4 text-[#E8A800] transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Admin Dashboard
-          </Link>
-
-          <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-white via-gray-100 to-gray-400 bg-clip-text text-transparent mb-2">
-            All Teams Achievements
-          </h1>
-          <p className="text-gray-400 text-sm">
-            {season.name} • View badges and achievements for all teams
-          </p>
-        </div>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          All Teams Achievements
+        </h1>
+        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+          {season.name} • View badges and achievements for all teams
+        </p>
+      </div>
 
         {/* Filter Buttons */}
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div className="flex flex-wrap gap-2.5 mb-8">
           <button
             onClick={() => setFilterTier('ALL')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               filterTier === 'ALL'
-                ? 'bg-[#E8A800] text-black border border-[#E8A800]'
-                : 'bg-white/[0.02] text-gray-400 border border-white/10 hover:bg-white/[0.06] hover:text-white'
+                ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] border border-transparent'
+                : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
             }`}
           >
             All Teams ({teams.length})
           </button>
           <button
             onClick={() => setFilterTier('BRONZE')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               filterTier === 'BRONZE'
                 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                : 'bg-white/[0.02] text-gray-400 border border-white/10 hover:bg-white/[0.06] hover:text-white'
+                : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
             }`}
           >
             Bronze Tier
           </button>
           <button
             onClick={() => setFilterTier('SILVER')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               filterTier === 'SILVER'
                 ? 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
-                : 'bg-white/[0.02] text-gray-400 border border-white/10 hover:bg-white/[0.06] hover:text-white'
+                : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
             }`}
           >
             Silver Tier
           </button>
           <button
             onClick={() => setFilterTier('GOLD')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               filterTier === 'GOLD'
                 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                : 'bg-white/[0.02] text-gray-400 border border-white/10 hover:bg-white/[0.06] hover:text-white'
+                : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
             }`}
           >
             Gold Tier
           </button>
           <button
             onClick={() => setFilterTier('PLATINUM')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               filterTier === 'PLATINUM'
                 ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                : 'bg-white/[0.02] text-gray-400 border border-white/10 hover:bg-white/[0.06] hover:text-white'
+                : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
             }`}
           >
             Platinum Tier
@@ -184,7 +182,7 @@ export function AllTeamsAchievementsClient({ teams, season }: AllTeamsAchievemen
               <div
                 key={team.id}
                 onClick={() => handleTeamClick(team)}
-                className="relative group rounded-2xl bg-neutral-900/40 border border-white/10 backdrop-blur-xl p-6 overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)] hover:border-[#E8A800]/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                className="relative group rounded-2xl bg-white/[0.01] border border-white/5 backdrop-blur-xl p-6 overflow-hidden shadow-md hover:border-[#E8A800]/25 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
               >
                 {/* Rank color glow */}
                 <div 
@@ -325,11 +323,11 @@ export function AllTeamsAchievementsClient({ teams, season }: AllTeamsAchievemen
       {isModalOpen && selectedTeam && (
         <div 
           onClick={() => setIsModalOpen(false)}
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md bg-black/75 transition-all duration-300 cursor-pointer animate-[fadeIn_0.2s_ease-out]"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md bg-black/80 transition-all duration-300 cursor-pointer animate-[fadeIn_0.2s_ease-out]"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full h-[96vh] sm:h-auto sm:max-h-[90vh] sm:max-w-5xl rounded-xl sm:rounded-2xl bg-[#0d0d10] border border-white/10 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] cursor-default flex flex-col"
+            className="relative w-full h-[96vh] sm:h-auto sm:max-h-[90vh] sm:max-w-5xl rounded-3xl bg-[#0e0e0e]/95 border border-white/5 overflow-hidden shadow-2xl backdrop-blur-xl cursor-default flex flex-col"
           >
             {/* Close Button */}
             <button 
@@ -426,8 +424,8 @@ export function AllTeamsAchievementsClient({ teams, season }: AllTeamsAchievemen
                         key={badge.key}
                         className={`relative rounded-xl p-3 sm:p-4 border text-center transition-all duration-300 ${
                           unlocked 
-                            ? 'bg-neutral-900/40 border-white/[0.08]' 
-                            : 'bg-black/30 border-white/[0.03] opacity-40'
+                            ? 'bg-white/[0.02] border-white/5 hover:border-white/10' 
+                            : 'bg-white/[0.01] border-white/[0.02] opacity-35'
                         }`}
                       >
                         {unlocked && (
@@ -518,6 +516,6 @@ export function AllTeamsAchievementsClient({ teams, season }: AllTeamsAchievemen
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

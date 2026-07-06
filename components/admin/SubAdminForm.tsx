@@ -104,18 +104,18 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4">
+          <p className="text-red-400 text-xs font-bold uppercase tracking-wider font-mono">{error}</p>
         </div>
       )}
 
       {/* Basic Information */}
-      <div className="rounded-xl bg-white/[0.02] border border-white/10 p-6">
-        <h2 className="text-xl font-black text-[#F5F0E8] mb-6">Basic Information</h2>
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
+        <h2 className="text-lg font-black text-white uppercase tracking-tight font-mono mb-6">Basic Information</h2>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-[#F5F0E8] mb-2">
+            <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
               Full Name *
             </label>
             <input
@@ -123,13 +123,13 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 bg-[#111111] border border-white/10 rounded-lg text-white focus:border-[#E8A800] focus:outline-none"
+              className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
               placeholder="John Doe"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-[#F5F0E8] mb-2">
+            <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
               Email Address *
             </label>
             <input
@@ -137,19 +137,19 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 bg-[#111111] border border-white/10 rounded-lg text-white focus:border-[#E8A800] focus:outline-none"
+              className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
               placeholder="john@example.com"
               disabled={!!initialData}
             />
             {initialData && (
-              <p className="text-xs text-[#7A7367] mt-1">Email cannot be changed</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">Email cannot be changed</p>
             )}
           </div>
 
           {!initialData && (
             <>
               <div>
-                <label className="block text-sm font-bold text-[#F5F0E8] mb-2">
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
                   Password *
                 </label>
                 <div className="relative">
@@ -158,14 +158,14 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-3 pr-12 bg-[#111111] border border-white/10 rounded-lg text-white focus:border-[#E8A800] focus:outline-none"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 pr-12 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     placeholder="Minimum 8 characters"
                     minLength={8}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#D4CCBB] hover:text-[#E8A800] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors cursor-pointer"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
@@ -183,7 +183,7 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-[#F5F0E8] mb-2">
+                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
                   Confirm Password *
                 </label>
                 <div className="relative">
@@ -192,13 +192,13 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
                     required
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 pr-12 bg-[#111111] border border-white/10 rounded-lg text-white focus:border-[#E8A800] focus:outline-none"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 pr-12 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono"
                     placeholder="Re-enter password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#D4CCBB] hover:text-[#E8A800] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors cursor-pointer"
                     aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                   >
                     {showConfirmPassword ? (
@@ -220,9 +220,9 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
       </div>
 
       {/* Season Access */}
-      <div className="rounded-xl bg-white/[0.02] border border-white/10 p-6">
-        <h2 className="text-xl font-black text-[#F5F0E8] mb-2">Season Access</h2>
-        <p className="text-sm text-[#D4CCBB] mb-6">
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
+        <h2 className="text-lg font-black text-white uppercase tracking-tight font-mono mb-2">Season Access</h2>
+        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mb-6">
           Select which seasons this sub-admin can manage
         </p>
         
@@ -230,19 +230,19 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
           {seasons.map((season) => (
             <label
               key={season.id}
-              className="flex items-center gap-3 p-4 rounded-lg bg-[#111111] border border-white/10 hover:border-[#E8A800]/30 cursor-pointer transition-all"
+              className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/30 cursor-pointer transition-all"
             >
               <input
                 type="checkbox"
                 checked={formData.assignedSeasons.includes(season.id)}
                 onChange={() => handleSeasonToggle(season.id)}
-                className="w-5 h-5 rounded border-white/20 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0 bg-[#0a0a0a]"
+                className="w-5 h-5 rounded border-white/20 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0 bg-[#0a0a0a] cursor-pointer"
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#F5F0E8]">{season.name}</span>
+                  <span className="font-extrabold text-white text-sm uppercase tracking-tight">{season.name}</span>
                   {season.isActive && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] text-xs font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] text-[10px] font-black font-mono uppercase tracking-wider">
                       ACTIVE
                     </span>
                   )}
@@ -254,8 +254,8 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
       </div>
 
       {/* Account Status */}
-      <div className="rounded-xl bg-white/[0.02] border border-white/10 p-6">
-        <h2 className="text-xl font-black text-[#F5F0E8] mb-6">Account Status</h2>
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
+        <h2 className="text-lg font-black text-white uppercase tracking-tight font-mono mb-6">Account Status</h2>
         
         <label className="flex items-center gap-3 cursor-pointer">
           <input
@@ -265,8 +265,8 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
             className="w-5 h-5 rounded border-white/20 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0 bg-[#0a0a0a]"
           />
           <div>
-            <div className="font-bold text-[#F5F0E8]">Active Account</div>
-            <div className="text-sm text-[#D4CCBB]">
+            <div className="font-extrabold text-white text-sm uppercase tracking-tight">Active Account</div>
+            <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">
               {formData.isActive 
                 ? 'This sub-admin can login and manage assigned seasons'
                 : 'This sub-admin cannot login (account is disabled)'}
@@ -280,7 +280,7 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-3 bg-[#E8A800] hover:bg-[#FFC93A] text-[#0a0a0a] font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="px-6 py-3 bg-[#E8A800] hover:bg-[#E8A800]/90 text-black font-extrabold rounded-xl transition-all shadow-[0_0_20px_rgba(232,168,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs uppercase tracking-wider font-mono flex items-center justify-center gap-2"
         >
           {loading && <LoadingSpinner size="sm" />}
           {loading ? 'Saving...' : initialData ? 'Update Sub-Admin' : 'Create Sub-Admin'}
@@ -288,7 +288,7 @@ export default function SubAdminForm({ seasons, createdBy, initialData }: SubAdm
         <button
           type="button"
           onClick={() => router.back()}
-          className="px-6 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-[#F5F0E8] font-bold rounded-lg transition-all"
+          className="px-6 py-3 bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white font-bold rounded-xl transition-all cursor-pointer text-xs uppercase tracking-wider font-mono"
         >
           Cancel
         </button>

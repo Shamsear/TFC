@@ -178,30 +178,30 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
     <div>
       {/* Validation Warning */}
       {validationStats.invalidBids > 0 && (
-        <div className="rounded-xl bg-red-500/10 border-2 border-red-500/30 p-6 mb-6">
+        <div className="rounded-2xl bg-red-500/[0.02] border border-red-500/20 p-6 mb-6 backdrop-blur-xl shadow-md">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-black text-red-300 mb-2">⚠️ Invalid Player IDs Detected</h3>
-              <p className="text-red-200 mb-3">
+              <h3 className="text-sm font-black text-red-400 mb-1.5 uppercase tracking-wider font-mono">⚠️ Invalid Player IDs Detected</h3>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono mb-4 leading-relaxed">
                 Some teams have placed bids on players that don't exist in the database. These bids will fail during finalization.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-lg bg-black/30 border border-red-500/20 p-3">
-                  <div className="text-xs text-red-300 mb-1">Invalid Bids</div>
-                  <div className="text-2xl font-black text-red-400">{validationStats.invalidBids}</div>
+                <div className="rounded-xl bg-white/[0.01] border border-red-500/10 p-3">
+                  <div className="text-[10px] text-red-400 mb-1 uppercase tracking-widest font-mono">Invalid Bids</div>
+                  <div className="text-xl font-black text-red-400 font-mono">{validationStats.invalidBids}</div>
                 </div>
-                <div className="rounded-lg bg-black/30 border border-red-500/20 p-3">
-                  <div className="text-xs text-red-300 mb-1">Total Bids</div>
-                  <div className="text-2xl font-black text-white">{validationStats.totalBids}</div>
+                <div className="rounded-xl bg-white/[0.01] border border-white/5 p-3">
+                  <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest font-mono">Total Bids</div>
+                  <div className="text-xl font-black text-white font-mono">{validationStats.totalBids}</div>
                 </div>
-                <div className="rounded-lg bg-black/30 border border-red-500/20 p-3">
-                  <div className="text-xs text-red-300 mb-1">Affected Teams</div>
-                  <div className="text-2xl font-black text-red-400">{validationStats.teamsWithInvalidBids}</div>
+                <div className="rounded-xl bg-white/[0.01] border border-red-500/10 p-3">
+                  <div className="text-[10px] text-red-400 mb-1 uppercase tracking-widest font-mono">Affected Teams</div>
+                  <div className="text-xl font-black text-red-400 font-mono">{validationStats.teamsWithInvalidBids}</div>
                 </div>
               </div>
             </div>
@@ -211,24 +211,24 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <div className="text-sm text-gray-400 mb-2">Teams Submitted</div>
-          <div className="text-3xl font-black text-emerald-400">{submittedCount}/{teams.length}</div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all hover:border-[#E8A800]/25 duration-300">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Teams Submitted</div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">{submittedCount}/{teams.length}</div>
         </div>
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <div className="text-sm text-gray-400 mb-2">Total Bids</div>
-          <div className="text-3xl font-black text-[#FFB347]">{totalBidsCount}</div>
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all hover:border-[#FFB347]/25 duration-300">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Total Bids</div>
+          <div className="text-xl sm:text-2xl font-black text-[#FFB347] font-mono">{totalBidsCount}</div>
         </div>
-        <div className="rounded-xl bg-white/5 border border-white/10 p-6">
-          <div className="text-sm text-gray-400 mb-2">Average Bids/Team</div>
-          <div className="text-3xl font-black text-[#E8A800]">
+        <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 backdrop-blur-xl shadow-md transition-all hover:border-[#E8A800]/25 duration-300">
+          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Average Bids/Team</div>
+          <div className="text-xl sm:text-2xl font-black text-[#E8A800] font-mono">
             {submittedCount > 0 ? (totalBidsCount / submittedCount).toFixed(1) : '0'}
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-6">
+      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 mb-6 backdrop-blur-xl shadow-md">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -236,36 +236,36 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
               placeholder="Search teams..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-[#E8A800]"
+              className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
             />
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
                 filterStatus === 'all'
-                  ? 'bg-[#E8A800] text-black'
-                  : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a]'
+                  : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setFilterStatus('submitted')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
                 filterStatus === 'submitted'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                  ? 'bg-emerald-500/25 text-emerald-400 border border-emerald-500/25'
+                  : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
               }`}
             >
               Submitted
             </button>
             <button
               onClick={() => setFilterStatus('not-submitted')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
                 filterStatus === 'not-submitted'
-                  ? 'bg-gray-500 text-white'
-                  : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                  ? 'bg-white/10 text-white border border-white/20'
+                  : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
               }`}
             >
               Not Submitted
@@ -273,10 +273,10 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
             {validationStats.invalidBids > 0 && (
               <button
                 onClick={() => setFilterStatus('invalid')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
                   filterStatus === 'invalid'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                    ? 'bg-red-500/25 text-red-400 border border-red-500/25'
+                    : 'bg-white/[0.02] text-gray-400 border border-white/5 hover:bg-white/[0.04] hover:text-white'
                 }`}
               >
                 Invalid ({validationStats.teamsWithInvalidBids})
@@ -296,37 +296,39 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
           return (
             <div
               key={team.id}
-              className={`rounded-xl border p-4 ${
+              className={`rounded-2xl border p-5 backdrop-blur-xl shadow-md transition-all ${
                 hasInvalidBids
-                  ? 'bg-red-500/5 border-red-500/30'
+                  ? 'bg-red-500/[0.02] border-red-500/20'
                   : teamBids.submitted
-                  ? 'bg-emerald-500/5 border-emerald-500/20'
-                  : 'bg-white/5 border-white/10'
+                  ? 'bg-emerald-500/[0.02] border-emerald-500/10'
+                  : 'bg-white/[0.01] border-white/5'
               }`}
             >
               {/* Team Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   {team.logoUrl && (
-                    <img
-                      src={team.logoUrl}
-                      alt={team.name}
-                      className="w-10 h-10 rounded-lg object-cover"
-                    />
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 relative">
+                      <img
+                        src={team.logoUrl}
+                        alt={team.name}
+                        className="w-full h-full object-cover p-1.5"
+                      />
+                    </div>
                   )}
                   <div>
-                    <div className="font-bold text-white text-lg flex items-center gap-2">
+                    <div className="font-extrabold text-white text-sm sm:text-base uppercase tracking-tight flex items-center gap-2">
                       {team.name}
                       {hasInvalidBids && (
-                        <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-red-500/20 text-red-400 border border-red-500/25">
                           ⚠️ {invalidCount} Invalid
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-0.5">
                       {teamBids.bidCount} {round.roundType === 'bulk' ? 'players' : 'bids'}
                       {teamBids.submitted && teamBids.submittedAt && (
-                        <span className="ml-2">
+                        <span className="ml-2 text-gray-400">
                           • Submitted {new Date(teamBids.submittedAt).toLocaleString()}
                         </span>
                       )}
@@ -335,11 +337,11 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
                 </div>
                 <div className="flex items-center gap-3">
                   {teamBids.submitted ? (
-                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold border border-emerald-500/30">
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25">
                       ✓ Submitted
                     </span>
                   ) : (
-                    <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-bold border border-gray-500/30">
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20">
                       Not Submitted
                     </span>
                   )}
@@ -348,15 +350,15 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
 
               {/* Action Buttons */}
               {teamBids.bidCount > 0 && ['active', 'draft'].includes(round.status) && (
-                <div className="space-y-2 pt-4 border-t border-white/10">
+                <div className="space-y-2 pt-4 border-t border-white/5">
                   {/* Toggle Submission Status */}
                   <button
                     onClick={() => handleToggleSubmit(team.id, team.name, teamBids.submitted)}
                     disabled={togglingTeam === team.id || deletingTeam === team.id || cleaningTeam === team.id}
-                    className={`w-full px-4 py-2 rounded-lg border transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`w-full px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                       teamBids.submitted
-                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
-                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                        ? 'bg-blue-500/10 border border-blue-500/10 hover:bg-blue-500/20 text-blue-400'
+                        : 'bg-emerald-500/10 border border-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
                     }`}
                   >
                     {togglingTeam === team.id ? (
@@ -379,7 +381,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
                     <button
                       onClick={() => handleCleanInvalidBids(team.id, team.name, invalidCount)}
                       disabled={cleaningTeam === team.id || deletingTeam === team.id || togglingTeam === team.id}
-                      className="w-full px-4 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer bg-orange-500/10 border border-orange-500/10 hover:bg-orange-500/20 text-orange-400"
                     >
                       {cleaningTeam === team.id ? (
                         <span className="flex items-center justify-center gap-2">
@@ -399,7 +401,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
                   <button
                     onClick={() => handleDeleteBids(team.id, team.name)}
                     disabled={deletingTeam === team.id || cleaningTeam === team.id || togglingTeam === team.id}
-                    className="w-full px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer bg-red-500/10 border border-red-500/10 hover:bg-red-500/20 text-red-400"
                   >
                     {deletingTeam === team.id ? (
                       <span className="flex items-center justify-center gap-2">
@@ -420,7 +422,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
         })}
 
         {filteredTeams.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-gray-500 font-bold uppercase tracking-wider font-mono text-xs">
             No teams found matching your filters
           </div>
         )}

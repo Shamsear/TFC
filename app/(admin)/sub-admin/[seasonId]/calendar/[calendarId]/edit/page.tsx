@@ -246,53 +246,53 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
             </div>
           )}
 
-          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 space-y-4 sm:space-y-6">
+          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 space-y-4 sm:space-y-6 backdrop-blur-xl shadow-md">
             {/* Date, Time and Description Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Start Date */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                   Start Date <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="date"
                   value={auctionDate}
                   onChange={(e) => setAuctionDate(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                   required
                 />
               </div>
 
               {/* Start Time */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                   Start Time <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="time"
                   value={auctionTime}
                   onChange={(e) => setAuctionTime(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                   required
                 />
               </div>
 
               {/* End Date */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                   End Date (Deadline)
                 </label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                 />
               </div>
 
               {/* End Time */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                   End Time (Deadline)
                 </label>
                 <div className="flex gap-2">
@@ -300,7 +300,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="flex-1 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white text-sm sm:text-base"
+                    className="flex-1 bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white text-sm"
                   />
                   <button
                     type="button"
@@ -312,7 +312,7 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                         setEndTime(endDateTime.toTimeString().slice(0, 5))
                       }
                     }}
-                    className="px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/20 text-[#E8A800] rounded-lg text-xs font-bold hover:bg-[#E8A800]/20 transition-all whitespace-nowrap"
+                    className="px-4 py-2 bg-white/[0.02] border border-white/10 text-white rounded-xl text-xs font-bold hover:bg-white/[0.04] hover:border-[#E8A800]/30 transition-all whitespace-nowrap uppercase tracking-wider font-mono cursor-pointer"
                     title="Set to +3 hours from start time"
                   >
                     +3h
@@ -322,14 +322,14 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
 
               {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-xs sm:text-sm font-bold mb-2 text-white">
+                <label className="block text-xs sm:text-sm font-bold mb-2 text-white uppercase tracking-wider font-mono">
                   Description (Optional)
                 </label>
                 <input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800] focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
+                  className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E8A800]/50 transition-all text-white placeholder-gray-500 text-sm"
                   placeholder="e.g., Day 1 - Goalkeepers"
                 />
               </div>

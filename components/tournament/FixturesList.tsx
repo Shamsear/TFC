@@ -35,7 +35,7 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-black/50 border border-white/10 text-[#E8A800] focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] transition-all text-xs sm:text-sm font-black text-left gap-1"
+        className="flex items-center justify-between bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] transition-all hover:bg-white/[0.03] cursor-pointer font-mono uppercase tracking-wider gap-2"
       >
         <span className="truncate">
           {displayValue ? displayValue(value) : value}
@@ -51,7 +51,7 @@ function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-30 mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[150px] max-h-60 overflow-y-auto rounded-lg bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <div className="absolute z-30 mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[150px] max-h-60 overflow-y-auto rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {options.map((option) => {
             const isSelected = option === value
 
@@ -63,7 +63,7 @@ function CustomSelect({
                   onChange(option)
                   setIsOpen(false)
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                className={`w-full flex items-center justify-between px-4 py-2 text-left text-xs uppercase font-mono tracking-wider transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] cursor-pointer ${
                   isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
                 }`}
               >
@@ -81,7 +81,6 @@ function CustomSelect({
     </div>
   )
 }
-
 
 interface Match {
   id: string
@@ -141,14 +140,11 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
   const [activeRound, setActiveRound] = useState<string>(defaultRound)
 
   const filteredMatches = matches.filter(match => {
-    // Filter by round
     const isSameRound = (match.round || 'Round 1') === activeRound
     if (!isSameRound) return false
     
-    // Filter by status
     if (filter !== 'all' && match.status.toLowerCase() !== filter) return false
     
-    // Filter by search query (searches both home and away team names)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       const homeTeamName = match.homeTeam.team.name.toLowerCase()
@@ -163,13 +159,13 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      SCHEDULED: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      LIVE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse',
-      COMPLETED: 'bg-[#7A7367]/20 text-[#7A7367] border-[#7A7367]/30',
-      POSTPONED: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      CANCELLED: 'bg-red-500/20 text-red-400 border-red-500/30',
-      WALKOVER: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      VOID: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+      SCHEDULED: 'bg-blue-500/10 text-blue-400 border-blue-500/25',
+      LIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25 animate-pulse',
+      COMPLETED: 'bg-white/5 text-gray-500 border-white/5',
+      POSTPONED: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/25',
+      CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/25',
+      WALKOVER: 'bg-purple-500/10 text-purple-400 border-purple-500/25',
+      VOID: 'bg-slate-500/10 text-slate-400 border-slate-500/25'
     }
     return colors[status] || colors.SCHEDULED
   }
@@ -186,19 +182,19 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
   if (matches.length === 0) {
     return (
-      <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4 sm:mb-6">
+      <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-xl">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4 sm:mb-6">
           <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
         </div>
-        <div className="text-lg sm:text-xl font-black text-white mb-2">No fixtures scheduled</div>
-        <p className="text-[#D4CCBB] text-sm sm:text-base mb-6">
+        <div className="text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider font-mono">No fixtures scheduled</div>
+        <p className="text-gray-500 text-xs font-bold uppercase tracking-wider font-mono mb-6">
           Create fixtures to start scheduling matches
         </p>
         <Link
           href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/fixtures/new`}
-          className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold transition-all text-sm sm:text-base"
+          className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-black text-xs uppercase tracking-wider font-mono transition-all shadow-[0_0_20px_rgba(232,168,0,0.15)] cursor-pointer"
         >
           Create Fixtures
         </Link>
@@ -216,10 +212,10 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search teams..."
-            className="w-full px-4 py-3 pl-11 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#7A7367] focus:outline-none focus:ring-2 focus:ring-[#E8A800] focus:border-transparent transition-all text-sm"
+            className="w-full px-4 py-3.5 pl-11 bg-white/[0.01] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#E8A800] transition-all text-xs font-mono uppercase tracking-wider"
           />
           <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7367]"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -234,10 +230,10 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-white/10 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             >
               <svg
-                className="w-4 h-4 text-[#7A7367] hover:text-white"
+                className="w-4 h-4 text-gray-500 hover:text-white"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -257,18 +253,28 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
       {/* Filters & Pager container */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 sm:pb-0">
           {['all', 'scheduled', 'live', 'completed'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status as any)}
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase font-mono tracking-wider transition-all border cursor-pointer whitespace-nowrap"
+              style={
                 filter === status
-                  ? 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a]'
-                  : 'bg-white/5 text-[#7A7367] hover:bg-white/10'
-              }`}
+                  ? {
+                      background: 'rgba(232,168,0,0.1)',
+                      borderColor: 'rgba(232,168,0,0.25)',
+                      color: '#E8A800',
+                      boxShadow: '0 0 12px rgba(232,168,0,0.1)'
+                    }
+                  : {
+                      borderColor: 'rgba(255,255,255,0.05)',
+                      backgroundColor: 'rgba(255,255,255,0.01)',
+                      color: '#6b7280'
+                    }
+              }
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status}
             </button>
           ))}
         </div>
@@ -283,45 +289,44 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
           {/* Round Spacing / Matchday Pager */}
           {allRounds.length > 0 && (
-            <div className="flex items-center justify-between sm:justify-end gap-3 bg-[#111111] border border-white/10 rounded-xl p-1.5 sm:p-2 sm:min-w-[280px]">
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                const idx = allRounds.indexOf(activeRound)
-                if (idx > 0) setActiveRound(allRounds[idx - 1])
-              }}
-              disabled={allRounds.indexOf(activeRound) === 0}
-              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              ◀ Prev
-            </button>
+            <div className="flex items-center justify-between sm:justify-end gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-1.5 sm:p-2 sm:min-w-[280px]">
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  const idx = allRounds.indexOf(activeRound)
+                  if (idx > 0) setActiveRound(allRounds[idx - 1])
+                }}
+                disabled={allRounds.indexOf(activeRound) === 0}
+                className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase text-gray-400 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer font-mono"
+              >
+                ◀ Prev
+              </button>
 
-            <CustomSelect
-              value={activeRound}
-              options={allRounds}
-              onChange={setActiveRound}
-            />
+              <CustomSelect
+                value={activeRound}
+                options={allRounds}
+                onChange={setActiveRound}
+              />
 
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                const idx = allRounds.indexOf(activeRound)
-                if (idx < allRounds.length - 1) setActiveRound(allRounds[idx + 1])
-              }}
-              disabled={allRounds.indexOf(activeRound) === allRounds.length - 1}
-              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              Next ▶
-            </button>
-          </div>
-        )}
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  const idx = allRounds.indexOf(activeRound)
+                  if (idx < allRounds.length - 1) setActiveRound(allRounds[idx + 1])
+                }}
+                disabled={allRounds.indexOf(activeRound) === allRounds.length - 1}
+                className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase text-gray-400 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer font-mono"
+              >
+                Next ▶
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Matches List */}
       <div className="space-y-3 sm:space-y-4">
         {filteredMatches.map((match) => {
-          // Determine winner/loser
           const hasScore = match.homeScore !== null && match.awayScore !== null && match.status !== 'VOID'
           const homeWin = hasScore && match.homeScore! > match.awayScore!
           const awayWin = hasScore && match.awayScore! > match.homeScore!
@@ -331,49 +336,49 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
             <Link
               key={match.id}
               href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/matches/${match.id}`}
-              className="block rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all p-4 sm:p-6"
+              className="block rounded-3xl bg-[#0D0D0D]/90 border border-white/5 shadow-2xl backdrop-blur-xl hover:border-[#E8A800]/30 hover:bg-white/[0.02] transition-all p-4 sm:p-6"
             >
               {/* Desktop view: Unchanged UI/UX */}
               <div className="hidden lg:flex lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
                 {/* Date & Venue */}
-                <div className="flex-shrink-0 lg:w-40">
-                  <div className="text-xs sm:text-sm text-[#7A7367]">{formatDate(match.matchDate)}</div>
+                <div className="flex-shrink-0 lg:w-40 font-mono">
+                  <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider">{formatDate(match.matchDate)}</div>
                   {match.venue && (
-                    <div className="text-xs text-[#7A7367] mt-1">{match.venue}</div>
+                    <div className="text-[10px] text-gray-500 mt-1 uppercase font-bold">{match.venue}</div>
                   )}
                   {match.round && (
-                    <div className="text-xs text-[#E8A800] mt-1 font-bold">{match.round}</div>
+                    <div className="text-[10px] text-[#E8A800] mt-1 font-black uppercase tracking-wider">{match.round}</div>
                   )}
                   {match.group && (
-                    <div className="text-xs text-purple-400 mt-1 font-bold">{match.group.name}</div>
+                    <div className="text-[10px] text-purple-400 mt-1 font-black uppercase tracking-wider">{match.group.name}</div>
                   )}
                 </div>
 
                 {/* Teams & Score */}
-                <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4 sm:gap-8">
+                <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4 sm:gap-8 font-mono">
                   {/* Home Team */}
-                  <div className={`flex items-center gap-3 flex-1 sm:justify-end p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all ${
-                    homeWin ? 'bg-emerald-500/10' : awayWin ? 'opacity-60' : ''
+                  <div className={`flex items-center gap-3 flex-1 sm:justify-end p-2 sm:p-3 rounded-xl border transition-all ${
+                    homeWin ? 'bg-emerald-500/5 border-emerald-500/25' : awayWin ? 'opacity-40 border-transparent' : 'border-transparent'
                   }`}>
                     <div className="text-left sm:text-right flex-1 sm:flex-none">
-                      <div className={`font-bold text-sm sm:text-base ${homeWin ? 'text-emerald-400' : 'text-white'} truncate`}>
+                      <div className={`font-extrabold text-xs sm:text-sm uppercase tracking-tight ${homeWin ? 'text-emerald-400' : 'text-white'} truncate`}>
                         {match.homeTeam.team.name}
                       </div>
                       {homeWin && (
-                        <div className="text-xs text-emerald-400 font-bold mt-1">WINNER</div>
+                        <div className="text-[9px] text-emerald-400 font-black mt-0.5 tracking-wider">WINNER</div>
                       )}
                       {awayWin && (
-                        <div className="text-xs text-red-400 font-bold mt-1">LOSER</div>
+                        <div className="text-[9px] text-red-400 font-black mt-0.5 tracking-wider">LOSER</div>
                       )}
                       {isDraw && (
-                        <div className="text-xs text-yellow-400 font-bold mt-1">DRAW</div>
+                        <div className="text-[9px] text-yellow-500 font-black mt-0.5 tracking-wider">DRAW</div>
                       )}
                     </div>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {match.homeTeam.team.logoUrl ? (
                         <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                       ) : (
-                        <span className="text-lg sm:text-xl">⚽</span>
+                        <span className="text-sm">⚽</span>
                       )}
                     </div>
                   </div>
@@ -381,11 +386,11 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                   {/* Score */}
                   <div className="flex items-center justify-center gap-2 sm:gap-3">
                     {match.status === 'WALKOVER' ? (
-                      <div className="px-3 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-xs font-black uppercase tracking-wider text-purple-400">
+                      <div className="px-3 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[10px] font-black uppercase tracking-wider text-purple-400">
                         W/O
                       </div>
                     ) : match.status === 'VOID' ? (
-                      <div className="px-3 py-1 rounded bg-slate-500/10 border border-slate-500/20 text-xs font-black uppercase tracking-wider text-slate-400">
+                      <div className="px-3 py-1 rounded-lg bg-slate-500/10 border border-slate-500/20 text-[10px] font-black uppercase tracking-wider text-slate-400">
                         VOID
                       </div>
                     ) : hasScore ? (
@@ -393,44 +398,44 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                         <div className={`text-2xl sm:text-3xl font-black ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
                           {match.homeScore}
                         </div>
-                        <div className="text-xl sm:text-2xl font-bold text-[#7A7367]">-</div>
+                        <div className="text-xl sm:text-2xl font-bold text-gray-600">-</div>
                         <div className={`text-2xl sm:text-3xl font-black ${awayWin ? 'text-emerald-400' : 'text-white'}`}>
                           {match.awayScore}
                         </div>
                         {match.homePenalty !== null && match.awayPenalty !== null && (
-                          <div className="text-xs sm:text-sm text-[#7A7367] ml-2">
+                          <div className="text-[10px] text-gray-500 ml-2">
                             ({match.homePenalty} - {match.awayPenalty} pen)
                           </div>
                         )}
                       </>
                     ) : (
-                      <div className="text-lg sm:text-xl font-bold text-[#7A7367]">vs</div>
+                      <div className="text-xs font-black text-gray-600 tracking-wider">VS</div>
                     )}
                   </div>
 
                   {/* Away Team */}
-                  <div className={`flex items-center gap-3 flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all ${
-                    awayWin ? 'bg-emerald-500/10' : homeWin ? 'opacity-60' : ''
+                  <div className={`flex items-center gap-3 flex-1 p-2 sm:p-3 rounded-xl border transition-all ${
+                    awayWin ? 'bg-emerald-500/5 border-emerald-500/25' : homeWin ? 'opacity-40 border-transparent' : 'border-transparent'
                   }`}>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {match.awayTeam.team.logoUrl ? (
                         <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                       ) : (
-                        <span className="text-lg sm:text-xl">⚽</span>
+                        <span className="text-sm">⚽</span>
                       )}
                     </div>
                     <div className="flex-1 sm:flex-none">
-                      <div className={`font-bold text-sm sm:text-base ${awayWin ? 'text-emerald-400' : 'text-white'} truncate`}>
+                      <div className={`font-extrabold text-xs sm:text-sm uppercase tracking-tight ${awayWin ? 'text-emerald-400' : 'text-white'} truncate`}>
                         {match.awayTeam.team.name}
                       </div>
                       {awayWin && (
-                        <div className="text-xs text-emerald-400 font-bold mt-1">WINNER</div>
+                        <div className="text-[9px] text-emerald-400 font-black mt-0.5 tracking-wider">WINNER</div>
                       )}
                       {homeWin && (
-                        <div className="text-xs text-red-400 font-bold mt-1">LOSER</div>
+                        <div className="text-[9px] text-red-400 font-black mt-0.5 tracking-wider">LOSER</div>
                       )}
                       {isDraw && (
-                        <div className="text-xs text-yellow-400 font-bold mt-1">DRAW</div>
+                        <div className="text-[9px] text-yellow-500 font-black mt-0.5 tracking-wider">DRAW</div>
                       )}
                     </div>
                   </div>
@@ -438,16 +443,16 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
                 {/* Status */}
                 <div className="flex-shrink-0 lg:w-32 text-left lg:text-right">
-                  <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full border text-xs font-bold ${getStatusColor(match.status)}`}>
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl border text-[9px] font-black uppercase tracking-wider font-mono ${getStatusColor(match.status)}`}>
                     {match.status}
                   </span>
                 </div>
               </div>
 
               {/* Mobile view: Beautifully optimized, compact and space-efficient */}
-              <div className="lg:hidden space-y-3">
+              <div className="lg:hidden space-y-3 font-mono">
                 {/* Top line: Round & Date */}
-                <div className="flex items-center justify-between text-[11px] font-bold text-[#7A7367] tracking-wider uppercase border-b border-white/5 pb-2">
+                <div className="flex items-center justify-between text-[10px] font-extrabold text-gray-500 tracking-wider uppercase border-b border-white/5 pb-2">
                   <div className="flex items-center gap-2">
                     {match.round && <span className="text-[#E8A800]">{match.round}</span>}
                     {match.group && <span className="text-purple-400">{match.group.name}</span>}
@@ -459,14 +464,14 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                 <div className="grid grid-cols-7 items-center gap-2 py-1">
                   {/* Home Team */}
                   <div className="col-span-3 flex items-center justify-end gap-2 text-right">
-                    <span className={`font-bold text-xs truncate ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
+                    <span className={`font-extrabold text-xs truncate uppercase tracking-tight ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
                       {match.homeTeam.team.name}
                     </span>
-                    <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
+                    <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/40 border border-white/5 p-0.5">
                       {match.homeTeam.team.logoUrl ? (
                         <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5 rounded-md">
+                        <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-gray-500 bg-white/5 rounded-md">
                           {match.homeTeam.team.name.slice(0, 2).toUpperCase()}
                         </div>
                       )}
@@ -486,11 +491,11 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                     ) : hasScore ? (
                       <div className="flex items-center gap-1 font-black text-xs text-[#F5F0E8] bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
                         <span>{match.homeScore}</span>
-                        <span className="text-[#7A7367] text-[10px] font-normal">:</span>
+                        <span className="text-gray-500 text-[10px] font-normal">:</span>
                         <span>{match.awayScore}</span>
                       </div>
                     ) : (
-                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black tracking-wider uppercase text-[#7A7367]">
+                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black tracking-wider uppercase text-gray-500">
                         VS
                       </span>
                     )}
@@ -498,25 +503,25 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
                   {/* Away Team */}
                   <div className="col-span-3 flex items-center justify-start gap-2 text-left">
-                    <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden">
+                    <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/40 border border-white/5 p-0.5">
                       {match.awayTeam.team.logoUrl ? (
                         <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-[#7A7367] bg-white/5 rounded-md">
+                        <div className="w-full h-full flex items-center justify-center text-[9px] font-black text-gray-500 bg-white/5 rounded-md">
                           {match.awayTeam.team.name.slice(0, 2).toUpperCase()}
                         </div>
                       )}
                     </div>
-                    <span className={`font-bold text-xs truncate ${awayWin ? 'text-emerald-400' : 'text-white'}`}>
+                    <span className={`font-extrabold text-xs truncate uppercase tracking-tight ${awayWin ? 'text-emerald-400' : 'text-white'}`}>
                       {match.awayTeam.team.name}
                     </span>
                   </div>
                 </div>
 
                 {/* Bottom line: Venue & Status */}
-                <div className="flex items-center justify-between text-[10px] text-[#7A7367] pt-1">
-                  <span className="truncate max-w-[180px]">{match.venue || ''}</span>
-                  <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold ${getStatusColor(match.status)}`}>
+                <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1">
+                  <span className="truncate max-w-[180px] uppercase font-bold">{match.venue || ''}</span>
+                  <span className={`px-2 py-0.5 rounded-xl border text-[9px] font-black uppercase tracking-wider ${getStatusColor(match.status)}`}>
                     {match.status}
                   </span>
                 </div>
@@ -528,13 +533,13 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
       {filteredMatches.length === 0 && (
         <div className="text-center py-8 sm:py-12">
-          <div className="text-[#7A7367] text-sm sm:text-base">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-wider font-mono">
             {searchQuery ? (
               <>
                 No matches found for &quot;<span className="text-white font-bold">{searchQuery}</span>&quot;
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="block mx-auto mt-3 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[#E8A800] text-sm font-bold transition-all"
+                  className="block mx-auto mt-3 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[#E8A800] text-sm font-bold transition-all cursor-pointer"
                 >
                   Clear Search
                 </button>

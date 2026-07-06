@@ -2047,7 +2047,6 @@ export default function StatsPoster({
           losses: bestTeamForMatchday.lost,
         }),
       })
-      
       if (!response.ok) {
         const error = await response.json()
         if (response.status === 409) {
@@ -2073,9 +2072,9 @@ export default function StatsPoster({
       {/* Toggle Button */}
       <button
         onClick={() => setShowPoster(!showPoster)}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono transition-all border cursor-pointer ${
           showPoster
-            ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+            ? 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.15)]'
             : 'bg-white/5 border-white/10 text-[#D4CCBB] hover:bg-white/10 hover:text-white'
         }`}
       >
@@ -2087,104 +2086,96 @@ export default function StatsPoster({
 
       {/* Poster Studio Panel */}
       {showPoster && (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] overflow-hidden">
+        <div className="mt-4 rounded-3xl border border-white/5 bg-[#0D0D0D]/90 overflow-hidden shadow-2xl backdrop-blur-xl">
           {/* Studio Header */}
-          <div className="px-5 py-4 border-b border-white/10 bg-white/[0.02]">
+          <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-black text-[#F5F0E8] flex items-center gap-2">
-                  <span className="text-lg">🎨</span> Poster Studio
+                <h3 className="text-base font-black text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                  <span>🎨</span> Poster Studio
                 </h3>
-                <p className="text-xs text-[#7A7367] mt-0.5">
+                <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-1">
                   Create premium shareable posters for your stats
                 </p>
               </div>
 
               {/* Theme Selector */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
                 {(Object.entries(THEMES) as [ThemeKey, Theme][]).map(([key, t]) => (
                   <button
                     key={key}
                     onClick={() => setActiveTheme(key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                      activeTheme === key
-                        ? 'border-opacity-50 shadow-lg'
-                        : 'border-white/10 bg-white/5 text-[#7A7367] hover:bg-white/10'
-                    }`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase font-mono tracking-wider transition-all border cursor-pointer whitespace-nowrap"
                     style={
                       activeTheme === key
                         ? {
                             background: `${t.accent}18`,
                             borderColor: `${t.accent}50`,
                             color: t.accent,
-                            boxShadow: `0 2px 12px ${t.glow.replace('0.35', '0.2')}`,
+                            boxShadow: `0 0 12px ${t.glow.replace('0.35', '0.15')}`,
                           }
-                        : undefined
+                        : {
+                            borderColor: 'rgba(255,255,255,0.05)',
+                            backgroundColor: 'rgba(255,255,255,0.01)',
+                            color: '#6b7280'
+                          }
                     }
                   >
                     <span>{t.emoji}</span>
-                    <span className="hidden sm:inline">{t.label}</span>
+                    <span>{t.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Matchday/Week Selector */}
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-5 flex items-center gap-3">
               {activeTheme === 'team_weekly' ? (
                 <>
-                  <label className="text-xs font-bold text-[#7A7367] uppercase tracking-wider">
+                  <label className="text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono">
                     Filter by Week:
                   </label>
                   <select
                     value={selectedWeek}
                     onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                    className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[#F5F0E8] text-sm font-bold focus:outline-none focus:border-[#E8A800]/50 focus:ring-1 focus:ring-[#E8A800]/30"
-                    style={{
-                      background: `${theme.accent}08`,
-                      borderColor: `${theme.accent}30`,
-                    }}
+                    className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-fit"
                   >
-                    <option value={0} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                    <option value={0} className="bg-[#0a0a0a] text-white">
                       All Weeks
                     </option>
                     {weekOptions.map((week) => (
-                      <option key={week} value={week} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                      <option key={week} value={week} className="bg-[#0a0a0a] text-white">
                         Week {week} ({getWeekRange(week)})
                       </option>
                     ))}
                   </select>
                   {selectedWeek > 0 && (
-                    <div className="text-xs text-[#7A7367]">
+                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-gray-500 font-mono">
                       Showing best team from {getWeekRange(selectedWeek)}
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  <label className="text-xs font-bold text-[#7A7367] uppercase tracking-wider">
+                  <label className="text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono">
                     Filter by Matchday:
                   </label>
                   <select
                     value={selectedMatchday}
                     onChange={(e) => setSelectedMatchday(Number(e.target.value))}
-                    className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[#F5F0E8] text-sm font-bold focus:outline-none focus:border-[#00e5ff]/50 focus:ring-1 focus:ring-[#00e5ff]/30"
-                    style={{
-                      background: `${theme.accent}08`,
-                      borderColor: `${theme.accent}30`,
-                    }}
+                    className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-fit"
                   >
-                    <option value={0} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                    <option value={0} className="bg-[#0a0a0a] text-white">
                       All Matchdays
                     </option>
                     {matchdayOptions.map((md) => (
-                      <option key={md} value={md} className="bg-[#0a0a0a] text-[#F5F0E8]">
+                      <option key={md} value={md} className="bg-[#0a0a0a] text-white">
                         Matchday {md}
                       </option>
                     ))}
                   </select>
                   {selectedMatchday > 0 && (
-                    <div className="text-xs text-[#7A7367]">
+                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-gray-500 font-mono">
                       {activeTheme === 'team_matchday' 
                         ? `Showing best team from Matchday ${selectedMatchday}`
                         : `Showing cumulative stats till Matchday ${selectedMatchday}`
@@ -2198,7 +2189,7 @@ export default function StatsPoster({
 
           {/* Poster Preview (scaled down for display) */}
           <div className="p-5">
-            <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl mx-auto" style={{ maxWidth: 600 }}>
+            <div className="rounded-2xl overflow-hidden border border-white/5 shadow-2xl mx-auto bg-black/40" style={{ maxWidth: 600 }}>
               <div style={{ transform: 'scale(0.75)', transformOrigin: 'top left', width: '133.33%' }}>
                 {activeTheme === 'team_matchday' ? (
                   <TeamMatchdayPosterSnapshot
@@ -2236,19 +2227,19 @@ export default function StatsPoster({
           </div>
 
           {/* Action Buttons */}
-          <div className="px-5 py-4 border-t border-white/10 bg-white/[0.02] flex flex-wrap gap-2 justify-between items-center">
+          <div className="px-6 py-4 border-t border-white/5 bg-white/[0.01] flex flex-wrap gap-2 justify-between items-center">
             {/* Save Award Button - Only show for team_matchday and team_weekly */}
             {(activeTheme === 'team_matchday' || activeTheme === 'team_weekly') && tournamentId && bestTeamForMatchday?.seasonTeamId && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={handleSaveAward}
                   disabled={saving || (activeTheme === 'team_matchday' && selectedMatchday === 0) || (activeTheme === 'team_weekly' && selectedWeek === 0)}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed ${
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                     saveDone
-                      ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                       : saveError
-                        ? 'bg-red-400/10 border-red-400/30 text-red-400'
-                        : 'bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border-[#E8A800]/30 text-[#E8A800]'
+                        ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                        : 'bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border-[#E8A800]/20 text-[#E8A800]'
                   }`}
                 >
                   {saving ? (
@@ -2283,7 +2274,7 @@ export default function StatsPoster({
                   )}
                 </button>
                 {(activeTheme === 'team_matchday' && selectedMatchday === 0) || (activeTheme === 'team_weekly' && selectedWeek === 0) ? (
-                  <span className="text-xs text-[#7A7367]">
+                  <span className="text-[10px] text-gray-500 font-extrabold uppercase font-mono tracking-wide">
                     Select a {activeTheme === 'team_matchday' ? 'matchday' : 'week'} to save
                   </span>
                 ) : null}
@@ -2294,10 +2285,10 @@ export default function StatsPoster({
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer ${
                   downloadDone
-                    ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
-                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-[#D4CCBB] hover:text-[#F5F0E8]'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-400 hover:text-white'
                 }`}
               >
                 {downloading ? (
@@ -2328,9 +2319,9 @@ export default function StatsPoster({
               <button
                 onClick={handleShare}
                 disabled={sharing}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer ${
                   shareDone
-                    ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                     : ''
                 }`}
                 style={
@@ -2339,6 +2330,7 @@ export default function StatsPoster({
                         background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`,
                         color: '#0a0a0a',
                         border: 'none',
+                        boxShadow: `0 0 15px ${theme.glow.replace('0.35', '0.15')}`,
                       }
                     : undefined
                 }

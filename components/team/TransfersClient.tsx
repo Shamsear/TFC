@@ -103,15 +103,15 @@ export default function TransfersClient({
     <div className="min-h-screen bg-[#070708] text-white pt-24 pb-12 relative overflow-hidden">
       {/* Background spotlights */}
       <div className="absolute top-10 left-10 w-[500px] h-[500px] bg-[#E8A800]/5 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-[#E8A800]/3 rounded-full blur-[150px] pointer-events-none" />
 
       {/* Header */}
-      <div className="border-b border-white/5 bg-[#0a0a0a]/60 backdrop-blur-xl mb-8 relative z-10 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6sm:py-8">
+      <div className="border-b border-white/5 bg-[#0a0a0a]/60 backdrop-blur-xl mb-8 relative z-10 shadow-lg font-mono">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
             <div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-2">
-                <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(232,168,0,0.15)]">
+                <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(232,168,0,0.15)] font-mono uppercase">
                   League Transfers
                 </span>
               </h1>
@@ -121,7 +121,7 @@ export default function TransfersClient({
             </div>
             
             {/* Scope Toggle */}
-            <div className="flex bg-black/40 rounded-2xl p-1 border border-white/5 select-none shrink-0 shadow-inner">
+            <div className="flex bg-black/40 rounded-2xl p-1 border border-white/5 select-none shrink-0 shadow-inner font-mono">
               <button
                 onClick={() => setFilterScope("all")}
                 className={`px-4.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
@@ -152,7 +152,7 @@ export default function TransfersClient({
         {/* Controls: Tabs & Search */}
         <div className="flex flex-col md:flex-row gap-5 justify-between items-center mb-8 pb-4 border-b border-white/[0.04]">
           {/* Tabs */}
-          <div className="flex w-full md:w-auto overflow-x-auto scrollbar-none gap-2">
+          <div className="flex w-full md:w-auto overflow-x-auto scrollbar-hide gap-2">
             <button
               onClick={() => setActiveTab("swaps")}
               className={`pb-4 px-6 text-sm font-black uppercase tracking-wider border-b-2 transition-all relative cursor-pointer font-mono ${
@@ -194,7 +194,7 @@ export default function TransfersClient({
           </div>
 
           {/* Search Input */}
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full md:w-80 font-mono">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-600">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -221,12 +221,12 @@ export default function TransfersClient({
                 return (
                   <div
                     key={swap.id}
-                    className="rounded-3xl bg-[#0c0c0e]/80 border border-white/5 hover:border-white/10 p-5 sm:p-7 transition-all duration-300 shadow-xl backdrop-blur-xl relative overflow-hidden group"
+                    className="rounded-3xl bg-[#0c0c0e]/80 border border-white/5 hover:border-[#E8A800]/30 p-5 sm:p-7 transition-all duration-300 shadow-xl backdrop-blur-xl relative overflow-hidden group animate-[fadeIn_0.3s_ease-out]"
                   >
                     {/* Swap Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/[0.04] pb-4 mb-5 gap-2 font-mono">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                        <div className="w-7 h-7 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/25 flex items-center justify-center text-[#E8A800] shadow-[0_0_10px_rgba(232,168,0,0.1)]">
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                           </svg>
@@ -244,7 +244,7 @@ export default function TransfersClient({
                       <div className="md:col-span-2 flex flex-col gap-3">
                         <div className="flex items-center gap-3 mb-1">
                           <TeamLogo logoUrl={swap.requestingTeamLogo} teamName={swap.requestingTeamName} size="xs" />
-                          <span className="font-black text-white text-base sm:text-lg tracking-tight">{swap.requestingTeamName}</span>
+                          <span className="font-black text-white text-base sm:text-lg tracking-tight uppercase font-mono">{swap.requestingTeamName}</span>
                         </div>
                         <div className="space-y-2 bg-black/40 border border-white/5 rounded-2xl p-4">
                           <div className="text-[9px] text-gray-500 font-extrabold mb-2 uppercase tracking-widest font-mono border-b border-white/[0.02] pb-1.5">Acquisitions</div>
@@ -284,7 +284,7 @@ export default function TransfersClient({
                       {/* Right: Target Team */}
                       <div className="md:col-span-2 flex flex-col gap-3">
                         <div className="flex items-center gap-3 mb-1 justify-end">
-                          <span className="font-black text-white text-base sm:text-lg tracking-tight">{swap.targetTeamName}</span>
+                          <span className="font-black text-white text-base sm:text-lg tracking-tight uppercase font-mono">{swap.targetTeamName}</span>
                           <TeamLogo logoUrl={swap.targetTeamLogo} teamName={swap.targetTeamName} size="xs" />
                         </div>
                         <div className="space-y-2 bg-black/40 border border-white/5 rounded-2xl p-4">
@@ -321,7 +321,7 @@ export default function TransfersClient({
               <svg className="w-16 h-16 text-gray-700 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
-              <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2">No completed swaps found</h3>
+              <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2 font-mono">No completed swaps found</h3>
               <p className="text-gray-500 text-xs font-mono uppercase tracking-wide">No completed swaps exist matching these filters.</p>
             </div>
           )
@@ -330,7 +330,7 @@ export default function TransfersClient({
             {filteredReleases.map((rel) => (
               <div
                 key={rel.id}
-                className="rounded-3xl bg-[#0c0c0e]/80 border border-white/5 hover:border-white/10 p-5 sm:p-6 transition-all duration-300 shadow-xl backdrop-blur-xl flex flex-col justify-between relative overflow-hidden group hover:scale-[1.01]"
+                className="rounded-3xl bg-[#0c0c0e]/80 border border-white/5 hover:border-[#E8A800]/30 p-5 sm:p-6 transition-all duration-300 shadow-xl backdrop-blur-xl flex flex-col justify-between relative overflow-hidden group hover:scale-[1.01] animate-[fadeIn_0.3s_ease-out]"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/[0.01] rounded-full blur-xl pointer-events-none" />
                 
@@ -386,7 +386,7 @@ export default function TransfersClient({
             <svg className="w-16 h-16 text-gray-700 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2">No releases logged</h3>
+            <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2 font-mono">No releases logged</h3>
             <p className="text-gray-500 text-xs font-mono uppercase tracking-wide">No roster releases exist matching these filters.</p>
           </div>
         )}

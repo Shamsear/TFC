@@ -274,7 +274,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
       </div>
 
       {/* Team Header */}
-      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 sm:p-8 mb-8 relative overflow-hidden shadow-md backdrop-blur-xl">
+      <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 mb-8 relative overflow-hidden shadow-2xl backdrop-blur-xl">
         <div 
           className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[120px] opacity-20 pointer-events-none transition-all duration-1000"
           style={{ backgroundColor: rank.color }}
@@ -284,7 +284,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
           {/* Team Logo & Rank Overlay */}
           <div className="relative flex-shrink-0">
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-black/40 ring-4 ring-white/5 flex items-center justify-center shadow-lg">
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-3xl overflow-hidden bg-black/40 ring-4 ring-white/5 flex items-center justify-center shadow-lg">
               {team.logoUrl ? (
                 <Image
                   src={team.logoUrl}
@@ -295,15 +295,13 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                   unoptimized
                 />
               ) : (
-                <svg className="w-12 h-12 sm:w-16 sm:h-16 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                </svg>
+                <span className="text-3xl">⚽</span>
               )}
             </div>
             
             {/* Floating Rank Badge Emblem Overlay */}
             <div 
-              className="absolute -bottom-2 -right-2 h-10 w-10 sm:h-12 sm:w-12 rounded-full border bg-[#0d0d10] p-1.5 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center backdrop-blur-xl hover:scale-110 transition-transform duration-200"
+              className="absolute -bottom-2 -right-2 h-10 w-10 sm:h-12 sm:w-12 rounded-full border bg-[#0D0D0D] p-1.5 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center backdrop-blur-xl hover:scale-110 transition-transform duration-200"
               title={`${rank.title} Emblem`}
               style={{ borderColor: `${rank.color}30` }}
             >
@@ -320,13 +318,13 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           {/* Team Info */}
           <div className="flex-1 text-center sm:text-left w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center sm:justify-start mb-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase font-mono">
                 {team.name}
               </h1>
               
               {/* Level Tag with Micro Rank Emblem */}
               <span 
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mx-auto sm:mx-0 border w-fit"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider mx-auto sm:mx-0 border w-fit font-mono"
                 style={{ 
                   borderColor: `${rank.color}30`, 
                   color: rank.color,
@@ -343,15 +341,15 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                 Lvl {level} • {rank.title}
               </span>
             </div>
-            <p className="text-gray-400 text-lg mb-4">
+            <p className="text-gray-400 text-sm font-extrabold uppercase font-mono mb-4">
               Manager: {team.managerName}
             </p>
 
             {/* Progress Bar */}
             <div className="max-w-xl mb-6 mx-auto sm:mx-0">
-              <div className="flex justify-between text-xs text-gray-400 mb-1.5 font-mono">
+              <div className="flex justify-between text-[10px] text-gray-500 font-extrabold mb-1.5 font-mono">
                 <span>Level Progress</span>
-                <span className="text-cyan-400 font-bold">{xpInCurrentLevel} / {xpNeededForNextLevel} XP</span>
+                <span className="text-cyan-400 font-black">{xpInCurrentLevel} / {xpNeededForNextLevel} XP</span>
               </div>
               <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 p-[1px]">
                 <div 
@@ -371,26 +369,26 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-white/5 pt-6 mt-6">
-              <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3 hover:border-emerald-500/20 transition-all duration-300 shadow-md backdrop-blur-xl">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Players</div>
+              <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-3.5 hover:border-[#E8A800]/30 transition-all duration-300 shadow-2xl backdrop-blur-xl">
+                <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1 font-black font-mono">Players</div>
                 <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
                   {activeSeasonData?.playerCount || 0}
                 </div>
               </div>
-              <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3 hover:border-[#FFB347]/20 transition-all duration-300 shadow-md backdrop-blur-xl">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Spent</div>
+              <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-3.5 hover:border-[#E8A800]/30 transition-all duration-300 shadow-2xl backdrop-blur-xl">
+                <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1 font-black font-mono">Spent</div>
                 <div className="text-xl sm:text-2xl font-black text-[#FFB347] font-mono">
                   {formatCurrency(activeSeasonData?.totalSpent || 0)}
                 </div>
               </div>
-              <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3 hover:border-[#E8A800]/20 transition-all duration-300 shadow-md backdrop-blur-xl">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Avg Rating</div>
+              <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-3.5 hover:border-[#E8A800]/30 transition-all duration-300 shadow-2xl backdrop-blur-xl">
+                <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1 font-black font-mono">Avg Rating</div>
                 <div className="text-xl sm:text-2xl font-black text-[#E8A800] font-mono">
-                  {activeSeasonData?.averageRating || 0} <span className="text-xs font-normal text-gray-500">OVR</span>
+                  {activeSeasonData?.averageRating || 0} <span className="text-[10px] font-bold text-gray-500">OVR</span>
                 </div>
               </div>
-              <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3 hover:border-purple-500/20 transition-all duration-300 shadow-md backdrop-blur-xl">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Remaining</div>
+              <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-3.5 hover:border-[#E8A800]/30 transition-all duration-300 shadow-2xl backdrop-blur-xl">
+                <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1 font-black font-mono">Remaining</div>
                 <div className="text-xl sm:text-2xl font-black text-purple-400 font-mono">
                   {formatCurrency(activeSeasonData?.remainingBudget || 0)}
                 </div>

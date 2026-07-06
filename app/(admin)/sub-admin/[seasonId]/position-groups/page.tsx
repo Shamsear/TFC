@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import PageLoader from '@/components/ui/PageLoader'
 import { getPlayerCardById, getPhotoUrlFromDb } from '@/lib/image-cdn'
 import { normalizeForSearch } from '@/lib/search-utils'
 
@@ -245,14 +246,7 @@ export default function PositionGroupsPage() {
   }, [searchQuery, selectedPosition])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E8A800] mx-auto mb-4"></div>
-          <p className="text-[#D4CCBB]">Loading position groups...</p>
-        </div>
-      </div>
-    )
+    return <PageLoader message="Loading position groups..." />
   }
 
   return (

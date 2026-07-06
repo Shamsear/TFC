@@ -105,31 +105,31 @@ function CustomSelect({
     : options
 
   return (
-    <div className="relative" ref={containerRef}>
-      <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8]/70 mb-2 tracking-wide uppercase">{label}</label>
+    <div className="relative font-mono" ref={containerRef}>
+      <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wider mb-2">{label}</label>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-white/[0.02] border border-white/10 text-white hover:bg-white/[0.05] hover:border-white/20 focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base text-left backdrop-blur-md"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.01] border border-white/10 text-xs font-black text-white hover:bg-white/[0.03] hover:border-white/20 focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800]/25 transition-all text-left backdrop-blur-md cursor-pointer uppercase tracking-wider gap-2"
       >
-        <span className="truncate font-semibold">
+        <span className="truncate">
           {displayValue ? displayValue(value) : value}
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {isOpen && (
-        <div className="absolute z-1000 mt-2 w-full rounded-xl bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus:outline-none overflow-hidden">
+        <div className="absolute z-[999] mt-2 w-full rounded-xl bg-[#0D0D0D]/95 backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus:outline-none overflow-hidden">
           {/* Search Input */}
           {enableSearch && (
-            <div className="p-2 border-b border-white/10">
+            <div className="p-2 border-b border-white/5">
               <div className="relative">
                 <input
                   ref={searchInputRef}
@@ -137,16 +137,16 @@ function CustomSelect({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="w-full px-3 py-2 pl-9 rounded-lg bg-black/50 border border-white/10 text-white placeholder-gray-500 focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800]/20 text-sm"
+                  className="w-full px-3 py-2 pl-9 rounded-lg bg-black/50 border border-white/10 text-xs text-white placeholder-gray-500 focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800]/20 font-mono uppercase tracking-wider"
                   onClick={(e) => e.stopPropagation()}
                 />
                 <svg 
-                  className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                  className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                   fill="none" 
                   viewBox="0 0 24 24" 
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
             </div>
@@ -155,7 +155,7 @@ function CustomSelect({
           {/* Options List */}
           <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+              <div className="px-4 py-3 text-xs text-gray-500 text-center uppercase tracking-wider">
                 No results found
               </div>
             ) : (
@@ -167,7 +167,7 @@ function CustomSelect({
                   return (
                     <div
                       key={option}
-                      className="px-4 py-2 text-xs font-black text-gray-500 bg-white/5 select-none"
+                      className="px-4 py-2 text-[10px] font-black text-gray-500 bg-white/5 select-none uppercase tracking-wider"
                     >
                       {option}
                     </div>
@@ -183,14 +183,14 @@ function CustomSelect({
                       setIsOpen(false)
                       setSearchQuery('')
                     }}
-                    className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                    className={`w-full flex items-center justify-between px-4 py-2 text-left text-xs uppercase tracking-wider transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] cursor-pointer ${
                       isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
                     }`}
                   >
                     <span className="truncate">{displayValue ? displayValue(option) : option}</span>
                     {isSelected && (
-                      <svg className="w-4 h-4 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <svg className="w-3.5 h-3.5 text-[#E8A800] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
                   </button>
@@ -1111,21 +1111,21 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       <div className="absolute top-80 right-20 w-80 h-80 bg-[#E8A800]/[0.02] rounded-full blur-3xl pointer-events-none" />
 
       {/* Filters */}
-      <div className="relative z-30 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/10 p-4 sm:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+      <div className="relative z-30 rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 backdrop-blur-xl shadow-2xl">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
-            <label className="block text-xs sm:text-sm font-bold text-[#F5F0E8]/70 mb-2 tracking-wide uppercase">Search Players</label>
+            <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wider mb-2 font-mono">Search Players</label>
             <div className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, club, team, or position..."
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pl-10 sm:pl-12 rounded-lg sm:rounded-xl bg-white/[0.02] hover:bg-white/[0.04] focus:bg-black/60 border border-white/10 text-white placeholder-[#7A7367] focus:border-[#E8A800] focus:outline-none focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-sm sm:text-base font-semibold"
+                placeholder="SEARCH BY NAME, CLUB, OR POSITION..."
+                className="w-full px-4 py-3 pl-11 rounded-xl bg-white/[0.01] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#E8A800] transition-all text-xs font-mono uppercase tracking-wider"
                 autoComplete="off"
               />
-              <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#7A7367]">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
                 {loading ? <SpinnerIcon /> : <SearchIcon />}
               </div>
             </div>
@@ -1157,22 +1157,19 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
               value={starredFilter}
               options={['all', 'starred']}
               onChange={handleStarredChange}
-              displayValue={(val) => val === 'all' ? 'All Players' : '⭐ Starred Only'}
+              displayValue={(val) => val === 'all' ? 'All Players' : '⭐ Starred'}
             />
           )}
 
           {/* Group Filter - Show when any position in the filter supports groups */}
           {(() => {
-            // Check if current position filter includes any grouped positions
             const GROUPED_POSITIONS = ['CB', 'DMF', 'CMF', 'AMF', 'CF']
             
-            // If it's a position group name, check if any positions in that group are grouped
             if (Object.keys(POSITION_GROUPS).includes(positionFilter)) {
               const groupPositions = POSITION_GROUPS[positionFilter as keyof typeof POSITION_GROUPS]
               const hasGroupedPosition = groupPositions.some(pos => GROUPED_POSITIONS.includes(pos))
               if (!hasGroupedPosition) return null
             } 
-            // If it's an individual position, check if it's grouped
             else if (!GROUPED_POSITIONS.includes(positionFilter)) {
               return null
             }
@@ -1191,7 +1188,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
       </div>
 
       {/* Results count */}
-      <div className="relative z-10 flex items-center justify-between text-xs sm:text-sm text-[#D4CCBB] font-medium bg-white/[0.01] border border-white/5 rounded-xl p-3 sm:px-4 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center justify-between text-[10px] text-gray-400 font-extrabold uppercase bg-white/[0.01] border border-white/5 rounded-2xl p-4 backdrop-blur-xl font-mono tracking-wider">
         <span>
           {loading
             ? 'Loading...'
@@ -1199,14 +1196,14 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             ? 'No players found'
             : `Showing ${((currentPage - 1) * 24) + 1}–${Math.min(currentPage * 24, totalPlayers)} of ${totalPlayers} players`}
           {searchQuery && !loading && (
-            <span className="text-[#E8A800] ml-2 font-semibold">• Searching for "{searchQuery}"</span>
+            <span className="text-[#E8A800] ml-2">• Searching for "{searchQuery}"</span>
           )}
         </span>
         <div className="flex items-center gap-4">
           {(searchQuery || positionFilter !== 'ALL' || teamFilter !== 'ALL' || groupFilter !== 'ALL' || starredFilter !== 'all') && (
             <button
               onClick={handleClearFilters}
-              className="text-[#E8A800] hover:text-[#FFC93A] transition-all text-xs font-semibold hover:underline"
+              className="text-[#E8A800] hover:text-[#FFC93A] transition-all hover:underline cursor-pointer"
             >
               Clear Filters
             </button>
@@ -1222,16 +1219,16 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
               })
               setShowExportModal(true)
             }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 font-bold transition-all text-xs shadow-[0_0_12px_rgba(16,185,129,0.05)] hover:shadow-[0_0_16px_rgba(16,185,129,0.15)] hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-all shadow-[0_0_12px_rgba(16,185,129,0.05)] cursor-pointer"
           >
-            📊 Export to Excel
+            📊 Export
           </button>
         </div>
       </div>
 
       {/* Error state */}
       {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-red-400 text-sm text-center font-bold">
+        <div className="rounded-2xl bg-red-500/5 border border-red-500/20 p-4 text-red-400 text-xs font-bold uppercase tracking-wider font-mono text-center">
           {error}
         </div>
       )}
@@ -1282,14 +1279,14 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                     <Link
                       key={player.id}
                       href={playerPath}
-                      className="group rounded-xl bg-white/[0.02] border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.06] p-4 transition-all duration-300 hover:-translate-y-1 relative backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_12px_24px_rgba(232,168,0,0.08)] flex flex-col justify-between"
+                      className="group rounded-3xl bg-[#0D0D0D]/90 border border-white/5 hover:border-[#E8A800]/30 hover:bg-white/[0.02] p-5 transition-all duration-300 hover:-translate-y-1 relative backdrop-blur-xl shadow-2xl flex flex-col justify-between"
                     >
                       {/* Star Button */}
                       {enableStarring && (
                         <button
                           onClick={(e) => toggleStar(player.id, e)}
                           disabled={starringInProgress.has(player.id)}
-                          className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-black/60 hover:bg-[#E8A800]/20 hover:scale-110 border border-white/5 hover:border-[#E8A800]/30 transition-all disabled:opacity-50"
+                          className="absolute top-3 right-3 z-10 p-2 rounded-xl bg-black/60 hover:bg-[#E8A800]/10 hover:scale-110 border border-white/5 hover:border-[#E8A800]/30 transition-all disabled:opacity-50 cursor-pointer"
                           title={starredPlayerIds.has(player.id) ? 'Unstar player' : 'Star player'}
                         >
                           {starredPlayerIds.has(player.id) ? (
@@ -1297,7 +1294,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                           ) : (
-                            <svg className="w-4 h-4 text-gray-400 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 text-gray-500 hover:text-[#E8A800] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                             </svg>
                           )}
@@ -1307,65 +1304,64 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
                       {/* Player Card - Horizontal Layout */}
                       <div className="flex gap-4">
                         {/* Player Photo - Left Side */}
-                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 border border-white/10 group-hover:border-[#E8A800]/30 transition-all duration-300">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-black/40 flex-shrink-0 border border-white/5 group-hover:border-[#E8A800]/30 transition-all duration-300">
                           <img
-                            src={player.photoUrl}
+                            src={player.photoUrl || '/default-player.png'}
                             alt={player.name}
                             loading="eager"
                             decoding="async"
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
                           />
-                          {/* Radial blur behind player photo */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                         </div>
 
                         {/* Player Info - Right Side */}
                         <div className="flex-1 min-w-0 space-y-2">
                           <div>
-                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              <span className={`px-2 py-0.5 rounded-full border text-[10px] font-black tracking-wider uppercase ${getPositionColor(player.position)}`}>
+                            <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                              <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-black tracking-wider uppercase font-mono ${getPositionColor(player.position)}`}>
                                 {player.position}
                               </span>
                               <PositionGroupBadge position={player.position} group={player.position_group} size="sm" />
-                              <span className="px-2 py-0.5 rounded-full border border-[#E8A800]/30 bg-gradient-to-r from-[#E8A800]/20 to-[#FFB347]/20 text-[#FFB347] text-[10px] font-black shadow-[0_0_8px_rgba(232,168,0,0.1)]">
+                              <span className="px-2 py-0.5 rounded-lg border border-[#E8A800]/30 bg-[#E8A800]/10 text-[#E8A800] text-[9px] font-black font-mono">
                                 {player.overallRating}
                               </span>
                             </div>
-                            <h3 className="text-base font-black text-white mb-1 group-hover:text-[#E8A800] transition-colors line-clamp-1">
+                            <h3 className="text-sm font-extrabold text-white uppercase font-mono tracking-tight group-hover:text-[#E8A800] transition-colors line-clamp-1">
                               {player.name}
                             </h3>
-                            <div className="text-xs text-gray-400 font-medium truncate">{player.realWorldClub}</div>
+                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider truncate">{player.realWorldClub}</div>
                           </div>
                         </div>
                       </div>
 
                       {/* Team or Free Agent */}
-                      <div className="mt-3">
+                      <div className="mt-4">
                         {player.team ? (
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 group-hover:border-emerald-500/30 transition-all">
-                            <div className="relative w-5 h-5 rounded overflow-hidden bg-gray-800 flex-shrink-0 border border-white/10">
+                          <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10 group-hover:border-emerald-500/25 transition-all font-mono">
+                            <div className="relative w-6 h-6 rounded-md overflow-hidden bg-black/40 flex-shrink-0 border border-white/5">
                               <img
-                                src={player.team.logoUrl}
+                                src={player.team.logoUrl || '/default-team-logo.png'}
                                 alt={player.team.name}
                                 loading="eager"
                                 decoding="async"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover p-0.5"
                                 onError={(e) => { (e.target as HTMLImageElement).src = '/default-team-logo.png' }}
                               />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="text-xs font-bold text-white truncate">{player.team.name}</div>
+                              <div className="text-[10px] font-bold text-white uppercase tracking-tight truncate">{player.team.name}</div>
                               {player.soldPrice && player.soldPrice > 0 && (
-                                <div className="text-xs font-bold text-[#E8A800] drop-shadow-[0_0_4px_rgba(232,168,0,0.2)]">
+                                <div className="text-[10px] font-black text-[#E8A800] tracking-wider">
                                   £{player.soldPrice.toLocaleString()}
                                 </div>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/10 text-center group-hover:border-blue-500/20 transition-all">
-                            <div className="text-xs text-blue-400 font-bold tracking-wide uppercase">Free Agent</div>
+                          <div className="p-2 rounded-xl bg-blue-500/5 border border-blue-500/10 text-center group-hover:border-blue-500/20 transition-all font-mono">
+                            <div className="text-[10px] text-blue-400 font-black tracking-widest uppercase">Free Agent</div>
                           </div>
                         )}
                       </div>

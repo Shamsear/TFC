@@ -1,9 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import RoundsListClient from './RoundsListClient'
-import PageLoader from '@/components/ui/PageLoader'
 import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface Round {
@@ -68,18 +66,8 @@ export default function AuctionPageWrapper({
   activeTiebreakers,
   stats
 }: AuctionPageWrapperProps) {
-  const [navigating, setNavigating] = useState(false)
-  const [navMessage, setNavMessage] = useState('Loading...')
-
-  const handleLinkClick = (message: string) => {
-    setNavigating(true)
-    setNavMessage(message)
-  }
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative">
-      {navigating && <PageLoader message={navMessage} />}
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
         {/* Back Link */}
         <div className="mb-6">
@@ -88,14 +76,14 @@ export default function AuctionPageWrapper({
             className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back to Dashboard
           </Link>
         </div>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        {/* Title Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
               Auction Rounds
@@ -107,7 +95,6 @@ export default function AuctionPageWrapper({
           <div className="flex items-center gap-3">
             <Link
               href={`/sub-admin/${seasonId}/auction/bulk-tiebreakers`}
-              onClick={() => handleLinkClick('Loading bulk tiebreakers...')}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-white/10 text-white rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer"
             >
               <svg className="w-4 h-4 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,7 +104,6 @@ export default function AuctionPageWrapper({
             </Link>
             <Link
               href={`/sub-admin/${seasonId}/auction/create`}
-              onClick={() => handleLinkClick('Opening round creator...')}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer hover:scale-105"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,7 +135,6 @@ export default function AuctionPageWrapper({
                     <Link
                       key={tb.id}
                       href={`/sub-admin/${seasonId}/auction/bulk-tiebreakers/${tb.id}`}
-                      onClick={() => handleLinkClick(`Loading tiebreaker for ${tb.basePlayer.name}...`)}
                       className="block p-4 rounded-xl bg-white/[0.01] border border-purple-500/10 hover:border-purple-500/30 hover:bg-white/[0.02] transition-all cursor-pointer shadow-md"
                     >
                       <div className="flex items-center gap-3 mb-2">
@@ -219,7 +204,6 @@ export default function AuctionPageWrapper({
             </p>
             <Link
               href={`/sub-admin/${seasonId}/auction/create`}
-              onClick={() => handleLinkClick('Opening round creator...')}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer shadow-md hover:shadow-[#E8A800]/25"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,7 +216,6 @@ export default function AuctionPageWrapper({
           <RoundsListClient
             seasonId={seasonId}
             initialRounds={rounds}
-            onNavigate={handleLinkClick}
           />
         )}
       </div>

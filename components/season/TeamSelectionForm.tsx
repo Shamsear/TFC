@@ -232,12 +232,16 @@ export default function TeamSelectionForm({
                   />
                   
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden ring-4 ring-white/5 flex-shrink-0 bg-black/40 p-1">
-                      <img
-                        src={team.logoUrl}
-                        alt={team.name}
-                        className="w-full h-full object-contain"
-                      />
+                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden ring-4 ring-white/5 flex-shrink-0 bg-black/40 p-1 flex items-center justify-center">
+                      {team.logoUrl ? (
+                        <img
+                          src={team.logoUrl}
+                          alt={team.name}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xl sm:text-2xl">⚽</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-extrabold text-white text-sm sm:text-base uppercase tracking-tight truncate">{team.name}</div>

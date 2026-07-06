@@ -23,12 +23,6 @@ const PlusIcon = () => (
   </svg>
 );
 
-const ArrowRightIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-  </svg>
-);
-
 export default async function CalendarPage({ params }: CalendarPageProps) {
   const session = await auth()
   if (!session?.user) {
@@ -87,7 +81,7 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] via-[#FFB347] to-[#E8A800] bg-clip-text text-transparent uppercase tracking-wider leading-none font-mono">
             Auction Calendar
           </h1>
           <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
@@ -96,7 +90,7 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
         </div>
         <Link
           href={`/sub-admin/${seasonId}/calendar/new`}
-          className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
+          className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#E8A800] text-black hover:bg-[#FFC93A] rounded-xl font-black transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap shadow-md"
         >
           <PlusIcon />
           <span>Add Auction Date</span>
@@ -105,7 +99,7 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
 
       <div>
         {season.auctionCalendar.length === 0 ? (
-          <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-8 sm:p-12 text-center backdrop-blur-xl">
+          <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-8 sm:p-12 text-center backdrop-blur-xl shadow-2xl">
             <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#E8A800] mx-auto mb-6">
               <CalendarIcon />
             </div>
@@ -115,7 +109,7 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
             </p>
             <Link
               href={`/sub-admin/${seasonId}/calendar/new`}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#E8A800] text-black hover:bg-[#FFC93A] rounded-xl font-black transition-all text-xs uppercase tracking-wider cursor-pointer"
             >
               <PlusIcon />
               Create First Auction Date

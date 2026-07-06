@@ -49,7 +49,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
     notFound()
   }
 
-  // Get aggregated player counts and spending for all teams in 3 optimized parallel queries
+  // Get aggregated player counts and spending for all teams in parallel
   const [playerCounts, totalSpents, positionsByTeam] = await Promise.all([
     // Count ACTIVE players per team
     prisma.transfer_history.groupBy({
@@ -117,16 +117,16 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
     switch (pos.toUpperCase()) {
       case 'GK': return 'bg-yellow-500/10 border-yellow-500/25 text-yellow-400'
       case 'CB': return 'bg-blue-500/10 border-blue-500/25 text-blue-400'
-      case 'LB': return 'bg-blue-400/10 border-blue-400/25 text-blue-300'
-      case 'RB': return 'bg-blue-400/10 border-blue-400/25 text-blue-300'
+      case 'LB': return 'bg-blue-455/10 border-blue-500/25 text-blue-300'
+      case 'RB': return 'bg-blue-455/10 border-blue-500/25 text-blue-300'
       case 'DMF': return 'bg-green-600/10 border-green-600/25 text-green-500'
       case 'CMF': return 'bg-green-500/10 border-green-500/25 text-green-400'
-      case 'LMF': return 'bg-green-400/10 border-green-400/25 text-green-300'
-      case 'RMF': return 'bg-green-400/10 border-green-400/25 text-green-300'
+      case 'LMF': return 'bg-green-455/10 border-green-500/25 text-green-300'
+      case 'RMF': return 'bg-green-455/10 border-green-500/25 text-green-300'
       case 'AMF': return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
       case 'SS': return 'bg-orange-500/10 border-orange-500/25 text-orange-400'
-      case 'LWF': return 'bg-red-400/10 border-red-400/25 text-red-300'
-      case 'RWF': return 'bg-red-400/10 border-red-400/25 text-red-300'
+      case 'LWF': return 'bg-red-455/10 border-red-500/25 text-red-300'
+      case 'RWF': return 'bg-red-455/10 border-red-500/25 text-red-300'
       case 'CF': return 'bg-red-500/10 border-red-500/25 text-red-400'
       default: return 'bg-gray-500/10 border-gray-500/25 text-gray-400'
     }
@@ -158,29 +158,29 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-md overflow-hidden group">
-          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Registered Teams</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 font-mono">
+        <div className="relative rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-5 backdrop-blur-xl shadow-2xl overflow-hidden group">
+          <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Registered Teams</div>
           <div className="text-xl sm:text-2xl font-black text-white tracking-tight">{season.seasonTeams.length}</div>
         </div>
 
-        <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-md overflow-hidden group">
-          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Starting Purse</div>
-          <div className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFB347] tracking-tight">
+        <div className="relative rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-5 backdrop-blur-xl shadow-2xl overflow-hidden group">
+          <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Starting Purse</div>
+          <div className="text-xl sm:text-2xl font-black text-[#E8A800] tracking-tight">
             {formatCurrency(season.startingPurse)}
           </div>
         </div>
 
-        <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-md overflow-hidden group">
-          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Active Roster Players</div>
+        <div className="relative rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-5 backdrop-blur-xl shadow-2xl overflow-hidden group">
+          <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Active Roster Players</div>
           <div className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tight">
             {teamsWithDetails.reduce((sum, t) => sum + t.playerCount, 0)}
           </div>
         </div>
 
-        <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-5 backdrop-blur-xl shadow-md overflow-hidden group">
-          <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Total Invested</div>
-          <div className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 tracking-tight">
+        <div className="relative rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-5 backdrop-blur-xl shadow-2xl overflow-hidden group">
+          <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-1.5">Total Invested</div>
+          <div className="text-xl sm:text-2xl font-black text-[#FFB347] tracking-tight">
             {formatCurrency(teamsWithDetails.reduce((sum, t) => sum + t.totalSpent, 0))}
           </div>
         </div>
@@ -188,23 +188,20 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
 
       {/* Teams Listing Grid */}
       {season.seasonTeams.length === 0 ? (
-        <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-12 sm:p-16 text-center backdrop-blur-xl relative overflow-hidden">
+        <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-12 sm:p-16 text-center backdrop-blur-xl relative overflow-hidden shadow-2xl">
           <div className="w-20 h-20 rounded-3xl bg-white/[0.02] border border-white/5 shadow-2xl backdrop-blur-xl flex items-center justify-center text-[#E8A800] mx-auto mb-6">
             <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           </div>
-          <h2 className="text-2xl font-black text-white mb-2">No Teams Assigned</h2>
-          <p className="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed mb-6">
+          <h2 className="text-2xl font-black text-white mb-2 uppercase font-mono tracking-wider">No Teams Assigned</h2>
+          <p className="text-gray-500 text-xs font-bold uppercase tracking-wider font-mono max-w-sm mx-auto leading-relaxed mb-6">
             Assign teams to this season to get started with the league dashboard.
           </p>
           <Link
             href={`/sub-admin/${seasonId}/teams`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-sm shadow-md cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black rounded-xl font-extrabold uppercase tracking-wider text-xs font-mono transition-all shadow-[0_0_20px_rgba(232,168,0,0.15)] cursor-pointer"
           >
-            <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
             Assign Teams
           </Link>
         </div>
@@ -215,7 +212,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
               <Link
                 key={teamDetail.id}
                 href={`/sub-admin/${seasonId}/all-teams/${teamDetail.team.id}`}
-                className="relative block rounded-2xl bg-white/[0.01] border border-white/5 p-5 sm:p-6 hover:border-[#E8A800]/25 hover:bg-white/[0.02] transition-all duration-300 group cursor-pointer overflow-hidden shadow-md backdrop-blur-xl"
+                className="relative block rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.02] transition-all duration-300 group cursor-pointer overflow-hidden shadow-2xl backdrop-blur-xl"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] via-transparent to-transparent pointer-events-none" />
 
@@ -231,9 +228,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                         unoptimized
                       />
                     ) : (
-                      <svg className="w-8 h-8 text-white/25" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                      </svg>
+                      <span className="text-xl">⚽</span>
                     )}
                   </div>
 
@@ -241,47 +236,47 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                   <div className="flex-1 w-full min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                       <div>
-                        <h3 className="text-xl font-black tracking-tight group-hover:text-[#FFB347] transition-colors truncate">
+                        <h3 className="text-lg font-black tracking-tight uppercase font-mono group-hover:text-[#E8A800] transition-colors truncate">
                           {teamDetail.team.name}
                         </h3>
-                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">
+                        <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-0.5">
                           Manager: {teamDetail.team.managerName}
                         </p>
                       </div>
 
                       {teamDetail.trophiesWon > 0 && (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-wider self-start sm:self-center shadow-inner animate-[pulse_4s_infinite]">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] font-black uppercase tracking-wider font-mono self-start sm:self-center shadow-inner animate-[pulse_4s_infinite]">
                           🏆 {teamDetail.trophiesWon} Trophy{teamDetail.trophiesWon !== 1 ? 'ies' : ''}
                         </div>
                       )}
                     </div>
 
                     {/* Mini Stats Ledger Grid */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                      <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
-                        <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Available budget</div>
-                        <div className="text-sm font-black text-emerald-400">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 font-mono">
+                      <div className="rounded-xl bg-white/[0.01] border border-white/5 p-3">
+                        <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Available budget</div>
+                        <div className="text-xs font-black text-emerald-400">
                           {formatCurrency(teamDetail.currentBudget)}
                         </div>
                       </div>
 
-                      <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
-                        <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Total Spent</div>
-                        <div className="text-sm font-black text-[#FFB347]">
+                      <div className="rounded-xl bg-white/[0.01] border border-white/5 p-3">
+                        <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Total Spent</div>
+                        <div className="text-xs font-black text-[#FFB347]">
                           {formatCurrency(teamDetail.totalSpent)}
                         </div>
                       </div>
 
-                      <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
-                        <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Roster players</div>
-                        <div className="text-sm font-black text-cyan-400">
+                      <div className="rounded-xl bg-white/[0.01] border border-white/5 p-3">
+                        <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Roster players</div>
+                        <div className="text-xs font-black text-cyan-400">
                           {teamDetail.playerCount}
                         </div>
                       </div>
 
-                      <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
-                        <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Remaining</div>
-                        <div className="text-sm font-black text-purple-400">
+                      <div className="rounded-xl bg-white/[0.01] border border-white/5 p-3">
+                        <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest mb-0.5">Remaining</div>
+                        <div className="text-xs font-black text-purple-400">
                           {formatCurrency(teamDetail.currentBudget)}
                         </div>
                       </div>
@@ -296,7 +291,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                           .map(([position, count]) => (
                             <div
                               key={position}
-                              className={`px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase tracking-wider ${getPositionColor(position)}`}
+                              className={`px-2 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-wider font-mono ${getPositionColor(position)}`}
                             >
                               {position}: {count}
                             </div>

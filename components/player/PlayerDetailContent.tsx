@@ -412,18 +412,18 @@ export default function PlayerDetailContent({
     <>
       <div className="min-h-screen bg-[#0a0a0a] text-white">
         {/* Back Button Header */}
-        <div className="border-b border-white/5 bg-white/[0.01] backdrop-blur-md sticky top-0 z-40">
+        <div className="border-b border-white/5 bg-[#0D0D0D]/95 backdrop-blur-xl sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
             <Link
               href={backLink || `/sub-admin/${seasonId}/all-players`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all font-semibold text-sm cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors cursor-pointer"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              <span>Back</span>
+              Back to Players
             </Link>
-            <div className="text-xs text-[#7A7367] font-bold uppercase tracking-wider">Player Detail Profile</div>
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono">Player profile</div>
           </div>
         </div>
 
@@ -472,11 +472,11 @@ export default function PlayerDetailContent({
             {/* Main Content */}
             <div className="lg:col-span-9">
               {/* Player Header */}
-              <div className="mb-6 rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/[0.02] rounded-full blur-3xl pointer-events-none" />
+              <div className="mb-6 rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 backdrop-blur-xl relative overflow-hidden shadow-2xl">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/[0.01] rounded-full blur-3xl pointer-events-none" />
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h1 className="text-4xl font-black text-white mb-3 tracking-tight group-hover:text-[#E8A800] transition-colors">{basePlayer.name}</h1>
+                    <h1 className="text-3xl font-extrabold text-white mb-3 uppercase font-mono tracking-tight group-hover:text-[#E8A800] transition-colors">{basePlayer.name}</h1>
                     <div className="flex items-center gap-2.5 flex-wrap">
                       {(() => {
                         const getPositionColor = (pos: string) => {
@@ -488,19 +488,19 @@ export default function PlayerDetailContent({
                           return 'border-gray-500/30 bg-gray-500/10 text-gray-400'
                         }
                         return (
-                          <span className={`px-3 py-1 rounded-lg border text-xs font-black tracking-wider uppercase ${getPositionColor(stats.position)}`}>
+                          <span className={`px-2 py-0.5 rounded-lg border text-[10px] font-black tracking-wider uppercase font-mono ${getPositionColor(stats.position)}`}>
                             {stats.position}
                           </span>
                         )
                       })()}
                       <PositionGroupBadge position={stats.position} group={stats.position_group} size="md" />
                       {stats.playingStyle && (
-                        <span className="px-3 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-wider">
+                        <span className="px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-400 text-[10px] font-black uppercase tracking-wider font-mono">
                           {stats.playingStyle}
                         </span>
                       )}
                       {stats.realWorldClub && (
-                        <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-xs font-bold uppercase tracking-wider">
+                        <span className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-gray-400 text-[10px] font-black uppercase tracking-wider font-mono">
                           {stats.realWorldClub}
                         </span>
                       )}
@@ -510,64 +510,64 @@ export default function PlayerDetailContent({
                   {/* Overall Rating Circular Dial */}
                   <button
                     onClick={() => setShowMaxOverall(!showMaxOverall)}
-                    className="flex flex-col items-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer p-4 rounded-2xl bg-white/[0.02] border border-[#E8A800]/20 hover:border-[#E8A800]/50 shadow-[0_0_20px_rgba(232,168,0,0.05)] hover:shadow-[0_0_25px_rgba(232,168,0,0.15)] relative overflow-hidden group/dial min-w-[90px]"
+                    className="flex flex-col items-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer p-4 rounded-2xl bg-white/[0.01] border border-[#E8A800]/25 hover:border-[#E8A800]/50 shadow-2xl relative overflow-hidden group/dial min-w-[90px]"
                     title={showMaxOverall ? 'Click to show current overall' : 'Click to show max overall'}
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-[#E8A800]/10 to-transparent opacity-0 group-hover/dial:opacity-100 transition-opacity" />
-                    <div className="text-5xl font-black bg-gradient-to-r from-[#E8A800] via-[#FFB347] to-[#E8A800] bg-clip-text text-transparent mb-1 drop-shadow-[0_0_8px_rgba(232,168,0,0.3)] select-none">
+                    <div className="text-4xl font-black bg-gradient-to-r from-[#E8A800] via-[#FFB347] to-[#E8A800] bg-clip-text text-transparent mb-1 drop-shadow-[0_0_8px_rgba(232,168,0,0.3)] select-none font-mono">
                       {displayOverall || '-'}
                     </div>
-                    <div className="text-[10px] text-gray-400 uppercase tracking-widest font-black select-none group-hover/dial:text-[#E8A800] transition-colors">
+                    <div className="text-[9px] text-gray-500 uppercase tracking-widest font-black font-mono select-none group-hover/dial:text-[#E8A800] transition-colors">
                       {showMaxOverall ? 'Max OVR' : 'Overall'}
                     </div>
                   </button>
                 </div>
  
                 {/* Player Info Row */}
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5 font-mono text-[10px]">
                   {stats.nationality && (
-                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
-                      <span className="text-gray-500 font-bold">NAT:</span>
-                      <span>{stats.nationality}</span>
+                    <div className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-gray-600 font-extrabold">NAT:</span>
+                      <span className="text-white">{stats.nationality}</span>
                     </div>
                   )}
                   {stats.height && (
-                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
-                      <span className="text-gray-500 font-bold">HT:</span>
-                      <span>{stats.height}cm</span>
+                    <div className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-gray-600 font-extrabold">HT:</span>
+                      <span className="text-white">{stats.height}cm</span>
                     </div>
                   )}
                   {stats.weight && (
-                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
-                      <span className="text-gray-500 font-bold">WT:</span>
-                      <span>{stats.weight}kg</span>
+                    <div className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-gray-600 font-extrabold">WT:</span>
+                      <span className="text-white">{stats.weight}kg</span>
                     </div>
                   )}
                   {stats.age && (
-                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
-                      <span className="text-gray-500 font-bold">AGE:</span>
-                      <span>{stats.age} yrs</span>
+                    <div className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-gray-600 font-extrabold">AGE:</span>
+                      <span className="text-white">{stats.age} yrs</span>
                     </div>
                   )}
                   {stats.foot && (
-                    <div className="px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5 text-gray-300 text-xs font-semibold flex items-center gap-2">
-                      <span className="text-gray-500 font-bold">FOOT:</span>
-                      <span>{stats.foot}</span>
+                    <div className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-gray-600 font-extrabold">FOOT:</span>
+                      <span className="text-white">{stats.foot}</span>
                     </div>
                   )}
                   {stats.weakFootUsage && (
-                    <div className="px-3 py-1.5 rounded-xl bg-blue-500/5 border border-blue-500/10 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+                    <div className="px-2 py-0.5 rounded-lg bg-blue-500/5 border border-blue-500/10 text-blue-400 font-bold uppercase tracking-wider">
                       WF: {stats.weakFootUsage}
                     </div>
                   )}
                   {stats.weakFootAccuracy && (
-                    <div className="px-3 py-1.5 rounded-xl bg-blue-500/5 border border-blue-500/10 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+                    <div className="px-2 py-0.5 rounded-lg bg-blue-500/5 border border-blue-500/10 text-blue-400 font-bold uppercase tracking-wider">
                       WF ACC: {stats.weakFootAccuracy}
                     </div>
                   )}
                   {stats.injuryResistance && (
-                    <div className="px-3 py-1.5 rounded-xl bg-green-500/5 border border-green-500/10 text-green-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                      <span>INJ RES: {stats.injuryResistance}</span>
+                    <div className="px-2 py-0.5 rounded-lg bg-green-500/5 border border-green-500/15 text-green-400 font-bold uppercase tracking-wider">
+                      INJ RES: {stats.injuryResistance}
                     </div>
                   )}
                 </div>
@@ -608,14 +608,14 @@ export default function PlayerDetailContent({
                   <div className="space-y-6">
                     {/* Attacking Stats */}
                     {!isGK && (
-                      <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-6">
+                      <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 shadow-2xl backdrop-blur-xl">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                           </div>
-                          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Attacking</h3>
+                          <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">Attacking</h3>
                         </div>
                         <div className="space-y-4">
                           <StatBar label="Offensive Awareness" value={stats.offensiveAwareness} />
@@ -633,14 +633,14 @@ export default function PlayerDetailContent({
                     )}
 
                     {/* Physical Stats */}
-                    <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-6">
+                    <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
                           <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                         </div>
-                        <h3 className="text-lg font-bold text-white uppercase tracking-wide">Physical</h3>
+                        <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">Physical</h3>
                       </div>
                       <div className="space-y-4">
                         <StatBar label="Speed" value={stats.speed} />
@@ -655,14 +655,14 @@ export default function PlayerDetailContent({
 
                     {/* Defensive Stats */}
                     {!isGK && (
-                      <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-6">
+                      <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 shadow-2xl backdrop-blur-xl">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
                           </div>
-                          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Defending</h3>
+                          <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">Defending</h3>
                         </div>
                         <div className="space-y-4">
                           <StatBar label="Defensive Awareness" value={stats.defensiveAwareness} />
@@ -675,14 +675,14 @@ export default function PlayerDetailContent({
 
                     {/* Goalkeeper Stats */}
                     {isGK && (
-                      <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-6">
+                      <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 shadow-2xl backdrop-blur-xl">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-10 h-10 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                           </div>
-                          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Goalkeeping</h3>
+                          <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">Goalkeeping</h3>
                         </div>
                         <div className="space-y-4">
                           <StatBar label="GK Awareness" value={stats.gkAwareness} />
@@ -696,14 +696,14 @@ export default function PlayerDetailContent({
 
                     {/* Playing Attributes */}
                     {activeAttributes.length > 0 && (
-                      <div className="rounded-xl bg-white/[0.01] border border-[#E8A800]/30 p-6 shadow-[0_4px_20px_rgba(232,168,0,0.03)] relative overflow-hidden">
+                      <div className="rounded-3xl bg-[#0D0D0D]/90 border border-[#E8A800]/30 p-6 shadow-2xl backdrop-blur-xl relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-10 h-10 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-[#E8A800]" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                           </div>
-                          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Playing Attributes</h3>
+                          <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">Playing Attributes</h3>
                         </div>
                         <div className="flex flex-wrap gap-3">
                           {activeAttributes.map((attr) => (
@@ -720,14 +720,14 @@ export default function PlayerDetailContent({
 
                     {/* Skills */}
                     {activeSkills.length > 0 && (
-                      <div className="rounded-xl bg-white/[0.01] border border-white/10 p-6 backdrop-blur-md">
+                      <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 shadow-2xl backdrop-blur-xl">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                             </svg>
                           </div>
-                          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Skills</h3>
+                          <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">Skills</h3>
                         </div>
                         
                         <div className="space-y-5">
@@ -883,24 +883,24 @@ export default function PlayerDetailContent({
           <div className="lg:hidden">
             {/* Player Name */}
             <div className="text-center mb-4">
-              <h1 className="text-3xl font-black text-white mb-2">{basePlayer.name}</h1>
+              <h1 className="text-2xl font-extrabold text-white uppercase font-mono tracking-tight mb-2">{basePlayer.name}</h1>
               
               <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
-                <span className="px-3 py-1 rounded-lg bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] text-sm font-bold uppercase">
+                <span className="px-2 py-0.5 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] text-[10px] font-black uppercase font-mono">
                   {stats.position}
                 </span>
                 {stats.playingStyle && (
-                  <span className="px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-medium">
+                  <span className="px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-400 text-[10px] font-black uppercase font-mono">
                     {stats.playingStyle}
                   </span>
                 )}
               </div>
               
               {stats.realWorldClub && (
-                <p className="text-purple-400 text-sm font-bold mb-1">{stats.realWorldClub}</p>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-1">{stats.realWorldClub}</p>
               )}
               {stats.nationality && (
-                <p className="text-gray-400 text-sm">{stats.nationality}</p>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">{stats.nationality}</p>
               )}
             </div>
 
@@ -935,37 +935,29 @@ export default function PlayerDetailContent({
             </div>
 
             {/* Player Info Badges */}
-            <div className="mb-4">
+            <div className="mb-4 font-mono text-[10px]">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {stats.height && (
-                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-white text-xs font-medium flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-white font-bold flex items-center gap-1 uppercase">
+                    <span className="text-gray-600 font-extrabold">HT:</span>
                     {stats.height}cm
                   </span>
                 )}
                 {stats.weight && (
-                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-white text-xs font-medium flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                    </svg>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-white font-bold flex items-center gap-1 uppercase">
+                    <span className="text-gray-600 font-extrabold">WT:</span>
                     {stats.weight}kg
                   </span>
                 )}
                 {stats.age && (
-                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-white text-xs font-medium flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {stats.age}
+                  <span className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-white font-bold flex items-center gap-1 uppercase">
+                    <span className="text-gray-600 font-extrabold">AGE:</span>
+                    {stats.age} yrs
                   </span>
                 )}
                 {stats.foot && (
-                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-white text-xs font-medium flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/[0.01] border border-white/5 text-white font-bold flex items-center gap-1 uppercase">
+                    <span className="text-gray-600 font-extrabold">FOOT:</span>
                     {stats.foot}
                   </span>
                 )}
@@ -975,21 +967,18 @@ export default function PlayerDetailContent({
               {(stats.weakFootUsage || stats.weakFootAccuracy || stats.injuryResistance) && (
                 <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
                   {stats.weakFootUsage && (
-                    <span className="px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium">
+                    <span className="px-2 py-0.5 rounded-lg bg-blue-500/5 border border-blue-500/10 text-blue-400 font-bold uppercase tracking-wider">
                       WF: {stats.weakFootUsage}
                     </span>
                   )}
                   {stats.weakFootAccuracy && (
-                    <span className="px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium">
-                      Acc: {stats.weakFootAccuracy}
+                    <span className="px-2 py-0.5 rounded-lg bg-blue-500/5 border border-blue-500/10 text-blue-400 font-bold uppercase tracking-wider">
+                      WF ACC: {stats.weakFootAccuracy}
                     </span>
                   )}
                   {stats.injuryResistance && (
-                    <span className="px-2 py-1 rounded bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium flex items-center gap-1.5">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                      {stats.injuryResistance}
+                    <span className="px-2 py-0.5 rounded-lg bg-green-500/5 border border-green-500/15 text-green-400 font-bold uppercase tracking-wider">
+                      INJ RES: {stats.injuryResistance}
                     </span>
                   )}
                 </div>
@@ -1026,14 +1015,14 @@ export default function PlayerDetailContent({
                 <div className="space-y-4">
                   {/* Same stats content as desktop but with mobile spacing */}
                   {!isGK && (
-                    <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                    <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                           <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                         </div>
-                        <h3 className="text-base font-bold text-white uppercase tracking-wide">Attacking</h3>
+                        <h3 className="text-xs font-bold text-white uppercase font-mono tracking-wider">Attacking</h3>
                       </div>
                       <div className="space-y-3">
                         <StatBar label="Offensive Awareness" value={stats.offensiveAwareness} />
@@ -1050,14 +1039,14 @@ export default function PlayerDetailContent({
                     </div>
                   )}
 
-                  <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                  <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 shadow-2xl backdrop-blur-xl">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
                         <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                       </div>
-                      <h3 className="text-base font-bold text-white uppercase tracking-wide">Physical</h3>
+                      <h3 className="text-xs font-bold text-white uppercase font-mono tracking-wider">Physical</h3>
                     </div>
                     <div className="space-y-3">
                       <StatBar label="Speed" value={stats.speed} />
@@ -1071,14 +1060,14 @@ export default function PlayerDetailContent({
                   </div>
 
                   {!isGK && (
-                    <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                    <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                           <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                           </svg>
                         </div>
-                        <h3 className="text-base font-bold text-white uppercase tracking-wide">Defending</h3>
+                        <h3 className="text-xs font-bold text-white uppercase font-mono tracking-wider">Defending</h3>
                       </div>
                       <div className="space-y-3">
                         <StatBar label="Defensive Awareness" value={stats.defensiveAwareness} />
@@ -1090,14 +1079,14 @@ export default function PlayerDetailContent({
                   )}
 
                   {isGK && (
-                    <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                    <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-8 h-8 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
                           <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                           </svg>
                         </div>
-                        <h3 className="text-base font-bold text-white uppercase tracking-wide">Goalkeeping</h3>
+                        <h3 className="text-xs font-bold text-white uppercase font-mono tracking-wider">Goalkeeping</h3>
                       </div>
                       <div className="space-y-3">
                         <StatBar label="GK Awareness" value={stats.gkAwareness} />
@@ -1110,20 +1099,20 @@ export default function PlayerDetailContent({
                   )}
 
                   {activeAttributes.length > 0 && (
-                    <div className="rounded-xl bg-[#1a1a1a] border-2 border-amber-500/30 p-4">
+                    <div className="rounded-3xl bg-[#0D0D0D]/90 border border-[#E8A800]/30 p-4 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                        <div className="w-8 h-8 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-[#E8A800]" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                           </svg>
                         </div>
-                        <h3 className="text-base font-bold text-white uppercase tracking-wide">Playing Attributes</h3>
+                        <h3 className="text-xs font-bold text-white uppercase font-mono tracking-wider">Playing Attributes</h3>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {activeAttributes.map((attr) => (
                           <div
                             key={attr}
-                            className="px-3 py-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border-2 border-amber-500/40 text-amber-300 text-xs font-bold uppercase tracking-wide"
+                            className="px-3 py-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wide"
                           >
                             {formatSkillName(attr)}
                           </div>
@@ -1133,14 +1122,14 @@ export default function PlayerDetailContent({
                   )}
 
                   {activeSkills.length > 0 && (
-                    <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                    <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
                           <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                           </svg>
                         </div>
-                        <h3 className="text-base font-bold text-white uppercase tracking-wide">Skills</h3>
+                        <h3 className="text-xs font-bold text-white uppercase font-mono tracking-wider">Skills</h3>
                       </div>
                       <div className="space-y-4">
                         {/* Same skill categories as desktop */}

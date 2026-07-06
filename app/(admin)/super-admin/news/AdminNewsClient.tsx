@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface NewsItem {
   id: string;
@@ -142,8 +143,8 @@ export default function AdminNewsClient() {
 
       {/* News List */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#E8A800]"></div>
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
         </div>
       ) : filteredNews.length === 0 ? (
         <div className="text-center py-12 bg-white/[0.02] border border-white/10 rounded-xl">

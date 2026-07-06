@@ -77,19 +77,22 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
 
   const getRoundColor = (roundName: string) => {
     const colors: Record<string, string> = {
-      'ROUND_OF_16': 'from-blue-500 to-cyan-500',
-      'QUARTER_FINAL': 'from-purple-500 to-pink-500',
-      'SEMI_FINAL': 'from-orange-500 to-red-500',
-      'THIRD_PLACE': 'from-gray-500 to-slate-500',
-      'FINAL': 'from-yellow-500 to-amber-500'
+      'ROUND_OF_16': 'from-blue-400 to-cyan-400',
+      'QUARTER_FINAL': 'from-purple-400 to-pink-400',
+      'SEMI_FINAL': 'from-orange-400 to-red-400',
+      'THIRD_PLACE': 'from-gray-400 to-slate-400',
+      'FINAL': 'from-yellow-400 to-[#FFB347]'
     }
-    return colors[roundName] || 'from-emerald-500 to-teal-500'
+    return colors[roundName] || 'from-emerald-400 to-teal-400'
   }
 
   if (rounds.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
-        No knockout rounds created yet. Create your first round above.
+      <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-12 text-center shadow-2xl backdrop-blur-xl">
+        <div className="text-lg font-black text-white uppercase tracking-wider font-mono mb-2">No knockout rounds created yet</div>
+        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
+          Create your first round above.
+        </p>
       </div>
     )
   }
@@ -97,17 +100,17 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
   return (
     <div className="space-y-8">
       {rounds.map((round) => (
-        <div key={round.id} className="rounded-2xl bg-white/5 border border-white/10 p-6">
+        <div key={round.id} className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className={`text-2xl font-black bg-gradient-to-r ${getRoundColor(round.roundName)} bg-clip-text text-transparent`}>
+              <h3 className={`text-xl font-black uppercase tracking-wider font-mono bg-gradient-to-r ${getRoundColor(round.roundName)} bg-clip-text text-transparent`}>
                 {round.roundName.replace(/_/g, ' ')}
               </h3>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-1">
                 {round.legs} leg{round.legs > 1 ? 's' : ''} • {round.status}
               </p>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-bold">
+            <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-gray-400 text-xs font-black uppercase tracking-wider font-mono">
               {round.pairings.length} {round.pairings.length === 1 ? 'match' : 'matches'}
             </div>
           </div>
@@ -119,13 +122,13 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
               const isEditing = editingPairing === pairing.id
 
               return (
-                <div key={pairing.id} className="rounded-xl bg-black/30 border border-white/10 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-xs font-bold text-gray-400">Match {index + 1}</div>
+                <div key={pairing.id} className="rounded-2xl bg-white/[0.01] border border-white/5 p-5 transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-[10px] font-extrabold text-gray-500 uppercase tracking-widest font-mono">Match #{index + 1}</div>
                     {!isEditing && (
                       <button
                         onClick={() => handleEditPairing(pairing)}
-                        className="text-xs text-emerald-400 hover:text-emerald-300 font-medium"
+                        className="text-[10px] font-extrabold text-[#E8A800] hover:text-[#FFB347] uppercase tracking-wider font-mono transition-all cursor-pointer"
                       >
                         Edit Teams
                       </button>
@@ -133,7 +136,7 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                   </div>
 
                   {isEditing ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <SearchableSelect
                         value={selectedTeam1}
                         options={[
@@ -144,7 +147,7 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                         enableSearch={true}
                       />
 
-                      <div className="text-center text-gray-500 text-xs font-bold">VS</div>
+                      <div className="text-center text-gray-600 text-[10px] font-black font-mono tracking-widest my-1">VS</div>
 
                       <SearchableSelect
                         value={selectedTeam2}
@@ -156,11 +159,11 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                         enableSearch={true}
                       />
 
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex gap-2 mt-4">
                         <button
                           onClick={() => handleSavePairing(pairing.id)}
                           disabled={savingPairingId === pairing.id}
-                          className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5"
+                          className="flex-1 px-3 py-2 bg-[#E8A800] hover:bg-[#FFB347] text-black rounded-xl text-xs font-black uppercase font-mono tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           {savingPairingId === pairing.id ? (
                             <>
@@ -174,65 +177,65 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                         <button
                           onClick={() => setEditingPairing(null)}
                           disabled={savingPairingId === pairing.id}
-                          className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-all"
+                          className="px-4 py-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider font-mono transition-all cursor-pointer"
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {/* Team 1 */}
-                      <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                      <div className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${
                         pairing.winnerId === pairing.team1Id 
-                          ? 'bg-emerald-500/20 border-2 border-emerald-500' 
-                          : 'bg-white/5 border border-white/10'
+                          ? 'bg-emerald-500/5 border border-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
+                          : 'bg-[#121212]/40 border border-white/5'
                       }`}>
-                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {team1?.logoUrl ? (
                             <img src={team1.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                           ) : (
                             <span className="text-sm">⚽</span>
                           )}
                         </div>
-                        <span className="text-white font-bold text-sm flex-1">
+                        <span className="text-white font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate">
                           {team1?.name || 'TBD'}
                         </span>
                         {pairing.winnerId === pairing.team1Id && (
-                          <span className="text-emerald-400 text-xs font-bold">WINNER</span>
+                          <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono">WINNER</span>
                         )}
                       </div>
 
-                      <div className="text-center text-gray-500 text-xs font-bold">VS</div>
+                      <div className="text-center text-gray-600 text-[10px] font-black font-mono tracking-widest my-1">VS</div>
 
                       {/* Team 2 */}
-                      <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                      <div className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${
                         pairing.winnerId === pairing.team2Id 
-                          ? 'bg-emerald-500/20 border-2 border-emerald-500' 
-                          : 'bg-white/5 border border-white/10'
+                          ? 'bg-emerald-500/5 border border-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
+                          : 'bg-[#121212]/40 border border-white/5'
                       }`}>
-                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {team2?.logoUrl ? (
                             <img src={team2.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                           ) : (
                             <span className="text-sm">⚽</span>
                           )}
                         </div>
-                        <span className="text-white font-bold text-sm flex-1">
+                        <span className="text-white font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate">
                           {team2?.name || 'TBD'}
                         </span>
                         {pairing.winnerId === pairing.team2Id && (
-                          <span className="text-emerald-400 text-xs font-bold">WINNER</span>
+                          <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono">WINNER</span>
                         )}
                       </div>
 
                       {/* Match Links */}
                       {(pairing.leg1MatchId || pairing.leg2MatchId) && (
-                        <div className="flex gap-2 mt-3">
+                        <div className="flex gap-2 mt-4 pt-1">
                           {pairing.leg1MatchId && (
                             <a
                               href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/matches/${pairing.leg1MatchId}`}
-                              className="flex-1 px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold text-center hover:bg-purple-500/30 transition-all"
+                              className="flex-1 px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] rounded-xl text-[10px] font-black uppercase tracking-wider font-mono text-center hover:bg-[#E8A800]/20 transition-all"
                             >
                               Leg 1
                             </a>
@@ -240,7 +243,7 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                           {pairing.leg2MatchId && (
                             <a
                               href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/matches/${pairing.leg2MatchId}`}
-                              className="flex-1 px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold text-center hover:bg-purple-500/30 transition-all"
+                              className="flex-1 px-3 py-2 bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] rounded-xl text-[10px] font-black uppercase tracking-wider font-mono text-center hover:bg-[#E8A800]/20 transition-all"
                             >
                               Leg 2
                             </a>

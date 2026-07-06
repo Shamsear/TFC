@@ -111,7 +111,6 @@ export default function KnockoutRoundManager({
     }
   }
 
-  // Parse custom knockout config if available
   const knockoutCfg = tournament.knockoutConfig ? JSON.parse(tournament.knockoutConfig) : null
   const isCustomKnockout = tournament.tournamentType === 'CUSTOM_KNOCKOUT'
 
@@ -119,20 +118,21 @@ export default function KnockoutRoundManager({
     <div className="space-y-6">
       {/* Custom Knockout Config Banner */}
       {isCustomKnockout && knockoutCfg?.qualifyingTeams && (
-        <div className="rounded-xl bg-[#E8A800]/5 border border-[#E8A800]/20 p-4 flex items-start gap-3">
-          <svg className="w-5 h-5 text-[#E8A800] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="rounded-2xl bg-yellow-500/5 border border-yellow-500/20 p-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <p className="text-sm font-bold text-[#E8A800] mb-0.5">Custom Knockout Configuration</p>
-            <p className="text-sm text-[#D4CCBB]">
-              <span className="font-bold text-white">{knockoutCfg.qualifyingTeams} teams</span> qualify and enter at the{' '}
-              <span className="font-bold text-white">{roundOptions.find(r => r.value === knockoutCfg.qualifyingRound)?.label ?? knockoutCfg.qualifyingRound}</span> stage
+            <p className="text-xs font-black text-yellow-400 uppercase tracking-wider font-mono mb-0.5">Custom Knockout Configuration</p>
+            <p className="text-xs text-gray-400 lowercase font-sans">
+              <span className="font-bold text-white uppercase font-mono">{knockoutCfg.qualifyingTeams} teams</span> qualify and enter at the{' '}
+              <span className="font-bold text-white uppercase font-mono">{roundOptions.find(r => r.value === knockoutCfg.qualifyingRound)?.label ?? knockoutCfg.qualifyingRound}</span> stage
               ({knockoutCfg.defaultLegs === 1 ? 'single leg' : 'two-legged'} ties).
             </p>
           </div>
         </div>
       )}
+
       {/* Bracket View */}
       {existingRounds.length > 0 && (
         <KnockoutBracket
@@ -146,47 +146,54 @@ export default function KnockoutRoundManager({
       {/* Create New Round */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
-          <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-red-400">
+          <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 text-red-400 text-xs font-bold uppercase tracking-wider font-mono">
             {error}
           </div>
         )}
 
         {/* Round Selection */}
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-          <h3 className="text-xl font-black text-white mb-4">Create Knockout Round</h3>
+        <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono mb-6">Create Knockout Round</h3>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">
+              <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-3">
                 Select Round
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {roundOptions.map((option) => {
                   const isDisabled = existingRounds.some(r => r.roundName === option.value)
+                  const isSelected = formData.roundName === option.value
+
                   return (
                     <label
                       key={option.value}
-                      className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                      className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden flex flex-col justify-between h-24 ${
                         isDisabled
-                          ? 'opacity-50 cursor-not-allowed border-white/5 bg-black/20'
-                          : formData.roundName === option.value
-                          ? 'border-emerald-500 bg-emerald-500/10'
-                          : 'border-white/10 bg-black/30 hover:border-white/20'
+                          ? 'opacity-40 cursor-not-allowed border-white/5 bg-black/40'
+                          : isSelected
+                          ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
+                          : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
                       }`}
                     >
                       <input
                         type="radio"
                         name="roundName"
                         value={option.value}
-                        checked={formData.roundName === option.value}
+                        checked={isSelected}
                         onChange={(e) => setFormData({ ...formData, roundName: e.target.value, selectedTeams: [] })}
                         disabled={isDisabled}
                         className="sr-only"
                       />
-                      <div className="font-bold text-white text-sm">{option.label}</div>
-                      <div className="text-xs text-gray-400 mt-1">{option.teams} teams</div>
+                      <div>
+                        <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">{option.label}</div>
+                        <div className="text-[10px] text-gray-500 font-bold mt-1 uppercase font-mono">{option.teams} teams</div>
+                      </div>
                       {isDisabled && (
-                        <div className="text-xs text-yellow-400 mt-1">Already created</div>
+                        <div className="text-[9px] text-yellow-500 font-bold uppercase tracking-wider font-mono">Already created</div>
+                      )}
+                      {isSelected && !isDisabled && (
+                        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
                       )}
                     </label>
                   )
@@ -195,14 +202,14 @@ export default function KnockoutRoundManager({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">
+              <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-3">
                 Match Format
               </label>
               <div className="grid grid-cols-2 gap-4">
-                <label className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                <label className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden ${
                   formData.legs === 1
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-white/10 bg-black/30 hover:border-white/20'
+                    ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
+                    : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
                 }`}>
                   <input
                     type="radio"
@@ -211,13 +218,16 @@ export default function KnockoutRoundManager({
                     onChange={() => setFormData({ ...formData, legs: 1 })}
                     className="sr-only"
                   />
-                  <div className="font-bold text-white">Single Leg</div>
-                  <div className="text-sm text-gray-400 mt-1">One match decides</div>
+                  <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Single Leg</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">One match decides</div>
+                  {formData.legs === 1 && (
+                    <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
+                  )}
                 </label>
-                <label className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                <label className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden ${
                   formData.legs === 2
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-white/10 bg-black/30 hover:border-white/20'
+                    ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
+                    : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
                 }`}>
                   <input
                     type="radio"
@@ -226,8 +236,11 @@ export default function KnockoutRoundManager({
                     onChange={() => setFormData({ ...formData, legs: 2 })}
                     className="sr-only"
                   />
-                  <div className="font-bold text-white">Two Legs</div>
-                  <div className="text-sm text-gray-400 mt-1">Home & away (aggregate)</div>
+                  <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Two Legs</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">Home & away (aggregate)</div>
+                  {formData.legs === 2 && (
+                    <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
+                  )}
                 </label>
               </div>
             </div>
@@ -235,23 +248,23 @@ export default function KnockoutRoundManager({
         </div>
 
         {/* Team Selection */}
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-black text-white">
-              Select Teams ({formData.selectedTeams.length}/{requiredTeams})
+        <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono">
+              Select Teams <span className="text-[#E8A800] font-mono">({formData.selectedTeams.length}/{requiredTeams})</span>
             </h3>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => selectTopTeams(requiredTeams)}
-                className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/30 transition-all"
+                className="px-4 py-2 bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] hover:bg-[#E8A800]/20 rounded-xl text-xs font-bold uppercase tracking-wider font-mono transition-all cursor-pointer"
               >
                 Select Top {requiredTeams}
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, selectedTeams: [] })}
-                className="px-4 py-2 bg-white/5 text-gray-400 rounded-lg text-sm font-medium hover:bg-white/10 transition-all"
+                className="px-4 py-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider font-mono transition-all cursor-pointer"
               >
                 Clear
               </button>
@@ -266,12 +279,12 @@ export default function KnockoutRoundManager({
               return (
                 <label
                   key={team.id}
-                  className={`cursor-pointer rounded-xl border-2 p-3 transition-all ${
+                  className={`cursor-pointer rounded-2xl border p-3 transition-all relative overflow-hidden ${
                     isDisabled
-                      ? 'opacity-50 cursor-not-allowed border-white/5 bg-black/20'
+                      ? 'opacity-40 cursor-not-allowed border-white/5 bg-black/40'
                       : isSelected
-                      ? 'border-emerald-500 bg-emerald-500/10'
-                      : 'border-white/10 bg-black/30 hover:border-white/20'
+                      ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
+                      : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
                   }`}
                 >
                   <input
@@ -281,41 +294,45 @@ export default function KnockoutRoundManager({
                     disabled={isDisabled}
                     className="sr-only"
                   />
-                  <div className="text-center">
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                  <div className="text-center font-mono">
+                    <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
                       {team.logoUrl ? (
                         <img src={team.logoUrl} alt={team.name} className="w-full h-full object-contain p-1" />
                       ) : (
-                        <span className="text-xl">⚽</span>
+                        <span className="text-sm">⚽</span>
                       )}
                     </div>
-                    <div className="text-xs font-medium text-white truncate">{team.name}</div>
+                    <div className="text-[11px] font-extrabold text-white uppercase tracking-tight truncate">{team.name}</div>
                     {team.position && (
-                      <div className="text-xs text-gray-400 mt-1">#{team.position}</div>
+                      <div className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">Pos #{team.position}</div>
                     )}
                   </div>
+                  {isSelected && (
+                    <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
+                  )}
                 </label>
               )
             })}
           </div>
 
           {formData.selectedTeams.length !== requiredTeams && (
-            <div className="mt-4 text-sm text-yellow-400">
-              Please select exactly {requiredTeams} teams for {selectedRound?.label}
+            <div className="mt-6 text-xs text-yellow-500 font-bold uppercase tracking-wider font-mono flex items-center gap-1.5 bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-3">
+              <span>⚠️</span>
+              <span>Please select exactly {requiredTeams} teams for {selectedRound?.label}</span>
             </div>
           )}
         </div>
 
         {/* Pairing Options */}
         {formData.selectedTeams.length === requiredTeams && (
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-            <h3 className="text-xl font-black text-white mb-4">Pairing Method</h3>
+          <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+            <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono mb-6">Pairing Method</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+              <label className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden ${
                 formData.autoPair
-                  ? 'border-emerald-500 bg-emerald-500/10'
-                  : 'border-white/10 bg-black/30 hover:border-white/20'
+                  ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
+                  : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
               }`}>
                 <input
                   type="radio"
@@ -324,16 +341,19 @@ export default function KnockoutRoundManager({
                   onChange={() => setFormData({ ...formData, autoPair: true })}
                   className="sr-only"
                 />
-                <div className="font-bold text-white">Automatic Pairing</div>
-                <div className="text-sm text-gray-400 mt-1">
+                <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Automatic Pairing</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">
                   Based on standings (1 vs {requiredTeams}, 2 vs {requiredTeams - 1}, etc.)
                 </div>
+                {formData.autoPair && (
+                  <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
+                )}
               </label>
               
-              <label className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+              <label className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden ${
                 !formData.autoPair
-                  ? 'border-emerald-500 bg-emerald-500/10'
-                  : 'border-white/10 bg-black/30 hover:border-white/20'
+                  ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
+                  : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
               }`}>
                 <input
                   type="radio"
@@ -342,10 +362,13 @@ export default function KnockoutRoundManager({
                   onChange={() => setFormData({ ...formData, autoPair: false })}
                   className="sr-only"
                 />
-                <div className="font-bold text-white">Manual Pairing</div>
-                <div className="text-sm text-gray-400 mt-1">
+                <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Manual Pairing</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">
                   Customize matchups after creation
                 </div>
+                {!formData.autoPair && (
+                  <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
+                )}
               </label>
             </div>
           </div>
@@ -356,7 +379,7 @@ export default function KnockoutRoundManager({
           <button
             type="submit"
             disabled={loading || formData.selectedTeams.length !== requiredTeams}
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-6 py-3.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-extrabold uppercase tracking-wider text-xs font-mono rounded-xl transition-all shadow-[0_0_20px_rgba(232,168,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
           >
             {loading ? (
               <>

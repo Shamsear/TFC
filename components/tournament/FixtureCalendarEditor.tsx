@@ -34,7 +34,7 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-black/50 border border-white/10 text-[#E8A800] focus:border-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] transition-all text-xs sm:text-sm font-black text-left gap-1"
+        className="flex items-center justify-between bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] transition-all hover:bg-white/[0.03] cursor-pointer font-mono uppercase tracking-wider gap-2"
       >
         <span className="truncate">
           {displayValue ? displayValue(value) : value}
@@ -50,7 +50,7 @@ function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-30 mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[150px] max-h-60 overflow-y-auto rounded-lg bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <div className="absolute z-30 mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[150px] max-h-60 overflow-y-auto rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1 focus:outline-none scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {options.map((option) => {
             const isSelected = option === value
 
@@ -62,7 +62,7 @@ function CustomSelect({
                   onChange(option)
                   setIsOpen(false)
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                className={`w-full flex items-center justify-between px-4 py-2 text-left text-xs uppercase font-mono tracking-wider transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] cursor-pointer ${
                   isSelected ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
                 }`}
               >
@@ -151,17 +151,14 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
   const handleEditDate = (match: Match) => {
     setEditingMatchId(match.id)
     
-    // Set start date string (fall back to matchDate if startDate is null)
     const startStr = match.startDate 
       ? new Date(match.startDate).toISOString().split('T')[0]
       : new Date(match.matchDate).toISOString().split('T')[0]
     setNewStartDate(startStr)
     
-    // Set match date string
     const matchStr = new Date(match.matchDate).toISOString().split('T')[0]
     setNewMatchDate(matchStr)
     
-    // Compute original offset
     const sDate = match.startDate ? new Date(match.startDate) : new Date(match.matchDate)
     const mDate = new Date(match.matchDate)
     const offsetDiff = Math.round((mDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -244,21 +241,19 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-blue-500/10 border border-blue-500/30 p-4">
-        <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="text-sm text-blue-300">
-            <p className="font-bold mb-1">Fixture Calendar Editor</p>
-            <p>Click on any match to edit its date. You can also add gaps between matchdays to push all subsequent fixtures.</p>
-          </div>
+      <div className="rounded-2xl bg-yellow-500/5 border border-yellow-500/20 p-4 flex items-start gap-3">
+        <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div className="text-xs">
+          <p className="font-black text-yellow-400 uppercase tracking-wider font-mono mb-0.5">Fixture Calendar Editor</p>
+          <p className="text-gray-400 lowercase">Click on any match to edit its date. You can also add gaps between matchdays to push all subsequent fixtures.</p>
         </div>
       </div>
 
       {/* Round Spacing / Matchday Pager */}
       {allRounds.length > 0 && (
-        <div className="flex items-center justify-between sm:justify-end gap-3 bg-[#111111] border border-white/10 rounded-xl p-1.5 sm:p-2 sm:min-w-[280px] w-fit ml-auto">
+        <div className="flex items-center justify-between sm:justify-end gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-1.5 sm:p-2 sm:min-w-[280px] w-fit ml-auto shadow-2xl backdrop-blur-xl">
           <button
             onClick={(e) => {
               e.preventDefault()
@@ -266,7 +261,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
               if (idx > 0) setActiveRound(allRounds[idx - 1])
             }}
             disabled={allRounds.indexOf(activeRound) === 0}
-            className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase text-gray-400 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer font-mono"
           >
             ◀ Prev
           </button>
@@ -284,7 +279,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
               if (idx < allRounds.length - 1) setActiveRound(allRounds[idx + 1])
             }}
             disabled={allRounds.indexOf(activeRound) === allRounds.length - 1}
-            className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase text-gray-400 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer font-mono"
           >
             Next ▶
           </button>
@@ -298,13 +293,13 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
         const dateStr = displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
         return (
-          <div key={dateKey} className="rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div key={dateKey} className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 sm:p-6 shadow-2xl backdrop-blur-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-white/5">
               <div>
-                <h3 className="text-lg sm:text-xl font-black text-white">
+                <h3 className="text-base font-black text-white uppercase tracking-wider font-mono">
                   {matchesOnDate[0]?.round || activeRound}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">
+                <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-1">
                   {dayName}, {dateStr}
                 </p>
               </div>
@@ -312,7 +307,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                 <button
                   onClick={() => addGapAfterMatchday(dateKey, 1)}
                   disabled={loading}
-                  className="flex-1 sm:flex-none px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="flex-1 sm:flex-none px-3.5 py-2 bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] hover:bg-[#E8A800]/20 rounded-xl text-[10px] font-black uppercase tracking-wider font-mono transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {loadingAction === `gap-1-${dateKey}` ? (
                     <>
@@ -326,7 +321,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                 <button
                   onClick={() => addGapAfterMatchday(dateKey, 2)}
                   disabled={loading}
-                  className="flex-1 sm:flex-none px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="flex-1 sm:flex-none px-3.5 py-2 bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] hover:bg-[#E8A800]/20 rounded-xl text-[10px] font-black uppercase tracking-wider font-mono transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {loadingAction === `gap-2-${dateKey}` ? (
                     <>
@@ -340,59 +335,59 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {matchesOnDate.map((match) => (
-                <div key={match.id} className="rounded-xl bg-black/30 border border-white/10 p-3 sm:p-4">
+                <div key={match.id} className="rounded-2xl bg-white/[0.01] border border-white/5 p-3.5 sm:p-5">
                   {editingMatchId === match.id ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                        <div className="sm:col-span-1">
-                          <label className="block text-xs text-gray-400 mb-1">New Start Date</label>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">New Start Date</label>
                           <input
                             type="date"
                             value={newStartDate}
                             onChange={(e) => setNewStartDate(e.target.value)}
-                            className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
                           />
                         </div>
-                        <div className="sm:col-span-1">
-                          <label className="block text-xs text-gray-400 mb-1">Deadline Offset</label>
+                        <div>
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">Deadline Offset</label>
                           <select
                             value={matchDateOffset}
                             onChange={(e) => setMatchDateOffset(parseInt(e.target.value))}
-                            className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
                           >
-                            <option value={0}>Same Day (+0 days)</option>
-                            <option value={1}>1 Day Offset (+1 day)</option>
-                            <option value={2}>2 Days Offset (+2 days)</option>
-                            <option value={3}>3 Days Offset (+3 days)</option>
+                            <option value={0} className="bg-[#0c0c0c] text-white">Same Day (+0 days)</option>
+                            <option value={1} className="bg-[#0c0c0c] text-white">1 Day Offset (+1 day)</option>
+                            <option value={2} className="bg-[#0c0c0c] text-white">2 Days Offset (+2 days)</option>
+                            <option value={3} className="bg-[#0c0c0c] text-white">3 Days Offset (+3 days)</option>
                           </select>
                         </div>
-                        <div className="sm:col-span-1">
-                          <label className="block text-xs text-gray-400 mb-1">Computed Deadline</label>
-                          <div className="px-3 py-2 bg-black/30 border border-white/5 rounded-lg text-[#E8A800] text-sm font-bold truncate">
+                        <div>
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">Computed Deadline</label>
+                          <div className="bg-white/[0.01] border border-white/5 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] font-mono uppercase tracking-wider truncate">
                             {newMatchDate ? new Date(newMatchDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
                           </div>
                         </div>
-                        <div className="sm:col-span-1">
-                          <label className="block text-xs text-gray-400 mb-1">Gap (days)</label>
+                        <div>
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">Gap (days)</label>
                           <input
                             type="number"
                             min="0"
                             max="30"
                             value={gapDays}
                             onChange={(e) => setGapDays(parseInt(e.target.value) || 0)}
-                            className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
                           />
                         </div>
                       </div>
 
-                      <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
+                      <label className="flex items-center gap-2 text-xs font-mono font-extrabold uppercase tracking-wider text-gray-400 select-none cursor-pointer">
                         <input
                           type="checkbox"
                           checked={pushSubsequent}
                           onChange={(e) => setPushSubsequent(e.target.checked)}
-                          className="w-4 h-4 rounded border-white/10 bg-black/30 text-emerald-500 focus:ring-2 focus:ring-emerald-500"
+                          className="w-4 h-4 rounded border-white/10 bg-black/30 text-[#E8A800] focus:ring-0 cursor-pointer"
                         />
                         Push all subsequent fixtures
                       </label>
@@ -401,7 +396,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                         <button
                           onClick={handleSaveDate}
                           disabled={loading}
-                          className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          className="px-4 py-2 bg-[#E8A800] hover:bg-[#FFB347] text-black rounded-xl text-xs font-black uppercase font-mono tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           {loadingAction === `save-${match.id}` ? (
                             <>
@@ -415,7 +410,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                         <button
                           onClick={() => setEditingMatchId(null)}
                           disabled={loading}
-                          className="px-4 py-2 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-all"
+                          className="px-4 py-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider font-mono transition-all cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -427,21 +422,21 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                       <div className="hidden md:flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
                           <div className="flex items-center gap-3 flex-1">
-                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                            <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
                               {match.homeTeam.team.logoUrl ? (
                                 <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                               ) : (
                                 <span className="text-sm">⚽</span>
                               )}
                             </div>
-                            <span className="text-white font-bold">{match.homeTeam.team.name}</span>
+                            <span className="text-white font-extrabold uppercase text-xs tracking-tight font-mono truncate">{match.homeTeam.team.name}</span>
                           </div>
 
-                          <span className="text-gray-500 font-bold">vs</span>
+                          <span className="text-gray-600 text-[10px] font-black font-mono tracking-widest">VS</span>
 
                           <div className="flex items-center gap-3 flex-1">
-                            <span className="text-white font-bold">{match.awayTeam.team.name}</span>
-                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                            <span className="text-white font-extrabold uppercase text-xs tracking-tight font-mono truncate">{match.awayTeam.team.name}</span>
+                            <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
                               {match.awayTeam.team.logoUrl ? (
                                 <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                               ) : (
@@ -452,32 +447,32 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                         </div>
 
                         {/* Dates column/row display */}
-                        <div className="flex items-center gap-6 mr-6">
-                          <div className="text-right">
-                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Start Time</div>
+                        <div className="flex items-center gap-6 mr-6 font-mono text-right">
+                          <div>
+                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider">Start Time</div>
                             <div className="text-xs text-[#E8A800] font-black">{match.startDate ? formatDate(match.startDate) : 'N/A'}</div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Deadline</div>
+                          <div>
+                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider">Deadline</div>
                             <div className="text-xs text-[#E8A800] font-black">{formatDate(match.matchDate)}</div>
                           </div>
                         </div>
 
                         <button
                           onClick={() => handleEditDate(match)}
-                          className="px-4 py-2 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-all"
+                          className="px-4 py-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider font-mono transition-all cursor-pointer"
                         >
                           Edit Date
                         </button>
                       </div>
 
                       {/* Mobile View: Beautifully compact and responsive layout with both dates */}
-                      <div className="md:hidden space-y-3">
+                      <div className="md:hidden space-y-3 font-mono">
                         <div className="grid grid-cols-7 items-center gap-2">
                           {/* Home Team */}
                           <div className="col-span-3 flex items-center justify-end gap-1.5 text-right">
-                            <span className="text-white font-bold text-xs truncate">{match.homeTeam.team.name}</span>
-                            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <span className="text-white font-extrabold uppercase text-xs truncate">{match.homeTeam.team.name}</span>
+                            <div className="w-6 h-6 rounded-md bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {match.homeTeam.team.logoUrl ? (
                                 <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
                               ) : (
@@ -486,35 +481,35 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                             </div>
                           </div>
                           {/* VS */}
-                          <div className="col-span-1 text-center text-gray-500 font-bold text-xs">vs</div>
+                          <div className="col-span-1 text-center text-gray-600 font-black text-[10px] tracking-widest">VS</div>
                           {/* Away Team */}
                           <div className="col-span-3 flex items-center justify-start gap-1.5 text-left">
-                            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-6 h-6 rounded-md bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {match.awayTeam.team.logoUrl ? (
                                 <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
                               ) : (
                                 <span className="text-xs">⚽</span>
                               )}
                             </div>
-                            <span className="text-white font-bold text-xs truncate">{match.awayTeam.team.name}</span>
+                            <span className="text-white font-extrabold uppercase text-xs truncate">{match.awayTeam.team.name}</span>
                           </div>
                         </div>
 
                         {/* Mobile Dates Column */}
                         <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-2 text-center">
                           <div>
-                            <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Start Time</div>
+                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider">Start Time</div>
                             <div className="text-xs text-[#E8A800] font-black">{match.startDate ? formatDate(match.startDate) : 'N/A'}</div>
                           </div>
                           <div>
-                            <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Deadline</div>
+                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider">Deadline</div>
                             <div className="text-xs text-[#E8A800] font-black">{formatDate(match.matchDate)}</div>
                           </div>
                         </div>
 
                         <button
                           onClick={() => handleEditDate(match)}
-                          className="w-full py-1.5 bg-white/10 text-white rounded-lg text-xs font-bold hover:bg-white/20 transition-all"
+                          className="w-full py-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider font-mono transition-all cursor-pointer"
                         >
                           Edit Date
                         </button>

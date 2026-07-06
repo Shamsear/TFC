@@ -37,12 +37,9 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
     })
     
     return Array.from(grouped.entries()).map(([name, roundMatches]) => {
-      // Find the most common match date in this round
       const dates = roundMatches.map(m => m.matchDate)
       const isAnyLive = roundMatches.some(m => m.status === 'LIVE')
       const isAllCompleted = roundMatches.every(m => m.status === 'COMPLETED' || m.status === 'CANCELLED')
-      
-      // We assume the first match's date is representative if they vary, though they should ideally be the same
       const defaultDate = toLocalISOString(dates[0])
       
       return {
@@ -53,7 +50,6 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
         isCompleted: isAllCompleted
       }
     }).sort((a, b) => {
-      // Basic sorting by match count or name if we can parse numbers
       const aNum = parseInt(a.name.replace(/[^0-9]/g, '')) || 0
       const bNum = parseInt(b.name.replace(/[^0-9]/g, '')) || 0
       if (aNum !== bNum) return aNum - bNum
@@ -170,8 +166,8 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
 
   if (rounds.length === 0) {
     return (
-      <div className="text-center py-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
-        <p className="text-[#7A7367]">No rounds/matchdays found in this tournament.</p>
+      <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-12 text-center shadow-2xl backdrop-blur-xl">
+        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">No rounds/matchdays found in this tournament.</p>
       </div>
     )
   }
@@ -180,65 +176,65 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/5 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-white">Manage Match Rounds</h2>
-          <p className="text-sm text-[#7A7367]">Set deadlines and start gameweeks</p>
+          <h2 className="text-lg font-black text-white uppercase tracking-wider font-mono">Manage Match Rounds</h2>
+          <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-1">Set deadlines and start gameweeks</p>
         </div>
       </div>
 
       {/* Bulk Deadline Prefill Panel */}
-      <div className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-5">
-        <h3 className="text-sm font-bold text-white mb-3">Bulk Set Default Round Deadlines</h3>
+      <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-5 sm:p-6 shadow-2xl backdrop-blur-xl">
+        <h3 className="text-xs font-black text-white uppercase tracking-wider font-mono mb-4">Bulk Set Default Round Deadlines</h3>
         <div className="flex flex-wrap items-end gap-3 sm:gap-4">
           <div className="w-full sm:w-40">
-            <label className="block text-xs font-medium text-[#D4CCBB] mb-1.5">
+            <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">
               Deadline Time
             </label>
             <input
               type="time"
               value={defaultDeadlineTime}
               onChange={(e) => setDefaultDeadlineTime(e.target.value)}
-              className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+              className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
             />
           </div>
 
           <div className="w-full sm:w-44">
-            <label className="block text-xs font-medium text-[#D4CCBB] mb-1.5">
+            <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">
               Deadline Offset
             </label>
             <select
               value={defaultDeadlineOffset}
               onChange={(e) => setDefaultDeadlineOffset(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+              className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
             >
-              <option value={0}>Same day</option>
-              <option value={1}>1 day after</option>
-              <option value={2}>2 days after</option>
-              <option value={3}>3 days after</option>
-              <option value={4}>4 days after</option>
-              <option value={5}>5 days after</option>
-              <option value={6}>6 days after</option>
-              <option value={7}>7 days after</option>
+              <option value={0} className="bg-[#0c0c0c] text-white">Same day</option>
+              <option value={1} className="bg-[#0c0c0c] text-white">1 day after</option>
+              <option value={2} className="bg-[#0c0c0c] text-white">2 days after</option>
+              <option value={3} className="bg-[#0c0c0c] text-white">3 days after</option>
+              <option value={4} className="bg-[#0c0c0c] text-white">4 days after</option>
+              <option value={5} className="bg-[#0c0c0c] text-white">5 days after</option>
+              <option value={6} className="bg-[#0c0c0c] text-white">6 days after</option>
+              <option value={7} className="bg-[#0c0c0c] text-white">7 days after</option>
             </select>
           </div>
 
           <button
             type="button"
             onClick={handleApplyDefaults}
-            className="w-full sm:w-auto px-4 py-2.5 bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border border-[#E8A800]/30 text-[#E8A800] rounded-lg font-bold text-sm transition-all"
+            className="w-full sm:w-auto px-4 py-2.5 bg-[#E8A800]/10 hover:bg-[#E8A800]/20 border border-[#E8A800]/20 text-[#E8A800] hover:text-[#FFB347] rounded-xl text-xs font-bold uppercase tracking-wider font-mono transition-all cursor-pointer"
           >
             Apply to All Rounds
           </button>
         </div>
 
         {/* Live Preview Widget */}
-        <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-3 flex items-center justify-between gap-4 mt-4 text-xs sm:text-sm">
+        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-3.5 flex items-center justify-between gap-4 mt-5 text-xs font-mono">
           <div className="flex items-center gap-3">
             <span className="text-xl">📅</span>
             <div>
-              <div className="text-[10px] text-[#7A7367] uppercase font-bold tracking-wider mb-0.5">Round Deadline Preview Example</div>
-              <div className="font-bold text-white">
+              <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Round Deadline Preview Example</div>
+              <div className="font-extrabold text-white text-xs">
                 Match Start (Today): <span className="text-[#D4CCBB]">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                <span className="mx-2 text-[#7A7367]">→</span>
+                <span className="mx-2 text-gray-600">→</span>
                 Deadline: <span className="text-emerald-400">{(() => {
                   const now = new Date()
                   const [hours, minutes] = defaultDeadlineTime.split(':')
@@ -249,7 +245,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
               </div>
             </div>
           </div>
-          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase">LIVE PREVIEW</span>
+          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">LIVE PREVIEW</span>
         </div>
       </div>
       
@@ -257,34 +253,34 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
         {rounds.map((round) => (
           <div 
             key={round.name} 
-            className={`p-4 rounded-xl border transition-all ${
+            className={`p-5 rounded-2xl border transition-all ${
               round.isActive 
-                ? 'bg-emerald-500/10 border-emerald-500/30' 
+                ? 'bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
                 : round.isCompleted
-                  ? 'bg-white/5 border-white/10 opacity-75'
-                  : 'bg-black/30 border-white/10'
+                  ? 'bg-white/[0.01] border-white/5 opacity-60'
+                  : 'bg-[#0D0D0D]/90 border-white/5'
             }`}
           >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="font-bold text-white">{round.name}</h3>
-                <p className="text-xs text-[#7A7367] mt-1">{round.matches.length} Matches</p>
+                <h3 className="font-extrabold uppercase text-white text-sm font-mono tracking-tight">{round.name}</h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">{round.matches.length} Matches</p>
               </div>
               {round.isActive && (
-                <span className="px-2 py-1 text-xs font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono">
                   LIVE
                 </span>
               )}
               {round.isCompleted && (
-                <span className="px-2 py-1 text-xs font-bold rounded bg-white/10 text-gray-400">
+                <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-white/5 border border-white/5 text-gray-500 font-mono">
                   COMPLETED
                 </span>
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[#D4CCBB] mb-1">
+                <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">
                   Match Deadline
                 </label>
                 <input
@@ -292,7 +288,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
                   value={deadlines[round.name] || ''}
                   onChange={(e) => handleDeadlineChange(round.name, e.target.value)}
                   disabled={round.isCompleted || loading?.includes(round.name)}
-                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#E8A800]"
+                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
                 />
               </div>
 
@@ -301,16 +297,16 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
                   <button
                     onClick={() => handleStartRound(round.name)}
                     disabled={loading === round.name}
-                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all ${
+                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-xs uppercase tracking-wider font-mono transition-all cursor-pointer ${
                       round.isActive
-                        ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-                        : 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black'
+                        ? 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+                        : 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-extrabold shadow-[0_0_15px_rgba(232,168,0,0.1)]'
                     }`}
                   >
                     {loading === round.name ? (
                       <LoadingSpinner size="sm" />
                     ) : round.isActive ? (
-                      'Update Deadline / Resend Notification'
+                      'Update Deadline'
                     ) : (
                       'Start Gameweek'
                     )}
@@ -320,7 +316,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
                     <button
                       onClick={() => handleStopRound(round.name)}
                       disabled={loading === round.name + '_stop'}
-                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-xs uppercase tracking-wider font-mono transition-all bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/25 cursor-pointer"
                     >
                       {loading === round.name + '_stop' ? (
                         <LoadingSpinner size="sm" />

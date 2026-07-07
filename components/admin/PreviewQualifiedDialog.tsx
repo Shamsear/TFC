@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface PreviewQualifiedDialogProps {
   isOpen: boolean
@@ -15,6 +16,7 @@ export default function PreviewQualifiedDialog({
   link,
   onPopulated
 }: PreviewQualifiedDialogProps) {
+  const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [populating, setPopulating] = useState(false)
@@ -66,6 +68,7 @@ export default function PreviewQualifiedDialog({
 
       onPopulated()
       fetchPreview()
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -104,6 +107,7 @@ export default function PreviewQualifiedDialog({
 
       fetchPreview()
       onPopulated()
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
     }
@@ -128,6 +132,7 @@ export default function PreviewQualifiedDialog({
 
       onPopulated()
       fetchPreview()
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
     } finally {

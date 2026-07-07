@@ -17,7 +17,7 @@ export async function POST(
 
     const { tournamentId } = await params
     const body = await request.json()
-    const { fixtures, venue } = body
+    const { fixtures, venue, groupAssignments } = body
 
     if (!fixtures || fixtures.length === 0) {
       return NextResponse.json(
@@ -44,9 +44,38 @@ export async function POST(
       updatedAt: new Date()
     }))
 
-    // Execute bulk insert in a single extremely fast query (takes <50ms instead of 30+ seconds!)
-    await prisma.matches.createMany({
-      data: dataToInsert
+    // Execute bulk insert and standings group name updates in a transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Create matches
+      await tx.matches.createMany({
+        data: dataToInsert
+      })
+
+      // 2. Update standings group names if groupAssignments is provided
+      if (groupAssignments) {
+        // Fetch group details to get group names
+        const groups = await tx.groups.findMany({
+          where: { tournamentId }
+        })
+        const groupMap = new Map(groups.map(g => [g.id, g.name]))
+
+        for (const [groupId, teamIds] of Object.entries(groupAssignments)) {
+          const groupName = groupMap.get(groupId)
+          if (groupName && Array.isArray(teamIds) && teamIds.length > 0) {
+            // Update groupName in standings for these teams
+            await tx.standings.updateMany({
+              where: {
+                tournamentId,
+                teamId: { in: teamIds }
+              },
+              data: {
+                groupName,
+                updatedAt: new Date()
+              }
+            })
+          }
+        }
+      }
     })
 
     // Create audit log

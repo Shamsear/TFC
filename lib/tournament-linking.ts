@@ -1117,6 +1117,7 @@ export async function populateTournamentLink(
               id: await generateStandingId(),
               tournamentId: link.targetTournamentId,
               teamId: team.seasonTeamId,
+              groupName: team.groupName,
               played: 0,
               won: 0,
               drawn: 0,

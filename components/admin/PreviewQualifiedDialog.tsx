@@ -135,6 +135,8 @@ export default function PreviewQualifiedDialog({
     }
   }
 
+  const showGroupColumn = data?.preview?.some((item: any) => item.groupName) || link.targetTournament?.tournamentType === 'GROUP_KNOCKOUT' || link.linkType?.includes('GROUP')
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
       <div className="w-full max-w-2xl rounded-3xl bg-[#0D0D0D]/90 border border-white/10 p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] backdrop-blur-xl animate-scale-up">
@@ -206,7 +208,7 @@ export default function PreviewQualifiedDialog({
                     <th className="px-4 py-3">Pos</th>
                     <th className="px-4 py-3">Team</th>
                     <th className="px-4 py-3 text-center">Pts</th>
-                    {link.linkType.includes('GROUP') && <th className="px-4 py-3">Group</th>}
+                    {showGroupColumn && <th className="px-4 py-3">Group</th>}
                     <th className="px-4 py-3 text-center">Target Seed</th>
                     <th className="px-4 py-3 text-center">Status</th>
                     <th className="px-4 py-3 text-right">Action</th>
@@ -232,7 +234,7 @@ export default function PreviewQualifiedDialog({
                           <span className="text-white truncate max-w-[150px] font-extrabold uppercase tracking-tight">{item.teamName}</span>
                         </td>
                         <td className="px-4 py-3.5 text-center text-[#E8A800] font-extrabold">{item.points}</td>
-                        {link.linkType.includes('GROUP') && <td className="px-4 py-3.5 text-gray-300 font-extrabold">{item.groupName || '-'}</td>}
+                        {showGroupColumn && <td className="px-4 py-3.5 text-gray-300 font-extrabold">{item.groupName || '-'}</td>}
                         <td className="px-4 py-3.5 text-center text-[#FFB347] font-extrabold">Seed {item.seedPosition}</td>
                         <td className="px-4 py-3.5 text-center">
                           {item.isPopulated ? (

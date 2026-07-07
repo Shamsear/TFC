@@ -62,6 +62,21 @@ export async function GET(
       }
     })
 
+    const targetGroups = await prisma.groups.findMany({
+      where: { tournamentId: link.targetTournamentId },
+      orderBy: { groupOrder: 'asc' }
+    })
+
+    // Map seasonTeamId -> targetGroupName based on seed position round-robin
+    const targetGroupMap = new Map<string, string>()
+    if (targetGroups.length > 0) {
+      const sortedQualified = [...qualifiedTeams].sort((a, b) => a.seedPosition - b.seedPosition)
+      sortedQualified.forEach((t, index) => {
+        const groupIndex = index % targetGroups.length
+        targetGroupMap.set(t.seasonTeamId, targetGroups[groupIndex].name)
+      })
+    }
+
     const teamsMap = new Map(teamsData.map(t => [t.id, t]))
     const standingsMap = new Map(standingsData.map(s => [s.teamId, s]))
 
@@ -76,7 +91,7 @@ export async function GET(
         points: standing?.points || 0,
         currentPosition: standing?.position || q.qualificationPosition,
         qualificationPosition: q.qualificationPosition,
-        groupName: q.groupName,
+        groupName: targetGroupMap.get(q.seasonTeamId) || q.groupName,
         seedPosition: q.seedPosition,
         isConfirmed: confirmedTeamIds.has(q.seasonTeamId),
         isPopulated: alreadyPopulatedIds.has(q.seasonTeamId)

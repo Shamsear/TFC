@@ -338,6 +338,7 @@ export default function LinksPage({ params }: LinksPageProps) {
         isOpen={!!editingLink}
         onClose={() => setEditingLink(null)}
         link={editingLink}
+        seasonId={seasonId}
         onUpdated={fetchData}
       />
 

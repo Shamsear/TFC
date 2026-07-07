@@ -6,6 +6,7 @@ interface EditLinkDialogProps {
   isOpen: boolean
   onClose: () => void
   link: any
+  seasonId: string
   onUpdated: () => void
 }
 
@@ -13,8 +14,12 @@ export default function EditLinkDialog({
   isOpen,
   onClose,
   link,
+  seasonId,
   onUpdated
 }: EditLinkDialogProps) {
+  const [tournaments, setTournaments] = useState<any[]>([])
+  const [sourceId, setSourceId] = useState('')
+  const [targetId, setTargetId] = useState('')
   const [linkType, setLinkType] = useState('TOP_N')
   
   // TOP_N / BOTTOM_N / POSITION_RANGE
@@ -41,8 +46,21 @@ export default function EditLinkDialog({
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (isOpen && seasonId) {
+      fetch(`/api/seasons/${seasonId}/tournaments`)
+        .then(res => res.json())
+        .then(data => {
+          setTournaments(data)
+        })
+        .catch(err => console.error('Error fetching tournaments:', err))
+    }
+  }, [isOpen, seasonId])
+
+  useEffect(() => {
     if (isOpen && link) {
       setLinkType(link.linkType)
+      setSourceId(link.sourceTournamentId || '')
+      setTargetId(link.targetTournamentId || '')
       const config = link.qualificationConfig || {}
 
       if (link.linkType === 'TOP_N' || link.linkType === 'BOTTOM_N') {
@@ -139,6 +157,8 @@ export default function EditLinkDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           linkType,
+          sourceTournamentId: sourceId,
+          targetTournamentId: targetId,
           qualificationConfig
         })
       })
@@ -184,6 +204,42 @@ export default function EditLinkDialog({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Source & Target Tournaments */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
+                Source Tournament
+              </label>
+              <select
+                value={sourceId}
+                onChange={e => setSourceId(e.target.value)}
+                className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono cursor-pointer"
+              >
+                {tournaments.map(t => (
+                  <option key={t.id} value={t.id} className="bg-[#0D0D0D]">
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">
+                Target Tournament
+              </label>
+              <select
+                value={targetId}
+                onChange={e => setTargetId(e.target.value)}
+                className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-[#E8A800]/50 transition-all font-mono cursor-pointer"
+              >
+                {tournaments.map(t => (
+                  <option key={t.id} value={t.id} className="bg-[#0D0D0D]">
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {/* Link Type */}
           <div>
             <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">

@@ -19,7 +19,7 @@ export async function PUT(
 
     const { linkId } = await params
     const body = await request.json()
-    const { qualificationConfig, linkType } = body
+    const { qualificationConfig, linkType, sourceTournamentId, targetTournamentId } = body
 
     if (!qualificationConfig) {
       return NextResponse.json(
@@ -28,14 +28,61 @@ export async function PUT(
       )
     }
 
+    const link = await prisma.tournament_links.findUnique({
+      where: { id: linkId }
+    })
+
+    if (!link) {
+      return NextResponse.json({ error: 'Tournament link not found' }, { status: 404 })
+    }
+
+    const sourceChanged = sourceTournamentId && sourceTournamentId !== link.sourceTournamentId
+    const targetChanged = targetTournamentId && targetTournamentId !== link.targetTournamentId
+
+    if (sourceChanged || targetChanged) {
+      // Clear populated teams from target tournament
+      await clearPopulatedTeams(linkId).catch(err => {
+        console.warn(`Could not clear teams for link ${linkId} during update:`, err)
+      })
+    }
+
     const updatedLink = await prisma.tournament_links.update({
       where: { id: linkId },
       data: {
         ...(linkType ? { linkType } : {}),
+        ...(sourceTournamentId ? { sourceTournamentId } : {}),
+        ...(targetTournamentId ? { targetTournamentId } : {}),
         qualificationConfig,
         updatedAt: new Date()
       }
     })
+
+    if (sourceChanged || targetChanged) {
+      // Recalculate isLinked for source tournaments
+      for (const sId of [link.sourceTournamentId, sourceTournamentId || link.sourceTournamentId]) {
+        const count = await prisma.tournament_links.count({
+          where: { sourceTournamentId: sId }
+        })
+        await prisma.tournaments.update({
+          where: { id: sId },
+          data: { isLinked: count > 0 }
+        })
+      }
+
+      // Recalculate requiresQualification for target tournaments
+      for (const tId of [link.targetTournamentId, targetTournamentId || link.targetTournamentId]) {
+        const count = await prisma.tournament_links.count({
+          where: { targetTournamentId: tId }
+        })
+        await prisma.tournaments.update({
+          where: { id: tId },
+          data: {
+            requiresQualification: count > 0,
+            ...(count === 0 ? { qualificationStatus: 'COMPLETE' } : {})
+          }
+        })
+      }
+    }
 
     return NextResponse.json(updatedLink)
   } catch (error: any) {

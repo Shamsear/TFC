@@ -1033,6 +1033,22 @@ export async function populateTournamentLink(
     link.id
   );
 
+  // Fetch target groups to support auto-grouping
+  const targetGroups = await prisma.groups.findMany({
+    where: { tournamentId: link.targetTournamentId },
+    orderBy: { groupOrder: 'asc' }
+  });
+
+  // Map seasonTeamId -> groupName based on seed position round-robin
+  const teamGroupMap = new Map<string, string>();
+  if (targetGroups.length > 0) {
+    const sortedQualified = [...qualifiedTeams].sort((a, b) => a.seedPosition - b.seedPosition);
+    sortedQualified.forEach((t, index) => {
+      const groupIndex = index % targetGroups.length;
+      teamGroupMap.set(t.seasonTeamId, targetGroups[groupIndex].name);
+    });
+  }
+
   // 2. Get already populated teams
   const alreadyPopulated = await prisma.tournament_team_qualifications.findMany({
     where: { tournamentLinkId: link.id }
@@ -1058,6 +1074,7 @@ export async function populateTournamentLink(
   // 4. Populate remaining teams
   if (newTeams.length > 0) {
     for (const team of newTeams) {
+      const targetGroupName = teamGroupMap.get(team.seasonTeamId) || team.groupName || null;
       await prisma.$transaction(async (tx) => {
         // 1. Create final qualification record
         await tx.tournament_team_qualifications.upsert({
@@ -1074,14 +1091,15 @@ export async function populateTournamentLink(
             sourceTournamentId: link.sourceTournamentId,
             targetTournamentId: link.targetTournamentId,
             qualificationPosition: team.qualificationPosition,
-            groupName: team.groupName,
+            groupName: targetGroupName,
             slotNumber: team.seedPosition,
             status: 'FINAL'
           },
           update: {
             status: 'FINAL',
             qualificationPosition: team.qualificationPosition,
-            slotNumber: team.seedPosition
+            slotNumber: team.seedPosition,
+            groupName: targetGroupName
           }
         });
 
@@ -1117,7 +1135,7 @@ export async function populateTournamentLink(
               id: await generateStandingId(),
               tournamentId: link.targetTournamentId,
               teamId: team.seasonTeamId,
-              groupName: team.groupName,
+              groupName: targetGroupName,
               played: 0,
               won: 0,
               drawn: 0,
@@ -1126,6 +1144,15 @@ export async function populateTournamentLink(
               goalsAgainst: 0,
               goalDiff: 0,
               points: 0,
+              updatedAt: new Date()
+            }
+          });
+        } else {
+          // Update group name if it changed or was null
+          await tx.standings.update({
+            where: { id: existingStanding.id },
+            data: {
+              groupName: targetGroupName,
               updatedAt: new Date()
             }
           });

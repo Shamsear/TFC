@@ -148,13 +148,22 @@ export async function POST(
 
       // Create standings for selected teams in bulk (if not linked)
       if (!linked && selectedTeams && selectedTeams.length > 0) {
+        const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
         await tx.standings.createMany({
-          data: selectedTeams.map((teamId: string, i: number) => ({
-            id: standingIds[i],
-            tournamentId: newTournament.id,
-            teamId,
-            updatedAt: new Date()
-          }))
+          data: selectedTeams.map((teamId: string, i: number) => {
+            let groupName = null
+            if (tournamentType === 'GROUP_KNOCKOUT' && groupCount > 0) {
+              const groupIndex = i % groupCount
+              groupName = `Group ${groupNames[groupIndex]}`
+            }
+            return {
+              id: standingIds[i],
+              tournamentId: newTournament.id,
+              teamId,
+              groupName,
+              updatedAt: new Date()
+            }
+          })
         })
       }
 

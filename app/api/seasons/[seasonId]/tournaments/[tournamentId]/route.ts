@@ -147,13 +147,22 @@ export async function PUT(
         // Create fresh standings for the manually selected teams
         if (selectedTeams && selectedTeams.length > 0) {
           const standingIds = await generateIds(ID_PREFIXES.STANDING, selectedTeams.length)
+          const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
           await tx.standings.createMany({
-            data: selectedTeams.map((teamId: string, i: number) => ({
-              id: standingIds[i],
-              tournamentId,
-              teamId,
-              updatedAt: new Date()
-            }))
+            data: selectedTeams.map((teamId: string, i: number) => {
+              let groupName = null
+              if (tournamentType === 'GROUP_KNOCKOUT' && groupCount > 0) {
+                const groupIndex = i % groupCount
+                groupName = `Group ${groupNames[groupIndex]}`
+              }
+              return {
+                id: standingIds[i],
+                tournamentId,
+                teamId,
+                groupName,
+                updatedAt: new Date()
+              }
+            })
           })
         }
       } else {

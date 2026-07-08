@@ -142,10 +142,10 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
                 href={`/sub-admin/${seasonId}/tournaments/${tournament.id}`}
                 className="group rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all p-4 sm:p-6 backdrop-blur-xl shadow-md block"
               >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-                      <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 w-full min-w-0">
+                  <div className="flex-1 min-w-0 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 w-full min-w-0">
+                      <div className="flex items-center gap-3 w-full min-w-0 flex-1">
                         <div className="w-12 h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] flex-shrink-0">
                           <TrophyIcon />
                         </div>
@@ -158,7 +158,7 @@ export default async function TournamentsPage({ params }: TournamentsPageProps) 
                           </div>
                         </div>
                       </div>
-                      <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-mono font-black uppercase tracking-wider self-start sm:self-auto ${getStatusColor(tournament.status)}`}>
+                      <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-mono font-black uppercase tracking-wider self-start sm:self-auto flex-shrink-0 ${getStatusColor(tournament.status)}`}>
                         {tournament.status.replace('_', ' ')}
                       </span>
                     </div>

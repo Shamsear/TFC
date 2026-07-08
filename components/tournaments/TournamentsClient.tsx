@@ -192,7 +192,7 @@ export default function TournamentsClient({
               <Link
                 key={tournament.id}
                 href={`/tournaments/${tournament.id}`}
-                className="group rounded-2xl bg-dark-100 border border-white/5 p-5 sm:p-6 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all shadow-md hover:shadow-neon-glow duration-300 flex flex-col justify-between"
+                className="group rounded-2xl bg-dark-100 border border-white/5 p-5 sm:p-6 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all shadow-md hover:shadow-neon-glow duration-300 flex flex-col justify-between min-w-0 w-full"
               >
                 {/* Tournament Header */}
                 <div>

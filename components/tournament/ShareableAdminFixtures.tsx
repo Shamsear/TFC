@@ -107,6 +107,11 @@ function AdminFixturesSnapshot({
                     {match.venue}
                   </div>
                 )}
+                {(match.group?.name || match.groupName) && (
+                  <div style={{ color: '#c084fc', fontSize: '12px', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: '8px' }}>
+                    {match.group?.name || match.groupName}
+                  </div>
+                )}
                 <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: '20px', border: `1px solid ${getStatusColor(match.status)}`, color: getStatusColor(match.status), fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>
                   {match.status}
                 </div>

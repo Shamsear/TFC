@@ -167,7 +167,7 @@ export default async function TeamTournamentsPage() {
                   <Link
                     key={tournament.id}
                     href={`/team/tournaments/${tournament.id}`}
-                    className="group rounded-2xl bg-white/[0.01] border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.05] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 relative backdrop-blur-md shadow-xl flex flex-col justify-between min-h-[260px]"
+                    className="group rounded-2xl bg-white/[0.01] border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.05] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 relative backdrop-blur-md shadow-xl flex flex-col justify-between min-h-[260px] min-w-0 w-full"
                   >
                     {/* Tournament Header */}
                     <div>

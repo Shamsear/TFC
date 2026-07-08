@@ -16,7 +16,7 @@ export async function POST(
 
     const { seasonId, tournamentId } = await params
     const body = await request.json()
-    const { roundName, legs, teams, autoPair } = body
+    const { roundName, legs, teams, autoPair, createFullBracket } = body
 
     if (!roundName || !legs || !teams || teams.length < 2) {
       return NextResponse.json(
@@ -44,6 +44,7 @@ export async function POST(
 
     // Determine round order
     const roundOrderMap: Record<string, number> = {
+      'ROUND_OF_32': 0,
       'ROUND_OF_16': 1,
       'QUARTER_FINAL': 2,
       'SEMI_FINAL': 3,
@@ -99,6 +100,74 @@ export async function POST(
               updatedAt: new Date()
             }
           })
+        }
+      }
+
+      // Automatically generate subsequent rounds if createFullBracket is true
+      if (createFullBracket) {
+        const subsequentRounds = []
+        if (roundName === 'ROUND_OF_32') {
+          subsequentRounds.push(
+            { name: 'ROUND_OF_16', order: 1, pairingsCount: 8 },
+            { name: 'QUARTER_FINAL', order: 2, pairingsCount: 4 },
+            { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
+            { name: 'FINAL', order: 5, pairingsCount: 1 }
+          )
+        } else if (roundName === 'ROUND_OF_16') {
+          subsequentRounds.push(
+            { name: 'QUARTER_FINAL', order: 2, pairingsCount: 4 },
+            { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
+            { name: 'FINAL', order: 5, pairingsCount: 1 }
+          )
+        } else if (roundName === 'QUARTER_FINAL') {
+          subsequentRounds.push(
+            { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
+            { name: 'FINAL', order: 5, pairingsCount: 1 }
+          )
+        } else if (roundName === 'SEMI_FINAL') {
+          subsequentRounds.push(
+            { name: 'FINAL', order: 5, pairingsCount: 1 }
+          )
+        }
+
+        for (const sub of subsequentRounds) {
+          const exists = await tx.knockout_rounds.findUnique({
+            where: {
+              tournamentId_roundName: {
+                tournamentId,
+                roundName: sub.name
+              }
+            }
+          })
+
+          if (!exists) {
+            const subRoundId = await generateKnockoutRoundId()
+            const subRound = await tx.knockout_rounds.create({
+              data: {
+                id: subRoundId,
+                tournamentId,
+                roundName: sub.name,
+                roundOrder: sub.order,
+                legs,
+                status: 'PENDING',
+                updatedAt: new Date()
+              }
+            })
+
+            // Create empty pairings for the subsequent round
+            for (let i = 0; i < sub.pairingsCount; i++) {
+              const pairingId = await generateKnockoutPairingId()
+              await tx.knockout_pairings.create({
+                data: {
+                  id: pairingId,
+                  knockoutRoundId: subRound.id,
+                  team1Id: null,
+                  team2Id: null,
+                  updatedAt: new Date()
+                }
+              })
+            }
+          }
         }
       }
 

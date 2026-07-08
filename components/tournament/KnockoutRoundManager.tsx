@@ -383,7 +383,8 @@ export default function KnockoutRoundManager({
           legs: formData.legs,
           teams: submitTeams,
           autoPair: autoPairMode,
-          manualPairings: formData.manualPairings
+          manualPairings: formData.manualPairings,
+          createFullBracket: formData.mode === 'auto'
         })
       })
 

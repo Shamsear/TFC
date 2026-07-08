@@ -294,7 +294,7 @@ export async function PATCH(
       userId: session.user.id,
       userEmail: session.user.email!,
       userRole: session.user.role!,
-      action: 'UPDATE_TOURNAMENT_STATUS',
+      action: 'UPDATE_TOURNAMENT',
       entityType: 'tournament',
       entityId: tournamentId,
       entityName: tournament.name,

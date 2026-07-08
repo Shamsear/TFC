@@ -31,6 +31,81 @@ const roundOptions = [
   { value: 'FINAL', label: 'Final', teams: 2 }
 ]
 
+// Check if preceding stage is completed
+const checkPrecedingStageStatus = (tournament: any, roundName: string) => {
+  const matches = tournament.matches || []
+  let precedingTypes: string[] = []
+  let stageLabel = ''
+
+  if (roundName === 'ROUND_OF_16') {
+    if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
+      precedingTypes = ['GROUP_STAGE']
+      stageLabel = 'Group Stage'
+    } else {
+      precedingTypes = ['LEAGUE']
+      stageLabel = 'League Stage'
+    }
+  } else if (roundName === 'QUARTER_FINAL') {
+    const hasR16 = matches.some((m: any) => m.matchType === 'ROUND_OF_16')
+    if (hasR16) {
+      precedingTypes = ['ROUND_OF_16']
+      stageLabel = 'Round of 16'
+    } else {
+      if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
+        precedingTypes = ['GROUP_STAGE']
+        stageLabel = 'Group Stage'
+      } else {
+        precedingTypes = ['LEAGUE']
+        stageLabel = 'League Stage'
+      }
+    }
+  } else if (roundName === 'SEMI_FINAL') {
+    const hasQF = matches.some((m: any) => m.matchType === 'QUARTER_FINAL')
+    if (hasQF) {
+      precedingTypes = ['QUARTER_FINAL']
+      stageLabel = 'Quarter Finals'
+    } else {
+      const hasR16 = matches.some((m: any) => m.matchType === 'ROUND_OF_16')
+      if (hasR16) {
+        precedingTypes = ['ROUND_OF_16']
+        stageLabel = 'Round of 16'
+      } else {
+        if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
+          precedingTypes = ['GROUP_STAGE']
+          stageLabel = 'Group Stage'
+        } else {
+          precedingTypes = ['LEAGUE']
+          stageLabel = 'League Stage'
+        }
+      }
+    }
+  } else if (roundName === 'FINAL' || roundName === 'THIRD_PLACE') {
+    precedingTypes = ['SEMI_FINAL']
+    stageLabel = 'Semi Finals'
+  }
+
+  if (precedingTypes.length === 0) {
+    return { isCompleted: true, totalMatches: 0, pendingMatches: 0, stageLabel }
+  }
+
+  const stageMatches = matches.filter((m: any) => precedingTypes.includes(m.matchType))
+  
+  if (stageMatches.length === 0) {
+    return { isCompleted: false, totalMatches: 0, pendingMatches: 0, stageLabel }
+  }
+
+  const pendingMatches = stageMatches.filter(
+    (m: any) => m.status !== 'COMPLETED' && m.status !== 'WALKOVER' && m.status !== 'VOID'
+  ).length
+
+  return {
+    isCompleted: pendingMatches === 0,
+    totalMatches: stageMatches.length,
+    pendingMatches,
+    stageLabel
+  }
+}
+
 export default function KnockoutRoundManager({ 
   tournament, 
   seasonId, 
@@ -52,6 +127,8 @@ export default function KnockoutRoundManager({
 
   const selectedRound = roundOptions.find(r => r.value === formData.roundName)
   const requiredTeams = selectedRound?.teams || 2
+
+  const stageStatus = checkPrecedingStageStatus(tournament, formData.roundName)
 
   const toggleTeam = (teamId: string) => {
     setFormData(prev => ({
@@ -267,6 +344,11 @@ export default function KnockoutRoundManager({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!stageStatus.isCompleted) {
+      setError(`Cannot create round: the preceding ${stageStatus.stageLabel} stage matches are incomplete.`)
+      return
+    }
+
     let submitTeams: string[] = []
     let autoPairMode = formData.autoPair
 
@@ -275,13 +357,12 @@ export default function KnockoutRoundManager({
         setError('Cannot create round: some qualifying teams are not yet determined.')
         return
       }
-      // Gather resolved team IDs in pairing sequence
       submitTeams = []
       autoPairings.forEach(p => {
         submitTeams.push(p.team1Id!)
         submitTeams.push(p.team2Id!)
       })
-      autoPairMode = false // We already ordered them in pairs
+      autoPairMode = false
     } else {
       if (formData.selectedTeams.length !== requiredTeams) {
         setError(`Please select exactly ${requiredTeams} teams for ${selectedRound?.label}`)
@@ -340,6 +421,29 @@ export default function KnockoutRoundManager({
               <span className="font-bold text-white uppercase font-mono">{knockoutCfg.qualifyingTeams} teams</span> qualify and enter at the{' '}
               <span className="font-bold text-white uppercase font-mono">{roundOptions.find(r => r.value === knockoutCfg.qualifyingRound)?.label ?? knockoutCfg.qualifyingRound}</span> stage
               ({knockoutCfg.defaultLegs === 1 ? 'single leg' : 'two-legged'} ties).
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Preceding Stage Warning Banner */}
+      {!stageStatus.isCompleted && (
+        <div className="rounded-2xl bg-red-500/10 border border-red-500/30 p-5 flex items-start gap-3">
+          <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <p className="text-xs font-black text-red-400 uppercase tracking-wider font-mono mb-1">
+              Preceding Stage Incomplete
+            </p>
+            <p className="text-xs text-gray-400 lowercase font-sans">
+              You cannot create the <span className="font-bold text-white uppercase font-mono">{selectedRound?.label}</span> yet.
+              The preceding <span className="font-bold text-white uppercase font-mono">{stageStatus.stageLabel}</span> is not completed
+              {stageStatus.totalMatches > 0 ? (
+                <> (has <span className="font-bold text-white uppercase font-mono">{stageStatus.pendingMatches} pending matches</span> remaining).</>
+              ) : (
+                <> (no matches have been scheduled or generated for it yet).</>
+              )}
             </p>
           </div>
         </div>
@@ -567,7 +671,7 @@ export default function KnockoutRoundManager({
               })}
             </div>
 
-            {!isAutoFullyResolved && (
+            {!isAutoFullyResolved && stageStatus.isCompleted && (
               <div className="rounded-xl bg-yellow-500/5 border border-yellow-500/10 p-4 text-xs font-bold uppercase tracking-wider text-yellow-500 font-mono flex items-center gap-2">
                 <span>⏳</span>
                 <span>Matches must be completed to resolve all group / league standings before generating the round in the database.</span>
@@ -713,6 +817,7 @@ export default function KnockoutRoundManager({
             type="submit"
             disabled={
               loading || 
+              !stageStatus.isCompleted ||
               (formData.mode === 'auto' && !isAutoFullyResolved) ||
               (formData.mode === 'manual' && formData.selectedTeams.length !== requiredTeams)
             }

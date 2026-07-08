@@ -1347,4 +1347,323 @@ export async function runTournamentStatusUpdate(tournamentId: string): Promise<v
     // Run progressive confirmation population
     await checkAndPopulateConfirmedTeams(tournamentId)
   }
+
+  // Auto populate knockout pairings on the go
+  await resolveAndPopulateKnockoutBracket(tournamentId).catch((err: any) =>
+    console.error(`Failed to auto-populate knockout pairings on the go:`, err)
+  )
+}
+
+/**
+ * Dynamically resolves knockout pairing teams from previous stages and auto-advances winners.
+ */
+export async function resolveAndPopulateKnockoutBracket(tournamentId: string): Promise<void> {
+  const tournament = await prisma.tournaments.findUnique({
+    where: { id: tournamentId },
+    include: {
+      groups: true
+    }
+  })
+  if (!tournament) return
+
+  const rounds = await prisma.knockout_rounds.findMany({
+    where: { tournamentId },
+    include: { pairings: true },
+    orderBy: { roundOrder: 'asc' }
+  })
+
+  if (rounds.length === 0) return
+
+  const matches = await prisma.matches.findMany({
+    where: { tournamentId }
+  })
+
+  // Helper to determine the winner of a matchup between two teams in a specific round
+  const getWinnerOfMatchup = (team1Id: string, team2Id: string, roundName: string) => {
+    const displayRoundName = roundName.replace(/_/g, ' ')
+    const matchupMatches = matches.filter(m => 
+      m.round?.toLowerCase() === displayRoundName.toLowerCase() &&
+      ((m.homeTeamId === team1Id && m.awayTeamId === team2Id) ||
+       (m.homeTeamId === team2Id && m.awayTeamId === team1Id))
+    )
+
+    if (matchupMatches.length === 0) return null
+
+    const allCompleted = matchupMatches.every(m => 
+      ['COMPLETED', 'WALKOVER', 'VOID'].includes(m.status)
+    )
+    if (!allCompleted) return null
+
+    if (matchupMatches.length === 1) {
+      const match = matchupMatches[0]
+      if (match.homeScore === null || match.awayScore === null) return null
+      if (match.homeScore > match.awayScore) return match.homeTeamId
+      if (match.awayScore > match.homeScore) return match.awayTeamId
+      if (match.homePenalty !== null && match.awayPenalty !== null) {
+        return match.homePenalty > match.awayPenalty ? match.homeTeamId : match.awayTeamId
+      }
+      return null
+    }
+
+    let team1Score = 0
+    let team2Score = 0
+    let penaltyWinnerId: string | null = null
+
+    for (const match of matchupMatches) {
+      if (match.homeScore === null || match.awayScore === null) return null
+      if (match.homeTeamId === team1Id) {
+        team1Score += match.homeScore
+        team2Score += match.awayScore
+      } else {
+        team2Score += match.homeScore
+        team1Score += match.awayScore
+      }
+      if (match.homePenalty !== null && match.awayPenalty !== null) {
+        penaltyWinnerId = match.homePenalty > match.awayPenalty ? match.homeTeamId : match.awayTeamId
+      }
+    }
+
+    if (team1Score > team2Score) return team1Id
+    if (team2Score > team1Score) return team2Id
+    return penaltyWinnerId
+  }
+
+  for (let rIdx = 0; rIdx < rounds.length; rIdx++) {
+    const round = rounds[rIdx]
+    const pairings = round.pairings
+
+    if (rIdx === 0) {
+      // First knockout round: check if we need to populate from preceding stage (group or league)
+      const hasEmptyPairings = pairings.some(p => p.team1Id === null || p.team2Id === null)
+      if (hasEmptyPairings) {
+        let precedingTypes: string[] = []
+        if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
+          precedingTypes = ['GROUP_STAGE']
+        } else if (tournament.tournamentType === 'LEAGUE_PLAYOFF') {
+          precedingTypes = ['LEAGUE']
+        }
+
+        const stageMatches = matches.filter(m => precedingTypes.includes(m.matchType))
+        const isStageCompleted = precedingTypes.length === 0 || (
+          stageMatches.length > 0 && stageMatches.every(m => 
+            ['COMPLETED', 'WALKOVER', 'VOID'].includes(m.status)
+          )
+        )
+
+        if (isStageCompleted) {
+          const standings = await prisma.standings.findMany({
+            where: { tournamentId },
+            include: {
+              seasonTeam: {
+                include: { team: true }
+              }
+            }
+          })
+
+          if (standings.length > 0) {
+            const groupedStandings: Record<string, any[]> = {}
+            standings.forEach(s => {
+              const gName = s.groupName || 'Overall'
+              if (!groupedStandings[gName]) groupedStandings[gName] = []
+              groupedStandings[gName].push(s)
+            })
+
+            for (const gName of Object.keys(groupedStandings)) {
+              groupedStandings[gName].sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points
+                if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff
+                return b.goalsFor - a.goalsFor
+              })
+            }
+
+            const mappedTeams = standings.map(s => {
+              const gName = s.groupName || 'Overall'
+              const groupList = groupedStandings[gName]
+              const pos = groupList.findIndex(x => x.id === s.id) + 1
+              return {
+                id: s.teamId,
+                name: s.seasonTeam?.team?.name,
+                logoUrl: s.seasonTeam?.team?.logoUrl,
+                position: pos,
+                groupName: s.groupName
+              }
+            })
+
+            const resolvedAutoPairs = resolveBackendAutoPairings(round.roundName, mappedTeams, pairings.length * 2, tournament)
+            
+            for (let i = 0; i < pairings.length; i++) {
+              const pair = pairings[i]
+              const autoPair = resolvedAutoPairs[i]
+              if (autoPair && autoPair.team1Id && autoPair.team2Id) {
+                await prisma.knockout_pairings.update({
+                  where: { id: pair.id },
+                  data: {
+                    team1Id: autoPair.team1Id,
+                    team2Id: autoPair.team2Id,
+                    updatedAt: new Date()
+                  }
+                })
+                pair.team1Id = autoPair.team1Id
+                pair.team2Id = autoPair.team2Id
+              }
+            }
+          }
+        }
+      }
+    } else {
+      // Subsequent round: it is fed by the winners of the previous round's pairings
+      const prevRound = rounds[rIdx - 1]
+      const prevPairings = prevRound.pairings
+
+      for (let i = 0; i < pairings.length; i++) {
+        const pair = pairings[i]
+        
+        const feeder1 = prevPairings[2 * i]
+        let team1WinnerId: string | null = null
+        if (feeder1 && feeder1.team1Id && feeder1.team2Id) {
+          team1WinnerId = getWinnerOfMatchup(feeder1.team1Id, feeder1.team2Id, prevRound.roundName)
+        }
+
+        const feeder2 = prevPairings[2 * i + 1]
+        let team2WinnerId: string | null = null
+        if (feeder2 && feeder2.team1Id && feeder2.team2Id) {
+          team2WinnerId = getWinnerOfMatchup(feeder2.team1Id, feeder2.team2Id, prevRound.roundName)
+        }
+
+        if (team1WinnerId !== pair.team1Id || team2WinnerId !== pair.team2Id) {
+          await prisma.knockout_pairings.update({
+            where: { id: pair.id },
+            data: {
+              team1Id: team1WinnerId,
+              team2Id: team2WinnerId,
+              updatedAt: new Date()
+            }
+          })
+          pair.team1Id = team1WinnerId
+          pair.team2Id = team2WinnerId
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Helper to resolve bracket matchups on the backend
+ */
+function resolveBackendAutoPairings(roundName: string, availableTeams: any[], requiredTeams: number, tournament: any) {
+  const pairings: Array<{ team1Id: string | null; team2Id: string | null }> = []
+
+  const getGroupTeam = (gName: string, pos: number) => {
+    return availableTeams.find(
+      t => t.groupName === gName && t.position === pos
+    ) || null
+  }
+
+  const getOverallTeam = (pos: number) => {
+    return availableTeams.find(t => t.position === pos) || null
+  }
+
+  const groups = tournament.groups || []
+  
+  if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
+    if (requiredTeams === 8) {
+      if (groups.length >= 4) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        const groupC = groups[2]?.name || 'Group C'
+        const groupD = groups[3]?.name || 'Group D'
+        
+        const pairs = [
+          { t1: { g: groupA, p: 1 }, t2: { g: groupB, p: 2 } },
+          { t1: { g: groupC, p: 1 }, t2: { g: groupD, p: 2 } },
+          { t1: { g: groupB, p: 1 }, t2: { g: groupA, p: 2 } },
+          { t1: { g: groupD, p: 1 }, t2: { g: groupC, p: 2 } },
+        ]
+        pairs.forEach(p => {
+          const t1 = getGroupTeam(p.t1.g, p.t1.p)
+          const t2 = getGroupTeam(p.t2.g, p.t2.p)
+          pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+        })
+      } else if (groups.length === 2) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        
+        const pairs = [
+          { t1: { g: groupA, p: 1 }, t2: { g: groupB, p: 4 } },
+          { t1: { g: groupA, p: 2 }, t2: { g: groupB, p: 3 } },
+          { t1: { g: groupB, p: 2 }, t2: { g: groupA, p: 3 } },
+          { t1: { g: groupB, p: 1 }, t2: { g: groupA, p: 4 } },
+        ]
+        pairs.forEach(p => {
+          const t1 = getGroupTeam(p.t1.g, p.t1.p)
+          const t2 = getGroupTeam(p.t2.g, p.t2.p)
+          pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+        })
+      }
+    } else if (requiredTeams === 4) {
+      if (groups.length >= 2) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        
+        const pairs = [
+          { t1: { g: groupA, p: 1 }, t2: { g: groupB, p: 2 } },
+          { t1: { g: groupB, p: 1 }, t2: { g: groupA, p: 2 } }
+        ]
+        pairs.forEach(p => {
+          const t1 = getGroupTeam(p.t1.g, p.t1.p)
+          const t2 = getGroupTeam(p.t2.g, p.t2.p)
+          pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+        })
+      } else if (groups.length >= 4) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        const groupC = groups[2]?.name || 'Group C'
+        const groupD = groups[3]?.name || 'Group D'
+        
+        const pairs = [
+          { t1: { g: groupA, p: 1 }, t2: { g: groupB, p: 1 } },
+          { t1: { g: groupC, p: 1 }, t2: { g: groupD, p: 1 } }
+        ]
+        pairs.forEach(p => {
+          const t1 = getGroupTeam(p.t1.g, p.t1.p)
+          const t2 = getGroupTeam(p.t2.g, p.t2.p)
+          pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+        })
+      }
+    } else if (requiredTeams === 2) {
+      const groupA = groups[0]?.name || 'Group A'
+      const groupB = groups[1]?.name || 'Group B'
+      const t1 = getGroupTeam(groupA, 1)
+      const t2 = getGroupTeam(groupB, 1)
+      pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+    }
+  } else if (tournament.tournamentType === 'LEAGUE_PLAYOFF') {
+    if (requiredTeams === 4) {
+      const pairs = [
+        { t1: 1, t2: 4 },
+        { t1: 2, t2: 3 }
+      ]
+      pairs.forEach(p => {
+        const t1 = getOverallTeam(p.t1)
+        const t2 = getOverallTeam(p.t2)
+        pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+      })
+    } else if (requiredTeams === 2) {
+      const t1 = getOverallTeam(1)
+      const t2 = getOverallTeam(2)
+      pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+    }
+  }
+
+  if (pairings.length === 0) {
+    for (let i = 0; i < Math.floor(requiredTeams / 2); i++) {
+      const p1 = i + 1
+      const p2 = requiredTeams - i
+      const t1 = getOverallTeam(p1)
+      const t2 = getOverallTeam(p2)
+      pairings.push({ team1Id: t1?.id || null, team2Id: t2?.id || null })
+    }
+  }
+
+  return pairings
 }

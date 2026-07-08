@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { generateKnockoutRoundId, generateKnockoutPairingId } from '@/lib/id-generator'
+import { resolveAndPopulateKnockoutBracket } from '@/lib/tournament-linking'
 
 export async function POST(
   request: NextRequest,
@@ -18,9 +19,16 @@ export async function POST(
     const body = await request.json()
     const { roundName, legs, teams, autoPair, createFullBracket } = body
 
-    if (!roundName || !legs || !teams || teams.length < 2) {
+    if (!roundName || !legs) {
       return NextResponse.json(
-        { error: 'Round name, legs, and at least 2 teams are required' },
+        { error: 'Round name and legs are required' },
+        { status: 400 }
+      )
+    }
+
+    if (!createFullBracket && (!teams || teams.length < 2)) {
+      return NextResponse.json(
+        { error: 'Teams are required for manual selection mode' },
         { status: 400 }
       )
     }
@@ -53,6 +61,16 @@ export async function POST(
     }
     const roundOrder = roundOrderMap[roundName] || 0
 
+    const roundPairingsCountMap: Record<string, number> = {
+      'ROUND_OF_32': 16,
+      'ROUND_OF_16': 8,
+      'QUARTER_FINAL': 4,
+      'SEMI_FINAL': 2,
+      'THIRD_PLACE': 1,
+      'FINAL': 1
+    }
+    const primaryPairingsCount = roundPairingsCountMap[roundName] || 1
+
     // Create knockout round with pairings
     const knockoutRound = await prisma.$transaction(async (tx) => {
       // Create the round
@@ -70,36 +88,52 @@ export async function POST(
       })
 
       // Create pairings
-      const sortedTeams = [...teams]
-      const numPairings = Math.floor(sortedTeams.length / 2)
-
-      if (autoPair) {
-        // Automatic pairing: 1 vs last, 2 vs second-last, etc.
-        for (let i = 0; i < numPairings; i++) {
+      if (createFullBracket) {
+        // Auto mode starts with empty pairings to populate on the go
+        for (let i = 0; i < primaryPairingsCount; i++) {
           const pairingId = await generateKnockoutPairingId()
           await tx.knockout_pairings.create({
             data: {
               id: pairingId,
               knockoutRoundId: round.id,
-              team1Id: sortedTeams[i],
-              team2Id: sortedTeams[sortedTeams.length - 1 - i],
+              team1Id: null,
+              team2Id: null,
               updatedAt: new Date()
             }
           })
         }
       } else {
-        // Manual pairing: create empty pairings to be filled later
-        for (let i = 0; i < numPairings; i++) {
-          const pairingId = await generateKnockoutPairingId()
-          await tx.knockout_pairings.create({
-            data: {
-              id: pairingId,
-              knockoutRoundId: round.id,
-              team1Id: sortedTeams[i * 2],
-              team2Id: sortedTeams[i * 2 + 1],
-              updatedAt: new Date()
-            }
-          })
+        const sortedTeams = [...teams]
+        const numPairings = Math.floor(sortedTeams.length / 2)
+
+        if (autoPair) {
+          // Automatic pairing: 1 vs last, 2 vs second-last, etc.
+          for (let i = 0; i < numPairings; i++) {
+            const pairingId = await generateKnockoutPairingId()
+            await tx.knockout_pairings.create({
+              data: {
+                id: pairingId,
+                knockoutRoundId: round.id,
+                team1Id: sortedTeams[i],
+                team2Id: sortedTeams[sortedTeams.length - 1 - i],
+                updatedAt: new Date()
+              }
+            })
+          }
+        } else {
+          // Manual pairing: create empty pairings to be filled later
+          for (let i = 0; i < numPairings; i++) {
+            const pairingId = await generateKnockoutPairingId()
+            await tx.knockout_pairings.create({
+              data: {
+                id: pairingId,
+                knockoutRoundId: round.id,
+                team1Id: sortedTeams[i * 2],
+                team2Id: sortedTeams[i * 2 + 1],
+                updatedAt: new Date()
+              }
+            })
+          }
         }
       }
 
@@ -174,6 +208,11 @@ export async function POST(
       return round
     })
 
+    // Immediately resolve and populate pairings on the go if matching conditions exist
+    await resolveAndPopulateKnockoutBracket(tournamentId).catch((err) => {
+      console.error('Failed to resolve bracket immediately on round creation:', err)
+    })
+
     // Create audit log
     await createAuditLog({
       userId: session.user.id,
@@ -188,7 +227,7 @@ export async function POST(
         tournamentId,
         roundName,
         legs,
-        numTeams: teams.length,
+        createFullBracket,
         autoPair
       },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',

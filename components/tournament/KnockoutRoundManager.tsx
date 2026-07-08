@@ -353,15 +353,7 @@ export default function KnockoutRoundManager({
     let autoPairMode = formData.autoPair
 
     if (formData.mode === 'auto') {
-      if (!isAutoFullyResolved) {
-        setError('Cannot create round: some qualifying teams are not yet determined.')
-        return
-      }
       submitTeams = []
-      autoPairings.forEach(p => {
-        submitTeams.push(p.team1Id!)
-        submitTeams.push(p.team2Id!)
-      })
       autoPairMode = false
     } else {
       if (formData.selectedTeams.length !== requiredTeams) {
@@ -819,7 +811,6 @@ export default function KnockoutRoundManager({
             disabled={
               loading || 
               !stageStatus.isCompleted ||
-              (formData.mode === 'auto' && !isAutoFullyResolved) ||
               (formData.mode === 'manual' && formData.selectedTeams.length !== requiredTeams)
             }
             className="flex-1 px-6 py-3.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-extrabold uppercase tracking-wider text-xs font-mono rounded-xl transition-all shadow-[0_0_20px_rgba(232,168,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"

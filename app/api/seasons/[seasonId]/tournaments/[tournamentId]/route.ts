@@ -79,11 +79,12 @@ export async function PUT(
     const groupIds = groupCount > 0 ? await generateIds(ID_PREFIXES.GROUP, groupCount) : []
 
     const updatedTournament = await prisma.$transaction(async (tx) => {
-      // 1. Delete all current matches, standings, groups, and knockout rounds to wipe existing layout
+      // 1. Delete all current matches, standings, groups, knockout rounds, and tournament teams to wipe existing layout
       await tx.matches.deleteMany({ where: { tournamentId } })
       await tx.standings.deleteMany({ where: { tournamentId } })
       await tx.groups.deleteMany({ where: { tournamentId } })
       await tx.knockout_rounds.deleteMany({ where: { tournamentId } })
+      await tx.tournament_teams.deleteMany({ where: { tournamentId } })
 
       // 2. Update basic tournament fields
       const tourn = await tx.tournaments.update({
@@ -144,10 +145,33 @@ export async function PUT(
         // Remove incoming link if any
         await tx.tournament_links.deleteMany({ where: { targetTournamentId: tournamentId } })
 
-        // Create fresh standings for the manually selected teams
+        // Create fresh standings and tournament_teams for the manually selected teams
         if (selectedTeams && selectedTeams.length > 0) {
           const standingIds = await generateIds(ID_PREFIXES.STANDING, selectedTeams.length)
           const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+          
+          const tournTeamsData = selectedTeams.map((teamId: string, i: number) => {
+            let groupName = null
+            if (tournamentType === 'GROUP_KNOCKOUT' && groupCount > 0) {
+              const groupIndex = i % groupCount
+              groupName = `Group ${groupNames[groupIndex]}`
+            }
+            return {
+              id: `tt-${tournamentId}-${teamId}`,
+              tournamentId,
+              teamId,
+              groupName,
+              seedPosition: i + 1,
+              updatedAt: new Date()
+            }
+          })
+
+          // 1. Create tournament_teams records
+          await tx.tournament_teams.createMany({
+            data: tournTeamsData
+          })
+
+          // 2. Create standings records
           await tx.standings.createMany({
             data: selectedTeams.map((teamId: string, i: number) => {
               let groupName = null

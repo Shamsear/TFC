@@ -146,9 +146,31 @@ export async function POST(
         })
       }
 
-      // Create standings for selected teams in bulk (if not linked)
+      // Create standings and tournament_teams for selected teams in bulk (if not linked)
       if (!linked && selectedTeams && selectedTeams.length > 0) {
         const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        const tournTeamsData = selectedTeams.map((teamId: string, i: number) => {
+          let groupName = null
+          if (tournamentType === 'GROUP_KNOCKOUT' && groupCount > 0) {
+            const groupIndex = i % groupCount
+            groupName = `Group ${groupNames[groupIndex]}`
+          }
+          return {
+            id: `tt-${newTournament.id}-${teamId}`,
+            tournamentId: newTournament.id,
+            teamId,
+            groupName,
+            seedPosition: i + 1,
+            updatedAt: new Date()
+          }
+        })
+
+        // 1. Create tournament_teams records
+        await tx.tournament_teams.createMany({
+          data: tournTeamsData
+        })
+
+        // 2. Create standings records
         await tx.standings.createMany({
           data: selectedTeams.map((teamId: string, i: number) => {
             let groupName = null

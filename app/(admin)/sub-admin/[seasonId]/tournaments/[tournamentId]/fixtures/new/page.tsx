@@ -48,7 +48,8 @@ export default async function NewFixturesPage({ params }: NewFixturesPageProps) 
     id: s.seasonTeam.id,
     teamId: s.seasonTeam.team.id,
     name: s.seasonTeam.team.name,
-    logoUrl: s.seasonTeam.team.logoUrl
+    logoUrl: s.seasonTeam.team.logoUrl,
+    groupName: s.groupName
   }))
 
   return (

@@ -862,6 +862,12 @@ async function populateConfirmedTeams(
   confirmedTeams: ConfirmedTeam[]
 ) {
   const config = link.qualificationConfig as any;
+
+  // Fetch target groups to support auto-grouping
+  const targetGroups = await prisma.groups.findMany({
+    where: { tournamentId: link.targetTournamentId },
+    orderBy: { groupOrder: 'asc' }
+  });
   
   for (const team of confirmedTeams) {
     await prisma.$transaction(async (tx) => {
@@ -900,6 +906,13 @@ async function populateConfirmedTeams(
           where: { tournamentId: link.sourceTournamentId, teamId: team.seasonTeamId }
         });
 
+        // Determine target group name based on seed/slot number
+        let targetGroupName = standing?.groupName || null;
+        if (targetGroups.length > 0) {
+          const groupIndex = (slotNumber - 1) % targetGroups.length;
+          targetGroupName = targetGroups[groupIndex].name;
+        }
+
         // 1. Create qualification record
         await tx.tournament_team_qualifications.create({
           data: {
@@ -909,7 +922,7 @@ async function populateConfirmedTeams(
             sourceTournamentId: link.sourceTournamentId,
             targetTournamentId: link.targetTournamentId,
             qualificationPosition: team.confirmedPosition,
-            groupName: standing?.groupName || null,
+            groupName: targetGroupName,
             confirmedAt: team.confirmedAt,
             slotNumber: slotNumber,
             status: 'CONFIRMED'
@@ -928,9 +941,11 @@ async function populateConfirmedTeams(
             id: crypto.randomUUID(),
             tournamentId: link.targetTournamentId,
             teamId: team.seasonTeamId,
+            groupName: targetGroupName,
             seedPosition: slotNumber
           },
           update: {
+            groupName: targetGroupName,
             seedPosition: slotNumber
           }
         });
@@ -948,6 +963,7 @@ async function populateConfirmedTeams(
               id: await generateStandingId(),
               tournamentId: link.targetTournamentId,
               teamId: team.seasonTeamId,
+              groupName: targetGroupName,
               played: 0,
               won: 0,
               drawn: 0,
@@ -959,7 +975,16 @@ async function populateConfirmedTeams(
               updatedAt: new Date()
             }
           });
-        } // No update needed if standing already exists
+        } else {
+          // Update group name if it changed or was null
+          await tx.standings.update({
+            where: { id: existingStanding.id },
+            data: {
+              groupName: targetGroupName,
+              updatedAt: new Date()
+            }
+          });
+        }
       }
     });
   }
@@ -1115,9 +1140,11 @@ export async function populateTournamentLink(
             id: crypto.randomUUID(),
             tournamentId: link.targetTournamentId,
             teamId: team.seasonTeamId,
+            groupName: targetGroupName,
             seedPosition: team.seedPosition
           },
           update: {
+            groupName: targetGroupName,
             seedPosition: team.seedPosition
           }
         });

@@ -73,6 +73,18 @@ export async function POST(
                 updatedAt: new Date()
               }
             })
+
+            // Update groupName in tournament_teams for these teams
+            await tx.tournament_teams.updateMany({
+              where: {
+                tournamentId,
+                teamId: { in: teamIds }
+              },
+              data: {
+                groupName,
+                updatedAt: new Date()
+              }
+            })
           }
         }
       }

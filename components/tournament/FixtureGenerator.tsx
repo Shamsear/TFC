@@ -9,6 +9,7 @@ interface Team {
   teamId: string
   name: string
   logoUrl: string
+  groupName?: string | null
 }
 
 interface Group {
@@ -49,6 +50,17 @@ export default function FixtureGenerator({ tournament, teams, groups, seasonId }
       groups.forEach(group => {
         assignments[group.id] = []
       })
+      
+      // Pre-populate with existing group assignments
+      teams.forEach(team => {
+        if (team.groupName) {
+          const matchingGroup = groups.find(g => g.name === team.groupName)
+          if (matchingGroup) {
+            assignments[matchingGroup.id].push(team.id)
+          }
+        }
+      })
+      
       setFormData(prev => ({ ...prev, groupAssignments: assignments }))
     }
   })

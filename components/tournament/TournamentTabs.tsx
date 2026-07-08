@@ -193,14 +193,15 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
     ...(hasKnockout ? [{ id: 'knockout', label: 'Knockout', count: knockoutRounds.length }] : [])
   ]
 
-  // Get available teams for knockout (from standings)
-  const availableTeams = tournament.standings.map((standing: any) => ({
+  // Get available teams for knockout (from standings with positions and group names)
+  const availableTeams = standingsWithPositions.map((standing: any) => ({
     id: standing.teamId,
     teamId: standing.seasonTeam?.team?.id,
     name: standing.seasonTeam?.team?.name,
     logoUrl: standing.seasonTeam?.team?.logoUrl,
     position: standing.position,
-    points: standing.points
+    points: standing.points,
+    groupName: standing.groupName
   }))
 
   return (

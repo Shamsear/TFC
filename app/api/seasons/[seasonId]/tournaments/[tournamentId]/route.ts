@@ -253,3 +253,63 @@ export async function PUT(
     )
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ seasonId: string; tournamentId: string }> }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { seasonId, tournamentId } = await params
+    const body = await request.json()
+    const { status } = body
+
+    if (!status) {
+      return NextResponse.json({ error: 'Status is required' }, { status: 400 })
+    }
+
+    // Verify tournament exists and belongs to the season
+    const tournament = await prisma.tournaments.findUnique({
+      where: { id: tournamentId }
+    })
+
+    if (!tournament || tournament.seasonId !== seasonId) {
+      return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
+    }
+
+    const updatedTournament = await prisma.tournaments.update({
+      where: { id: tournamentId },
+      data: {
+        status,
+        updatedAt: new Date()
+      }
+    })
+
+    // Create audit log
+    await createAuditLog({
+      userId: session.user.id,
+      userEmail: session.user.email!,
+      userRole: session.user.role!,
+      action: 'UPDATE_TOURNAMENT_STATUS',
+      entityType: 'tournament',
+      entityId: tournamentId,
+      entityName: tournament.name,
+      seasonId,
+      details: { oldStatus: tournament.status, newStatus: status },
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      userAgent: request.headers.get('user-agent') || 'unknown'
+    })
+
+    return NextResponse.json(updatedTournament)
+  } catch (error: any) {
+    console.error('Error updating tournament status:', error)
+    return NextResponse.json(
+      { error: 'Failed to update tournament status', details: error.message },
+      { status: 500 }
+    )
+  }
+}

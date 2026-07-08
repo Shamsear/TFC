@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import TournamentTabs from '@/components/tournament/TournamentTabs'
 
+import TournamentStatusSelector from '@/components/tournament/TournamentStatusSelector'
+
 interface TournamentDetailPageProps {
   params: Promise<{
     seasonId: string
@@ -169,9 +171,11 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
             <h1 className="text-4xl sm:text-5xl font-black text-white bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
               {tournament.name}
             </h1>
-            <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-mono font-black uppercase tracking-wider self-start sm:self-auto ${getStatusColor(tournament.status)}`}>
-              {tournament.status.replace('_', ' ')}
-            </span>
+            <TournamentStatusSelector
+              tournamentId={tournamentId}
+              seasonId={seasonId}
+              initialStatus={tournament.status}
+            />
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs font-bold uppercase tracking-wider text-[#7A7367] mb-4 font-mono">

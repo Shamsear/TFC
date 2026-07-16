@@ -372,8 +372,66 @@ export default function KnockoutRoundManager({
     return pairings
   }
 
-  const autoPairings = getAutoPairings()
-  const isAutoFullyResolved = autoPairings.every(p => p.team1Id !== null && p.team2Id !== null)
+  const getTeamFromPlaceholder = (placeholder: string) => {
+    if (!placeholder) return null
+    if (!stageStatus.isCompleted) return null
+    
+    if (placeholder.startsWith("Group ")) {
+      const match = placeholder.match(/^Group\s+(.+?)\s*#(\d+)$/)
+      if (match) {
+        const groupName = `Group ${match[1]}`
+        const pos = parseInt(match[2], 10)
+        return availableTeams.find(t => t.groupName === groupName && t.position === pos) || null
+      }
+    }
+    
+    if (placeholder.startsWith("League #")) {
+      const pos = parseInt(placeholder.substring(8), 10)
+      return availableTeams.find(t => t.position === pos) || null
+    }
+    
+    if (placeholder.startsWith("Seed #")) {
+      const pos = parseInt(placeholder.substring(6), 10)
+      return availableTeams.find(t => t.position === pos) || null
+    }
+    
+    return null
+  }
+
+  const getPreviewPairings = () => {
+    if (formData.pairingMethod !== 'custom') {
+      return getAutoPairings()
+    }
+
+    return formData.customPairings.map((pair, idx) => {
+      if (formData.mode === 'manual') {
+        const t1 = availableTeams.find(t => t.id === pair.team1)
+        const t2 = availableTeams.find(t => t.id === pair.team2)
+        return {
+          team1Label: t1 ? t1.name : `Match #${idx + 1} - Team 1`,
+          team1Id: t1?.id || null,
+          team1Logo: t1?.logoUrl,
+          team2Label: t2 ? t2.name : `Match #${idx + 1} - Team 2`,
+          team2Id: t2?.id || null,
+          team2Logo: t2?.logoUrl
+        }
+      } else {
+        const t1 = getTeamFromPlaceholder(pair.team1)
+        const t2 = getTeamFromPlaceholder(pair.team2)
+        return {
+          team1Label: pair.team1 || `Match #${idx + 1} - Team 1`,
+          team1Id: t1?.id || null,
+          team1Logo: t1?.logoUrl,
+          team2Label: pair.team2 || `Match #${idx + 1} - Team 2`,
+          team2Id: t2?.id || null,
+          team2Logo: t2?.logoUrl
+        }
+      }
+    })
+  }
+
+  const previewPairings = getPreviewPairings()
+  const isAutoFullyResolved = previewPairings.every(p => p.team1Id !== null && p.team2Id !== null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -680,7 +738,7 @@ export default function KnockoutRoundManager({
             </div>
             
             <div className="grid gap-4 sm:grid-cols-2">
-              {autoPairings.map((pair, idx) => {
+              {previewPairings.map((pair, idx) => {
                 const team1Name = pair.team1Id ? availableTeams.find(t => t.id === pair.team1Id)?.name : null
                 const team2Name = pair.team2Id ? availableTeams.find(t => t.id === pair.team2Id)?.name : null
                 

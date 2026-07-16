@@ -116,13 +116,45 @@ export default function KnockoutRoundManager({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
+  const startingRoundTeams = (() => {
+    if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
+      const groupsCount = tournament.groups?.length || 0
+      const qualifiersPerGroup = tournament.groupQualifiers || 2
+      return groupsCount * qualifiersPerGroup
+    }
+    if (tournament.tournamentType === 'LEAGUE_PLAYOFF') {
+      if (tournament.playoffFormat === 'TOP_2_FINAL') return 2
+      return 4
+    }
+    if (tournament.tournamentType === 'CUSTOM_KNOCKOUT') {
+      const config = tournament.knockoutConfig ? JSON.parse(tournament.knockoutConfig) : null
+      if (config?.qualifyingTeams) return config.qualifyingTeams
+      if (config?.qualifyingRound) {
+        const roundMap: Record<string, number> = {
+          'ROUND_OF_32': 32,
+          'ROUND_OF_16': 16,
+          'QUARTER_FINAL': 8,
+          'SEMI_FINAL': 4,
+          'THIRD_PLACE': 2,
+          'FINAL': 2
+        }
+        return roundMap[config.qualifyingRound] || 8
+      }
+    }
+    return tournament.standings?.length || 8
+  })()
+
+  const filteredRoundOptions = roundOptions.filter(option => option.teams <= startingRoundTeams)
+  const defaultRoundName = filteredRoundOptions[0]?.value || 'QUARTER_FINAL'
+
   const [formData, setFormData] = useState({
     mode: 'auto' as 'auto' | 'manual',
-    roundName: 'QUARTER_FINAL',
+    roundName: defaultRoundName,
     legs: tournament.knockoutConfig ? JSON.parse(tournament.knockoutConfig).defaultLegs : 2,
     selectedTeams: [] as string[],
     autoPair: true,
-    manualPairings: [] as Array<{ team1: string; team2: string }>
+    pairingMethod: 'auto' as 'auto' | 'consecutive' | 'custom',
+    customPairings: [] as Array<{ team1: string; team2: string }>
   })
 
   const selectedRound = roundOptions.find(r => r.value === formData.roundName)
@@ -159,12 +191,14 @@ export default function KnockoutRoundManager({
     }> = []
 
     const getGroupTeam = (gName: string, pos: number) => {
+      if (!stageStatus.isCompleted) return null
       return availableTeams.find(
         t => t.groupName === gName && t.position === pos
       ) || null
     }
 
     const getOverallTeam = (pos: number) => {
+      if (!stageStatus.isCompleted) return null
       return availableTeams.find(t => t.position === pos) || null
     }
 
@@ -363,6 +397,16 @@ export default function KnockoutRoundManager({
       submitTeams = formData.selectedTeams
     }
 
+    let customPairingsPayload = null
+    if (formData.pairingMethod === 'custom') {
+      const hasEmpty = formData.customPairings.some(p => !p.team1 || !p.team2)
+      if (hasEmpty) {
+        setError('Please configure all custom matchups before creating')
+        return
+      }
+      customPairingsPayload = formData.customPairings
+    }
+
     setLoading(true)
     setError('')
 
@@ -374,8 +418,8 @@ export default function KnockoutRoundManager({
           roundName: formData.roundName,
           legs: formData.legs,
           teams: submitTeams,
-          autoPair: autoPairMode,
-          manualPairings: formData.manualPairings,
+          autoPair: autoPairMode && formData.pairingMethod !== 'custom',
+          customPairings: customPairingsPayload,
           createFullBracket: formData.mode === 'auto'
         })
       })
@@ -389,7 +433,8 @@ export default function KnockoutRoundManager({
       setFormData(prev => ({
         ...prev,
         selectedTeams: [],
-        manualPairings: []
+        customPairings: [],
+        pairingMethod: 'auto'
       }))
     } catch (err: any) {
       setError(err.message)
@@ -535,7 +580,7 @@ export default function KnockoutRoundManager({
                 Select Round
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {roundOptions.map((option) => {
+                {filteredRoundOptions.map((option) => {
                   const isDisabled = existingRounds.some(r => r.roundName === option.value)
                   const isSelected = formData.roundName === option.value
 
@@ -770,54 +815,161 @@ export default function KnockoutRoundManager({
           </div>
         )}
 
-        {/* Manual Pairing Selector */}
-        {formData.mode === 'manual' && formData.selectedTeams.length === requiredTeams && (
-          <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-            <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono mb-6">Pairing Method</h3>
+        {/* Pairing Method Selector */}
+        {((formData.mode === 'auto') || (formData.mode === 'manual' && formData.selectedTeams.length === requiredTeams)) && (
+          <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
+            <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono">Pairing Method</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Option 1: Automatic */}
               <label className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden ${
-                formData.autoPair
+                formData.pairingMethod === 'auto'
                   ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
                   : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
               }`}>
                 <input
                   type="radio"
                   name="pairingMethod"
-                  checked={formData.autoPair}
-                  onChange={() => setFormData(prev => ({ ...prev, autoPair: true }))}
+                  checked={formData.pairingMethod === 'auto'}
+                  onChange={() => setFormData(prev => ({ ...prev, pairingMethod: 'auto', autoPair: true }))}
                   className="sr-only"
                 />
                 <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Automatic Pairing</div>
                 <div className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">
-                  Based on selection order (1 vs last, 2 vs second-last, etc.)
+                  {formData.mode === 'auto' 
+                    ? 'Default tournament bracket rules' 
+                    : 'Based on selection order (1 vs last, etc.)'}
                 </div>
-                {formData.autoPair && (
+                {formData.pairingMethod === 'auto' && (
                   <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
                 )}
               </label>
-              
+
+              {/* Option 2: Consecutive (Manual Mode Only) */}
+              {formData.mode === 'manual' && (
+                <label className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden ${
+                  formData.pairingMethod === 'consecutive'
+                    ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
+                    : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
+                }`}>
+                  <input
+                    type="radio"
+                    name="pairingMethod"
+                    checked={formData.pairingMethod === 'consecutive'}
+                    onChange={() => setFormData(prev => ({ ...prev, pairingMethod: 'consecutive', autoPair: false }))}
+                    className="sr-only"
+                  />
+                  <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Consecutive Pairing</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">
+                    Pair teams consecutively (1 vs 2, 3 vs 4, etc.)
+                  </div>
+                  {formData.pairingMethod === 'consecutive' && (
+                    <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
+                  )}
+                </label>
+              )}
+
+              {/* Option 3: Custom */}
               <label className={`cursor-pointer rounded-2xl border p-4 transition-all relative overflow-hidden ${
-                !formData.autoPair
+                formData.pairingMethod === 'custom'
                   ? 'border-[#E8A800] bg-[#E8A800]/5 text-[#E8A800]'
                   : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'
               }`}>
                 <input
                   type="radio"
                   name="pairingMethod"
-                  checked={!formData.autoPair}
-                  onChange={() => setFormData(prev => ({ ...prev, autoPair: false }))}
+                  checked={formData.pairingMethod === 'custom'}
+                  onChange={() => {
+                    const pairingsCount = Math.floor(requiredTeams / 2)
+                    const initialCustom = Array.from({ length: pairingsCount }).map(() => ({ team1: '', team2: '' }))
+                    setFormData(prev => ({ ...prev, pairingMethod: 'custom', customPairings: initialCustom }))
+                  }}
                   className="sr-only"
                 />
-                <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Consecutive Pairing</div>
+                <div className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-tight font-mono">Custom Pairing</div>
                 <div className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">
-                  Pair teams consecutively (1 vs 2, 3 vs 4, etc.)
+                  Manually define each matchup
                 </div>
-                {!formData.autoPair && (
+                {formData.pairingMethod === 'custom' && (
                   <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)]" />
                 )}
               </label>
             </div>
+
+            {/* Custom Pairing Configuration Section */}
+            {formData.pairingMethod === 'custom' && (
+              <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
+                <div className="text-sm font-black text-white uppercase tracking-wider font-mono">
+                  Configure Custom Matchups ({Math.floor(requiredTeams / 2)} matches)
+                </div>
+                
+                <div className="grid grid-cols-1 gap-6">
+                  {formData.customPairings.map((pair, idx) => {
+                    let options: Array<{ value: string; label: string }> = []
+                    if (formData.mode === 'manual') {
+                      options = formData.selectedTeams.map(id => {
+                        const t = availableTeams.find(x => x.id === id)
+                        return { value: id, label: t?.name || id }
+                      })
+                    } else {
+                      const autoPairs = getAutoPairings()
+                      const labelsList = autoPairs.flatMap(p => [p.team1Label, p.team2Label])
+                      options = labelsList.map(label => ({ value: label, label }))
+                    }
+
+                    return (
+                      <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                        <div className="font-mono text-xs font-black uppercase text-[#E8A800] tracking-wider w-20">
+                          Match #{idx + 1}
+                        </div>
+                        
+                        <div className="flex-1 w-full space-y-1">
+                          <label className="block text-[9px] font-black text-gray-500 uppercase tracking-wider font-mono">Team 1</label>
+                          <select
+                            value={pair.team1}
+                            onChange={(e) => {
+                              const updated = [...formData.customPairings]
+                              updated[idx].team1 = e.target.value
+                              setFormData(prev => ({ ...prev, customPairings: updated }))
+                            }}
+                            className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:border-[#E8A800] outline-none"
+                          >
+                            <option value="">-- Select Team --</option>
+                            {options.map(opt => (
+                              <option key={opt.value} value={opt.value} disabled={formData.customPairings.some((p, pIdx) => (p.team1 === opt.value || p.team2 === opt.value) && !(pIdx === idx && p.team1 === opt.value))}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="font-mono text-xs text-gray-600 font-black">VS</div>
+                        
+                        <div className="flex-1 w-full space-y-1">
+                          <label className="block text-[9px] font-black text-gray-500 uppercase tracking-wider font-mono">Team 2</label>
+                          <select
+                            value={pair.team2}
+                            onChange={(e) => {
+                              const updated = [...formData.customPairings]
+                              updated[idx].team2 = e.target.value
+                              setFormData(prev => ({ ...prev, customPairings: updated }))
+                            }}
+                            className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:border-[#E8A800] outline-none"
+                          >
+                            <option value="">-- Select Team --</option>
+                            {options.map(opt => (
+                              <option key={opt.value} value={opt.value} disabled={formData.customPairings.some((p, pIdx) => (p.team1 === opt.value || p.team2 === opt.value) && !(pIdx === idx && p.team2 === opt.value))}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

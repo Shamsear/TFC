@@ -1494,10 +1494,18 @@ export async function resolveAndPopulateKnockoutBracket(tournamentId: string): P
             for (let i = 0; i < pairings.length; i++) {
               const pair = pairings[i]
               const autoPair = resolvedAutoPairs[i]
-              if (autoPair && autoPair.team1Id && autoPair.team2Id) {
+              
+              const team1Id = pair.team1Id || 
+                              resolveTeamFromPlaceholder(pair.team1Placeholder, mappedTeams) || 
+                              autoPair?.team1Id
+              const team2Id = pair.team2Id || 
+                              resolveTeamFromPlaceholder(pair.team2Placeholder, mappedTeams) || 
+                              autoPair?.team2Id
+
+              if (team1Id && team2Id) {
                 const matchRefs = await ensureMatchesForPairing(
                   prisma,
-                  { ...pair, team1Id: autoPair.team1Id, team2Id: autoPair.team2Id },
+                  { ...pair, team1Id, team2Id },
                   round.roundName,
                   round.legs,
                   tournamentId
@@ -1506,15 +1514,15 @@ export async function resolveAndPopulateKnockoutBracket(tournamentId: string): P
                 await prisma.knockout_pairings.update({
                   where: { id: pair.id },
                   data: {
-                    team1Id: autoPair.team1Id,
-                    team2Id: autoPair.team2Id,
+                    team1Id,
+                    team2Id,
                     leg1MatchId: matchRefs.leg1MatchId,
                     leg2MatchId: matchRefs.leg2MatchId,
                     updatedAt: new Date()
                   }
                 })
-                pair.team1Id = autoPair.team1Id
-                pair.team2Id = autoPair.team2Id
+                pair.team1Id = team1Id
+                pair.team2Id = team2Id
                 pair.leg1MatchId = matchRefs.leg1MatchId
                 pair.leg2MatchId = matchRefs.leg2MatchId
               }
@@ -1884,3 +1892,36 @@ export async function ensureMatchesForPairing(
   return { leg1MatchId, leg2MatchId }
 }
 
+/**
+ * Resolves a team ID from a placeholder string (e.g. Group A #1 or League #2)
+ */
+export function resolveTeamFromPlaceholder(placeholder: string | null, availableTeams: any[]): string | null {
+  if (!placeholder) return null
+
+  // Format: "Group X #N"
+  if (placeholder.startsWith("Group ")) {
+    const match = placeholder.match(/^Group\s+(.+?)\s*#(\d+)$/)
+    if (match) {
+      const groupName = `Group ${match[1]}`
+      const pos = parseInt(match[2], 10)
+      const team = availableTeams.find(t => t.groupName === groupName && t.position === pos)
+      return team?.id || null
+    }
+  }
+
+  // Format: "League #N"
+  if (placeholder.startsWith("League #")) {
+    const pos = parseInt(placeholder.substring(8), 10)
+    const team = availableTeams.find(t => t.position === pos)
+    return team?.id || null
+  }
+
+  // Format: "Seed #N"
+  if (placeholder.startsWith("Seed #")) {
+    const pos = parseInt(placeholder.substring(6), 10)
+    const team = availableTeams.find(t => t.position === pos)
+    return team?.id || null
+  }
+
+  return null
+}

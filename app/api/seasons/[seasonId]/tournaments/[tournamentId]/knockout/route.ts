@@ -17,7 +17,7 @@ export async function POST(
 
     const { seasonId, tournamentId } = await params
     const body = await request.json()
-    const { roundName, legs, teams, autoPair, createFullBracket } = body
+    const { roundName, legs, teams, autoPair, customPairings, createFullBracket } = body
 
     if (!roundName || !legs) {
       return NextResponse.json(
@@ -122,7 +122,38 @@ export async function POST(
       })
 
       // Create pairings
-      if (createFullBracket) {
+      if (customPairings && customPairings.length > 0) {
+        for (let i = 0; i < customPairings.length; i++) {
+          const cp = customPairings[i]
+          const pairingId = await generateKnockoutPairingId()
+          
+          if (createFullBracket) {
+            // Auto qualification with placeholders
+            await tx.knockout_pairings.create({
+              data: {
+                id: pairingId,
+                knockoutRoundId: round.id,
+                team1Id: null,
+                team2Id: null,
+                team1Placeholder: cp.team1,
+                team2Placeholder: cp.team2,
+                updatedAt: new Date()
+              }
+            })
+          } else {
+            // Manual selection with actual teams
+            await tx.knockout_pairings.create({
+              data: {
+                id: pairingId,
+                knockoutRoundId: round.id,
+                team1Id: cp.team1,
+                team2Id: cp.team2,
+                updatedAt: new Date()
+              }
+            })
+          }
+        }
+      } else if (createFullBracket) {
         // Auto mode starts with empty pairings to populate on the go
         for (let i = 0; i < primaryPairingsCount; i++) {
           const pairingId = await generateKnockoutPairingId()

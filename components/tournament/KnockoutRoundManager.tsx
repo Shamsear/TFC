@@ -344,7 +344,7 @@ export default function KnockoutRoundManager({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!stageStatus.isCompleted) {
+    if (formData.mode !== 'auto' && !stageStatus.isCompleted) {
       setError(`Cannot create round: the preceding ${stageStatus.stageLabel} stage matches are incomplete.`)
       return
     }
@@ -421,25 +421,42 @@ export default function KnockoutRoundManager({
 
       {/* Preceding Stage Warning Banner */}
       {!stageStatus.isCompleted && (
-        <div className="rounded-2xl bg-red-500/10 border border-red-500/30 p-5 flex items-start gap-3">
-          <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <div>
-            <p className="text-xs font-black text-red-400 uppercase tracking-wider font-mono mb-1">
-              Preceding Stage Incomplete
-            </p>
-            <p className="text-xs text-gray-400 lowercase font-sans">
-              You cannot create the <span className="font-bold text-white uppercase font-mono">{selectedRound?.label}</span> yet.
-              The preceding <span className="font-bold text-white uppercase font-mono">{stageStatus.stageLabel}</span> is not completed
-              {stageStatus.totalMatches > 0 ? (
-                <> (has <span className="font-bold text-white uppercase font-mono">{stageStatus.pendingMatches} pending matches</span> remaining).</>
-              ) : (
-                <> (no matches have been scheduled or generated for it yet).</>
-              )}
-            </p>
+        formData.mode === 'auto' ? (
+          <div className="rounded-2xl bg-yellow-500/10 border border-yellow-500/30 p-5 flex items-start gap-3">
+            <svg className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-xs font-black text-yellow-400 uppercase tracking-wider font-mono mb-1">
+                Placeholder Bracket Supported
+              </p>
+              <p className="text-xs text-gray-400 lowercase font-sans">
+                The preceding <span className="font-bold text-white uppercase font-mono">{stageStatus.stageLabel}</span> is not completed yet
+                {stageStatus.totalMatches > 0 ? (
+                  <> (has <span className="font-bold text-white uppercase font-mono">{stageStatus.pendingMatches} pending matches</span> remaining).</>
+                ) : (
+                  <> (no matches scheduled yet).</>
+                )}
+                {' '}You can still create the round using <span className="font-bold text-white font-mono uppercase">Auto Qualification</span>. Placeholders (e.g. Group A #1) will show and automatically populate when matches are completed.
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-2xl bg-red-500/10 border border-red-500/30 p-5 flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-xs font-black text-red-400 uppercase tracking-wider font-mono mb-1">
+                Preceding Stage Incomplete
+              </p>
+              <p className="text-xs text-gray-400 lowercase font-sans">
+                You cannot pick teams manually for <span className="font-bold text-white uppercase font-mono">{selectedRound?.label}</span> yet.
+                The preceding <span className="font-bold text-white uppercase font-mono">{stageStatus.stageLabel}</span> is not completed.
+              </p>
+            </div>
+          </div>
+        )
       )}
 
       {/* Bracket View */}
@@ -810,8 +827,7 @@ export default function KnockoutRoundManager({
             type="submit"
             disabled={
               loading || 
-              !stageStatus.isCompleted ||
-              (formData.mode === 'manual' && formData.selectedTeams.length !== requiredTeams)
+              (formData.mode === 'manual' && (!stageStatus.isCompleted || formData.selectedTeams.length !== requiredTeams))
             }
             className="flex-1 px-6 py-3.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-black font-extrabold uppercase tracking-wider text-xs font-mono rounded-xl transition-all shadow-[0_0_20px_rgba(232,168,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
           >

@@ -560,6 +560,8 @@ model knockout_pairings {
   knockoutRoundId String
   team1Id         String?
   team2Id         String?
+  team1Placeholder String?
+  team2Placeholder String?
   winnerId        String?
   leg1MatchId     String?
   leg2MatchId     String?

@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { generateStandingId } from './id-generator'
+import { generateStandingId, generateMatchId } from './id-generator'
 import crypto from 'crypto'
 
 export interface QualifiedTeam {
@@ -1495,16 +1495,28 @@ export async function resolveAndPopulateKnockoutBracket(tournamentId: string): P
               const pair = pairings[i]
               const autoPair = resolvedAutoPairs[i]
               if (autoPair && autoPair.team1Id && autoPair.team2Id) {
+                const matchRefs = await ensureMatchesForPairing(
+                  prisma,
+                  { ...pair, team1Id: autoPair.team1Id, team2Id: autoPair.team2Id },
+                  round.roundName,
+                  round.legs,
+                  tournamentId
+                )
+
                 await prisma.knockout_pairings.update({
                   where: { id: pair.id },
                   data: {
                     team1Id: autoPair.team1Id,
                     team2Id: autoPair.team2Id,
+                    leg1MatchId: matchRefs.leg1MatchId,
+                    leg2MatchId: matchRefs.leg2MatchId,
                     updatedAt: new Date()
                   }
                 })
                 pair.team1Id = autoPair.team1Id
                 pair.team2Id = autoPair.team2Id
+                pair.leg1MatchId = matchRefs.leg1MatchId
+                pair.leg2MatchId = matchRefs.leg2MatchId
               }
             }
           }
@@ -1531,16 +1543,31 @@ export async function resolveAndPopulateKnockoutBracket(tournamentId: string): P
         }
 
         if (team1WinnerId !== pair.team1Id || team2WinnerId !== pair.team2Id) {
+          let matchRefs = { leg1MatchId: pair.leg1MatchId, leg2MatchId: pair.leg2MatchId }
+          if (team1WinnerId && team2WinnerId) {
+            matchRefs = await ensureMatchesForPairing(
+              prisma,
+              { ...pair, team1Id: team1WinnerId, team2Id: team2WinnerId },
+              round.roundName,
+              round.legs,
+              tournamentId
+            )
+          }
+
           await prisma.knockout_pairings.update({
             where: { id: pair.id },
             data: {
               team1Id: team1WinnerId,
               team2Id: team2WinnerId,
+              leg1MatchId: matchRefs.leg1MatchId,
+              leg2MatchId: matchRefs.leg2MatchId,
               updatedAt: new Date()
             }
           })
           pair.team1Id = team1WinnerId
           pair.team2Id = team2WinnerId
+          pair.leg1MatchId = matchRefs.leg1MatchId
+          pair.leg2MatchId = matchRefs.leg2MatchId
         }
       }
     }
@@ -1667,3 +1694,193 @@ function resolveBackendAutoPairings(roundName: string, availableTeams: any[], re
 
   return pairings
 }
+
+/**
+ * Gets placeholder names for auto qualification pairings based on tournament settings and pairing index.
+ */
+export function getAutoPairingPlaceholders(
+  roundName: string,
+  pairingIndex: number,
+  tournament: any
+): { team1Placeholder: string; team2Placeholder: string } {
+  const groups = tournament.groups || []
+  const roundPairingsCountMap: Record<string, number> = {
+    'ROUND_OF_32': 16,
+    'ROUND_OF_16': 8,
+    'QUARTER_FINAL': 4,
+    'SEMI_FINAL': 2,
+    'THIRD_PLACE': 1,
+    'FINAL': 1
+  }
+  const requiredTeams = (roundPairingsCountMap[roundName] || 1) * 2
+
+  if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
+    if (requiredTeams === 8) {
+      if (groups.length >= 4) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        const groupC = groups[2]?.name || 'Group C'
+        const groupD = groups[3]?.name || 'Group D'
+        
+        const pairs = [
+          { t1: `${groupA} #1`, t2: `${groupB} #2` },
+          { t1: `${groupC} #1`, t2: `${groupD} #2` },
+          { t1: `${groupB} #1`, t2: `${groupA} #2` },
+          { t1: `${groupD} #1`, t2: `${groupC} #2` },
+        ]
+        const p = pairs[pairingIndex]
+        if (p) return { team1Placeholder: p.t1, team2Placeholder: p.t2 }
+      } else if (groups.length === 2) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        
+        const pairs = [
+          { t1: `${groupA} #1`, t2: `${groupB} #4` },
+          { t1: `${groupA} #2`, t2: `${groupB} #3` },
+          { t1: `${groupB} #2`, t2: `${groupA} #3` },
+          { t1: `${groupB} #1`, t2: `${groupA} #4` },
+        ]
+        const p = pairs[pairingIndex]
+        if (p) return { team1Placeholder: p.t1, team2Placeholder: p.t2 }
+      }
+    } else if (requiredTeams === 4) {
+      if (groups.length >= 2) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        
+        const pairs = [
+          { t1: `${groupA} #1`, t2: `${groupB} #2` },
+          { t1: `${groupB} #1`, t2: `${groupA} #2` }
+        ]
+        const p = pairs[pairingIndex]
+        if (p) return { team1Placeholder: p.t1, team2Placeholder: p.t2 }
+      } else if (groups.length >= 4) {
+        const groupA = groups[0]?.name || 'Group A'
+        const groupB = groups[1]?.name || 'Group B'
+        const groupC = groups[2]?.name || 'Group C'
+        const groupD = groups[3]?.name || 'Group D'
+        
+        const pairs = [
+          { t1: `${groupA} Winner`, t2: `${groupB} Winner` },
+          { t1: `${groupC} Winner`, t2: `${groupD} Winner` }
+        ]
+        const p = pairs[pairingIndex]
+        if (p) return { team1Placeholder: p.t1, team2Placeholder: p.t2 }
+      }
+    } else if (requiredTeams === 2) {
+      const groupA = groups[0]?.name || 'Group A'
+      const groupB = groups[1]?.name || 'Group B'
+      return { team1Placeholder: `${groupA} Winner`, team2Placeholder: `${groupB} Winner` }
+    }
+  } else if (tournament.tournamentType === 'LEAGUE_PLAYOFF') {
+    if (requiredTeams === 4) {
+      const pairs = [
+        { t1: `League #1`, t2: `League #4` },
+        { t1: `League #2`, t2: `League #3` }
+      ]
+      const p = pairs[pairingIndex]
+      if (p) return { team1Placeholder: p.t1, team2Placeholder: p.t2 }
+    } else if (requiredTeams === 2) {
+      return { team1Placeholder: `League #1`, team2Placeholder: `League #2` }
+    }
+  }
+
+  // Fallback / KNOCKOUT_ONLY
+  const p1 = pairingIndex + 1
+  const p2 = requiredTeams - pairingIndex
+  return {
+    team1Placeholder: `Seed #${p1}`,
+    team2Placeholder: `Seed #${p2}`
+  }
+}
+
+/**
+ * Ensures matches for a knockout pairing exist in the matches table, dynamically updating or creating them.
+ */
+export async function ensureMatchesForPairing(
+  client: any, // prisma or tx
+  pairing: { id: string; team1Id: string; team2Id: string; leg1MatchId: string | null; leg2MatchId: string | null },
+  roundName: string,
+  legs: number,
+  tournamentId: string
+): Promise<{ leg1MatchId: string; leg2MatchId: string | null }> {
+  let leg1MatchId = pairing.leg1MatchId
+  let leg2MatchId = pairing.leg2MatchId
+
+  const displayRound = roundName.replace(/_/g, ' ')
+
+  // Ensure Leg 1 match exists
+  if (leg1MatchId) {
+    // Update existing match
+    await client.matches.update({
+      where: { id: leg1MatchId },
+      data: {
+        homeTeamId: pairing.team1Id,
+        awayTeamId: pairing.team2Id,
+        round: displayRound,
+        matchType: roundName,
+        updatedAt: new Date()
+      }
+    })
+  } else {
+    // Create Leg 1 match
+    leg1MatchId = await generateMatchId()
+    await client.matches.create({
+      data: {
+        id: leg1MatchId,
+        tournamentId,
+        homeTeamId: pairing.team1Id,
+        awayTeamId: pairing.team2Id,
+        matchDate: new Date(),
+        round: displayRound,
+        matchType: roundName,
+        status: 'SCHEDULED',
+        updatedAt: new Date()
+      }
+    })
+  }
+
+  // Ensure Leg 2 match exists or is deleted based on legs count
+  if (legs === 2) {
+    if (leg2MatchId) {
+      // Update existing match (reverse home/away for second leg)
+      await client.matches.update({
+        where: { id: leg2MatchId },
+        data: {
+          homeTeamId: pairing.team2Id,
+          awayTeamId: pairing.team1Id,
+          round: displayRound,
+          matchType: roundName,
+          updatedAt: new Date()
+        }
+      })
+    } else {
+      // Create Leg 2 match
+      leg2MatchId = await generateMatchId()
+      await client.matches.create({
+        data: {
+          id: leg2MatchId,
+          tournamentId,
+          homeTeamId: pairing.team2Id,
+          awayTeamId: pairing.team1Id,
+          matchDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day after leg 1
+          round: displayRound,
+          matchType: roundName,
+          status: 'SCHEDULED',
+          updatedAt: new Date()
+        }
+      })
+    }
+  } else {
+    // Single leg, if there was a leg2MatchId, delete it
+    if (leg2MatchId) {
+      await client.matches.delete({
+        where: { id: leg2MatchId }
+      }).catch(() => {})
+      leg2MatchId = null
+    }
+  }
+
+  return { leg1MatchId, leg2MatchId }
+}
+

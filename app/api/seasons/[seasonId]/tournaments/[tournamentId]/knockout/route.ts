@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { generateKnockoutRoundId, generateKnockoutPairingId } from '@/lib/id-generator'
-import { resolveAndPopulateKnockoutBracket } from '@/lib/tournament-linking'
+import { resolveAndPopulateKnockoutBracket, getAutoPairingPlaceholders } from '@/lib/tournament-linking'
 
 export async function POST(
   request: NextRequest,
@@ -33,6 +33,18 @@ export async function POST(
       )
     }
 
+    const tournament = await prisma.tournaments.findUnique({
+      where: { id: tournamentId },
+      include: { groups: true }
+    })
+
+    if (!tournament) {
+      return NextResponse.json(
+        { error: 'Tournament not found' },
+        { status: 404 }
+      )
+    }
+
     // Check if round already exists
     const existingRound = await prisma.knockout_rounds.findUnique({
       where: {
@@ -48,6 +60,28 @@ export async function POST(
         { error: 'This knockout round already exists' },
         { status: 400 }
       )
+    }
+
+    // Helper functions for round placeholders
+    const getPreviousKnockoutRoundName = (currentRoundName: string): string => {
+      const flow = ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINAL', 'SEMI_FINAL', 'FINAL']
+      const idx = flow.indexOf(currentRoundName)
+      if (idx > 0) {
+        return flow[idx - 1]
+      }
+      return ''
+    }
+
+    const getRoundDisplayLabel = (name: string): string => {
+      const labels: Record<string, string> = {
+        'ROUND_OF_32': 'Round of 32',
+        'ROUND_OF_16': 'Round of 16',
+        'QUARTER_FINAL': 'Quarter Final',
+        'SEMI_FINAL': 'Semi Final',
+        'THIRD_PLACE': 'Third Place',
+        'FINAL': 'Final'
+      }
+      return labels[name] || name.replace(/_/g, ' ')
     }
 
     // Determine round order
@@ -92,12 +126,15 @@ export async function POST(
         // Auto mode starts with empty pairings to populate on the go
         for (let i = 0; i < primaryPairingsCount; i++) {
           const pairingId = await generateKnockoutPairingId()
+          const placeholders = getAutoPairingPlaceholders(roundName, i, tournament)
           await tx.knockout_pairings.create({
             data: {
               id: pairingId,
               knockoutRoundId: round.id,
               team1Id: null,
               team2Id: null,
+              team1Placeholder: placeholders.team1Placeholder,
+              team2Placeholder: placeholders.team2Placeholder,
               updatedAt: new Date()
             }
           })
@@ -191,12 +228,16 @@ export async function POST(
             // Create empty pairings for the subsequent round
             for (let i = 0; i < sub.pairingsCount; i++) {
               const pairingId = await generateKnockoutPairingId()
+              const prevRoundName = getPreviousKnockoutRoundName(sub.name) || roundName
+              const prevRoundLabel = getRoundDisplayLabel(prevRoundName)
               await tx.knockout_pairings.create({
                 data: {
                   id: pairingId,
                   knockoutRoundId: subRound.id,
                   team1Id: null,
                   team2Id: null,
+                  team1Placeholder: `Winner of ${prevRoundLabel} Match #${2 * i + 1}`,
+                  team2Placeholder: `Winner of ${prevRoundLabel} Match #${2 * i + 2}`,
                   updatedAt: new Date()
                 }
               })

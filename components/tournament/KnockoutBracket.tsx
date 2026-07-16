@@ -14,6 +14,8 @@ interface Pairing {
   id: string
   team1Id: string | null
   team2Id: string | null
+  team1Placeholder?: string | null
+  team2Placeholder?: string | null
   winnerId: string | null
   leg1MatchId: string | null
   leg2MatchId: string | null
@@ -198,18 +200,20 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                             <span className="text-sm">⚽</span>
                           )}
                         </div>
-                        <span className="text-white font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate">
-                          {team1?.name || 'TBD'}
+                        <span className={`font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate ${
+                          team1 ? 'text-white' : 'text-[#7A7367] italic'
+                        }`}>
+                          {team1?.name || pairing.team1Placeholder || 'TBD'}
                         </span>
                         {pairing.winnerId === pairing.team1Id && (
                           <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono">WINNER</span>
                         )}
                       </div>
-
-                      <div className="text-center text-gray-600 text-[10px] font-black font-mono tracking-widest my-1">VS</div>
-
-                      {/* Team 2 */}
-                      <div className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${
+ 
+                       <div className="text-center text-gray-600 text-[10px] font-black font-mono tracking-widest my-1">VS</div>
+ 
+                       {/* Team 2 */}
+                       <div className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${
                         pairing.winnerId === pairing.team2Id 
                           ? 'bg-emerald-500/5 border border-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
                           : 'bg-[#121212]/40 border border-white/5'
@@ -221,8 +225,10 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                             <span className="text-sm">⚽</span>
                           )}
                         </div>
-                        <span className="text-white font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate">
-                          {team2?.name || 'TBD'}
+                        <span className={`font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate ${
+                          team2 ? 'text-white' : 'text-[#7A7367] italic'
+                        }`}>
+                          {team2?.name || pairing.team2Placeholder || 'TBD'}
                         </span>
                         {pairing.winnerId === pairing.team2Id && (
                           <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono">WINNER</span>

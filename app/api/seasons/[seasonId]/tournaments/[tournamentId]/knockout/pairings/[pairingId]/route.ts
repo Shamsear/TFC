@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
+import { ensureMatchesForPairing } from '@/lib/tournament-linking'
 
 export async function PATCH(
   request: NextRequest,
@@ -31,11 +32,32 @@ export async function PATCH(
       )
     }
 
+    const pairing = await prisma.knockout_pairings.findUnique({
+      where: { id: pairingId },
+      include: {
+        knockoutRound: true
+      }
+    })
+
+    if (!pairing) {
+      return NextResponse.json({ error: 'Pairing not found' }, { status: 404 })
+    }
+
+    const matchRefs = await ensureMatchesForPairing(
+      prisma,
+      { ...pairing, team1Id, team2Id },
+      pairing.knockoutRound.roundName,
+      pairing.knockoutRound.legs,
+      pairing.knockoutRound.tournamentId
+    )
+
     const updatedPairing = await prisma.knockout_pairings.update({
       where: { id: pairingId },
       data: {
         team1Id,
-        team2Id
+        team2Id,
+        leg1MatchId: matchRefs.leg1MatchId,
+        leg2MatchId: matchRefs.leg2MatchId
       }
     })
 

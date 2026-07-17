@@ -168,6 +168,14 @@ export async function POST(
 
     // Create knockout round with pairings
     const knockoutRound = await prisma.$transaction(async (tx) => {
+      // Revert tournament status to IN_PROGRESS if it was marked as COMPLETED
+      if (tournament.status === 'COMPLETED') {
+        await tx.tournaments.update({
+          where: { id: tournamentId },
+          data: { status: 'IN_PROGRESS', updatedAt: new Date() }
+        })
+      }
+
       // Create the round
       const roundId = roundIds[roundIndex++]
       const round = await tx.knockout_rounds.create({

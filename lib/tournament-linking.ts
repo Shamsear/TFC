@@ -1306,17 +1306,34 @@ export async function runTournamentStatusUpdate(tournamentId: string): Promise<v
     select: { status: true }
   })
   
-  const isTournamentFinished = allMatches.length > 0 && allMatches.every(
-    m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
-  )
-  
   const tournamentBefore = await prisma.tournaments.findUnique({
     where: { id: tournamentId },
-    select: { status: true }
+    select: { status: true, tournamentType: true },
+    // Use relation select/include if needed, but wait: let's include knockoutRounds
   })
+
+  if (!tournamentBefore) return
+
+  const knockoutRounds = await prisma.knockout_rounds.findMany({
+    where: { tournamentId }
+  })
+
+  const hasKnockout = ['KNOCKOUT_ONLY', 'GROUP_KNOCKOUT', 'LEAGUE_PLAYOFF'].includes(tournamentBefore.tournamentType)
+  
+  let isTournamentFinished = false
+  if (hasKnockout) {
+    const hasFinalRound = knockoutRounds.some(r => r.roundName === 'FINAL')
+    isTournamentFinished = hasFinalRound && allMatches.length > 0 && allMatches.every(
+      m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
+    )
+  } else {
+    isTournamentFinished = allMatches.length > 0 && allMatches.every(
+      m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
+    )
+  }
   
   if (isTournamentFinished) {
-    if (tournamentBefore && tournamentBefore.status !== 'COMPLETED') {
+    if (tournamentBefore.status !== 'COMPLETED') {
       await prisma.tournaments.update({
         where: { id: tournamentId },
         data: { status: 'COMPLETED', updatedAt: new Date() }

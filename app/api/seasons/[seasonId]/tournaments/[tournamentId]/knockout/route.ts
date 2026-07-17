@@ -311,7 +311,7 @@ export async function POST(
   } catch (error) {
     console.error('Error creating knockout round:', error)
     return NextResponse.json(
-      { error: 'Failed to create knockout round' },
+      { error: `Failed to create knockout round: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
     )
   }

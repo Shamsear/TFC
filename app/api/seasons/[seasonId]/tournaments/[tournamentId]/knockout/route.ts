@@ -106,10 +106,70 @@ export async function POST(
     }
     const primaryPairingsCount = roundPairingsCountMap[roundName] || 1
 
+    // Fetch all existing rounds in tournament to avoid duplicates
+    const existingRoundsInDb = await prisma.knockout_rounds.findMany({
+      where: { tournamentId }
+    })
+    const existingRoundNames = new Set(existingRoundsInDb.map(r => r.roundName))
+
+    const subsequentRounds = []
+    if (roundName === 'ROUND_OF_32') {
+      subsequentRounds.push(
+        { name: 'ROUND_OF_16', order: 1, pairingsCount: 8 },
+        { name: 'QUARTER_FINAL', order: 2, pairingsCount: 4 },
+        { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
+        { name: 'FINAL', order: 5, pairingsCount: 1 }
+      )
+    } else if (roundName === 'ROUND_OF_16') {
+      subsequentRounds.push(
+        { name: 'QUARTER_FINAL', order: 2, pairingsCount: 4 },
+        { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
+        { name: 'FINAL', order: 5, pairingsCount: 1 }
+      )
+    } else if (roundName === 'QUARTER_FINAL') {
+      subsequentRounds.push(
+        { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
+        { name: 'FINAL', order: 5, pairingsCount: 1 }
+      )
+    } else if (roundName === 'SEMI_FINAL') {
+      subsequentRounds.push(
+        { name: 'FINAL', order: 5, pairingsCount: 1 }
+      )
+    }
+
+    const roundsToCreate = createFullBracket 
+      ? subsequentRounds.filter(sub => !existingRoundNames.has(sub.name))
+      : []
+
+    // Calculate total counts for batch ID generation
+    const totalRoundsCount = 1 + roundsToCreate.length
+    
+    let primaryPairingsCountExpected = 0
+    if (customPairings && customPairings.length > 0) {
+      primaryPairingsCountExpected = customPairings.length
+    } else if (createFullBracket) {
+      primaryPairingsCountExpected = primaryPairingsCount
+    } else {
+      const sortedTeams = [...teams]
+      primaryPairingsCountExpected = Math.floor(sortedTeams.length / 2)
+    }
+
+    let totalPairingsCount = primaryPairingsCountExpected
+    for (const sub of roundsToCreate) {
+      totalPairingsCount += sub.pairingsCount
+    }
+
+    // Batch generate all IDs upfront outside the transaction
+    const roundIds = await generateIds(ID_PREFIXES.KNOCKOUT_ROUND, totalRoundsCount)
+    const pairingIds = await generateIds(ID_PREFIXES.KNOCKOUT_PAIRING, totalPairingsCount)
+
+    let roundIndex = 0
+    let pairingIndex = 0
+
     // Create knockout round with pairings
     const knockoutRound = await prisma.$transaction(async (tx) => {
       // Create the round
-      const roundId = await generateKnockoutRoundId()
+      const roundId = roundIds[roundIndex++]
       const round = await tx.knockout_rounds.create({
         data: {
           id: roundId,
@@ -128,7 +188,7 @@ export async function POST(
       if (customPairings && customPairings.length > 0) {
         for (let i = 0; i < customPairings.length; i++) {
           const cp = customPairings[i]
-          const pairingId = await generateKnockoutPairingId()
+          const pairingId = pairingIds[pairingIndex++]
           
           if (createFullBracket) {
             primaryPairingsData.push({
@@ -155,7 +215,7 @@ export async function POST(
       } else if (createFullBracket) {
         // Auto mode starts with empty pairings to populate on the go
         for (let i = 0; i < primaryPairingsCount; i++) {
-          const pairingId = await generateKnockoutPairingId()
+          const pairingId = pairingIds[pairingIndex++]
           const placeholders = getAutoPairingPlaceholders(roundName, i, tournament)
           primaryPairingsData.push({
             id: pairingId,
@@ -174,7 +234,7 @@ export async function POST(
         if (autoPair) {
           // Automatic pairing: 1 vs last, 2 vs second-last, etc.
           for (let i = 0; i < numPairings; i++) {
-            const pairingId = await generateKnockoutPairingId()
+            const pairingId = pairingIds[pairingIndex++]
             primaryPairingsData.push({
               id: pairingId,
               knockoutRoundId: round.id,
@@ -188,7 +248,7 @@ export async function POST(
         } else {
           // Manual pairing: create empty pairings to be filled later
           for (let i = 0; i < numPairings; i++) {
-            const pairingId = await generateKnockoutPairingId()
+            const pairingId = pairingIds[pairingIndex++]
             primaryPairingsData.push({
               id: pairingId,
               knockoutRoundId: round.id,
@@ -205,77 +265,42 @@ export async function POST(
       await tx.knockout_pairings.createMany({ data: primaryPairingsData })
 
       // Automatically generate subsequent rounds if createFullBracket is true
-      if (createFullBracket) {
-        const subsequentRounds = []
-        if (roundName === 'ROUND_OF_32') {
-          subsequentRounds.push(
-            { name: 'ROUND_OF_16', order: 1, pairingsCount: 8 },
-            { name: 'QUARTER_FINAL', order: 2, pairingsCount: 4 },
-            { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
-            { name: 'FINAL', order: 5, pairingsCount: 1 }
-          )
-        } else if (roundName === 'ROUND_OF_16') {
-          subsequentRounds.push(
-            { name: 'QUARTER_FINAL', order: 2, pairingsCount: 4 },
-            { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
-            { name: 'FINAL', order: 5, pairingsCount: 1 }
-          )
-        } else if (roundName === 'QUARTER_FINAL') {
-          subsequentRounds.push(
-            { name: 'SEMI_FINAL', order: 3, pairingsCount: 2 },
-            { name: 'FINAL', order: 5, pairingsCount: 1 }
-          )
-        } else if (roundName === 'SEMI_FINAL') {
-          subsequentRounds.push(
-            { name: 'FINAL', order: 5, pairingsCount: 1 }
-          )
-        }
+      if (createFullBracket && roundsToCreate.length > 0) {
+        const roundsData = []
+        const pairingsData = []
 
-        // Fetch all existing rounds in tournament to avoid duplicates
-        const existingRoundsInDb = await tx.knockout_rounds.findMany({
-          where: { tournamentId }
-        })
-        const existingRoundNames = new Set(existingRoundsInDb.map(r => r.roundName))
+        for (const sub of roundsToCreate) {
+          const subRoundId = roundIds[roundIndex++]
+          roundsData.push({
+            id: subRoundId,
+            tournamentId,
+            roundName: sub.name,
+            roundOrder: sub.order,
+            legs,
+            status: 'PENDING' as RoundStatus,
+            updatedAt: new Date()
+          })
 
-        const roundsToCreate = subsequentRounds.filter(sub => !existingRoundNames.has(sub.name))
-
-        if (roundsToCreate.length > 0) {
-          const roundsData = []
-          const pairingsData = []
-
-          for (const sub of roundsToCreate) {
-            const subRoundId = await generateKnockoutRoundId()
-            roundsData.push({
-              id: subRoundId,
-              tournamentId,
-              roundName: sub.name,
-              roundOrder: sub.order,
-              legs,
-              status: 'PENDING' as RoundStatus,
+          // Generate empty pairings data for this subsequent round
+          for (let i = 0; i < sub.pairingsCount; i++) {
+            const pairingId = pairingIds[pairingIndex++]
+            const prevRoundName = getPreviousKnockoutRoundName(sub.name) || roundName
+            const prevRoundLabel = getRoundDisplayLabel(prevRoundName)
+            pairingsData.push({
+              id: pairingId,
+              knockoutRoundId: subRoundId,
+              team1Id: null,
+              team2Id: null,
+              team1Placeholder: `Winner of ${prevRoundLabel} Match #${2 * i + 1}`,
+              team2Placeholder: `Winner of ${prevRoundLabel} Match #${2 * i + 2}`,
               updatedAt: new Date()
             })
-
-            // Generate empty pairings data for this subsequent round
-            for (let i = 0; i < sub.pairingsCount; i++) {
-              const pairingId = await generateKnockoutPairingId()
-              const prevRoundName = getPreviousKnockoutRoundName(sub.name) || roundName
-              const prevRoundLabel = getRoundDisplayLabel(prevRoundName)
-              pairingsData.push({
-                id: pairingId,
-                knockoutRoundId: subRoundId,
-                team1Id: null,
-                team2Id: null,
-                team1Placeholder: `Winner of ${prevRoundLabel} Match #${2 * i + 1}`,
-                team2Placeholder: `Winner of ${prevRoundLabel} Match #${2 * i + 2}`,
-                updatedAt: new Date()
-              })
-            }
           }
-
-          // Batch insert subsequent rounds and pairings in single database calls
-          await tx.knockout_rounds.createMany({ data: roundsData })
-          await tx.knockout_pairings.createMany({ data: pairingsData })
         }
+
+        // Batch insert subsequent rounds and pairings in single database calls
+        await tx.knockout_rounds.createMany({ data: roundsData })
+        await tx.knockout_pairings.createMany({ data: pairingsData })
       }
 
       return round

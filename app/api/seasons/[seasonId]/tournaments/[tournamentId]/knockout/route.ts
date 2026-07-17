@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
-import { generateKnockoutRoundId, generateKnockoutPairingId } from '@/lib/id-generator'
+import { generateIds, ID_PREFIXES } from '@/lib/id-generator'
 import { resolveAndPopulateKnockoutBracket, getAutoPairingPlaceholders } from '@/lib/tournament-linking'
 import { RoundStatus } from '@prisma/client'
 

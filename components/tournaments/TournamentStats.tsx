@@ -67,11 +67,18 @@ export default function TournamentStats({
   // Dynamic Round Filter
   const baseRounds = matches 
     ? Array.from(new Set(matches.filter(m => m.round).map(m => m.round as string))).sort((a, b) => {
-        const getRoundNum = (name: string) => {
+        const getRoundWeight = (name: string) => {
+          const upper = name.toUpperCase()
+          if (upper.includes('ROUND OF 32')) return 1000
+          if (upper.includes('ROUND OF 16')) return 1010
+          if (upper.includes('QUARTER')) return 1020
+          if (upper.includes('SEMI')) return 1030
+          if (upper.includes('THIRD PLACE')) return 1040
+          if (upper.includes('FINAL')) return 1050
           const num = name.match(/\d+/)
-          return num ? parseInt(num[0], 10) : 1
+          return num ? parseInt(num[0], 10) : 9999
         }
-        return getRoundNum(a) - getRoundNum(b)
+        return getRoundWeight(a) - getRoundWeight(b)
       })
     : []
   const roundOptions = baseRounds.length > 0 ? ['All Matchdays', ...baseRounds] : []
@@ -127,14 +134,21 @@ export default function TournamentStats({
         const relevantMatches = matches.filter(m => {
           if (m.status !== 'COMPLETED') return false
 
-          const getRoundNum = (name: string) => {
+          const getRoundWeight = (name: string) => {
+            const upper = name.toUpperCase()
+            if (upper.includes('ROUND OF 32')) return 1000
+            if (upper.includes('ROUND OF 16')) return 1010
+            if (upper.includes('QUARTER')) return 1020
+            if (upper.includes('SEMI')) return 1030
+            if (upper.includes('THIRD PLACE')) return 1040
+            if (upper.includes('FINAL')) return 1050
             const num = name.match(/\d+/)
-            return num ? parseInt(num[0], 10) : 1
+            return num ? parseInt(num[0], 10) : 9999
           }
-          const matchRoundNum = getRoundNum(m.round || '')
+          const matchRoundNum = getRoundWeight(m.round || '')
 
           if (activeRoundLimit !== 'All Matchdays') {
-            const limitRoundNum = getRoundNum(activeRoundLimit)
+            const limitRoundNum = getRoundWeight(activeRoundLimit)
             if (matchRoundNum > limitRoundNum) return false
           }
 

@@ -119,11 +119,18 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
 
   // Extract all unique rounds in the matches list and sort them numerically
   const allRounds = Array.from(new Set(matches.map(m => m.round || 'Round 1'))).sort((a, b) => {
-    const getRoundNum = (name: string) => {
+    const getRoundWeight = (name: string) => {
+      const upper = name.toUpperCase()
+      if (upper.includes('ROUND OF 32')) return 1000
+      if (upper.includes('ROUND OF 16')) return 1010
+      if (upper.includes('QUARTER')) return 1020
+      if (upper.includes('SEMI')) return 1030
+      if (upper.includes('THIRD PLACE')) return 1040
+      if (upper.includes('FINAL')) return 1050
       const num = name.match(/\d+/)
-      return num ? parseInt(num[0], 10) : 1
+      return num ? parseInt(num[0], 10) : 9999
     }
-    return getRoundNum(a) - getRoundNum(b)
+    return getRoundWeight(a) - getRoundWeight(b)
   })
 
   // Find the first round with upcoming/live matches to set as default active round

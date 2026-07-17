@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
 import { generateKnockoutRoundId, generateKnockoutPairingId } from '@/lib/id-generator'
 import { resolveAndPopulateKnockoutBracket, getAutoPairingPlaceholders } from '@/lib/tournament-linking'
+import { RoundStatus } from '@prisma/client'
 
 export async function POST(
   request: NextRequest,
@@ -250,7 +251,7 @@ export async function POST(
               roundName: sub.name,
               roundOrder: sub.order,
               legs,
-              status: 'PENDING',
+              status: 'PENDING' as RoundStatus,
               updatedAt: new Date()
             })
 

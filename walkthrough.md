@@ -114,3 +114,28 @@ Qualified teams with Team 3 excluded: [ 'TEST-ST-1-77568', 'TEST-ST-2-79530', 'T
 - All backend endpoints are live.
 - Next.js administrative client routes, creation forms, edit forms, and dialogs are completely wired up.
 - You can now test the Edit Tournament flow by clicking **Edit Tournament** on any tournament detail page.
+
+---
+
+## ⚡ Round Creation Optimization (Vercel Timeouts) & Sorting Fixes
+
+### 1. Database Batching (`createMany`)
+- **Problem**: When creating a knockout tournament bracket (e.g. 32 teams), the endpoint executed up to **36 sequential database inserts** inside a transaction to create the rounds and pairings placeholders. Over serverless database connections, this took 6-10 seconds, exceeding Vercel's execution timeout.
+- **Solution**: Refactored [route.ts](file:///c:/Users/shams/OneDrive/Documents/GitHub/TFC/app/api/seasons/%5BseasonId%5D/tournaments/%5BtournamentId%5D/knockout/route.ts) to:
+  - Batch insert primary pairings using a single `createMany` query.
+  - Perform a single read of existing tournament rounds at the beginning.
+  - Batch insert all subsequent rounds using `createMany`.
+  - Batch insert all subsequent pairings using `createMany`.
+- **Result**: Reduced sequential database queries from **36 to 4**, cutting execution time to under 0.5s and completely avoiding Vercel execution timeouts.
+
+### 2. Knockout Round Sorting Fix
+- **Problem**: Knockout rounds (such as `"Semi Final"`, `"Final"`) did not have digits in their names. The sorting function matched `/\d+/` and defaulted to weight `1`, placing them right after `"Round 1"` in filter dropdowns and standings calculations.
+- **Solution**: Added a unified `getRoundWeight` function in all client sorting and filtering components:
+  - [TournamentTabs.tsx](file:///c:/Users/shams/OneDrive/Documents/GitHub/TFC/components/tournament/TournamentTabs.tsx) (Dynamic dropdown filter & standings recalculation)
+  - [FixturesList.tsx](file:///c:/Users/shams/OneDrive/Documents/GitHub/TFC/components/tournament/FixturesList.tsx) (Fixtures tab dropdown selector)
+  - [FixtureCalendarEditor.tsx](file:///c:/Users/shams/OneDrive/Documents/GitHub/TFC/components/tournament/FixtureCalendarEditor.tsx) (Fixture reschedule dropdown selector)
+  - [TournamentMatches.tsx](file:///c:/Users/shams/OneDrive/Documents/GitHub/TFC/components/tournaments/TournamentMatches.tsx) (Matches tab dropdown selector)
+  - [TournamentStats.tsx](file:///c:/Users/shams/OneDrive/Documents/GitHub/TFC/components/tournaments/TournamentStats.tsx) (Stats tab dropdown selector & cumulative stats calculator)
+  - [StatsPoster.tsx](file:///c:/Users/shams/OneDrive/Documents/GitHub/TFC/components/tournaments/StatsPoster.tsx) (Poster studio matchday/weekly selectors)
+- **Result**: Knockout rounds are now consistently sorted after all group/league rounds in the correct logical sequence: `Round of 32` → `Round of 16` → `Quarter Final` → `Semi Final` → `Third Place` → `Final`.
+

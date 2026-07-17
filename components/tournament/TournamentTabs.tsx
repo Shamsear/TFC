@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import FixturesList from './FixturesList'
 import StandingsTable from './StandingsTable'
 import GroupsView from './GroupsView'
@@ -181,21 +181,26 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
   const hasFixtures = tournament.matches.length > 0
 
   // Fetch knockout rounds if applicable
+  const fetchKnockoutRounds = useCallback(() => {
+    if (!hasKnockout) return
+    setLoadingKnockout(true)
+    fetch(`/api/seasons/${seasonId}/tournaments/${tournament.id}/knockout`)
+      .then(res => res.json())
+      .then(data => {
+        setKnockoutRounds(data)
+        setLoadingKnockout(false)
+      })
+      .catch(err => {
+        console.error('Error fetching knockout rounds:', err)
+        setLoadingKnockout(false)
+      })
+  }, [hasKnockout, seasonId, tournament.id])
+
   useEffect(() => {
-    if (hasKnockout && activeTab === 'knockout') {
-      setLoadingKnockout(true)
-      fetch(`/api/seasons/${seasonId}/tournaments/${tournament.id}/knockout`)
-        .then(res => res.json())
-        .then(data => {
-          setKnockoutRounds(data)
-          setLoadingKnockout(false)
-        })
-        .catch(err => {
-          console.error('Error fetching knockout rounds:', err)
-          setLoadingKnockout(false)
-        })
+    if (activeTab === 'knockout') {
+      fetchKnockoutRounds()
     }
-  }, [hasKnockout, activeTab, seasonId, tournament.id])
+  }, [activeTab, fetchKnockoutRounds])
 
   const tabs = [
     { id: 'fixtures', label: 'Fixtures', count: tournament.matches.length },
@@ -357,6 +362,7 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
               seasonId={seasonId}
               availableTeams={availableTeams}
               existingRounds={knockoutRounds}
+              onSuccess={fetchKnockoutRounds}
             />
           )
         )}

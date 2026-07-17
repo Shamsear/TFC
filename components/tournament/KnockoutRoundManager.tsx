@@ -20,6 +20,7 @@ interface KnockoutRoundManagerProps {
   seasonId: string
   availableTeams: Team[]
   existingRounds: any[]
+  onSuccess?: () => void
 }
 
 const roundOptions = [
@@ -110,7 +111,8 @@ export default function KnockoutRoundManager({
   tournament, 
   seasonId, 
   availableTeams,
-  existingRounds 
+  existingRounds,
+  onSuccess
 }: KnockoutRoundManagerProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -488,12 +490,16 @@ export default function KnockoutRoundManager({
       }
 
       router.refresh()
+      if (onSuccess) {
+        onSuccess()
+      }
       setFormData(prev => ({
         ...prev,
         selectedTeams: [],
         customPairings: [],
         pairingMethod: 'auto'
       }))
+      setLoading(false)
     } catch (err: any) {
       setError(err.message)
       setLoading(false)

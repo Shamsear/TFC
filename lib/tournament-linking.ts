@@ -1322,10 +1322,30 @@ export async function runTournamentStatusUpdate(tournamentId: string): Promise<v
   
   let isTournamentFinished = false
   if (hasKnockout) {
-    const hasFinalRound = knockoutRounds.some(r => r.roundName === 'FINAL')
-    isTournamentFinished = hasFinalRound && allMatches.length > 0 && allMatches.every(
-      m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
-    )
+    const finalRound = knockoutRounds.find(r => r.roundName === 'FINAL')
+    if (finalRound) {
+      const finalPairings = await prisma.knockout_pairings.findMany({
+        where: { knockoutRoundId: finalRound.id }
+      })
+      const finalMatchIds = finalPairings
+        .flatMap(p => [p.leg1MatchId, p.leg2MatchId])
+        .filter((id): id is string => !!id)
+
+      if (finalMatchIds.length > 0) {
+        const finalMatches = await prisma.matches.findMany({
+          where: { id: { in: finalMatchIds } }
+        })
+        isTournamentFinished = finalMatches.length > 0 && finalMatches.every(
+          m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
+        )
+      } else {
+        isTournamentFinished = false
+      }
+    } else {
+      isTournamentFinished = allMatches.length > 0 && allMatches.every(
+        m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
+      )
+    }
   } else {
     isTournamentFinished = allMatches.length > 0 && allMatches.every(
       m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)

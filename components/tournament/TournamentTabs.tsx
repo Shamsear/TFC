@@ -19,7 +19,7 @@ interface TournamentTabsProps {
 
 export default function TournamentTabs({ tournament, teams, seasonId, statsTeams }: TournamentTabsProps) {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'calendar' | 'standings' | 'groups' | 'knockout' | 'rounds' | 'stats'>('fixtures')
-  const [knockoutRounds, setKnockoutRounds] = useState<any[]>([])
+  const [knockoutRounds, setKnockoutRounds] = useState<any[]>(tournament.knockoutRounds || [])
   const [loadingKnockout, setLoadingKnockout] = useState(false)
   const [activeRoundLimit, setActiveRoundLimit] = useState<string>('All Matchdays')
   const [activeWeekFilter, setActiveWeekFilter] = useState<string>('All Weeks')

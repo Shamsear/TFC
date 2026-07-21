@@ -1627,6 +1627,48 @@ export async function resolveAndPopulateKnockoutBracket(tournamentId: string): P
       }
     }
   }
+
+  // Update statuses for all knockout rounds based on latest matches
+  const updatedMatches = await prisma.matches.findMany({
+    where: { tournamentId }
+  })
+
+  const updatedRounds = await prisma.knockout_rounds.findMany({
+    where: { tournamentId },
+    include: { pairings: true }
+  })
+
+  for (const r of updatedRounds) {
+    const matchIdsOfRound = r.pairings
+      .flatMap(p => [p.leg1MatchId, p.leg2MatchId])
+      .filter((id): id is string => !!id)
+
+    const matchesOfRound = updatedMatches.filter(m => matchIdsOfRound.includes(m.id))
+
+    let newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = 'PENDING'
+    if (matchesOfRound.length > 0) {
+      const allCompleted = matchesOfRound.every(
+        m => ['COMPLETED', 'WALKOVER', 'VOID', 'CANCELLED'].includes(m.status)
+      )
+      if (allCompleted) {
+        newStatus = 'COMPLETED'
+      } else {
+        const anyStarted = matchesOfRound.some(
+          m => ['LIVE', 'COMPLETED', 'WALKOVER', 'VOID'].includes(m.status)
+        )
+        if (anyStarted) {
+          newStatus = 'IN_PROGRESS'
+        }
+      }
+    }
+
+    if (newStatus !== r.status) {
+      await prisma.knockout_rounds.update({
+        where: { id: r.id },
+        data: { status: newStatus, updatedAt: new Date() }
+      })
+    }
+  }
 }
 
 /**

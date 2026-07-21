@@ -383,3 +383,97 @@ export async function GET(
     )
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ seasonId: string; tournamentId: string }> }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { seasonId, tournamentId } = await params
+
+    const tournament = await prisma.tournaments.findUnique({
+      where: { id: tournamentId }
+    })
+
+    if (!tournament) {
+      return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
+    }
+
+    // Find all pairings to delete their matches
+    const pairings = await prisma.knockout_pairings.findMany({
+      where: {
+        knockoutRound: {
+          tournamentId
+        }
+      },
+      select: {
+        leg1MatchId: true,
+        leg2MatchId: true
+      }
+    })
+
+    const matchIds = pairings
+      .flatMap(p => [p.leg1MatchId, p.leg2MatchId])
+      .filter((id): id is string => !!id)
+
+    // Execute in a transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete matches
+      if (matchIds.length > 0) {
+        await tx.matches.deleteMany({
+          where: {
+            id: {
+              in: matchIds
+            }
+          }
+        })
+      }
+
+      // 2. Delete knockout rounds (this will cascade delete pairings)
+      await tx.knockout_rounds.deleteMany({
+        where: {
+          tournamentId
+        }
+      })
+
+      // 3. Reset tournament status to IN_PROGRESS if it was COMPLETED
+      if (tournament.status === 'COMPLETED') {
+        await tx.tournaments.update({
+          where: { id: tournamentId },
+          data: { status: 'IN_PROGRESS', updatedAt: new Date() }
+        })
+      }
+    })
+
+    // Create audit log
+    await createAuditLog({
+      userId: session.user.id,
+      userEmail: session.user.email!,
+      userRole: session.user.role!,
+      action: 'DELETE_TOURNAMENT',
+      entityType: 'knockout_rounds',
+      entityId: tournamentId,
+      entityName: `Reset knockout bracket for ${tournament.name}`,
+      seasonId,
+      details: {
+        tournamentId,
+        matchIdsDeleted: matchIds.length
+      },
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      userAgent: request.headers.get('user-agent') || 'unknown'
+    })
+
+    return NextResponse.json({ message: 'Knockout bracket reset successfully' })
+  } catch (error) {
+    console.error('Error resetting knockout bracket:', error)
+    return NextResponse.json(
+      { error: `Failed to reset knockout bracket: ${error instanceof Error ? error.message : String(error)}` },
+      { status: 500 }
+    )
+  }
+}

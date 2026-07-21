@@ -1552,7 +1552,13 @@ export async function resolveAndPopulateKnockoutBracket(tournamentId: string): P
           if (pair.team1Id && pair.team2Id && !pair.leg1MatchId) {
             const matchRefs = await ensureMatchesForPairing(
               prisma,
-              pair,
+              {
+                id: pair.id,
+                team1Id: pair.team1Id as string,
+                team2Id: pair.team2Id as string,
+                leg1MatchId: pair.leg1MatchId,
+                leg2MatchId: pair.leg2MatchId
+              },
               round.roundName,
               round.legs,
               tournamentId

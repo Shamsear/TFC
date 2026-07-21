@@ -42,7 +42,7 @@ const checkPrecedingStageStatus = (tournament: any, roundName: string) => {
     if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
       precedingTypes = ['GROUP_STAGE']
       stageLabel = 'Group Stage'
-    } else {
+    } else if (tournament.tournamentType !== 'KNOCKOUT_ONLY') {
       precedingTypes = ['LEAGUE']
       stageLabel = 'League Stage'
     }
@@ -55,7 +55,7 @@ const checkPrecedingStageStatus = (tournament: any, roundName: string) => {
       if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
         precedingTypes = ['GROUP_STAGE']
         stageLabel = 'Group Stage'
-      } else {
+      } else if (tournament.tournamentType !== 'KNOCKOUT_ONLY') {
         precedingTypes = ['LEAGUE']
         stageLabel = 'League Stage'
       }
@@ -74,7 +74,7 @@ const checkPrecedingStageStatus = (tournament: any, roundName: string) => {
         if (tournament.tournamentType === 'GROUP_KNOCKOUT') {
           precedingTypes = ['GROUP_STAGE']
           stageLabel = 'Group Stage'
-        } else {
+        } else if (tournament.tournamentType !== 'KNOCKOUT_ONLY') {
           precedingTypes = ['LEAGUE']
           stageLabel = 'League Stage'
         }

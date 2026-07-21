@@ -198,17 +198,8 @@ export async function POST(
           const cp = customPairings[i]
           const pairingId = pairingIds[pairingIndex++]
           
-          if (createFullBracket) {
-            primaryPairingsData.push({
-              id: pairingId,
-              knockoutRoundId: round.id,
-              team1Id: null,
-              team2Id: null,
-              team1Placeholder: cp.team1,
-              team2Placeholder: cp.team2,
-              updatedAt: new Date()
-            })
-          } else {
+          const isManual = teams && teams.length > 0
+          if (isManual) {
             primaryPairingsData.push({
               id: pairingId,
               knockoutRoundId: round.id,
@@ -218,9 +209,19 @@ export async function POST(
               team2Placeholder: null,
               updatedAt: new Date()
             })
+          } else {
+            primaryPairingsData.push({
+              id: pairingId,
+              knockoutRoundId: round.id,
+              team1Id: null,
+              team2Id: null,
+              team1Placeholder: cp.team1,
+              team2Placeholder: cp.team2,
+              updatedAt: new Date()
+            })
           }
         }
-      } else if (createFullBracket) {
+      } else if (createFullBracket && (!teams || teams.length === 0)) {
         // Auto mode starts with empty pairings to populate on the go
         for (let i = 0; i < primaryPairingsCount; i++) {
           const pairingId = pairingIds[pairingIndex++]
@@ -236,6 +237,7 @@ export async function POST(
           })
         }
       } else {
+        // Manual mode: teams list is populated (e.g. selected manually)
         const sortedTeams = [...teams]
         const numPairings = Math.floor(sortedTeams.length / 2)
 
@@ -254,7 +256,7 @@ export async function POST(
             })
           }
         } else {
-          // Manual pairing: create empty pairings to be filled later
+          // Manual pairing: 1 vs 2, 3 vs 4, etc.
           for (let i = 0; i < numPairings; i++) {
             const pairingId = pairingIds[pairingIndex++]
             primaryPairingsData.push({

@@ -480,7 +480,7 @@ export default function KnockoutRoundManager({
           teams: submitTeams,
           autoPair: autoPairMode && formData.pairingMethod !== 'custom',
           customPairings: customPairingsPayload,
-          createFullBracket: formData.mode === 'auto'
+          createFullBracket: true
         })
       })
 

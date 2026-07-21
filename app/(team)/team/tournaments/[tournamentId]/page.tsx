@@ -199,15 +199,17 @@ export default async function TournamentDetailsPage({
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-3">
-              <Link
-                href={`/team/tournaments/${tournamentId}/table`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#E8A800]/20 to-[#FFB347]/10 hover:from-[#E8A800]/30 hover:to-[#FFB347]/20 border border-[#E8A800]/40 text-[#E8A800] rounded-xl font-black text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_4px_12px_rgba(232,168,0,0.1)] hover:scale-[1.02] cursor-pointer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 4v16M14 4v16M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z" />
-                </svg>
-                View Table
-              </Link>
+              {tournament.tournamentType !== 'KNOCKOUT_ONLY' && (
+                <Link
+                  href={`/team/tournaments/${tournamentId}/table`}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#E8A800]/20 to-[#FFB347]/10 hover:from-[#E8A800]/30 hover:to-[#FFB347]/20 border border-[#E8A800]/40 text-[#E8A800] rounded-xl font-black text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_4px_12px_rgba(232,168,0,0.1)] hover:scale-[1.02] cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 4v16M14 4v16M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z" />
+                  </svg>
+                  View Table
+                </Link>
+              )}
               <Link
                 href={`/team/tournaments/${tournamentId}/stats`}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 text-gray-300 hover:text-white rounded-xl font-black text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 hover:scale-[1.02] cursor-pointer"
@@ -226,7 +228,7 @@ export default async function TournamentDetailsPage({
           {[
             { label: 'Overall', href: `/team/tournaments/${tournamentId}`, active: true },
             { label: 'Matches', href: `/team/tournaments/${tournamentId}/matches` },
-            { label: 'Table', href: `/team/tournaments/${tournamentId}/table` },
+            ...(tournament.tournamentType !== 'KNOCKOUT_ONLY' ? [{ label: 'Table', href: `/team/tournaments/${tournamentId}/table` }] : []),
             { label: 'Stats', href: `/team/tournaments/${tournamentId}/stats` },
           ].map(({ label, href, active }) => (
             <Link
@@ -245,7 +247,7 @@ export default async function TournamentDetailsPage({
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Matches lists */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className={`${tournament.tournamentType === 'KNOCKOUT_ONLY' ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-6`}>
 
             {/* Live Matches */}
             {liveMatches.length > 0 && (
@@ -291,66 +293,68 @@ export default async function TournamentDetailsPage({
           </div>
 
           {/* Standings Sidebar */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Standings Overview</h2>
-              <Link href={`/team/tournaments/${tournamentId}/table`} className="text-xs font-black text-[#E8A800] hover:text-[#FFC93A] transition-colors uppercase tracking-wider hover:underline">
-                Full Table →
-              </Link>
-            </div>
-
-            {Object.keys(byGroup).length === 0 ? (
-              <div className="rounded-2xl bg-white/[0.01] border border-white/10 p-6 text-center backdrop-blur-md shadow-lg">
-                <p className="text-sm text-gray-500 font-bold uppercase tracking-wider">No standings data yet</p>
+          {tournament.tournamentType !== 'KNOCKOUT_ONLY' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Standings Overview</h2>
+                <Link href={`/team/tournaments/${tournamentId}/table`} className="text-xs font-black text-[#E8A800] hover:text-[#FFC93A] transition-colors uppercase tracking-wider hover:underline">
+                  Full Table →
+                </Link>
               </div>
-            ) : (
-              Object.entries(byGroup).map(([groupName, rows]) => (
-                <div key={groupName} className="rounded-2xl bg-white/[0.01] border border-white/10 overflow-hidden backdrop-blur-md shadow-lg">
-                  {Object.keys(byGroup).length > 1 && (
-                    <div className="px-4 py-3 border-b border-white/5 bg-white/[0.01]">
-                      <span className="text-xs font-black text-[#7A7367] uppercase tracking-wider">{groupName}</span>
-                    </div>
-                  )}
-                  <div className="p-2 space-y-1">
-                    {rows.slice(0, 5).map((s, idx) => {
-                      const isMe = s.teamId === currentSeasonTeam?.id
-                      const pos = s.position ?? idx + 1
-                      return (
-                        <div
-                          key={s.id}
-                          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl border transition-all ${
-                            isMe 
-                              ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.05)]' 
-                              : 'border-transparent hover:bg-white/[0.03]'
-                          }`}
-                        >
-                          <span className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-[10px] font-black ${
-                            pos === 1 ? 'bg-gradient-to-br from-amber-400 to-[#E8A800] text-black shadow-[0_0_8px_rgba(232,168,0,0.3)] animate-pulse' :
-                            pos === 2 ? 'bg-gray-300 text-black' :
-                            pos === 3 ? 'bg-amber-700 text-white' :
-                            'bg-white/5 text-gray-500'
-                          }`}>{pos}</span>
-                          <div className="relative w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/30 border border-white/5 p-0.5">
-                            {s.seasonTeam.team.logoUrl ? (
-                              <Image src={s.seasonTeam.team.logoUrl} alt={s.seasonTeam.team.name} fill className="object-contain p-0.5" sizes="24px" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[8px] font-black text-[#7A7367] bg-white/5">
-                                {s.seasonTeam.team.name.slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <span className={`flex-1 text-xs font-black truncate ${isMe ? 'text-[#E8A800]' : 'text-gray-300'}`}>
-                            {s.seasonTeam.team.name}
-                          </span>
-                          <span className={`text-xs font-black flex-shrink-0 ${isMe ? 'text-[#E8A800]' : 'text-white'}`}>{s.points} pts</span>
-                        </div>
-                      )
-                    })}
-                  </div>
+
+              {Object.keys(byGroup).length === 0 ? (
+                <div className="rounded-2xl bg-white/[0.01] border border-white/10 p-6 text-center backdrop-blur-md shadow-lg">
+                  <p className="text-sm text-gray-500 font-bold uppercase tracking-wider">No standings data yet</p>
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                Object.entries(byGroup).map(([groupName, rows]) => (
+                  <div key={groupName} className="rounded-2xl bg-white/[0.01] border border-white/10 overflow-hidden backdrop-blur-md shadow-lg">
+                    {Object.keys(byGroup).length > 1 && (
+                      <div className="px-4 py-3 border-b border-white/5 bg-white/[0.01]">
+                        <span className="text-xs font-black text-[#7A7367] uppercase tracking-wider">{groupName}</span>
+                      </div>
+                    )}
+                    <div className="p-2 space-y-1">
+                      {rows.slice(0, 5).map((s, idx) => {
+                        const isMe = s.teamId === currentSeasonTeam?.id
+                        const pos = s.position ?? idx + 1
+                        return (
+                          <div
+                            key={s.id}
+                            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl border transition-all ${
+                              isMe 
+                                ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.05)]' 
+                                : 'border-transparent hover:bg-white/[0.03]'
+                            }`}
+                          >
+                            <span className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-[10px] font-black ${
+                              pos === 1 ? 'bg-gradient-to-br from-amber-400 to-[#E8A800] text-black shadow-[0_0_8px_rgba(232,168,0,0.3)] animate-pulse' :
+                              pos === 2 ? 'bg-gray-300 text-black' :
+                              pos === 3 ? 'bg-amber-700 text-white' :
+                              'bg-white/5 text-gray-500'
+                            }`}>{pos}</span>
+                            <div className="relative w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/30 border border-white/5 p-0.5">
+                              {s.seasonTeam.team.logoUrl ? (
+                                <Image src={s.seasonTeam.team.logoUrl} alt={s.seasonTeam.team.name} fill className="object-contain p-0.5" sizes="24px" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[8px] font-black text-[#7A7367] bg-white/5">
+                                  {s.seasonTeam.team.name.slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <span className={`flex-1 text-xs font-black truncate ${isMe ? 'text-[#E8A800]' : 'text-gray-300'}`}>
+                              {s.seasonTeam.team.name}
+                            </span>
+                            <span className={`text-xs font-black flex-shrink-0 ${isMe ? 'text-[#E8A800]' : 'text-white'}`}>{s.points} pts</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

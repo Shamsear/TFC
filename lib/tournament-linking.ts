@@ -1546,6 +1546,30 @@ export async function resolveAndPopulateKnockoutBracket(tournamentId: string): P
             }
           }
         }
+      } else {
+        // If they already have all teams populated (e.g. KNOCKOUT_ONLY manual selection), ensure matches are created
+        for (const pair of pairings) {
+          if (pair.team1Id && pair.team2Id && !pair.leg1MatchId) {
+            const matchRefs = await ensureMatchesForPairing(
+              prisma,
+              pair,
+              round.roundName,
+              round.legs,
+              tournamentId
+            )
+
+            await prisma.knockout_pairings.update({
+              where: { id: pair.id },
+              data: {
+                leg1MatchId: matchRefs.leg1MatchId,
+                leg2MatchId: matchRefs.leg2MatchId,
+                updatedAt: new Date()
+              }
+            })
+            pair.leg1MatchId = matchRefs.leg1MatchId
+            pair.leg2MatchId = matchRefs.leg2MatchId
+          }
+        }
       }
     } else {
       // Subsequent round: it is fed by the winners of the previous round's pairings

@@ -38,6 +38,7 @@ export default function TournamentFormAdvanced({ seasonId, teams, initialTournam
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [teamSearchQuery, setTeamSearchQuery] = useState('')
 
   const hasExistingData = !!(
     initialTournament &&
@@ -284,7 +285,11 @@ export default function TournamentFormAdvanced({ seasonId, teams, initialTournam
   }
 
   const selectAllTeams = () => {
-    setFormData(prev => ({ ...prev, selectedTeams: teams.map(t => t.id) }))
+    const filtered = teams.filter(t => t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()))
+    setFormData(prev => {
+      const merged = new Set([...prev.selectedTeams, ...filtered.map(t => t.id)])
+      return { ...prev, selectedTeams: Array.from(merged) }
+    })
   }
 
   const clearTeams = () => {
@@ -1083,34 +1088,47 @@ export default function TournamentFormAdvanced({ seasonId, teams, initialTournam
           </div>
         </div>
 
+        {/* Search Input Bar */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search teams..."
+            value={teamSearchQuery}
+            onChange={e => setTeamSearchQuery(e.target.value)}
+            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-[#E8A800] transition-colors"
+          />
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {teams.map((team) => (
-            <label
-              key={team.id}
-              className={`cursor-pointer rounded-lg sm:rounded-xl border-2 p-3 sm:p-4 transition-all ${
-                formData.selectedTeams.includes(team.id)
-                  ? 'border-[#E8A800] bg-[#E8A800]/10'
-                  : 'border-white/10 bg-black/30 hover:border-white/20'
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={formData.selectedTeams.includes(team.id)}
-                onChange={() => toggleTeam(team.id)}
-                className="sr-only"
-              />
-              <div className="text-center">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
-                  {team.logoUrl ? (
-                    <img src={team.logoUrl} alt={team.name} className="w-full h-full object-contain p-1" />
-                  ) : (
-                    <span className="text-lg sm:text-2xl">⚽</span>
-                  )}
+          {teams
+            .filter(t => t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()))
+            .map((team) => (
+              <label
+                key={team.id}
+                className={`cursor-pointer rounded-lg sm:rounded-xl border-2 p-3 sm:p-4 transition-all ${
+                  formData.selectedTeams.includes(team.id)
+                    ? 'border-[#E8A800] bg-[#E8A800]/10'
+                    : 'border-white/10 bg-black/30 hover:border-white/20'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.selectedTeams.includes(team.id)}
+                  onChange={() => toggleTeam(team.id)}
+                  className="sr-only"
+                />
+                <div className="text-center">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                    {team.logoUrl ? (
+                      <img src={team.logoUrl} alt={team.name} className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <span className="text-lg sm:text-2xl">⚽</span>
+                    )}
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium text-white truncate">{team.name}</div>
                 </div>
-                <div className="text-xs sm:text-sm font-medium text-white truncate">{team.name}</div>
-              </div>
-            </label>
-          ))}
+              </label>
+            ))}
         </div>
 
         {formData.selectedTeams.length < 2 && (

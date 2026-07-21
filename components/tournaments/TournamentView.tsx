@@ -168,7 +168,7 @@ export default function TournamentView({
         {[
           { id: 'overall', label: 'Overall' },
           ...(!isHistorical ? [{ id: 'matches', label: 'Matches' }] : []),
-          { id: 'table', label: 'Table' },
+          ...(tournament.tournamentType !== 'KNOCKOUT_ONLY' ? [{ id: 'table', label: 'Table' }] : []),
           { id: 'stats', label: 'Stats' },
         ].map((tab) => (
           <button
@@ -376,7 +376,7 @@ export default function TournamentView({
         </div>
       )}
 
-      {activeTab === 'table' && (
+      {activeTab === 'table' && tournament.tournamentType !== 'KNOCKOUT_ONLY' && (
         <div className="rounded-2xl bg-dark-100 border border-white/5 p-6 shadow-xl">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-black text-white uppercase tracking-wider">Tournament Table</h2>

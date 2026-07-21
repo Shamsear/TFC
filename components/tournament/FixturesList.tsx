@@ -146,6 +146,12 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
   const [activeRound, setActiveRound] = useState<string>(defaultRound)
 
+  useEffect(() => {
+    if (allRounds.length > 0 && !allRounds.includes(activeRound)) {
+      setActiveRound(defaultRound)
+    }
+  }, [allRounds, activeRound, defaultRound])
+
   const filteredMatches = matches.filter(match => {
     const isSameRound = (match.round || 'Round 1') === activeRound
     if (!isSameRound) return false

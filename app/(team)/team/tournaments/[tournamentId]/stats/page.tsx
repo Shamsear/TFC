@@ -71,7 +71,7 @@ export default async function TeamTournamentStatsPage({
           {[
             { label: 'Overall', href: `/team/tournaments/${tournamentId}` },
             { label: 'Matches', href: `/team/tournaments/${tournamentId}/matches` },
-            { label: 'Table', href: `/team/tournaments/${tournamentId}/table` },
+            ...(data.tournament.tournamentType !== 'KNOCKOUT_ONLY' ? [{ label: 'Table', href: `/team/tournaments/${tournamentId}/table` }] : []),
             { label: 'Stats', href: `/team/tournaments/${tournamentId}/stats`, active: true },
           ].map(({ label, href, active }) => (
             <Link

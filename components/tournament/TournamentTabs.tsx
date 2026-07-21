@@ -206,7 +206,7 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
     { id: 'fixtures', label: 'Fixtures', count: tournament.matches.length },
     ...(hasFixtures ? [{ id: 'rounds', label: 'Manage Rounds', count: 0 }] : []),
     ...(hasFixtures ? [{ id: 'calendar', label: 'Calendar Editor', count: 0 }] : []),
-    { id: 'standings', label: 'Standings', count: tournament.standings.length },
+    ...(tournament.tournamentType !== 'KNOCKOUT_ONLY' ? [{ id: 'standings', label: 'Standings', count: tournament.standings.length }] : []),
     { id: 'stats', label: 'Stats', count: 0 },
     ...(tournament.groups.length > 0 ? [{ id: 'groups', label: 'Groups', count: tournament.groups.length }] : []),
     ...(hasKnockout ? [{ id: 'knockout', label: 'Knockout', count: knockoutRounds.length }] : [])
@@ -281,7 +281,7 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
             seasonId={seasonId}
           />
         )}
-        {activeTab === 'standings' && (
+        {activeTab === 'standings' && tournament.tournamentType !== 'KNOCKOUT_ONLY' && (
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-[#0D0D0D]/90 border border-white/5 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
               <div className="flex flex-col sm:flex-row gap-4">

@@ -47,10 +47,14 @@ interface SeasonStatsClientProps {
   seasonTeams: any[]
 }
 
+type SortKey = 'rank' | 'name' | 'played' | 'won' | 'drawn' | 'lost' | 'goalsFor' | 'goalsAgainst' | 'goalDiff' | 'points' | 'winRate' | 'gfPerGame' | 'gaPerGame'
+
 export default function SeasonStatsClient({ season, seasonTeams }: SeasonStatsClientProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('points')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Compute aggregated stats for each team
   const aggregatedStats: TeamStats[] = seasonTeams.map((st) => {
@@ -97,13 +101,73 @@ export default function SeasonStatsClient({ season, seasonTeams }: SeasonStatsCl
     }
   })
 
-  // Sort stats: Points desc, GD desc, GF desc, Name asc
-  const sortedStats = [...aggregatedStats].sort((a, b) => {
+  // Get default standings order (official rank index)
+  const defaultRankedStats = [...aggregatedStats].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points
     if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff
     if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor
     return a.name.localeCompare(b.name)
   })
+
+  // Map teamId to default rank index
+  const rankMap = new Map(defaultRankedStats.map((team, idx) => [team.teamId, idx + 1]))
+
+  // Custom sort logic
+  const sortedStats = [...aggregatedStats].sort((a, b) => {
+    let valA: any
+    let valB: any
+
+    switch (sortKey) {
+      case 'name':
+        valA = a.name.toLowerCase()
+        valB = b.name.toLowerCase()
+        break
+      case 'rank':
+        valA = rankMap.get(a.teamId) || 999
+        valB = rankMap.get(b.teamId) || 999
+        break
+      case 'winRate':
+        valA = a.played > 0 ? a.won / a.played : 0
+        valB = b.played > 0 ? b.won / b.played : 0
+        break
+      case 'gfPerGame':
+        valA = a.played > 0 ? a.goalsFor / a.played : 0
+        valB = b.played > 0 ? b.goalsFor / b.played : 0
+        break
+      case 'gaPerGame':
+        valA = a.played > 0 ? a.goalsAgainst / a.played : 0
+        valB = b.played > 0 ? b.goalsAgainst / b.played : 0
+        break
+      default:
+        valA = a[sortKey as keyof TeamStats] ?? 0
+        valB = b[sortKey as keyof TeamStats] ?? 0
+    }
+
+    if (sortKey === 'name') {
+      return sortDirection === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA)
+    }
+
+    if (valA !== valB) {
+      return sortDirection === 'asc' ? valA - valB : valB - valA
+    }
+
+    // Default tiebreaker if sorted values are equal
+    if (b.points !== a.points) return b.points - a.points
+    if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff
+    if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor
+    return a.name.localeCompare(b.name)
+  })
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDirection(key === 'name' || key === 'rank' ? 'asc' : 'desc')
+    }
+  }
 
   // Filter based on search term
   const filteredStats = sortedStats.filter(
@@ -304,20 +368,111 @@ export default function SeasonStatsClient({ season, seasonTeams }: SeasonStatsCl
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left font-mono">
               <thead>
-                <tr className="border-b border-white/5 bg-white/[0.01] text-[10px] text-gray-500 font-extrabold uppercase tracking-widest">
-                  <th className="py-4 px-4 text-center w-12">Pos</th>
-                  <th className="py-4 px-4">Franchise</th>
-                  <th className="py-4 px-4 text-center">P</th>
-                  <th className="py-4 px-4 text-center">W</th>
-                  <th className="py-4 px-4 text-center">D</th>
-                  <th className="py-4 px-4 text-center">L</th>
-                  <th className="py-4 px-4 text-center hidden md:table-cell">GF</th>
-                  <th className="py-4 px-4 text-center hidden md:table-cell">GA</th>
-                  <th className="py-4 px-4 text-center">GD</th>
-                  <th className="py-4 px-4 text-center text-[#E8A800]">PTS</th>
-                  <th className="py-4 px-4 text-center hidden lg:table-cell">Win %</th>
-                  <th className="py-4 px-4 text-center hidden lg:table-cell">GF/G</th>
-                  <th className="py-4 px-4 text-center hidden lg:table-cell">GA/G</th>
+                <tr className="border-b border-white/5 bg-white/[0.01] text-[10px] text-gray-500 font-extrabold uppercase tracking-widest select-none">
+                  <th 
+                    onClick={() => handleSort('rank')} 
+                    className={`py-4 px-4 text-center w-12 cursor-pointer hover:text-white transition-colors ${sortKey === 'rank' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Pos {sortKey === 'rank' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('name')} 
+                    className={`py-4 px-4 cursor-pointer hover:text-white transition-colors ${sortKey === 'name' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center gap-1">
+                      Franchise {sortKey === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('played')} 
+                    className={`py-4 px-4 text-center cursor-pointer hover:text-white transition-colors ${sortKey === 'played' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      P {sortKey === 'played' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('won')} 
+                    className={`py-4 px-4 text-center cursor-pointer hover:text-white transition-colors ${sortKey === 'won' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      W {sortKey === 'won' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('drawn')} 
+                    className={`py-4 px-4 text-center cursor-pointer hover:text-white transition-colors ${sortKey === 'drawn' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      D {sortKey === 'drawn' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('lost')} 
+                    className={`py-4 px-4 text-center cursor-pointer hover:text-white transition-colors ${sortKey === 'lost' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      L {sortKey === 'lost' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('goalsFor')} 
+                    className={`py-4 px-4 text-center hidden md:table-cell cursor-pointer hover:text-white transition-colors ${sortKey === 'goalsFor' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      GF {sortKey === 'goalsFor' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('goalsAgainst')} 
+                    className={`py-4 px-4 text-center hidden md:table-cell cursor-pointer hover:text-white transition-colors ${sortKey === 'goalsAgainst' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      GA {sortKey === 'goalsAgainst' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('goalDiff')} 
+                    className={`py-4 px-4 text-center cursor-pointer hover:text-white transition-colors ${sortKey === 'goalDiff' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      GD {sortKey === 'goalDiff' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('points')} 
+                    className={`py-4 px-4 text-center cursor-pointer hover:text-[#FFC93A] transition-colors ${sortKey === 'points' ? 'text-[#E8A800]' : 'text-gray-500'}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      PTS {sortKey === 'points' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('winRate')} 
+                    className={`py-4 px-4 text-center hidden lg:table-cell cursor-pointer hover:text-white transition-colors ${sortKey === 'winRate' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Win % {sortKey === 'winRate' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('gfPerGame')} 
+                    className={`py-4 px-4 text-center hidden lg:table-cell cursor-pointer hover:text-white transition-colors ${sortKey === 'gfPerGame' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      GF/G {sortKey === 'gfPerGame' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('gaPerGame')} 
+                    className={`py-4 px-4 text-center hidden lg:table-cell cursor-pointer hover:text-white transition-colors ${sortKey === 'gaPerGame' ? 'text-white' : ''}`}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      GA/G {sortKey === 'gaPerGame' ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </div>
+                  </th>
                   <th className="py-4 px-4 text-center w-24">Actions</th>
                 </tr>
               </thead>
@@ -340,16 +495,16 @@ export default function SeasonStatsClient({ season, seasonTeams }: SeasonStatsCl
                         <td className="py-4 px-4 text-center font-black">
                           <span
                             className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-[10px] ${
-                              index === 0
+                              rankMap.get(team.teamId) === 1
                                 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                : index === 1
+                                : rankMap.get(team.teamId) === 2
                                 ? 'bg-gray-400/20 text-gray-300 border border-gray-400/30'
-                                : index === 2
+                                : rankMap.get(team.teamId) === 3
                                 ? 'bg-amber-700/20 text-amber-600 border border-amber-700/30'
                                 : 'bg-white/5 text-gray-400'
                             }`}
                           >
-                            {index + 1}
+                            {rankMap.get(team.teamId)}
                           </span>
                         </td>
 

@@ -81,6 +81,7 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
   const subAdminMore = [
     ...(activeSeasonId ? [
       { name: "Achievements", href: `/sub-admin/${activeSeasonId}/achievements` },
+      { name: "Season Stats", href: `/sub-admin/${activeSeasonId}/season-stats` },
       { name: "Release Windows", href: `/sub-admin/${activeSeasonId}/release-windows` },
       { name: "Tournaments", href: `/sub-admin/${activeSeasonId}/tournaments` },
       { name: "Calendar", href: `/sub-admin/${activeSeasonId}/calendar` },

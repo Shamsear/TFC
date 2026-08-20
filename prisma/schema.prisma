@@ -20,6 +20,7 @@ model base_players {
   bulkTiebreakers     bulk_tiebreakers[]
   previewAllocations  preview_allocations[]
   releaseRequests     release_requests[]
+  retentionRequests   retention_requests[]
   retentions          retentions[]
   seasonalPlayerStats seasonal_player_stats[]
   starredPlayers      starred_players[]
@@ -232,6 +233,9 @@ model seasons {
   financialLedger       financial_ledger[]
   releaseRequests       release_requests[]
   releaseWindows        release_windows[]
+  retentionRequests     retention_requests[]    @relation("RetentionRequestSeason")
+  retentionRequestsPrev retention_requests[]    @relation("RetentionRequestPreviousSeason")
+  retentionWindows      retention_windows[]
   retentions            retentions[]
   rounds                rounds[]
   seasonTeams           season_teams[]
@@ -277,6 +281,59 @@ model swap_windows {
   swapRequests swap_requests[]
 
   @@index([seasonId], map: "idx_swap_windows_season")
+}
+
+model retention_windows {
+  id              String              @id @db.VarChar(36)
+  seasonId        String              @map("season_id") @db.VarChar(36)
+  name            String              @db.VarChar(255)
+  startDate       DateTime            @map("start_date") @db.Timestamp(6)
+  endDate         DateTime            @map("end_date") @db.Timestamp(6)
+  status          String              @default("UPCOMING")
+  retentionLimit  Int                 @default(3) @map("retention_limit")
+  bannedTeamIds   String?             @map("banned_team_ids")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  season          seasons             @relation(fields: [seasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  retentionRequests retention_requests[]
+
+  @@index([seasonId], map: "idx_retention_windows_season")
+  @@index([status], map: "idx_retention_windows_status")
+  @@index([startDate, endDate], map: "idx_retention_windows_dates")
+}
+
+model retention_requests {
+  id                String             @id @db.VarChar(36)
+  seasonId          String             @map("season_id") @db.VarChar(36)
+  teamId            String             @map("team_id") @db.VarChar(36)
+  playerId          String             @map("player_id") @db.VarChar(36)
+  playerName        String             @map("player_name") @db.VarChar(255)
+  oldSquadValue     Int                @map("old_squad_value")
+  previousSeasonId  String             @map("previous_season_id") @db.VarChar(36)
+  retentionWindowId String?            @map("retention_window_id") @db.VarChar(36)
+  status            RequestStatus?     @default(pending)
+  windowOpenedAt    DateTime?          @map("window_opened_at") @db.Timestamp(6)
+  submittedAt       DateTime?          @default(now()) @map("submitted_at") @db.Timestamp(6)
+  processedAt       DateTime?          @map("processed_at") @db.Timestamp(6)
+  processedBy       String?            @map("processed_by") @db.VarChar(36)
+  rejectionReason   String?            @map("rejection_reason")
+  notes             String?
+  createdAt         DateTime?          @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt         DateTime?          @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  basePlayer        base_players       @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  processor         users?             @relation("RetentionRequestProcessor", fields: [processedBy], references: [id], onUpdate: NoAction)
+  season            seasons            @relation("RetentionRequestSeason", fields: [seasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  previousSeason    seasons            @relation("RetentionRequestPreviousSeason", fields: [previousSeasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  team              teams              @relation(fields: [teamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  retentionWindow   retention_windows? @relation(fields: [retentionWindowId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([seasonId], map: "idx_retention_requests_season")
+  @@index([teamId], map: "idx_retention_requests_team")
+  @@index([playerId], map: "idx_retention_requests_player")
+  @@index([status], map: "idx_retention_requests_status")
+  @@index([retentionWindowId], map: "idx_retention_requests_window")
+  @@index([previousSeasonId], map: "idx_retention_requests_previous_season")
+  @@index([windowOpenedAt], map: "idx_retention_requests_window_opened")
 }
 
 model starred_players {
@@ -327,6 +384,7 @@ model teams {
   bulkTiebreakerParticipants bulk_tiebreaker_participants[] @relation("BulkTiebreakerParticipants")
   previewAllocations         preview_allocations[]
   releaseRequests            release_requests[]
+  retentionRequests          retention_requests[]
   seasonTeams                season_teams[]
   swapPlayersFrom            swap_request_players[]         @relation("SwapPlayerFromTeam")
   swapPlayersTo              swap_request_players[]         @relation("SwapPlayerToTeam")
@@ -387,32 +445,33 @@ model transfer_history {
 }
 
 model users {
-  id                       String                    @id
-  email                    String                    @unique
-  name                     String?
-  role                     UserRole                  @default(SUB_ADMIN)
-  passwordHash             String
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  createdBy                String?                   @map("created_by")
-  isActive                 Boolean                   @default(true) @map("is_active")
-  teamId                   String?                   @map("team_id")
-  mustChangePassword       Boolean                   @default(false) @map("must_change_password")
-  managerId                String?                   @unique @map("manager_id")
-  manager                  managers?                 @relation(fields: [managerId], references: [id])
-  subAdminSeasons          sub_admin_seasons[]
-  updatedCalendars         auction_calendar[]        @relation("CalendarUpdatedBy")
-  auditLogs                audit_logs[]
-  reviewedResetRequests    password_reset_requests[] @relation("ReviewedResetRequests")
-  passwordResetRequests    password_reset_requests[] @relation("UserResetRequests")
-  processedReleaseRequests release_requests[]        @relation("ReleaseRequestProcessor")
-  processedSwapRequests    swap_requests[]           @relation("SwapRequestProcessor")
-  team                     teams?                    @relation("TeamManager", fields: [teamId], references: [id])
-  notificationPreferences  Json                      @default("{\"auctionWins\":true,\"outbids\":true,\"trades\":true,\"general\":true}") @map("notification_preferences")
-  quietHoursStart          String?                   @default("23:00") @map("quiet_hours_start")
-  quietHoursEnd            String?                   @default("07:00") @map("quiet_hours_end")
-  pushSubscriptions        push_subscriptions[]
-  notificationsInbox       notifications_inbox[]
+  id                        String                    @id
+  email                     String                    @unique
+  name                      String?
+  role                      UserRole                  @default(SUB_ADMIN)
+  passwordHash              String
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  createdBy                 String?                   @map("created_by")
+  isActive                  Boolean                   @default(true) @map("is_active")
+  teamId                    String?                   @map("team_id")
+  mustChangePassword        Boolean                   @default(false) @map("must_change_password")
+  managerId                 String?                   @unique @map("manager_id")
+  manager                   managers?                 @relation(fields: [managerId], references: [id])
+  subAdminSeasons           sub_admin_seasons[]
+  updatedCalendars          auction_calendar[]        @relation("CalendarUpdatedBy")
+  auditLogs                 audit_logs[]
+  reviewedResetRequests     password_reset_requests[] @relation("ReviewedResetRequests")
+  passwordResetRequests     password_reset_requests[] @relation("UserResetRequests")
+  processedReleaseRequests  release_requests[]        @relation("ReleaseRequestProcessor")
+  processedRetentionRequests retention_requests[]     @relation("RetentionRequestProcessor")
+  processedSwapRequests     swap_requests[]           @relation("SwapRequestProcessor")
+  team                      teams?                    @relation("TeamManager", fields: [teamId], references: [id])
+  notificationPreferences   Json                      @default("{\"auctionWins\":true,\"outbids\":true,\"trades\":true,\"general\":true}") @map("notification_preferences")
+  quietHoursStart           String?                   @default("23:00") @map("quiet_hours_start")
+  quietHoursEnd             String?                   @default("07:00") @map("quiet_hours_end")
+  pushSubscriptions         push_subscriptions[]
+  notificationsInbox        notifications_inbox[]
 }
 
 model password_reset_requests {

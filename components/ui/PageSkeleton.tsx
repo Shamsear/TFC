@@ -1,9 +1,7 @@
-'use client'
-
 /**
  * Lightweight inline skeleton loader for page transitions.
- * Renders inside the layout's Suspense boundary — nav stays visible,
- * only the content area shows skeleton placeholders.
+ * Server component — renders instantly as pure HTML, zero JS overhead.
+ * Shows inside the layout's Suspense boundary while page data loads.
  */
 export default function PageSkeleton({ rows = 6 }: { rows?: number }) {
   return (
@@ -13,12 +11,22 @@ export default function PageSkeleton({ rows = 6 }: { rows?: number }) {
       
       {/* Stats row skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-2xl bg-white/[0.02] border border-white/5 p-6">
-            <div className="h-3 w-24 bg-white/5 rounded mb-3" />
-            <div className="h-8 w-16 bg-white/5 rounded" />
-          </div>
-        ))}
+        <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6">
+          <div className="h-3 w-24 bg-white/5 rounded mb-3" />
+          <div className="h-8 w-16 bg-white/5 rounded" />
+        </div>
+        <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6">
+          <div className="h-3 w-24 bg-white/5 rounded mb-3" />
+          <div className="h-8 w-16 bg-white/5 rounded" />
+        </div>
+        <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6">
+          <div className="h-3 w-24 bg-white/5 rounded mb-3" />
+          <div className="h-8 w-16 bg-white/5 rounded" />
+        </div>
+        <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6">
+          <div className="h-3 w-24 bg-white/5 rounded mb-3" />
+          <div className="h-8 w-16 bg-white/5 rounded" />
+        </div>
       </div>
 
       {/* Content rows skeleton */}

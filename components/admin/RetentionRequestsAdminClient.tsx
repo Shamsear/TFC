@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import Image from 'next/image'
-import TeamLogo from '@/components/team/TeamLogo'
 
 interface RetentionRequest {
   id: string
@@ -15,32 +14,11 @@ interface RetentionRequest {
   submittedAt: string
   processedAt: string | null
   rejectionReason: string | null
-  team: {
-    id: string
-    name: string
-    logoUrl: string
-  }
-  basePlayer: {
-    id: string
-    name: string
-    player_id: string | null
-    photoUrl: string
-  }
-  previousSeason: {
-    id: string
-    name: string
-    seasonNumber: number
-  }
-  retentionWindow: {
-    id: string
-    name: string
-    status: string
-  } | null
-  processor: {
-    id: string
-    name: string
-    email: string
-  } | null
+  team: { id: string; name: string; logoUrl: string }
+  basePlayer: { id: string; name: string; player_id: string | null; photoUrl: string }
+  previousSeason: { id: string; name: string; seasonNumber: number }
+  retentionWindow: { id: string; name: string; status: string } | null
+  processor: { id: string; name: string; email: string } | null
 }
 
 interface Props {
@@ -48,371 +26,394 @@ interface Props {
   seasonName: string
   requests: RetentionRequest[]
   activeWindow: {
-    id: string
-    name: string
-    startDate: string
-    endDate: string
-    status: string
-    retentionLimit: number
+    id: string; name: string; startDate: string; endDate: string
+    status: string; retentionLimit: number
   } | null
 }
 
-const formatCurrency = (amount: number) => {
-  return `£${(amount).toLocaleString()}`
+const formatCurrency = (amount: number) => `£${amount.toLocaleString()}`
+
+const getPhotoUrl = (playerId: string | null): string => {
+  if (!playerId) return '/default-player.png'
+  return getPlayerPhotoUrl(`${playerId}.webp`)
+}
+
+interface TeamGroup {
+  teamId: string
+  teamName: string
+  teamLogo: string
+  requests: RetentionRequest[]
+  pendingCount: number
+  totalValue: number
 }
 
 export default function RetentionRequestsAdminClient({
-  seasonId,
-  seasonName,
-  requests: initialRequests,
-  activeWindow,
+  seasonId, seasonName, requests: initialRequests, activeWindow,
 }: Props) {
   const [requests, setRequests] = useState(initialRequests)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [processingId, setProcessingId] = useState<string | null>(null)
-  const [rejectionReason, setRejectionReason] = useState('')
-  const [showRejectModal, setShowRejectModal] = useState(false)
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [processing, setProcessing] = useState(false)
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; ids: string[] }>({ open: false, ids: [] })
+  const [rejectReason, setRejectReason] = useState('')
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set())
 
-  const filteredRequests = requests
-    .filter(req => filter === 'all' || req.status === filter)
-    .filter(req =>
-      req.playerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.team.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+  // Group requests by team
+  const teamGroups = useMemo(() => {
+    const filtered = requests
+      .filter(r => filter === 'all' || r.status === filter)
+      .filter(r =>
+        r.playerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.team.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+
+    const map = new Map<string, TeamGroup>()
+    for (const req of filtered) {
+      if (!map.has(req.team.id)) {
+        map.set(req.team.id, {
+          teamId: req.team.id,
+          teamName: req.team.name,
+          teamLogo: req.team.logoUrl,
+          requests: [],
+          pendingCount: 0,
+          totalValue: 0,
+        })
+      }
+      const group = map.get(req.team.id)!
+      group.requests.push(req)
+      if (req.status === 'pending') {
+        group.pendingCount++
+        group.totalValue += req.oldSquadValue
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.pendingCount - a.pendingCount || a.teamName.localeCompare(b.teamName))
+  }, [requests, filter, searchQuery])
 
   const pendingCount = requests.filter(r => r.status === 'pending').length
   const approvedCount = requests.filter(r => r.status === 'approved').length
   const rejectedCount = requests.filter(r => r.status === 'rejected').length
+  const totalPendingValue = requests.filter(r => r.status === 'pending').reduce((s, r) => s + r.oldSquadValue, 0)
 
-  const handleApprove = async (requestId: string) => {
-    if (!confirm('Are you sure you want to approve this retention request? The player will be added to the team\'s squad and budget will be deducted.')) {
-      return
-    }
-
-    setProcessingId(requestId)
-    try {
-      const response = await fetch(`/api/admin/retention-requests/${requestId}/approve`, {
-        method: 'POST',
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to approve request')
-      }
-
-      // Update local state
-      setRequests(prevRequests =>
-        prevRequests.map(req =>
-          req.id === requestId
-            ? { ...req, status: 'approved', processedAt: new Date().toISOString() }
-            : req
-        )
-      )
-
-      alert('Retention request approved successfully!')
-    } catch (error: any) {
-      alert(`Error: ${error.message}`)
-    } finally {
-      setProcessingId(null)
-    }
-  }
-
-  const handleReject = async () => {
-    if (!selectedRequestId || !rejectionReason.trim()) {
-      alert('Please provide a rejection reason')
-      return
-    }
-
-    setProcessingId(selectedRequestId)
-    try {
-      const response = await fetch(`/api/admin/retention-requests/${selectedRequestId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: rejectionReason }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to reject request')
-      }
-
-      // Update local state
-      setRequests(prevRequests =>
-        prevRequests.map(req =>
-          req.id === selectedRequestId
-            ? { ...req, status: 'rejected', processedAt: new Date().toISOString(), rejectionReason }
-            : req
-        )
-      )
-
-      setShowRejectModal(false)
-      setRejectionReason('')
-      setSelectedRequestId(null)
-      alert('Retention request rejected successfully!')
-    } catch (error: any) {
-      alert(`Error: ${error.message}`)
-    } finally {
-      setProcessingId(null)
-    }
-  }
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  const toggleTeam = (teamId: string) => {
+    setExpandedTeams(prev => {
+      const next = new Set(prev)
+      if (next.has(teamId)) next.delete(teamId)
+      else next.add(teamId)
+      return next
     })
   }
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectTeam = (teamRequests: RetentionRequest[]) => {
+    const pendingIds = teamRequests.filter(r => r.status === 'pending').map(r => r.id)
+    const allSelected = pendingIds.every(id => selectedIds.has(id))
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (allSelected) {
+        pendingIds.forEach(id => next.delete(id))
+      } else {
+        pendingIds.forEach(id => next.add(id))
+      }
+      return next
+    })
+  }
+
+  const selectAllPending = () => {
+    const pendingIds = requests.filter(r => r.status === 'pending').map(r => r.id)
+    setSelectedIds(new Set(pendingIds))
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const batchApprove = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Approve ${selectedIds.size} retention request(s)? Players will be added to squads and budgets deducted.`)) return
+
+    setProcessing(true)
+    try {
+      const res = await fetch('/api/admin/retention-requests/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve', requestIds: Array.from(selectedIds) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      // Update local state
+      setRequests(prev => prev.map(r =>
+        selectedIds.has(r.id) ? { ...r, status: 'approved', processedAt: new Date().toISOString() } : r
+      ))
+      setSelectedIds(new Set())
+      alert(data.message || `Approved ${data.approved} request(s)`)
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const batchReject = async () => {
+    if (selectedIds.size === 0 || !rejectReason.trim()) return
+    setProcessing(true)
+    try {
+      const res = await fetch('/api/admin/retention-requests/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject', requestIds: Array.from(selectedIds), reason: rejectReason }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      setRequests(prev => prev.map(r =>
+        selectedIds.has(r.id) ? { ...r, status: 'rejected', processedAt: new Date().toISOString(), rejectionReason: rejectReason } : r
+      ))
+      setSelectedIds(new Set())
+      setRejectModal({ open: false, ids: [] })
+      setRejectReason('')
+      alert(data.message || `Rejected ${data.rejected} request(s)`)
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  })
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
-      {/* Back Link */}
-      <div className="mb-6">
-        <a
-          href={`/sub-admin/${seasonId}/retention`}
-          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+      {/* Back */}
+      <div className="mb-4">
+        <a href={`/sub-admin/${seasonId}/retention`} className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Back to Retention
         </a>
       </div>
 
       {/* Header */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+          <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none mb-1">
             Retention Requests
           </h1>
-          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-            Review and process player retention requests for {seasonName}
-          </p>
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest font-mono">{seasonName}</p>
         </div>
-        <a
-          href={`/sub-admin/${seasonId}/retention-windows`}
-          className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-3 bg-white/[0.03] border border-white/10 text-white rounded-lg sm:rounded-xl font-bold hover:bg-white/[0.06] transition-all text-xs sm:text-sm font-mono uppercase"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+        <a href={`/sub-admin/${seasonId}/retention-windows`} className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/10 text-white rounded-lg font-bold hover:bg-white/[0.06] transition-all text-xs font-mono uppercase">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Windows
         </a>
       </div>
 
-      <div>
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Total Requests</p>
-            <p className="text-2xl font-black text-white">{requests.length}</p>
-          </div>
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Pending</p>
-            <p className="text-2xl font-black text-yellow-500">{pendingCount}</p>
-          </div>
-          <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Approved</p>
-            <p className="text-2xl font-black text-green-500">{approvedCount}</p>
-          </div>
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Rejected</p>
-            <p className="text-2xl font-black text-red-500">{rejectedCount}</p>
-          </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <p className="text-[9px] text-gray-500 font-mono uppercase">Total</p>
+          <p className="text-xl font-black text-white">{requests.length}</p>
         </div>
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+          <p className="text-[9px] text-gray-500 font-mono uppercase">Pending</p>
+          <p className="text-xl font-black text-yellow-500">{pendingCount}</p>
+        </div>
+        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3">
+          <p className="text-[9px] text-gray-500 font-mono uppercase">Approved</p>
+          <p className="text-xl font-black text-green-500">{approvedCount}</p>
+        </div>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+          <p className="text-[9px] text-gray-500 font-mono uppercase">Rejected</p>
+          <p className="text-xl font-black text-red-500">{rejectedCount}</p>
+        </div>
+        <div className="bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl p-3">
+          <p className="text-[9px] text-gray-500 font-mono uppercase">Pending Value</p>
+          <p className="text-xl font-black text-[#E8A800]">{formatCurrency(totalPendingValue)}</p>
+        </div>
+      </div>
 
-        {/* Active Window Info */}
-        {activeWindow && (
-          <div className="mb-8 p-4 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-black text-[#E8A800] font-mono">{activeWindow.name}</p>
-                <p className="text-xs text-gray-400 font-mono">
-                  {formatDate(activeWindow.startDate)} - {formatDate(activeWindow.endDate)}
-                </p>
-                <p className="text-xs text-gray-500 font-mono mt-1">Max retentions per team: {activeWindow.retentionLimit}</p>
-              </div>
-              <div className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
-                <p className="text-xs font-black text-green-400 font-mono uppercase">{activeWindow.status}</p>
-              </div>
-            </div>
+      {/* Toolbar: Filters + Bulk Actions */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Status Filter */}
+        <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 font-mono">
+          {(['all', 'pending', 'approved', 'rejected'] as const).map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${filter === s ? 'bg-[#E8A800] text-black' : 'text-gray-500 hover:text-white'}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+        <input type="text" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+          className="flex-1 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-xs font-mono" />
+
+        {/* Bulk Actions */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-400 font-mono">{selectedIds.size} selected</span>
+            <button onClick={batchApprove} disabled={processing}
+              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-black rounded-lg transition-all disabled:opacity-50 font-mono">
+              ✓ Approve All
+            </button>
+            <button onClick={() => setRejectModal({ open: true, ids: Array.from(selectedIds) })} disabled={processing}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-black rounded-lg transition-all disabled:opacity-50 font-mono">
+              ✕ Reject All
+            </button>
+            <button onClick={clearSelection} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 text-xs font-bold rounded-lg transition-all font-mono">
+              Clear
+            </button>
           </div>
         )}
-
-        {/* Filters */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
-          <div className="flex bg-black/40 rounded-xl p-1 border border-white/5 font-mono">
-            {(['all', 'pending', 'approved', 'rejected'] as const).map(status => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
-                  filter === status
-                    ? 'bg-[#E8A800] text-black shadow-lg'
-                    : 'text-gray-500 hover:text-white'
-                }`}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            placeholder="Search players or teams..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 px-4 py-2 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-sm font-mono"
-          />
-        </div>
-
-        {/* Requests List */}
-        {filteredRequests.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
-            <p className="text-gray-400 font-mono">No retention requests found</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredRequests.map(request => (
-              <div
-                key={request.id}
-                className={`bg-white/5 rounded-xl p-6 border ${
-                  request.status === 'pending'
-                    ? 'border-yellow-500/20'
-                    : request.status === 'approved'
-                    ? 'border-green-500/20'
-                    : 'border-red-500/20'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-6">
-                  {/* Left: Player & Team Info */}
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      <Image
-                        src={getPlayerPhotoUrl(request.basePlayer.player_id)}
-                        alt={request.playerName}
-                        width={64}
-                        height={64}
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-black text-white text-lg mb-1">{request.playerName}</p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <TeamLogo logoUrl={request.team.logoUrl} teamName={request.team.name} size="sm" />
-                        <p className="text-sm text-gray-400 font-mono">{request.team.name}</p>
-                      </div>
-                      <p className="text-xs text-gray-500 font-mono">From {request.previousSeason.name}</p>
-                      <p className="text-xs text-gray-600 font-mono">Submitted {formatDate(request.submittedAt)}</p>
-                      {request.retentionWindow && (
-                        <p className="text-xs text-gray-600 font-mono">Window: {request.retentionWindow.name}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: Value & Actions */}
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-2xl font-black text-[#E8A800] mb-2">{formatCurrency(request.oldSquadValue)}</p>
-                    <div className={`inline-block px-3 py-1 rounded-lg text-xs font-black font-mono uppercase mb-4 ${
-                      request.status === 'pending'
-                        ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30'
-                        : request.status === 'approved'
-                        ? 'bg-green-500/20 text-green-500 border border-green-500/30'
-                        : 'bg-red-500/20 text-red-500 border border-red-500/30'
-                    }`}>
-                      {request.status}
-                    </div>
-
-                    {request.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApprove(request.id)}
-                          disabled={processingId === request.id}
-                          className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs font-mono"
-                        >
-                          {processingId === request.id ? 'Processing...' : 'Approve'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedRequestId(request.id)
-                            setShowRejectModal(true)
-                          }}
-                          disabled={processingId === request.id}
-                          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs font-mono"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-
-                    {request.status !== 'pending' && request.processedAt && (
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-500 font-mono">Processed {formatDate(request.processedAt)}</p>
-                        {request.processor && (
-                          <p className="text-xs text-gray-600 font-mono">By {request.processor.name}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {request.notes && (
-                  <div className="mt-4 p-3 bg-white/5 rounded-lg">
-                    <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Team Notes</p>
-                    <p className="text-sm text-gray-300 font-mono">{request.notes}</p>
-                  </div>
-                )}
-
-                {/* Rejection Reason */}
-                {request.rejectionReason && (
-                  <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <p className="text-xs text-red-500 font-mono uppercase tracking-wider mb-1">Rejection Reason</p>
-                    <p className="text-sm text-red-400 font-mono">{request.rejectionReason}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+        {pendingCount > 0 && selectedIds.size === 0 && (
+          <button onClick={selectAllPending}
+            className="px-3 py-1.5 bg-[#E8A800]/20 hover:bg-[#E8A800]/30 text-[#E8A800] text-xs font-black rounded-lg transition-all font-mono">
+            Select All Pending
+          </button>
         )}
       </div>
 
+      {/* Team Groups */}
+      {teamGroups.length === 0 ? (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
+          <p className="text-gray-400 font-mono text-sm">No retention requests found</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {teamGroups.map(group => {
+            const isExpanded = expandedTeams.has(group.teamId)
+            const allPendingSelected = group.requests.filter(r => r.status === 'pending').every(r => selectedIds.has(r.id))
+            const someSelected = group.requests.some(r => selectedIds.has(r.id))
+
+            return (
+              <div key={group.teamId} className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                {/* Team Header */}
+                <div
+                  onClick={() => toggleTeam(group.teamId)}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.03] transition-colors"
+                >
+                  {/* Team Select Checkbox */}
+                  {group.pendingCount > 0 && (
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleSelectTeam(group.requests) }}
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                        allPendingSelected ? 'bg-[#E8A800] border-[#E8A800]' : someSelected ? 'bg-[#E8A800]/50 border-[#E8A800]/50' : 'border-white/20 hover:border-white/40'
+                      }`}
+                    >
+                      {(allPendingSelected || someSelected) && (
+                        <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Team Logo */}
+                  {group.teamLogo ? (
+                    <Image src={group.teamLogo} alt={group.teamName} width={28} height={28} className="rounded-md object-contain" unoptimized />
+                  ) : (
+                    <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                      {group.teamName.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+
+                  <span className="font-black text-white text-sm">{group.teamName}</span>
+
+                  <span className="text-[10px] font-mono text-gray-500">{group.requests.length} request{group.requests.length !== 1 ? 's' : ''}</span>
+
+                  {group.pendingCount > 0 && (
+                    <span className="px-2 py-0.5 bg-yellow-500/20 border border-yellow-500/30 rounded text-[10px] font-black text-yellow-400 font-mono">
+                      {group.pendingCount} pending • {formatCurrency(group.totalValue)}
+                    </span>
+                  )}
+
+                  <svg className={`w-4 h-4 text-gray-500 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                {/* Player Cards (expanded) */}
+                {isExpanded && (
+                  <div className="px-4 pb-3 space-y-2">
+                    {group.requests.map(req => {
+                      const isSelected = selectedIds.has(req.id)
+                      return (
+                        <div key={req.id}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
+                            isSelected ? 'bg-[#E8A800]/10 border-[#E8A800]/30' :
+                            req.status === 'approved' ? 'bg-green-500/5 border-green-500/10' :
+                            req.status === 'rejected' ? 'bg-red-500/5 border-red-500/10' :
+                            'bg-white/[0.02] border-white/5 hover:border-white/10'
+                          }`}
+                        >
+                          {/* Checkbox */}
+                          {req.status === 'pending' && (
+                            <button onClick={() => toggleSelect(req.id)}
+                              className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
+                                isSelected ? 'bg-[#E8A800] border-[#E8A800]' : 'border-white/20 hover:border-white/40'
+                              }`}>
+                              {isSelected && <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                            </button>
+                          )}
+
+                          {/* Player Photo */}
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                            <img src={getPhotoUrl(req.basePlayer.player_id)} alt={req.playerName} className="w-full h-full object-cover" />
+                          </div>
+
+                          {/* Player Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-white truncate">{req.playerName}</p>
+                            <p className="text-[10px] text-gray-500 font-mono">From {req.previousSeason.name}</p>
+                          </div>
+
+                          {/* Value */}
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-black text-[#E8A800]">{formatCurrency(req.oldSquadValue)}</p>
+                          </div>
+
+                          {/* Status Badge */}
+                          <div className={`px-2 py-0.5 rounded text-[9px] font-black font-mono uppercase flex-shrink-0 ${
+                            req.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                            req.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                            'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            {req.status}
+                          </div>
+
+                          {/* Time */}
+                          <span className="text-[9px] text-gray-600 font-mono flex-shrink-0 hidden sm:block">{formatDate(req.submittedAt)}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* Reject Modal */}
-      {showRejectModal && (
+      {rejectModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-[#0c0c0e] border border-white/10 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-black text-white mb-4 font-mono">Reject Retention Request</h3>
-            <p className="text-sm text-gray-400 mb-4 font-mono">Please provide a reason for rejection:</p>
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="Enter rejection reason..."
-              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-sm font-mono resize-none mb-4"
-              rows={4}
-              autoFocus
-            />
+            <h3 className="text-lg font-black text-white mb-2 font-mono">Reject {rejectModal.ids.length} Request(s)</h3>
+            <p className="text-xs text-gray-400 mb-4 font-mono">Provide a reason for rejection:</p>
+            <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+              placeholder="Enter reason..." autoFocus
+              className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/30 text-sm font-mono resize-none mb-4" rows={3} />
             <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowRejectModal(false)
-                  setRejectionReason('')
-                  setSelectedRequestId(null)
-                }}
-                className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all text-sm font-mono"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={!rejectionReason.trim() || processingId !== null}
-                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono"
-              >
-                {processingId ? 'Rejecting...' : 'Confirm Rejection'}
+              <button onClick={() => { setRejectModal({ open: false, ids: [] }); setRejectReason('') }}
+                className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-bold rounded-lg transition-all text-sm font-mono">Cancel</button>
+              <button onClick={batchReject} disabled={!rejectReason.trim() || processing}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all disabled:opacity-50 text-sm font-mono">
+                {processing ? 'Rejecting...' : 'Confirm'}
               </button>
             </div>
           </div>

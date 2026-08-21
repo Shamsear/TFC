@@ -54,38 +54,10 @@ async function getSeasonTeamsData(seasonId: string) {
         where: { seasonId, status: 'ACTIVE' }, _sum: { soldPrice: true }
       }),
       // Total player count
-      prisma.transfer_history.count({ where: { seasonId, status: 'ACTIVE' } }),
-    ])
-      // Count players
-      prisma.transfer_history.groupBy({
-        by: ['teamId'],
-        where: { seasonId, status: 'ACTIVE' },
-        _count: { _all: true }
-      }),
-      
-      // Total spent
-      prisma.transfer_history.groupBy({
-        by: ['teamId'],
-        where: { seasonId, status: 'ACTIVE' },
-        _sum: { soldPrice: true }
-      }),
-      
-      // Home wins (using raw query to compare fields)
-      prisma.$queryRaw<Array<{ homeTeamId: string; count: bigint }>>`
-        SELECT "homeTeamId", COUNT(*)::bigint as count
-        FROM matches
-        WHERE status = 'COMPLETED' AND "homeScore" > "awayScore"
-        GROUP BY "homeTeamId"
-      `,
-      
-      // Away wins
-      prisma.$queryRaw<Array<{ awayTeamId: string; count: bigint }>>`
-        SELECT "awayTeamId", COUNT(*)::bigint as count
-        FROM matches
-        WHERE status = 'COMPLETED' AND "awayScore" > "homeScore"
-        GROUP BY "awayTeamId"
-      `
-    ])
+      prisma.transfer_history.count({ where: { seasonId, status: 'ACTIVE' } }),    ])
+
+
+
 
     const countMap = new Map(playerCounts.map(pc => [pc.teamId, pc._count._all]))
     const spentMap = new Map(spentData.map(sd => [sd.teamId, sd._sum.soldPrice || 0]))

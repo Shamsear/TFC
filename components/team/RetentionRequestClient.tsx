@@ -457,6 +457,70 @@ export default function RetentionRequestClient({
           </div>
         </div>
 
+        {/* Your Submitted Requests — shown at the top so teams see them immediately */}
+        {existingRequests.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-black text-white font-mono mb-3">Your Retention Requests</h2>
+
+            {/* Pending Requests */}
+            {pendingRequests.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-xs font-bold text-yellow-500 font-mono uppercase tracking-wider mb-2">Pending Review ({pendingRequests.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {pendingRequests.map(request => (
+                    <div key={request.id} className="bg-white/[0.03] border border-yellow-500/15 rounded-xl p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <img src={getPhotoUrl(request.basePlayer.player_id)} alt={request.playerName} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-sm truncate">{request.playerName}</p>
+                          <p className="text-[10px] text-gray-500 font-mono">From {request.previousSeason.name}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
+                          <p className="text-[9px] font-mono uppercase text-yellow-500">Pending</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Processed Requests */}
+            {processedRequests.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 font-mono uppercase tracking-wider mb-2">Processed ({processedRequests.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {processedRequests.map(request => (
+                    <div key={request.id} className={`bg-white/[0.03] rounded-xl p-3 border ${request.status === 'approved' ? 'border-green-500/15' : 'border-red-500/15'}`}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <img src={getPhotoUrl(request.basePlayer.player_id)} alt={request.playerName} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-sm truncate">{request.playerName}</p>
+                          <p className="text-[10px] text-gray-500 font-mono">From {request.previousSeason.name}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
+                          <p className={`text-[9px] font-mono uppercase ${request.status === 'approved' ? 'text-green-500' : 'text-red-500'}`}>{request.status}</p>
+                        </div>
+                      </div>
+                      {request.rejectionReason && (
+                        <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                          <p className="text-[10px] text-red-400 font-mono">{request.rejectionReason}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Selection Summary + Submit */}
         {selectedPlayers.size > 0 && (
           <div className="mb-6 p-4 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl">
@@ -602,83 +666,6 @@ export default function RetentionRequestClient({
           )}
         </div>
 
-        {/* Existing Requests */}
-        {existingRequests.length > 0 && (
-          <div>
-            <h2 className="text-lg font-black text-white font-mono mb-3">Your Retention Requests</h2>
-
-            {/* Pending Requests */}
-            {pendingRequests.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-xs font-bold text-yellow-500 font-mono uppercase tracking-wider mb-2">Pending Review ({pendingRequests.length})</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {pendingRequests.map(request => (
-                    <div key={request.id} className="bg-white/[0.03] border border-yellow-500/15 rounded-xl p-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img
-                            src={getPhotoUrl(request.basePlayer.player_id)}
-                            alt={request.playerName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-white text-sm truncate">{request.playerName}</p>
-                          <p className="text-[10px] text-gray-500 font-mono">From {request.previousSeason.name}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
-                          <p className="text-[9px] font-mono uppercase text-yellow-500">Pending</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Processed Requests */}
-            {processedRequests.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 font-mono uppercase tracking-wider mb-2">Processed ({processedRequests.length})</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {processedRequests.map(request => (
-                    <div key={request.id} className={`bg-white/[0.03] rounded-xl p-3 border ${
-                      request.status === 'approved' ? 'border-green-500/15' : 'border-red-500/15'
-                    }`}>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img
-                            src={getPhotoUrl(request.basePlayer.player_id)}
-                            alt={request.playerName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-white text-sm truncate">{request.playerName}</p>
-                          <p className="text-[10px] text-gray-500 font-mono">From {request.previousSeason.name}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
-                          <p className={`text-[9px] font-mono uppercase ${
-                            request.status === 'approved' ? 'text-green-500' : 'text-red-500'
-                          }`}>
-                            {request.status}
-                          </p>
-                        </div>
-                      </div>
-                      {request.rejectionReason && (
-                        <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                          <p className="text-[10px] text-red-400 font-mono">{request.rejectionReason}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )

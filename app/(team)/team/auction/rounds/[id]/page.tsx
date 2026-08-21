@@ -95,99 +95,38 @@ export default async function RoundBiddingPage({
   // If round is finalizing, show loading/wait state
   // (will be handled by client component)
 
-  // Check if team is in season
-  const seasonTeam = await prisma.season_teams.findUnique({
-    where: {
-      seasonId_teamId: {
-        seasonId: round.seasonId,
-        teamId: teamId
-      }
-    },
-    select: {
-      id: true,
-      currentBudget: true,
-      team: {
-        select: {
-          name: true
-        }
-      }
-    }
-  })
-
-  if (!seasonTeam) {
-    redirect("/team/auction")
-  }
-
-  // Run queries in parallel for better performance
-  const [squadSize, ownedPlayerIds] = await Promise.all([
-    // Get squad size (only ACTIVE players)
-    prisma.transfer_history.count({
-      where: {
-        teamId: teamId,
-        seasonId: round.seasonId,
-        status: 'ACTIVE'
-      }
+  // PARALLELIZE: seasonTeam + squadSize + ownedPlayerIds + existingBids can all run in parallel
+  const [seasonTeam, squadSize, ownedTransfers, existingBidsRaw] = await Promise.all([
+    prisma.season_teams.findUnique({
+      where: { seasonId_teamId: { seasonId: round.seasonId, teamId } },
+      select: { id: true, currentBudget: true, team: { select: { name: true } } }
     }),
-    
-    // Get already owned player IDs (only for this season to reduce data)
+    prisma.transfer_history.count({ where: { teamId, seasonId: round.seasonId, status: 'ACTIVE' } }),
     prisma.transfer_history.findMany({
-      where: {
-        seasonId: round.seasonId
-      },
-      select: {
-        basePlayerId: true
-      }
-    }).then(results => results.map(p => p.basePlayerId))
+      where: { seasonId: round.seasonId }, select: { basePlayerId: true }
+    }),
+    prisma.team_round_bids.findUnique({
+      where: { roundId_teamId: { roundId: id, teamId } },
+      select: { encryptedBids: true, submitted: true, bidCount: true, lastUpdated: true }
+    }),
   ])
+  const ownedPlayerIds = ownedTransfers.map(p => p.basePlayerId)
 
-  // Get available players for this round with limit
+  if (!seasonTeam) redirect("/team/auction")
+
+  // Get available players (depends on ownedPlayerIds)
   const players = await prisma.seasonal_player_stats.findMany({
     where: {
       seasonId: round.seasonId,
-      ...(round.position ? {
-        position: round.position.includes(',')
-          ? { in: round.position.split(',').map(p => p.trim()) }
-          : round.position
-      } : {}),
+      ...(round.position ? { position: round.position.includes(',') ? { in: round.position.split(',').map(p => p.trim()) } : round.position } : {}),
       ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
-      basePlayerId: {
-        notIn: ownedPlayerIds
-      }
+      basePlayerId: { notIn: ownedPlayerIds }
     },
     select: {
-      basePlayerId: true,
-      position: true,
-      position_group: true,
-      overallRating: true,
-      playing_style: true,
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          photoUrl: true,
-          player_id: true
-        }
-      }
+      basePlayerId: true, position: true, position_group: true, overallRating: true, playing_style: true,
+      basePlayer: { select: { id: true, name: true, photoUrl: true, player_id: true } }
     },
-    orderBy: {
-      overallRating: 'desc'
-    }
-  })
-
-  // Get existing bids
-  const existingBidsRaw = await prisma.team_round_bids.findUnique({
-    where: {
-      roundId_teamId: {
-        roundId: id,
-        teamId: teamId
-      }
-    },
-    select: {
-      encryptedBids: true,
-      submitted: true,
-      bidCount: true,
-      lastUpdated: true
-    }
+    orderBy: { overallRating: 'desc' }
   })
 
   // Decrypt bids on server side

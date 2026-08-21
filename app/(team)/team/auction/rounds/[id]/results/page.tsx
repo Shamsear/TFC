@@ -36,75 +36,34 @@ export default async function RoundResultsPage({
     redirect("/team/auction")
   }
 
-  // Check if team is in season
-  const seasonTeam = await prisma.season_teams.findUnique({
-    where: {
-      seasonId_teamId: {
-        seasonId: round.seasonId,
-        teamId: teamId
-      }
-    }
-  })
-
-  if (!seasonTeam) {
-    redirect("/team/auction")
-  }
-
-  // Get all allocations for this round using roundId
-  const allocations = await prisma.transfer_history.findMany({
-    where: {
-      roundId: id
-    },
-    select: {
-      id: true,
-      basePlayerId: true,
-      teamId: true,
-      soldPrice: true,
-      acquisitionType: true,
-      acquisitionNotes: true,
-      createdAt: true,
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          player_id: true,
-          photoUrl: true
-        }
+  // PARALLELIZE: These queries depend on round but not each other
+  const [seasonTeam, allocations, teamBids] = await Promise.all([
+    prisma.season_teams.findUnique({
+      where: { seasonId_teamId: { seasonId: round.seasonId, teamId } }
+    }),
+    prisma.transfer_history.findMany({
+      where: { roundId: id },
+      select: {
+        id: true, basePlayerId: true, teamId: true, soldPrice: true,
+        acquisitionType: true, acquisitionNotes: true, createdAt: true,
+        basePlayer: { select: { id: true, name: true, player_id: true, photoUrl: true } },
+        team: { select: { id: true, name: true } }
       },
-      team: {
-        select: {
-          id: true,
-          name: true
-        }
-      }
-    },
-    orderBy: {
-      soldPrice: 'desc'
-    }
-  })
+      orderBy: { soldPrice: 'desc' }
+    }),
+    prisma.team_round_bids.findMany({
+      where: { roundId: id, submitted: true },
+      select: { teamId: true, encryptedBids: true }
+    }),
+  ])
 
-  // Get all bids for this round to show bid history
-  const teamBids = await prisma.team_round_bids.findMany({
-    where: {
-      roundId: id,
-      submitted: true
-    },
-    select: {
-      teamId: true,
-      encryptedBids: true
-    }
-  })
+  if (!seasonTeam) redirect("/team/auction")
 
-  // Get team names for all teams that bid
+  // Get team names (depends on teamBids)
   const teamIds = teamBids.map(tb => tb.teamId)
   const teams = await prisma.teams.findMany({
-    where: {
-      id: { in: teamIds }
-    },
-    select: {
-      id: true,
-      name: true
-    }
+    where: { id: { in: teamIds } },
+    select: { id: true, name: true }
   })
   const teamMap = new Map(teams.map(t => [t.id, t.name]))
 
@@ -135,53 +94,28 @@ export default async function RoundResultsPage({
     }
   }
 
-  // Fetch player names for all players that were bid on
-  const bidPlayers = await prisma.base_players.findMany({
-    where: {
-      id: { in: Array.from(allBidPlayerIds) }
-    },
-    select: {
-      id: true,
-      name: true
-    }
-  })
+  // PARALLELIZE: bidPlayers and tiebreakers are independent
+  const [bidPlayers, tiebreakers] = await Promise.all([
+    prisma.base_players.findMany({
+      where: { id: { in: Array.from(allBidPlayerIds) } },
+      select: { id: true, name: true }
+    }),
+    prisma.bulk_tiebreakers.findMany({
+      where: {
+        roundId: id, status: 'pending',
+        participants: { some: { teamId, status: 'active' } }
+      },
+      include: {
+        basePlayer: { select: { id: true, name: true, player_id: true, photoUrl: true } },
+        participants: { where: { status: 'active' }, select: { teamId: true } }
+      }
+    })
+  ])
   const playerNameMap = new Map(bidPlayers.map(p => [p.id, p.name]))
 
   // Sort bids for each player by amount (highest first)
   Object.keys(bidsByPlayer).forEach(playerId => {
     bidsByPlayer[playerId].sort((a, b) => b.amount - a.amount)
-  })
-
-  // Check for tiebreakers involving this team
-  const tiebreakers = await prisma.bulk_tiebreakers.findMany({
-    where: {
-      roundId: id,
-      status: 'pending',
-      participants: {
-        some: {
-          teamId: teamId,
-          status: 'active'
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          player_id: true,
-          photoUrl: true
-        }
-      },
-      participants: {
-        where: {
-          status: 'active'
-        },
-        select: {
-          teamId: true
-        }
-      }
-    }
   })
 
   // Transform allocations with proper photo URLs

@@ -26,17 +26,6 @@ async function getTournamentsData() {
         by: ['tournamentId'], where: { status: 'LIVE' }, _count: { _all: true }
       })
     ])
-      prisma.matches.groupBy({
-        by: ['tournamentId'],
-        where: { status: 'COMPLETED' },
-        _count: { _all: true }
-      }),
-      prisma.matches.groupBy({
-        by: ['tournamentId'],
-        where: { status: 'LIVE' },
-        _count: { _all: true }
-      })
-    ])
 
     const completedMap = new Map(completedMatches.map(m => [m.tournamentId, m._count._all]))
     const liveMap = new Map(liveMatches.map(m => [m.tournamentId, m._count._all]))

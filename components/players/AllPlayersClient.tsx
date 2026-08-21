@@ -21,7 +21,7 @@ interface Player {
 }
 
 interface AllPlayersClientProps {
-  seasonId: string
+  seasonId?: string
   positions: string[]
   teams: string[]
   enableStarring?: boolean  // Enable star functionality for team users
@@ -966,7 +966,8 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
     setLoading(true)
     setError(null)
 
-    const params = new URLSearchParams({ seasonId, page: String(opts.page), sort: 'rating' })
+    const params = new URLSearchParams({ page: String(opts.page), sort: 'rating' })
+    if (seasonId) params.set('seasonId', seasonId)
     if (opts.search) params.set('search', opts.search)
     
     // Single position only (no groups)

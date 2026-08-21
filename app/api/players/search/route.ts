@@ -24,9 +24,8 @@ export async function GET(request: NextRequest) {
   // Parse positions parameter if provided (for position groups)
   const positionsList = positionsParam ? positionsParam.split(',').map(p => p.trim()).filter(Boolean) : null
 
-  if (!seasonId) {
-    return NextResponse.json({ error: 'seasonId is required' }, { status: 400 })
-  }
+  // seasonId is now optional — when omitted, shows all players across all seasons
+  const isAllSeasons = !seasonId
 
   // ── Build shared filter helpers ─────────────────────────────────────────────
   const q = searchQuery.trim()
@@ -39,16 +38,16 @@ export async function GET(request: NextRequest) {
     basePLayerWhere.OR = [
       { name: { contains: q, mode: 'insensitive' as const } },
       { normalized_name: { contains: normalizedQuery, mode: 'insensitive' as const } },
-      { seasonalPlayerStats: { some: { seasonId, OR: [
+      { seasonalPlayerStats: { some: { ...(seasonId ? { seasonId } : {}), OR: [
         { realWorldClub: { contains: q, mode: 'insensitive' as const } },
         { position: { contains: q, mode: 'insensitive' as const } }
       ]}}},
-      { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: { contains: q, mode: 'insensitive' as const } } }}}
+      { transferHistory: { some: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE', team: { name: { contains: q, mode: 'insensitive' as const } } }}}
     ]
   }
   if (positionsList && positionsList.length > 0) {
     // Handle multiple positions (position groups)
-    const statsFilter: any = { seasonId, position: { in: positionsList } }
+    const statsFilter: any = { ...(seasonId ? { seasonId } : {}), position: { in: positionsList } }
     const posCond = { seasonalPlayerStats: { some: statsFilter } }
     if (basePLayerWhere.OR) {
       basePLayerWhere.AND = [{ OR: basePLayerWhere.OR }, posCond]
@@ -57,7 +56,7 @@ export async function GET(request: NextRequest) {
       Object.assign(basePLayerWhere, posCond)
     }
   } else if (positionFilter !== 'ALL') {
-    const statsFilter: any = { seasonId, position: positionFilter }
+    const statsFilter: any = { ...(seasonId ? { seasonId } : {}), position: positionFilter }
     // Add group filter if specified and position supports groups
     if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {
       statsFilter.position_group = groupFilter
@@ -71,7 +70,7 @@ export async function GET(request: NextRequest) {
     }
   }
   if (playingStyleFilter !== 'all') {
-    const styleCond = { seasonalPlayerStats: { some: { seasonId, playing_style: playingStyleFilter } } }
+    const styleCond = { seasonalPlayerStats: { some: { ...(seasonId ? { seasonId } : {}), playing_style: playingStyleFilter } } }
     if (basePLayerWhere.AND) {
       basePLayerWhere.AND.push(styleCond)
     } else if (basePLayerWhere.OR) {
@@ -86,8 +85,8 @@ export async function GET(request: NextRequest) {
   }
   if (teamFilter !== 'ALL') {
     const teamCond = teamFilter === 'Free Agent'
-      ? { transferHistory: { none: { seasonId, status: 'ACTIVE' } } }
-      : { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: teamFilter } } } }
+      ? { transferHistory: { none: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE' } } }
+      : { transferHistory: { some: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE', team: { name: teamFilter } } } }
     if (basePLayerWhere.AND) {
       basePLayerWhere.AND.push(teamCond)
     } else if (basePLayerWhere.OR) {
@@ -104,7 +103,7 @@ export async function GET(request: NextRequest) {
   // ── Sort by RATING — query from seasonal_player_stats for correct DB-level ordering ──
   if (sortBy === 'rating') {
     // Build the stats-level where (position filter goes directly here)
-    const statsWhere: any = { seasonId }
+    const statsWhere: any = { ...(seasonId ? { seasonId } : {}) }
 
     if (q) {
       statsWhere.OR = [
@@ -112,7 +111,7 @@ export async function GET(request: NextRequest) {
         { position: { contains: q, mode: 'insensitive' as const } },
         { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },
         { basePlayer: { normalized_name: { contains: normalizedQuery, mode: 'insensitive' as const } } },
-        { basePlayer: { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: { contains: q, mode: 'insensitive' as const } } } } } }
+        { basePlayer: { transferHistory: { some: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE', team: { name: { contains: q, mode: 'insensitive' as const } } } } } }
       ]
     }
     if (positionsList && positionsList.length > 0) {
@@ -150,8 +149,8 @@ export async function GET(request: NextRequest) {
     }
     if (teamFilter !== 'ALL') {
       const teamCond = teamFilter === 'Free Agent'
-        ? { basePlayer: { transferHistory: { none: { seasonId, status: 'ACTIVE' } } } }
-        : { basePlayer: { transferHistory: { some: { seasonId, status: 'ACTIVE', team: { name: teamFilter } } } } }
+        ? { basePlayer: { transferHistory: { none: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE' } } } }
+        : { basePlayer: { transferHistory: { some: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE', team: { name: teamFilter } } } } }
       if (statsWhere.AND) {
         statsWhere.AND.push(teamCond)
       } else if (statsWhere.OR) {
@@ -173,7 +172,9 @@ export async function GET(request: NextRequest) {
           basePlayer: {
             include: {
               transferHistory: {
-                where: { seasonId, status: 'ACTIVE' },
+                where: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE' },
+                orderBy: { createdAt: 'desc' },
+                ...(seasonId ? {} : { take: 1 }),
                 include: { team: { select: { id: true, name: true, logoUrl: true } } }
               }
             }
@@ -211,14 +212,14 @@ export async function GET(request: NextRequest) {
   // ── Sort by PRICE — query from transfer_history for correct DB-level ordering ──
   if (sortBy === 'price') {
     const transferWhere: any = { 
-      seasonId,
+      ...(seasonId ? { seasonId } : {}),
       status: 'ACTIVE'  // Only show active transfers
     }
     if (q) {
       transferWhere.OR = [
         { basePlayer: { name: { contains: q, mode: 'insensitive' as const } } },
         { basePlayer: { normalized_name: { contains: normalizedQuery, mode: 'insensitive' as const } } },
-        { basePlayer: { seasonalPlayerStats: { some: { seasonId, OR: [
+        { basePlayer: { seasonalPlayerStats: { some: { ...(seasonId ? { seasonId } : {}), OR: [
           { realWorldClub: { contains: q, mode: 'insensitive' as const } },
           { position: { contains: q, mode: 'insensitive' as const } }
         ]}}}},
@@ -227,13 +228,13 @@ export async function GET(request: NextRequest) {
     }
     if (positionsList && positionsList.length > 0) {
       // Handle multiple positions (position groups)
-      const statsFilter: any = { seasonId, position: { in: positionsList } }
+      const statsFilter: any = { ...(seasonId ? { seasonId } : {}), position: { in: positionsList } }
       const posCond = { basePlayer: { seasonalPlayerStats: { some: statsFilter } } }
       if (transferWhere.OR) {
         transferWhere.AND = [{ OR: transferWhere.OR }, posCond]; delete transferWhere.OR
       } else { Object.assign(transferWhere, posCond) }
     } else if (positionFilter !== 'ALL') {
-      const statsFilter: any = { seasonId, position: positionFilter }
+      const statsFilter: any = { ...(seasonId ? { seasonId } : {}), position: positionFilter }
       // Add group filter if specified and position supports groups
       if (groupFilter !== 'ALL' && ['CB', 'DMF', 'CMF', 'AMF', 'CF'].includes(positionFilter)) {
         statsFilter.position_group = groupFilter
@@ -244,7 +245,7 @@ export async function GET(request: NextRequest) {
       } else { Object.assign(transferWhere, posCond) }
     }
     if (playingStyleFilter !== 'all') {
-      const styleCond = { basePlayer: { seasonalPlayerStats: { some: { seasonId, playing_style: playingStyleFilter } } } }
+      const styleCond = { basePlayer: { seasonalPlayerStats: { some: { ...(seasonId ? { seasonId } : {}), playing_style: playingStyleFilter } } } }
       if (transferWhere.AND) transferWhere.AND.push(styleCond)
       else if (transferWhere.OR) { transferWhere.AND = [{ OR: transferWhere.OR }, styleCond]; delete transferWhere.OR }
       else Object.assign(transferWhere, styleCond)
@@ -269,7 +270,7 @@ export async function GET(request: NextRequest) {
         include: {
           team: { select: { id: true, name: true, logoUrl: true } },
           basePlayer: {
-            include: { seasonalPlayerStats: { where: { seasonId } } }
+            include: { seasonalPlayerStats: { where: seasonId ? { seasonId } : {}, orderBy: { season: { seasonNumber: 'desc' } }, take: 1 } }
           }
         }
       })
@@ -307,9 +308,11 @@ export async function GET(request: NextRequest) {
     prisma.base_players.findMany({
       where: basePLayerWhere,
       include: {
-        seasonalPlayerStats: { where: { seasonId } },
+        seasonalPlayerStats: { where: seasonId ? { seasonId } : {}, orderBy: { season: { seasonNumber: 'desc' } }, take: 1 },
         transferHistory: {
-          where: { seasonId, status: 'ACTIVE' },
+          where: { ...(seasonId ? { seasonId } : {}), status: 'ACTIVE' },
+          orderBy: { createdAt: 'desc' },
+          ...(seasonId ? {} : { take: 1 }),
           include: { team: { select: { id: true, name: true, logoUrl: true } } }
         }
       },

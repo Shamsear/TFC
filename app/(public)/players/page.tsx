@@ -5,40 +5,16 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 export default async function PlayersPage() {
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true }
-  })
-
-  if (!activeSeason) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
-                <main className="pt-24 pb-16 px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center py-12 sm:py-16 rounded-xl bg-white/[0.02] border border-white/10">
-              <svg className="w-12 h-12 sm:w-16 sm:h-16 text-[#7A7367] mx-auto mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h2 className="text-xl sm:text-2xl font-black text-white mb-2">No Active Season</h2>
-              <p className="text-gray-400 text-sm sm:text-base">There is no active season at the moment.</p>
-            </div>
-          </div>
-        </main>
-              </div>
-    )
-  }
-
-  // Fetch static metadata - positions and teams
+  // Fetch all-time stats (across all seasons)
   const [soldCount, totalCount, allPositions, allTeams] = await Promise.all([
-    prisma.transfer_history.count({ where: { seasonId: activeSeason.id, status: 'ACTIVE' } }),
-    prisma.seasonal_player_stats.count({ where: { seasonId: activeSeason.id } }),
+    prisma.transfer_history.count({ where: { status: 'ACTIVE' } }),
+    prisma.seasonal_player_stats.count(),
     prisma.seasonal_player_stats.findMany({
-      where: { seasonId: activeSeason.id },
       select: { position: true },
       distinct: ['position']
     }),
     prisma.teams.findMany({
-      where: { transferHistory: { some: { seasonId: activeSeason.id, status: 'ACTIVE' } } },
+      where: { transferHistory: { some: { status: 'ACTIVE' } } },
       select: { name: true },
       orderBy: { name: 'asc' }
     })
@@ -61,7 +37,7 @@ export default async function PlayersPage() {
               PLAYER SEARCH
             </h1>
             <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-              Browse all players in {activeSeason.name}
+              Browse all players across all seasons
             </p>
           </div>
 
@@ -83,7 +59,6 @@ export default async function PlayersPage() {
 
           {/* Players List - API-based filtering */}
           <AllPlayersClient
-            seasonId={activeSeason.id}
             positions={positions}
             teams={teams}
             basePath="/players"

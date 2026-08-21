@@ -49,14 +49,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return teams with masked emails for verification
+    // Return teams with masked emails for verification and full email for reveal
     const results = teams.map((team) => ({
       teamName: team.name,
       managerName: team.managerName,
       logoUrl: team.logoUrl,
-      email: team.teamManagers[0]
+      maskedEmail: team.teamManagers[0]
         ? maskEmail(team.teamManagers[0].email)
         : null,
+      email: team.teamManagers[0]?.email || null,
       userName: team.teamManagers[0]?.name || team.managerName,
     }));
 

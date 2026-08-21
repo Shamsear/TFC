@@ -50,16 +50,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check Super Admin role
-    if (session.user.role !== "SUPER_ADMIN") {
+    // Check Super Admin or Sub Admin role
+    if (session.user.role !== "SUPER_ADMIN" && session.user.role !== "SUB_ADMIN") {
       logError(
         "Forbidden access attempt to create team",
-        new Error("Non-super-admin attempted team creation"),
+        new Error("Unauthorized role attempted team creation"),
         { ...context, userId: session.user.id, userRole: session.user.role }
       )
       
       return NextResponse.json(
-        { error: "Forbidden: Super Admin access required" },
+        { error: "Forbidden: Admin access required" },
         { status: 403 }
       )
     }

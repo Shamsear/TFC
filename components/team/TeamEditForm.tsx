@@ -15,6 +15,7 @@ interface TeamEditFormProps {
     logoUrl: string
     primaryColor?: string
   }
+  returnUrl?: string
 }
 
 // Icon Components
@@ -36,7 +37,7 @@ const CheckIcon = () => (
   </svg>
 )
 
-export default function TeamEditForm({ team }: TeamEditFormProps) {
+export default function TeamEditForm({ team, returnUrl = `/super-admin/teams/${team.id}` }: TeamEditFormProps) {
   const router = useRouter()
   const [formData, setFormData] = useState({
     name: team.name,
@@ -88,7 +89,7 @@ export default function TeamEditForm({ team }: TeamEditFormProps) {
         throw new Error(errorData.error || "Failed to update team")
       }
 
-      router.push(`/super-admin/teams/${team.id}`)
+      router.push(returnUrl)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update team")
@@ -102,7 +103,7 @@ export default function TeamEditForm({ team }: TeamEditFormProps) {
       {/* Page Title */}
       <div className="mb-6 sm:mb-8">
         <Link
-          href={`/super-admin/teams/${team.id}`}
+          href={returnUrl}
           className="inline-flex items-center gap-2 text-[#E8A800] hover:text-[#FFC93A] text-sm font-medium mb-4 transition-colors"
         >
           <ArrowLeftIcon />
@@ -240,7 +241,7 @@ export default function TeamEditForm({ team }: TeamEditFormProps) {
             {isSubmitting ? "Updating..." : "Update Team"}
           </button>
           <Link
-            href={`/super-admin/teams/${team.id}`}
+            href={returnUrl}
             className="px-4 sm:px-6 py-2 sm:py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg sm:rounded-xl font-bold transition-all text-center text-sm sm:text-base"
           >
             Cancel

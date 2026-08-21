@@ -317,29 +317,40 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
           {/* Team Info */}
           <div className="flex-1 text-center sm:text-left w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center sm:justify-start mb-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase font-mono">
-                {team.name}
-              </h1>
-              
-              {/* Level Tag with Micro Rank Emblem */}
-              <span 
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider mx-auto sm:mx-0 border w-fit font-mono"
-                style={{ 
-                  borderColor: `${rank.color}30`, 
-                  color: rank.color,
-                  backgroundColor: `${rank.color}0a`
-                }}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center sm:justify-start mb-2">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase font-mono">
+                  {team.name}
+                </h1>
+                
+                {/* Level Tag with Micro Rank Emblem */}
+                <span 
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider mx-auto sm:mx-0 border w-fit font-mono"
+                  style={{ 
+                    borderColor: `${rank.color}30`, 
+                    color: rank.color,
+                    backgroundColor: `${rank.color}0a`
+                  }}
+                >
+                  <Image
+                    src={rank.badgePath}
+                    alt={rank.title}
+                    width={14}
+                    height={14}
+                    className="object-contain"
+                  />
+                  Lvl {level} • {rank.title}
+                </span>
+              </div>
+              <Link
+                href={`/sub-admin/teams/${team.id}/edit`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg font-bold transition-all text-xs font-mono uppercase"
               >
-                <Image
-                  src={rank.badgePath}
-                  alt={rank.title}
-                  width={14}
-                  height={14}
-                  className="object-contain"
-                />
-                Lvl {level} • {rank.title}
-              </span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Team
+              </Link>
             </div>
             <p className="text-gray-400 text-sm font-extrabold uppercase font-mono mb-4">
               Manager: {team.managerName}

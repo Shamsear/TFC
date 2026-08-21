@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import { normalizeForSearch } from "@/lib/search-utils"
 
@@ -185,9 +186,9 @@ export default function TeamSelectionForm({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <p className="text-gray-400 font-bold uppercase tracking-wider font-mono text-xs max-w-sm mx-auto">
-              No teams available. Please create teams in the Super Admin dashboard first.
-            </p>
+              <Link href="/sub-admin/teams/new" className="text-[#E8A800] hover:text-[#FFC93A] font-bold uppercase tracking-wider font-mono text-xs max-w-sm mx-auto underline mt-2 block cursor-pointer">
+                Create a new team
+              </Link>
           </div>
         ) : filteredTeams.length === 0 ? (
           <div className="text-center py-12 sm:py-16">

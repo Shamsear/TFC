@@ -106,7 +106,7 @@ export default async function RetentionRequestsAdminPage({ params }: Props) {
         basePlayer: req.basePlayer,
         previousSeason: req.previousSeason,
         retentionWindow: req.retentionWindow,
-        processor: req.processor,
+        processor: req.processor ? { ...req.processor, name: req.processor.name || '' } : null,
         retentionWindowId: req.retentionWindowId,
       }))}
       activeWindow={

@@ -31,13 +31,57 @@ export default async function SeasonTeamSelectionPage({
     redirect("/sub-admin")
   }
 
-  // Fetch all teams from global registry
-  const allTeams = await prisma.teams.findMany({
+  // Fetch all managers
+  const allManagers = await prisma.managers.findMany({
     orderBy: { name: "asc" }
   })
 
-  // Get IDs of teams already assigned to this season
-  const assignedTeamIds = season.seasonTeams.map(st => st.teamId)
+  // For each manager, find their most recent season_team entry (from past seasons only)
+  const managerNames = allManagers.map(m => m.name)
+  const lastSeasonTeams = await prisma.season_teams.findMany({
+    where: {
+      managerName: { in: managerNames, mode: 'insensitive' },
+      season: { seasonNumber: { lt: season.seasonNumber } }
+    },
+    include: {
+      team: { select: { id: true, name: true, logoUrl: true } },
+      season: { select: { seasonNumber: true } }
+    },
+    orderBy: { season: { seasonNumber: 'desc' } }
+  })
+
+  // Deduplicate: keep only the most recent entry per manager name
+  const lastTeamByManager = new Map<string, { id: string; name: string; logoUrl: string }>()
+  for (const st of lastSeasonTeams) {
+    const key = st.managerName?.toLowerCase() || ''
+    if (key && !lastTeamByManager.has(key)) {
+      lastTeamByManager.set(key, st.team)
+    }
+  }
+
+  // Attach lastTeam to each manager
+  const managersWithLastTeam = allManagers.map(m => ({
+    ...m,
+    lastTeam: lastTeamByManager.get(m.name.toLowerCase()) || null
+  }))
+
+  // Fetch all teams from global registry
+  const allTeams = await prisma.teams.findMany({
+    include: {
+      managerLinks: {
+        where: { isCurrent: true },
+        include: { manager: true },
+        take: 1
+      }
+    },
+    orderBy: { name: "asc" }
+  })
+
+  // Get currently assigned manager-team pairs for this season
+  const assignedPairs = season.seasonTeams.map(st => ({
+    teamId: st.teamId,
+    managerName: st.managerName || st.team.managerName
+  }))
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
@@ -90,7 +134,7 @@ export default async function SeasonTeamSelectionPage({
           <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 transition-all duration-300 shadow-md sm:col-span-2 lg:col-span-1">
             <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Currently Selected</div>
             <div className="text-lg sm:text-xl font-black text-[#FFB347] font-mono">
-              {assignedTeamIds.length} teams
+              {assignedPairs.length} teams
             </div>
           </div>
         </div>
@@ -99,8 +143,11 @@ export default async function SeasonTeamSelectionPage({
       {/* Team Selection Form */}
       <TeamSelectionForm
         seasonId={seasonId}
-        allTeams={allTeams}
-        assignedTeamIds={assignedTeamIds}
+        seasonName={season.name}
+        allManagers={JSON.parse(JSON.stringify(managersWithLastTeam))}
+        allTeams={JSON.parse(JSON.stringify(allTeams))}
+        assignedPairs={JSON.parse(JSON.stringify(assignedPairs))}
+        startingPurse={season.startingPurse}
       />
     </div>
   )

@@ -44,156 +44,25 @@ export async function POST(
     const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }    const { seasonId } = await params
+    const body = await request.json()
+    const { assignments, teamIds } = body
+
+    // Support both old format (teamIds) and new format (assignments)
+    if (assignments && Array.isArray(assignments)) {
+      // New manager-based flow
+      return await handleManagerAssignments(seasonId, assignments, session, request)
     }
 
-    const { seasonId } = await params
-    const body = await request.json()
-    const { teamIds } = body
-
+    // Legacy teamIds flow
     if (!teamIds || !Array.isArray(teamIds)) {
       return NextResponse.json(
-        { error: 'Invalid team IDs' },
+        { error: 'Invalid request: provide assignments or teamIds' },
         { status: 400 }
       )
     }
 
-    // Get season to get starting purse
-    const season = await prisma.seasons.findUnique({
-      where: { id: seasonId }
-    })
-
-    if (!season) {
-      return NextResponse.json(
-        { error: 'Season not found' },
-        { status: 404 }
-      )
-    }
-
-    // Get existing season teams
-    const existingSeasonTeams = await prisma.season_teams.findMany({
-      where: { seasonId }
-    })
-
-    const existingTeamIds = existingSeasonTeams.map(st => st.teamId)
-
-    // Determine which teams to add and which to remove
-    const teamsToAdd = teamIds.filter((id: string) => !existingTeamIds.includes(id))
-    const teamsToRemove = existingTeamIds.filter(id => !teamIds.includes(id))
-
-    // Generate IDs outside transaction
-    const newSeasonTeams = await Promise.all(
-      teamsToAdd.map(async (teamId) => ({
-        id: await generateSeasonTeamId(),
-        teamId,
-        ledgerId: await generateFinancialId()
-      }))
-    )
-
-    // Use transaction to add and remove teams
-    await prisma.$transaction(
-      async (tx) => {
-        // Remove teams
-        if (teamsToRemove.length > 0) {
-          await tx.season_teams.deleteMany({
-            where: {
-              seasonId,
-              teamId: { in: teamsToRemove }
-            }
-          })
-        }
-
-        // Add new teams and create ledger entries
-        for (const { id: seasonTeamId, teamId, ledgerId } of newSeasonTeams) {
-          // Create season team
-          await tx.season_teams.create({
-            data: {
-              id: seasonTeamId,
-              seasonId,
-              teamId,
-              currentBudget: season.startingPurse,
-              finalBudget: null,
-              updatedAt: new Date()
-            }
-          })
-
-          // Create initial financial ledger entry
-          await tx.financial_ledger.create({
-            data: {
-              id: ledgerId,
-              seasonTeamId: seasonTeamId,
-              seasonId,
-              transactionType: 'INITIAL_PURSE',
-              amount: season.startingPurse,
-              previousBalance: 0,
-              newBalance: season.startingPurse,
-              description: 'Initial season purse'
-            }
-          })
-        }
-
-        // Update defaultMaxBidsPerTeam to match the number of teams
-        const totalTeams = teamIds.length
-        await tx.seasons.update({
-          where: { id: seasonId },
-          data: { 
-            defaultMaxBidsPerTeam: totalTeams,
-            updatedAt: new Date()
-          }
-        })
-      },
-      {
-        maxWait: 10000, // 10 seconds max wait
-        timeout: 30000, // 30 seconds timeout
-      }
-    )
-
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      userEmail: session.user.email!,
-      userRole: session.user.role!,
-      action: 'UPDATE_TEAM',
-      entityType: 'season_teams',
-      entityId: seasonId,
-      entityName: 'Season Teams',
-      seasonId,
-      details: {
-        teamsAdded: teamsToAdd,
-        teamsRemoved: teamsToRemove,
-        totalTeams: teamIds.length
-      },
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-      userAgent: request.headers.get('user-agent') || 'unknown'
-    })
-
-    // Trigger news for newly registered teams
-    if (teamsToAdd.length > 0) {
-      try {
-        const addedTeams = await prisma.teams.findMany({
-          where: { id: { in: teamsToAdd } },
-          select: { name: true }
-        });
-
-        for (const team of addedTeams) {
-          await triggerNews('team_registered', {
-            season_id: seasonId,
-            season_name: season.name,
-            metadata: {
-              team_name: team.name,
-              starting_budget: season.startingPurse
-            }
-          });
-        }
-      } catch (newsErr) {
-        console.warn('[News AI] Failed to generate team registration news:', newsErr);
-      }
-    }
-
-    return NextResponse.json({ 
-      success: true,
-      added: teamsToAdd.length,
-      removed: teamsToRemove.length
-    })
+    return await handleTeamIdsAssignment(seasonId, teamIds, session, request)
   } catch (error) {
     console.error('Error assigning teams:', error)
     return NextResponse.json(
@@ -201,4 +70,232 @@ export async function POST(
       { status: 500 }
     )
   }
+}
+
+interface ManagerAssignment {
+  managerId: string
+  managerName: string
+  teamId: string | null
+  newTeamName: string | null
+}
+
+async function handleManagerAssignments(
+  seasonId: string,
+  assignments: ManagerAssignment[],
+  session: any,
+  request: NextRequest
+) {
+  const season = await prisma.seasons.findUnique({ where: { id: seasonId } })
+  if (!season) {
+    return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+  }
+
+  const newTeamNames = assignments.filter(a => a.newTeamName)
+  const teamIdMap = new Map<string, string>() // newTeamId -> team name
+
+  // Create new teams if needed
+  const createdTeams = await Promise.all(
+    newTeamNames.map(async (a) => {
+      const teamId = await generateSeasonTeamId() // reuse ID generator
+      await prisma.teams.create({
+        data: {
+          id: teamId,
+          name: a.newTeamName!,
+          managerName: a.managerName,
+          logoUrl: '',
+          updatedAt: new Date(),
+        }
+      })
+      // Link manager to team
+      await prisma.manager_teams.create({
+        data: { managerId: a.managerId, teamId, isCurrent: true }
+      })
+      teamIdMap.set(a.managerId, teamId)
+      return { managerId: a.managerId, teamId }
+    })
+  )
+
+  // Resolve final team IDs
+  const finalAssignments = assignments.map(a => ({
+    managerId: a.managerId,
+    managerName: a.managerName,
+    teamId: teamIdMap.get(a.managerId) || a.teamId!,
+  }))
+
+  // Get existing season teams
+  const existingSeasonTeams = await prisma.season_teams.findMany({ where: { seasonId } })
+  const existingTeamIds = existingSeasonTeams.map(st => st.teamId)
+  const newTeamIds = finalAssignments.map(a => a.teamId)
+
+  // Teams to remove (were in season but no longer assigned)
+  const teamsToRemove = existingTeamIds.filter(id => !newTeamIds.includes(id))
+  // Teams to add (new assignments not yet in season)
+  const teamsToAdd = finalAssignments.filter(a => !existingTeamIds.includes(a.teamId))
+
+  // Generate IDs outside transaction
+  const newSeasonTeamEntries = await Promise.all(
+    teamsToAdd.map(async (a) => ({
+      id: await generateSeasonTeamId(),
+      teamId: a.teamId,
+      ledgerId: await generateFinancialId(),
+      managerName: a.managerName,
+    }))
+  )
+
+  await prisma.$transaction(
+    async (tx) => {
+      if (teamsToRemove.length > 0) {
+        await tx.season_teams.deleteMany({
+          where: { seasonId, teamId: { in: teamsToRemove } }
+        })
+      }
+
+      for (const { id: seasonTeamId, teamId, ledgerId, managerName } of newSeasonTeamEntries) {
+        await tx.season_teams.create({
+          data: {
+            id: seasonTeamId,
+            seasonId,
+            teamId,
+            managerName,
+            currentBudget: season.startingPurse,
+            finalBudget: null,
+            updatedAt: new Date()
+          }
+        })
+
+        await tx.financial_ledger.create({
+          data: {
+            id: ledgerId,
+            seasonTeamId,
+            seasonId,
+            transactionType: 'INITIAL_PURSE',
+            amount: season.startingPurse,
+            previousBalance: 0,
+            newBalance: season.startingPurse,
+            description: 'Initial season purse'
+          }
+        })
+      }
+
+      await tx.seasons.update({
+        where: { id: seasonId },
+        data: { defaultMaxBidsPerTeam: finalAssignments.length, updatedAt: new Date() }
+      })
+    },
+    { maxWait: 10000, timeout: 30000 }
+  )
+
+  await createAuditLog({
+    userId: session.user.id,
+    userEmail: session.user.email!,
+    userRole: session.user.role!,
+    action: 'UPDATE_TEAM',
+    entityType: 'season_teams',
+    entityId: seasonId,
+    entityName: 'Season Teams',
+    seasonId,
+    details: {
+      managersAssigned: finalAssignments.map(a => ({ manager: a.managerName, teamId: a.teamId })),
+      teamsRemoved: teamsToRemove,
+      totalTeams: finalAssignments.length
+    },
+    ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+    userAgent: request.headers.get('user-agent') || 'unknown'
+  })
+
+  return NextResponse.json({
+    success: true,
+    added: teamsToAdd.length,
+    removed: teamsToRemove.length,
+    totalManagers: finalAssignments.length
+  })
+}
+
+async function handleTeamIdsAssignment(
+  seasonId: string,
+  teamIds: string[],
+  session: any,
+  request: NextRequest
+) {
+  const season = await prisma.seasons.findUnique({ where: { id: seasonId } })
+  if (!season) {
+    return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+  }
+
+  const existingSeasonTeams = await prisma.season_teams.findMany({ where: { seasonId } })
+  const existingTeamIds = existingSeasonTeams.map(st => st.teamId)
+  const teamsToAdd = teamIds.filter((id: string) => !existingTeamIds.includes(id))
+  const teamsToRemove = existingTeamIds.filter(id => !teamIds.includes(id))
+
+  const newSeasonTeams = await Promise.all(
+    teamsToAdd.map(async (teamId) => ({
+      id: await generateSeasonTeamId(),
+      teamId,
+      ledgerId: await generateFinancialId()
+    }))
+  )
+
+  await prisma.$transaction(
+    async (tx) => {
+      if (teamsToRemove.length > 0) {
+        await tx.season_teams.deleteMany({ where: { seasonId, teamId: { in: teamsToRemove } } })
+      }
+
+      for (const { id: seasonTeamId, teamId, ledgerId } of newSeasonTeams) {
+        // Resolve managerName from team's managerLinks
+        const team = await prisma.teams.findUnique({
+          where: { id: teamId },
+          include: { managerLinks: { where: { isCurrent: true }, include: { manager: true }, take: 1 } }
+        })
+        const managerName = team?.managerLinks[0]?.manager?.name || team?.managerName || ''
+
+        await tx.season_teams.create({
+          data: {
+            id: seasonTeamId,
+            seasonId,
+            teamId,
+            managerName,
+            currentBudget: season.startingPurse,
+            finalBudget: null,
+            updatedAt: new Date()
+          }
+        })
+
+        await tx.financial_ledger.create({
+          data: {
+            id: ledgerId,
+            seasonTeamId,
+            seasonId,
+            transactionType: 'INITIAL_PURSE',
+            amount: season.startingPurse,
+            previousBalance: 0,
+            newBalance: season.startingPurse,
+            description: 'Initial season purse'
+          }
+        })
+      }
+
+      await tx.seasons.update({
+        where: { id: seasonId },
+        data: { defaultMaxBidsPerTeam: teamIds.length, updatedAt: new Date() }
+      })
+    },
+    { maxWait: 10000, timeout: 30000 }
+  )
+
+  await createAuditLog({
+    userId: session.user.id,
+    userEmail: session.user.email!,
+    userRole: session.user.role!,
+    action: 'UPDATE_TEAM',
+    entityType: 'season_teams',
+    entityId: seasonId,
+    entityName: 'Season Teams',
+    seasonId,
+    details: { teamsAdded: teamsToAdd, teamsRemoved: teamsToRemove, totalTeams: teamIds.length },
+    ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+    userAgent: request.headers.get('user-agent') || 'unknown'
+  })
+
+  return NextResponse.json({ success: true, added: teamsToAdd.length, removed: teamsToRemove.length })
 }

@@ -288,7 +288,7 @@ export default function RetentionRequestsAdminClient({
                     <div className="flex-1">
                       <p className="font-black text-white text-lg mb-1">{request.playerName}</p>
                       <div className="flex items-center gap-2 mb-2">
-                        <TeamLogo src={request.team.logoUrl} alt={request.team.name} size={20} />
+                        <TeamLogo logoUrl={request.team.logoUrl} teamName={request.team.name} size="sm" />
                         <p className="text-sm text-gray-400 font-mono">{request.team.name}</p>
                       </div>
                       <p className="text-xs text-gray-500 font-mono">From {request.previousSeason.name}</p>

@@ -256,7 +256,7 @@ export default function RetentionWindowsClient({
                               const team = teams.find(t => t.id === teamId)
                               return team ? (
                                 <div key={teamId} className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg">
-                                  <TeamLogo src={team.logoUrl} alt={team.name} size={16} />
+                                  <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="xs" />
                                   <span className="text-xs text-gray-300 font-mono">{team.name}</span>
                                 </div>
                               ) : null
@@ -377,7 +377,7 @@ export default function RetentionWindowsClient({
                           onChange={() => toggleBannedTeam(team.id)}
                           className="w-4 h-4 rounded border-white/20 bg-black/40 text-[#E8A800] focus:ring-[#E8A800] focus:ring-offset-0"
                         />
-                        <TeamLogo src={team.logoUrl} alt={team.name} size={24} />
+                        <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="sm" />
                         <span className="text-sm text-white font-mono">{team.name}</span>
                       </label>
                     ))

@@ -103,40 +103,26 @@ async function getTeamData(teamId: string) {
     }
   });
 
-  // Get all active transfers for these teams and seasons
-  const allTransfers = allSeasonTeams.length > 0 
-    ? await prisma.transfer_history.findMany({
+  // PARALLELIZE: These 3 queries are independent of each other
+  const seasonPairs = allSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }));
+  const [allTransfers, allSquads] = allSeasonTeams.length > 0
+    ? await Promise.all([
+      prisma.transfer_history.findMany({
         where: {
-          OR: allSeasonTeams.map(st => ({
-            seasonId: st.seasonId,
-            teamId: st.teamId,
-            status: 'ACTIVE'
-          }))
+          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId, status: 'ACTIVE' }))
         },
         include: {
-          basePlayer: {
-            include: {
-              seasonalPlayerStats: true
-            }
-          }
+          basePlayer: { include: { seasonalPlayerStats: true } }
         },
-        orderBy: {
-          soldPrice: 'desc'
-        }
-      })
-    : [];
-
-  // Get all saved squad formations for these teams and seasons
-  const allSquads = allSeasonTeams.length > 0
-    ? await prisma.team_squads.findMany({
+        orderBy: { soldPrice: 'desc' }
+      }),
+      prisma.team_squads.findMany({
         where: {
-          OR: allSeasonTeams.map(st => ({
-            season_id: st.seasonId,
-            team_id: st.teamId
-          }))
+          OR: seasonPairs.map(p => ({ season_id: p.seasonId, team_id: p.teamId }))
         }
       })
-    : [];
+    ])
+    : [[], []];
 
   // Build the detailed seasons list
   const detailedSeasons = allSeasonTeams.map(st => {
@@ -229,24 +215,9 @@ async function getTeamData(teamId: string) {
     };
   });
 
-  // All-time stats calculation
+  // All-time stats calculation (reuse allTransfers — same query)
   const totalTrophies = allSeasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0);
-  const teamSeasonPairs = allSeasonTeams.map(st => ({
-    seasonId: st.seasonId,
-    teamId: st.teamId
-  }));
-  const allTimeTransfers = teamSeasonPairs.length > 0 
-    ? await prisma.transfer_history.findMany({
-        where: {
-          OR: teamSeasonPairs.map(p => ({
-            seasonId: p.seasonId,
-            teamId: p.teamId,
-            status: 'ACTIVE'
-          }))
-        }
-      })
-    : [];
-  const allTimeHighestSigning = allTimeTransfers.reduce((max, t) => Math.max(max, t.soldPrice), 0);
+  const allTimeHighestSigning = allTransfers.reduce((max, t) => Math.max(max, t.soldPrice), 0);
 
   return JSON.parse(JSON.stringify({
     team,

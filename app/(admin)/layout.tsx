@@ -1,7 +1,9 @@
+import { Suspense } from "react"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import AdminNavigation from "@/components/AdminNavigationWrapper"
 import AdminFooter from "@/components/AdminFooter"
+import PageLoader from "@/components/ui/PageLoader"
 
 export default async function AdminLayout({
   children,
@@ -22,7 +24,11 @@ export default async function AdminLayout({
       <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] bg-[#E8A800]/[0.02] rounded-full blur-[100px] pointer-events-none" />
 
       <AdminNavigation />
-      <main className="relative pt-22">{children}</main>
+      <main className="relative pt-22">
+        <Suspense fallback={<PageLoader fullScreen={false} />}>
+          {children}
+        </Suspense>
+      </main>
       <AdminFooter />
     </div>
   )

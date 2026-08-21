@@ -33,108 +33,44 @@ export default async function BulkRoundPage({
     redirect("/team/auction")
   }
 
-  // Get active season
-  const season = await prisma.seasons.findUnique({
-    where: { id: round.seasonId },
-    select: {
-      id: true,
-      name: true
-    }
-  })
-
-  if (!season) {
-    redirect("/team/auction")
-  }
-
-  // Get team info
-  const team = await prisma.teams.findUnique({
-    where: { id: teamId },
-    select: {
-      id: true,
-      name: true,
-      logoUrl: true
-    }
-  })
-
-  if (!team) {
-    redirect("/team/auction")
-  }
-
-  // Check if team is in season
-  const seasonTeam = await prisma.season_teams.findUnique({
-    where: {
-      seasonId_teamId: {
+  // PARALLELIZE: All these queries depend on round but not each other
+  const [season, team, seasonTeam, squadSize, seasonalPlayers, existingSelection, auctionSettings] = await Promise.all([
+    // Season
+    prisma.seasons.findUnique({ where: { id: round.seasonId }, select: { id: true, name: true } }),
+    // Team
+    prisma.teams.findUnique({ where: { id: teamId }, select: { id: true, name: true, logoUrl: true } }),
+    // Season team
+    prisma.season_teams.findUnique({
+      where: { seasonId_teamId: { seasonId: round.seasonId, teamId } },
+      select: { id: true, currentBudget: true, football_min_slots: true, football_max_slots: true }
+    }),
+    // Squad size
+    prisma.transfer_history.count({ where: { teamId, seasonId: round.seasonId, status: 'ACTIVE' } }),
+    // Available players
+    prisma.seasonal_player_stats.findMany({
+      where: {
         seasonId: round.seasonId,
-        teamId: teamId
-      }
-    },
-    select: {
-      id: true,
-      currentBudget: true,
-      football_min_slots: true,
-      football_max_slots: true
-    }
-  })
+        ...(round.position ? { position: round.position.includes(',') ? { in: round.position.split(',') } : round.position } : {}),
+        ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
+        basePlayer: { transferHistory: { none: { seasonId: round.seasonId, status: 'ACTIVE' } } }
+      },
+      select: {
+        basePlayerId: true, position: true, position_group: true, overallRating: true,
+        nationality: true, playing_style: true, speed: true, finishing: true,
+        low_pass: true, dribbling: true, tackling: true, physical_contact: true,
+        basePlayer: { select: { id: true, name: true, player_id: true } }
+      },
+      orderBy: { overallRating: 'desc' }
+    }),
+    // Existing selections
+    prisma.bulk_round_selections.findUnique({
+      where: { roundId_teamId: { roundId: id, teamId } }
+    }),
+    // Auction settings
+    prisma.auction_settings.findUnique({ where: { seasonId: round.seasonId } }),
+  ])
 
-  if (!seasonTeam) {
-    redirect("/team/auction")
-  }
-
-  // Get current squad size (only ACTIVE players)
-  const squadSize = await prisma.transfer_history.count({
-    where: {
-      teamId: teamId,
-      seasonId: round.seasonId,
-      status: 'ACTIVE'
-    }
-  })
-
-  // Get available players for this round
-  const seasonalPlayers = await prisma.seasonal_player_stats.findMany({
-    where: {
-      seasonId: round.seasonId,
-      ...(round.position ? {
-        position: round.position.includes(',')
-          ? { in: round.position.split(',') }
-          : round.position
-      } : {}),
-      // Filter by position_group if specified (and not 'ALL')
-      ...(round.position_group && round.position_group !== 'ALL' ? { position_group: round.position_group } : {}),
-      // Exclude only ACTIVE players (released players are available)
-      basePlayer: {
-        transferHistory: {
-          none: {
-            seasonId: round.seasonId,
-            status: 'ACTIVE'
-          }
-        }
-      }
-    },
-    select: {
-      basePlayerId: true,
-      position: true,
-      position_group: true,
-      overallRating: true,
-      nationality: true,
-      playing_style: true,
-      speed: true,
-      finishing: true,
-      low_pass: true,
-      dribbling: true,
-      tackling: true,
-      physical_contact: true,
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          player_id: true
-        }
-      }
-    },
-    orderBy: {
-      overallRating: 'desc'
-    }
-  })
+  if (!season || !team || !seasonTeam) redirect("/team/auction")
 
   // Transform to expected format
   const players = seasonalPlayers.map(p => ({
@@ -153,17 +89,6 @@ export default async function BulkRoundPage({
     physical: p.physical_contact || 0
   }))
 
-
-  // Get existing selections
-  const existingSelection = await prisma.bulk_round_selections.findUnique({
-    where: {
-      roundId_teamId: {
-        roundId: id,
-        teamId: teamId
-      }
-    }
-  })
-
   const initialSelections = existingSelection
     ? JSON.parse(existingSelection.selectedPlayers as string).players.map((playerId: string, index: number) => {
         const player = players.find(p => p.id === playerId)
@@ -181,11 +106,6 @@ export default async function BulkRoundPage({
         }
       }).filter((s: any) => s.player !== null)
     : []
-
-  // Get season's default min/max squad settings (fallback)
-  const auctionSettings = await prisma.auction_settings.findUnique({
-    where: { seasonId: round.seasonId }
-  })
 
   const minSquadSize = seasonTeam.football_min_slots || auctionSettings?.min_squad_size || 25
   const maxSquadSize = seasonTeam.football_max_slots || auctionSettings?.max_squad_size || 30

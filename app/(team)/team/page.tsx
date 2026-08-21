@@ -51,387 +51,175 @@ export default async function TeamDashboardPage() {
   }
 
   // Team is in active season - show dashboard
+  // PARALLELIZE: All remaining queries are independent of each other
+  const [
+    allTimeTrophies,
+    squadCount,
+    upcomingMatches,
+    recentTransactions,
+    activeRounds,
+    activeBulkTiebreakers,
+    pendingBulkTiebreakers,
+    activeNormalTiebreakers,
+    pendingNormalTiebreakers,
+    recentAuctionResults,
+    squadPlayers,
+    teamSquad,
+  ] = await Promise.all([
+    // All-time trophies
+    prisma.season_teams.aggregate({
+      where: { managerName: { equals: team.managerName, mode: 'insensitive' } },
+      _sum: { trophiesWon: true }
+    }),
+    // Squad count
+    prisma.transfer_history.count({
+      where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
+    }),
+    // Upcoming matches
+    prisma.matches.findMany({
+      where: {
+        tournament: { seasonId: activeSeason.id },
+        OR: [{ homeTeamId: currentSeasonTeam.id }, { awayTeamId: currentSeasonTeam.id }],
+        status: "SCHEDULED",
+      },
+      include: {
+        homeTeam: { include: { team: true } },
+        awayTeam: { include: { team: true } },
+        tournament: true,
+      },
+      orderBy: { matchDate: "asc" },
+      take: 5,
+    }),
+    // Recent transactions
+    prisma.financial_ledger.findMany({
+      where: { seasonTeamId: currentSeasonTeam.id },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    // Active auction rounds
+    prisma.rounds.findMany({
+      where: {
+        seasonId: activeSeason.id,
+        status: 'active',
+        endTime: { gte: new Date() },
+      },
+      select: {
+        id: true, roundNumber: true, position: true, position_group: true, roundType: true, endTime: true,
+        teamRoundBids: { where: { teamId: team.id }, select: { submitted: true, bidCount: true } },
+        bulkRoundSelections: { where: { teamId: team.id }, select: { submitted: true } },
+      },
+      orderBy: { endTime: 'asc' },
+      take: 3,
+    }),
+    // Active bulk tiebreakers
+    prisma.bulk_tiebreakers.findMany({
+      where: {
+        round: { seasonId: activeSeason.id },
+        status: 'active',
+        participants: { some: { teamId: team.id, status: 'active' } }
+      },
+      include: {
+        basePlayer: { select: { id: true, name: true } },
+        round: { select: { id: true, roundNumber: true } },
+        participants: { where: { status: 'active' }, select: { teamId: true } }
+      },
+    }),
+    // Pending bulk tiebreakers
+    prisma.bulk_tiebreakers.findMany({
+      where: {
+        round: { seasonId: activeSeason.id },
+        status: 'pending',
+        participants: { some: { teamId: team.id, status: 'active' } }
+      },
+      include: {
+        basePlayer: { select: { id: true, name: true } },
+        round: { select: { id: true, roundNumber: true } },
+        participants: { where: { status: 'active' }, select: { teamId: true } }
+      },
+    }),
+    // Active normal tiebreakers
+    prisma.tiebreakers.findMany({
+      where: {
+        round: { seasonId: activeSeason.id },
+        status: 'active',
+        teamTiebreakerBids: { some: { teamId: team.id } }
+      },
+      include: {
+        basePlayer: { select: { id: true, name: true, photoUrl: true } },
+        round: { select: { id: true, roundNumber: true } },
+        teamTiebreakerBids: { where: { teamId: team.id }, select: { submitted: true, oldBidAmount: true, newBidAmount: true } }
+      },
+    }),
+    // Pending normal tiebreakers
+    prisma.tiebreakers.findMany({
+      where: {
+        round: { seasonId: activeSeason.id },
+        status: 'pending',
+        teamTiebreakerBids: { some: { teamId: team.id } }
+      },
+      include: {
+        basePlayer: { select: { id: true, name: true, photoUrl: true } },
+        round: { select: { id: true, roundNumber: true } },
+        teamTiebreakerBids: { select: { teamId: true } }
+      },
+    }),
+    // Recent auction results
+    prisma.transfer_history.findMany({
+      where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
+      include: {
+        basePlayer: {
+          include: {
+            seasonalPlayerStats: { where: { seasonId: activeSeason.id }, select: { position: true, position_group: true, overallRating: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    // Squad players
+    prisma.transfer_history.findMany({
+      where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
+      include: {
+        basePlayer: {
+          select: {
+            id: true, player_id: true, name: true, photoUrl: true,
+            seasonalPlayerStats: { where: { seasonId: activeSeason.id }, select: { position: true, position_group: true, overallRating: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    // Squad formation
+    prisma.team_squads.findUnique({
+      where: { team_id_season_id: { team_id: team.id, season_id: activeSeason.id } }
+    }),
+  ])
 
-  // Get all-time trophies for this manager across all seasons
-  const allTimeTrophies = await prisma.season_teams.aggregate({
-    where: {
-      managerName: {
-        equals: team.managerName,
-        mode: 'insensitive'
-      }
-    },
-    _sum: {
-      trophiesWon: true
-    }
-  })
   const totalAllTimeTrophies = allTimeTrophies._sum.trophiesWon || 0
 
-  // Get squad count for current season (only ACTIVE players)
-  const squadCount = await prisma.transfer_history.count({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: team.id,
-      status: 'ACTIVE',
-    },
-  })
-
-  // Get upcoming matches
-  const upcomingMatches = await prisma.matches.findMany({
-    where: {
-      tournament: {
-        seasonId: activeSeason.id,
-      },
-      OR: [
-        { homeTeamId: currentSeasonTeam.id },
-        { awayTeamId: currentSeasonTeam.id },
-      ],
-      status: "SCHEDULED",
-    },
-    include: {
-      homeTeam: {
-        include: {
-          team: true,
-        },
-      },
-      awayTeam: {
-        include: {
-          team: true,
-        },
-      },
-      tournament: true,
-    },
-    orderBy: {
-      matchDate: "asc",
-    },
-    take: 5,
-  })
-
-  // Get recent transactions
-  const recentTransactions = await prisma.financial_ledger.findMany({
-    where: {
-      seasonTeamId: currentSeasonTeam.id,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 5,
-  })
-
-  // Get active auction rounds
-  const activeRounds = await prisma.rounds.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      status: 'active',
-      endTime: {
-        gte: new Date(), // Only rounds that haven't ended yet
-      },
-    },
-    select: {
-      id: true,
-      roundNumber: true,
-      position: true,
-      position_group: true,
-      roundType: true,
-      endTime: true,
-      teamRoundBids: {
-        where: {
-          teamId: team.id,
-        },
-        select: {
-          submitted: true,
-          bidCount: true,
-        },
-      },
-      bulkRoundSelections: {
-        where: {
-          teamId: team.id,
-        },
-        select: {
-          submitted: true,
-        },
-      },
-    },
-    orderBy: {
-      endTime: 'asc',
-    },
-    take: 3,
-  })
-
-  // Get active bulk tiebreakers for this team
-  const activeBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
-    where: {
-      round: {
-        seasonId: activeSeason.id,
-      },
-      status: 'active',
-      participants: {
-        some: {
-          teamId: team.id,
-          status: 'active'
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      round: {
-        select: {
-          id: true,
-          roundNumber: true,
-        },
-      },
-      participants: {
-        where: {
-          status: 'active'
-        },
-        select: {
-          teamId: true
-        }
-      }
-    },
-  })
-
-  // Get pending bulk tiebreakers for this team
-  const pendingBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
-    where: {
-      round: {
-        seasonId: activeSeason.id,
-      },
-      status: 'pending',
-      participants: {
-        some: {
-          teamId: team.id,
-          status: 'active'
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      round: {
-        select: {
-          id: true,
-          roundNumber: true,
-        },
-      },
-      participants: {
-        where: {
-          status: 'active'
-        },
-        select: {
-          teamId: true
-        }
-      }
-    },
-  })
-
-  // Fetch team details for pending bulk tiebreakers
+  // Fetch team details for tiebreakers (depends on pending results)
   const pendingBulkTiebreakerTeamIds = pendingBulkTiebreakers.flatMap(t => t.participants.map(p => p.teamId))
-  const pendingBulkTiebreakerTeams = await prisma.teams.findMany({
-    where: {
-      id: {
-        in: pendingBulkTiebreakerTeamIds
-      }
-    },
-    select: {
-      id: true,
-      name: true,
-      logoUrl: true
-    }
-  })
+  const pendingNormalTiebreakerTeamIds = pendingNormalTiebreakers.flatMap(t => t.teamTiebreakerBids.map(b => b.teamId))
+  const allTiebreakerTeamIds = [...new Set([...pendingBulkTiebreakerTeamIds, ...pendingNormalTiebreakerTeamIds])]
 
-  // Map teams to bulk tiebreakers
+  const tiebreakerTeams = allTiebreakerTeamIds.length > 0
+    ? await prisma.teams.findMany({ where: { id: { in: allTiebreakerTeamIds } }, select: { id: true, name: true, logoUrl: true } })
+    : []
+
   const pendingBulkTiebreakersWithTeams = pendingBulkTiebreakers.map(t => ({
     ...t,
-    participants: t.participants.map(p => ({
-      ...p,
-      team: pendingBulkTiebreakerTeams.find(team => team.id === p.teamId)
-    }))
+    participants: t.participants.map(p => ({ ...p, team: tiebreakerTeams.find(team => team.id === p.teamId) }))
   }))
 
-  // Get active normal tiebreakers for this team
-  const activeNormalTiebreakers = await prisma.tiebreakers.findMany({
-    where: {
-      round: {
-        seasonId: activeSeason.id,
-      },
-      status: 'active',
-      teamTiebreakerBids: {
-        some: {
-          teamId: team.id
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          photoUrl: true,
-        },
-      },
-      round: {
-        select: {
-          id: true,
-          roundNumber: true,
-        },
-      },
-      teamTiebreakerBids: {
-        where: {
-          teamId: team.id
-        },
-        select: {
-          submitted: true,
-          oldBidAmount: true,
-          newBidAmount: true
-        }
-      }
-    },
-  })
-
-  // Get pending normal tiebreakers for this team
-  const pendingNormalTiebreakers = await prisma.tiebreakers.findMany({
-    where: {
-      round: {
-        seasonId: activeSeason.id,
-      },
-      status: 'pending',
-      teamTiebreakerBids: {
-        some: {
-          teamId: team.id
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          photoUrl: true,
-        },
-      },
-      round: {
-        select: {
-          id: true,
-          roundNumber: true,
-        },
-      },
-      teamTiebreakerBids: {
-        select: {
-          teamId: true
-        }
-      }
-    },
-  })
-
-  // Fetch team details for pending normal tiebreakers
-  const pendingNormalTiebreakerTeamIds = pendingNormalTiebreakers.flatMap(t => t.teamTiebreakerBids.map(b => b.teamId))
-  const pendingNormalTiebreakerTeams = await prisma.teams.findMany({
-    where: {
-      id: {
-        in: pendingNormalTiebreakerTeamIds
-      }
-    },
-    select: {
-      id: true,
-      name: true,
-      logoUrl: true
-    }
-  })
-
-  // Map teams to tiebreakers
   const pendingNormalTiebreakersWithTeams = pendingNormalTiebreakers.map(t => ({
     ...t,
-    teamTiebreakerBids: t.teamTiebreakerBids.map(b => ({
-      ...b,
-      team: pendingNormalTiebreakerTeams.find(team => team.id === b.teamId)
-    }))
+    teamTiebreakerBids: t.teamTiebreakerBids.map(b => ({ ...b, team: tiebreakerTeams.find(team => team.id === b.teamId) }))
   }))
 
   const totalActiveTiebreakers = activeBulkTiebreakers.length + activeNormalTiebreakers.length
   const totalPendingTiebreakers = pendingBulkTiebreakers.length + pendingNormalTiebreakers.length
 
-  // Get recent auction results (last 5 ACTIVE players won from transfer_history)
-  const recentAuctionResults = await prisma.transfer_history.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: team.id,
-      status: 'ACTIVE',
-    },
-    include: {
-      basePlayer: {
-        include: {
-          seasonalPlayerStats: {
-            where: {
-              seasonId: activeSeason.id,
-            },
-            select: {
-              position: true,
-              position_group: true,
-              overallRating: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 5,
-  })
-
-  // Get squad players for tabs (only ACTIVE players)
-  const squadPlayers = await prisma.transfer_history.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: team.id,
-      status: 'ACTIVE',
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          player_id: true,
-          name: true,
-          photoUrl: true,
-          seasonalPlayerStats: {
-            where: {
-              seasonId: activeSeason.id,
-            },
-            select: {
-              position: true,
-              position_group: true,
-              overallRating: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
-
-  // Get active round info for tabs (just summary, not individual bids since they're encrypted)
   const activeRoundWithBids = activeRounds.length > 0 ? activeRounds[0] : null
-
-  // Get saved squad formation
-  const teamSquad = await prisma.team_squads.findUnique({
-    where: {
-      team_id_season_id: {
-        team_id: team.id,
-        season_id: activeSeason.id,
-      }
-    }
-  })
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 relative overflow-hidden">

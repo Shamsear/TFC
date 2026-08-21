@@ -87,240 +87,92 @@ export default async function TeamAuctionPage() {
         </div>
       </div>
     )
-  }
-
-  // Get squad size (only ACTIVE players)
-  const squadSize = await prisma.transfer_history.count({
-    where: {
-      teamId: team.id,
-      seasonId: activeSeason.id,
-      status: 'ACTIVE'
-    }
-  })
-
-  // Fetch all rounds (active, completed, etc.)
-  const rounds = await prisma.rounds.findMany({
-    where: {
-      seasonId: activeSeason.id,
-    },
-    select: {
-      id: true,
-      roundNumber: true,
-      position: true,
-      position_group: true,
-      roundType: true,
-      status: true,
-      startTime: true,
-      endTime: true,
-      maxBidsPerTeam: true,
-      basePrice: true
-    },
-    orderBy: [
-      { status: 'asc' }, // Active first, then completed
-      { roundNumber: 'desc' } // Most recent first
-    ],
-    take: 20
-  })
-
-  // Fetch team's bid status for each round
-  const teamBids = await prisma.team_round_bids.findMany({
-    where: {
-      teamId: team.id,
-      roundId: {
-        in: rounds.map(r => r.id)
-      }
-    },
-    select: {
-      roundId: true,
-      submitted: true,
-      bidCount: true,
-      lastUpdated: true
-    }
-  })
-
-  // Fetch team's bulk selections
-  const bulkSelections = await prisma.bulk_round_selections.findMany({
-    where: {
-      teamId: team.id,
-      roundId: {
-        in: rounds.filter(r => r.roundType === 'bulk').map(r => r.id)
-      }
-    },
-    select: {
-      roundId: true,
-      submitted: true,
-      lastUpdated: true
-    }
-  })
-
-  // Fetch active tiebreakers for this team
-  const activeTiebreakers = await prisma.tiebreakers.findMany({
-    where: {
-      status: 'active',
-      teamTiebreakerBids: {
-        some: {
-          teamId: team.id
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          name: true,
-          photoUrl: true
-        }
+  }  // PARALLELIZE: All these queries are independent
+  const [squadSize, rounds, activeTiebreakers, pendingTiebreakers, activeBulkTiebreakers, pendingBulkTiebreakers] = await Promise.all([
+    // Squad size
+    prisma.transfer_history.count({
+      where: { teamId: team.id, seasonId: activeSeason.id, status: 'ACTIVE' }
+    }),
+    // All rounds
+    prisma.rounds.findMany({
+      where: { seasonId: activeSeason.id },
+      select: {
+        id: true, roundNumber: true, position: true, position_group: true,
+        roundType: true, status: true, startTime: true, endTime: true,
+        maxBidsPerTeam: true, basePrice: true
       },
-      round: {
-        select: {
-          roundNumber: true
-        }
-      },
-      teamTiebreakerBids: {
-        where: {
-          teamId: team.id
-        },
-        select: {
-          submitted: true,
-          newBidAmount: true
-        }
+      orderBy: [{ status: 'asc' }, { roundNumber: 'desc' }],
+      take: 20
+    }),
+    // Active tiebreakers
+    prisma.tiebreakers.findMany({
+      where: { status: 'active', teamTiebreakerBids: { some: { teamId: team.id } } },
+      include: {
+        basePlayer: { select: { name: true, photoUrl: true } },
+        round: { select: { roundNumber: true } },
+        teamTiebreakerBids: { where: { teamId: team.id }, select: { submitted: true, newBidAmount: true } }
       }
-    }
-  })
+    }),
+    // Pending tiebreakers
+    prisma.tiebreakers.findMany({
+      where: { status: 'pending', teamTiebreakerBids: { some: { teamId: team.id } } },
+      include: {
+        basePlayer: { select: { name: true, photoUrl: true } },
+        round: { select: { roundNumber: true } },
+        teamTiebreakerBids: { select: { teamId: true } }
+      }
+    }),
+    // Active bulk tiebreakers
+    prisma.bulk_tiebreakers.findMany({
+      where: { status: 'active', participants: { some: { teamId: team.id, status: 'active' } } },
+      include: {
+        basePlayer: { select: { name: true, photoUrl: true } },
+        round: { select: { roundNumber: true } },
+        participants: { where: { teamId: team.id }, select: { status: true, currentBid: true } }
+      }
+    }),
+    // Pending bulk tiebreakers
+    prisma.bulk_tiebreakers.findMany({
+      where: { status: 'pending', participants: { some: { teamId: team.id } } },
+      include: {
+        basePlayer: { select: { name: true, photoUrl: true } },
+        round: { select: { roundNumber: true } },
+        participants: { select: { teamId: true, status: true, team: { select: { name: true, logoUrl: true } } } }
+      }
+    }),
+  ])
 
-  // Fetch pending tiebreakers (awaiting admin)
-  const pendingTiebreakers = await prisma.tiebreakers.findMany({
-    where: {
-      status: 'pending',
-      teamTiebreakerBids: {
-        some: {
-          teamId: team.id
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          name: true,
-          photoUrl: true
-        }
-      },
-      round: {
-        select: {
-          roundNumber: true
-        }
-      },
-      teamTiebreakerBids: {
-        select: {
-          teamId: true
-        }
-      }
-    }
-  })
+  // Now fetch round-dependent queries in parallel
+  const roundIds = rounds.map(r => r.id)
+  const bulkRoundIds = rounds.filter(r => r.roundType === 'bulk').map(r => r.id)
+
+  const [teamBids, bulkSelections] = await Promise.all([
+    prisma.team_round_bids.findMany({
+      where: { teamId: team.id, roundId: { in: roundIds } },
+      select: { roundId: true, submitted: true, bidCount: true, lastUpdated: true }
+    }),
+    prisma.bulk_round_selections.findMany({
+      where: { teamId: team.id, roundId: { in: bulkRoundIds } },
+      select: { roundId: true, submitted: true, lastUpdated: true }
+    }),
+  ])
 
   // Fetch team details for pending tiebreakers
   const pendingTiebreakerTeamIds = pendingTiebreakers.flatMap(t => t.teamTiebreakerBids.map(b => b.teamId))
-  const pendingTiebreakerTeams = await prisma.teams.findMany({
-    where: {
-      id: {
-        in: pendingTiebreakerTeamIds
-      }
-    },
-    select: {
-      id: true,
-      name: true,
-      logoUrl: true
-    }
-  })
+  const pendingTiebreakerTeams = pendingTiebreakerTeamIds.length > 0
+    ? await prisma.teams.findMany({ where: { id: { in: pendingTiebreakerTeamIds } }, select: { id: true, name: true, logoUrl: true } })
+    : []
 
-  // Map teams to tiebreakers
   const pendingTiebreakersWithTeams = pendingTiebreakers.map(t => ({
     ...t,
     teamTiebreakerBids: t.teamTiebreakerBids
       .map(b => {
         const team = pendingTiebreakerTeams.find(team => team.id === b.teamId)
         if (!team) return null
-        return {
-          teamId: b.teamId,
-          team: {
-            name: team.name,
-            logoUrl: team.logoUrl
-          }
-        }
+        return { teamId: b.teamId, team: { name: team.name, logoUrl: team.logoUrl } }
       })
       .filter((b): b is { teamId: string; team: { name: string; logoUrl: string } } => b !== null)
   }))
-
-  // Fetch active bulk tiebreakers
-  const activeBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
-    where: {
-      status: 'active',
-      participants: {
-        some: {
-          teamId: team.id,
-          status: 'active'
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          name: true,
-          photoUrl: true
-        }
-      },
-      round: {
-        select: {
-          roundNumber: true
-        }
-      },
-      participants: {
-        where: {
-          teamId: team.id
-        },
-        select: {
-          status: true,
-          currentBid: true
-        }
-      }
-    }
-  })
-
-  // Fetch pending bulk tiebreakers
-  const pendingBulkTiebreakers = await prisma.bulk_tiebreakers.findMany({
-    where: {
-      status: 'pending',
-      participants: {
-        some: {
-          teamId: team.id
-        }
-      }
-    },
-    include: {
-      basePlayer: {
-        select: {
-          name: true,
-          photoUrl: true
-        }
-      },
-      round: {
-        select: {
-          roundNumber: true
-        }
-      },
-      participants: {
-        select: {
-          teamId: true,
-          status: true,
-          team: {
-            select: {
-              name: true,
-              logoUrl: true
-            }
-          }
-        }
-      }
-    }
-  })
 
   return (
     <div className="pt-20">

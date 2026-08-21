@@ -41,18 +41,20 @@ export default async function RetentionRequestPage() {
     redirect('/login')
   }
 
-  // Get season team for budget info
-  const seasonTeam = await prisma.season_teams.findUnique({
-    where: {
-      seasonId_teamId: {
-        seasonId: activeSeason.id,
-        teamId: team.id,
-      },
-    },
-    select: {
-      currentBudget: true,
-    },
-  })
+  // PARALLELIZE: These queries are independent
+  const [seasonTeam, activeWindow, previousSeason] = await Promise.all([
+    prisma.season_teams.findUnique({
+      where: { seasonId_teamId: { seasonId: activeSeason.id, teamId: team.id } },
+      select: { currentBudget: true },
+    }),
+    prisma.retention_windows.findFirst({
+      where: { seasonId: activeSeason.id, status: 'ACTIVE' },
+    }),
+    prisma.seasons.findFirst({
+      where: { seasonNumber: activeSeason.seasonNumber - 1 },
+      select: { id: true, name: true, seasonNumber: true },
+    }),
+  ])
 
   if (!seasonTeam) {
     return (
@@ -66,153 +68,65 @@ export default async function RetentionRequestPage() {
     )
   }
 
-  // Check for active retention window
-  const activeWindow = await prisma.retention_windows.findFirst({
-    where: {
-      seasonId: activeSeason.id,
-      status: 'ACTIVE',
-    },
-  })
-
-  // Get previous season
-  const previousSeason = await prisma.seasons.findFirst({
-    where: {
-      seasonNumber: activeSeason.seasonNumber - 1,
-    },
-    select: { id: true, name: true, seasonNumber: true },
-  })
-
-  // Get eligible players from previous season
+  // PARALLELIZE: All remaining queries are independent
   let eligiblePlayers: any[] = []
-  if (previousSeason) {
-    // Verify team participated in previous season
-    const previousSeasonTeam = await prisma.season_teams.findFirst({
-      where: {
-        seasonId: previousSeason.id,
-        teamId: team.id,
+  let existingRequests: any[] = []
+  let totalRequestsCount = 0
+  let approvedCount = 0
+
+  const [prevSeasonPlayers, currentSeasonPlayerIds, pendingRequests, existingReqs, reqCount, apprCount] = await Promise.all([
+    // Previous season players
+    previousSeason
+      ? prisma.transfer_history.findMany({
+          where: { seasonId: previousSeason.id, teamId: team.id, status: 'ACTIVE' },
+          include: { basePlayer: { select: { id: true, name: true, player_id: true, photoUrl: true } } },
+        })
+      : [],
+    // Current season player IDs
+    prisma.transfer_history.findMany({
+      where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
+      select: { basePlayerId: true },
+    }),
+    // Pending retention requests
+    prisma.retention_requests.findMany({
+      where: { seasonId: activeSeason.id, teamId: team.id, status: 'pending' },
+      select: { playerId: true },
+    }),
+    // Existing retention requests
+    prisma.retention_requests.findMany({
+      where: { seasonId: activeSeason.id, teamId: team.id },
+      include: {
+        basePlayer: { select: { id: true, name: true, player_id: true } },
+        previousSeason: { select: { id: true, name: true, seasonNumber: true } },
       },
-    })
+      orderBy: { submittedAt: 'desc' },
+    }),
+    // Total requests count
+    prisma.retention_requests.count({
+      where: { seasonId: activeSeason.id, teamId: team.id, ...(activeWindow && { retentionWindowId: activeWindow.id }) },
+    }),
+    // Approved count
+    prisma.retention_requests.count({
+      where: { seasonId: activeSeason.id, teamId: team.id, status: 'approved', ...(activeWindow && { retentionWindowId: activeWindow.id }) },
+    }),
+  ])
 
-    if (previousSeasonTeam) {
-      // Get players from previous season
-      const previousSeasonPlayers = await prisma.transfer_history.findMany({
-        where: {
-          seasonId: previousSeason.id,
-          teamId: team.id,
-          status: 'ACTIVE',
-        },
-        include: {
-          basePlayer: {
-            select: {
-              id: true,
-              name: true,
-              player_id: true,
-              photoUrl: true,
-            },
-          },
-        },
-      })
+  const currentIds = new Set(currentSeasonPlayerIds.map((p) => p.basePlayerId))
+  const pendingIds = new Set(pendingRequests.map((r) => r.playerId))
+  eligiblePlayers = prevSeasonPlayers
+    .filter((t) => !currentIds.has(t.basePlayerId) && !pendingIds.has(t.basePlayerId))
+    .map((t) => ({
+      id: t.basePlayer.id, name: t.basePlayer.name, player_id: t.basePlayer.player_id,
+      photoUrl: t.basePlayer.photoUrl, oldSquadValue: t.soldPrice,
+      previousSeasonId: previousSeason!.id, previousSeasonName: previousSeason!.name,
+    }))
 
-      // Get players already in current season
-      const currentSeasonPlayers = await prisma.transfer_history.findMany({
-        where: {
-          seasonId: activeSeason.id,
-          teamId: team.id,
-          status: 'ACTIVE',
-        },
-        select: {
-          basePlayerId: true,
-        },
-      })
-
-      const currentSeasonPlayerIds = new Set(
-        currentSeasonPlayers.map((p) => p.basePlayerId)
-      )
-
-      // Get pending retention requests
-      const pendingRequests = await prisma.retention_requests.findMany({
-        where: {
-          seasonId: activeSeason.id,
-          teamId: team.id,
-          status: 'pending',
-        },
-        select: {
-          playerId: true,
-        },
-      })
-
-      const pendingPlayerIds = new Set(pendingRequests.map((r) => r.playerId))
-
-      // Filter eligible players
-      eligiblePlayers = previousSeasonPlayers
-        .filter(
-          (transfer) =>
-            !currentSeasonPlayerIds.has(transfer.basePlayerId) &&
-            !pendingPlayerIds.has(transfer.basePlayerId)
-        )
-        .map((transfer) => ({
-          id: transfer.basePlayer.id,
-          name: transfer.basePlayer.name,
-          player_id: transfer.basePlayer.player_id,
-          photoUrl: transfer.basePlayer.photoUrl,
-          oldSquadValue: transfer.soldPrice,
-          previousSeasonId: previousSeason.id,
-          previousSeasonName: previousSeason.name,
-        }))
-    }
-  }
-
-  // Get existing retention requests
-  const existingRequests = await prisma.retention_requests.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: team.id,
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          player_id: true,
-        },
-      },
-      previousSeason: {
-        select: {
-          id: true,
-          name: true,
-          seasonNumber: true,
-        },
-      },
-    },
-    orderBy: {
-      submittedAt: 'desc',
-    },
-  })
+  existingRequests = existingReqs
+  totalRequestsCount = reqCount
+  approvedCount = apprCount
 
   const maxRetentions = activeWindow?.retentionLimit || 3
-
-  // Check if team is banned
-  const isBanned = activeWindow?.bannedTeamIds
-    ? JSON.parse(activeWindow.bannedTeamIds).includes(team.id)
-    : false
-
-  // Count requests in current window
-  const totalRequestsCount = await prisma.retention_requests.count({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: team.id,
-      ...(activeWindow && { retentionWindowId: activeWindow.id }),
-    },
-  })
-
-  const approvedCount = await prisma.retention_requests.count({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: team.id,
-      status: 'approved',
-      ...(activeWindow && { retentionWindowId: activeWindow.id }),
-    },
-  })
+  const isBanned = activeWindow?.bannedTeamIds ? JSON.parse(activeWindow.bannedTeamIds).includes(team.id) : false
 
   return (
     <RetentionRequestClient

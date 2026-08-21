@@ -1,5 +1,7 @@
+import { Suspense } from "react"
 import PublicHeader from "@/components/layout/PublicHeader"
 import PublicFooter from "@/components/layout/PublicFooter"
+import PageLoader from "@/components/ui/PageLoader"
 
 export default function PublicLayout({
   children,
@@ -15,7 +17,9 @@ export default function PublicLayout({
 
       <PublicHeader />
       <div className="relative">
-        {children}
+        <Suspense fallback={<PageLoader fullScreen={false} />}>
+          {children}
+        </Suspense>
       </div>
       <PublicFooter />
     </div>

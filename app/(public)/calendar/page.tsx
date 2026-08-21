@@ -15,42 +15,23 @@ async function getCalendarData() {
       return { auctions: [], matches: [], seasonName: null }
     }
 
-    // Get auction dates
-    const auctions = await prisma.auction_calendar.findMany({
-      where: { seasonId: activeSeason.id },
-      orderBy: { auctionDate: 'asc' },
-      include: {
-        auctionSlots: true
-      }
-    })
-
-    // Get matches
-    const matches = await prisma.matches.findMany({
-      where: {
-        tournament: {
-          seasonId: activeSeason.id
+    // PARALLELIZE: Both queries depend on activeSeason but not each other
+    const [auctions, matches] = await Promise.all([
+      prisma.auction_calendar.findMany({
+        where: { seasonId: activeSeason.id },
+        orderBy: { auctionDate: 'asc' },
+        include: { auctionSlots: true }
+      }),
+      prisma.matches.findMany({
+        where: { tournament: { seasonId: activeSeason.id } },
+        orderBy: { matchDate: 'asc' },
+        include: {
+          homeTeam: { include: { team: true } },
+          awayTeam: { include: { team: true } },
+          tournament: { select: { id: true, name: true } }
         }
-      },
-      orderBy: { matchDate: 'asc' },
-      include: {
-        homeTeam: {
-          include: {
-            team: true
-          }
-        },
-        awayTeam: {
-          include: {
-            team: true
-          }
-        },
-        tournament: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    })
+      })
+    ])
 
     return {
       auctions,

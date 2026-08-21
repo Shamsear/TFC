@@ -23,29 +23,77 @@ export default async function SwapRequestPage() {
     redirect("/team/not-in-season")
   }
 
-  // Check if an active swap window exists
-  const activeSwapWindow = await prisma.swap_windows.findFirst({
-    where: {
-      seasonId: activeSeason.id,
-      status: 'ACTIVE',
-    }
-  })
+  // PARALLELIZE: All these queries are independent
+  const [activeSwapWindow, team, ownPlayers, otherTeams, otherPlayers, existingRequests] = await Promise.all([
+    // Active swap window
+    prisma.swap_windows.findFirst({
+      where: { seasonId: activeSeason.id, status: 'ACTIVE' }
+    }),
+    // Team info
+    prisma.teams.findUnique({ where: { id: session.user.teamId } }),
+    // Own squad players
+    prisma.transfer_history.findMany({
+      where: { seasonId: activeSeason.id, teamId: session.user.teamId, status: 'ACTIVE' },
+      include: {
+        basePlayer: {
+          select: {
+            id: true, name: true, player_id: true,
+            seasonalPlayerStats: { where: { seasonId: activeSeason.id }, select: { position: true, position_group: true, overallRating: true, realWorldClub: true, playing_style: true } },
+          },
+        },
+      },
+      orderBy: { soldPrice: 'desc' },
+    }),
+    // Other teams
+    prisma.season_teams.findMany({
+      where: { seasonId: activeSeason.id, teamId: { not: session.user.teamId } },
+      include: { team: { select: { id: true, name: true, logoUrl: true } } },
+    }),
+    // Other players
+    prisma.transfer_history.findMany({
+      where: { seasonId: activeSeason.id, teamId: { not: session.user.teamId }, status: 'ACTIVE' },
+      include: {
+        team: { select: { id: true, name: true, logoUrl: true } },
+        basePlayer: {
+          select: {
+            id: true, name: true, player_id: true,
+            seasonalPlayerStats: { where: { seasonId: activeSeason.id }, select: { position: true, position_group: true, overallRating: true, realWorldClub: true, playing_style: true } },
+          },
+        },
+      },
+      orderBy: { soldPrice: 'desc' },
+    }),
+    // Existing swap requests
+    prisma.swap_requests.findMany({
+      where: {
+        seasonId: activeSeason.id,
+        OR: [{ requestingTeamId: session.user.teamId }, { targetTeamId: session.user.teamId }],
+      },
+      include: {
+        requestingTeam: { select: { id: true, name: true, logoUrl: true } },
+        targetTeam: { select: { id: true, name: true, logoUrl: true } },
+        players: {
+          include: {
+            basePlayer: { select: { id: true, name: true, player_id: true } },
+            fromTeam: { select: { id: true, name: true } },
+            toTeam: { select: { id: true, name: true } },
+          },
+        },
+      },
+    }),
+  ])
 
   if (!activeSwapWindow) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
-        {/* Header */}
         <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl mb-6 sm:mb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-                Swap Request
-              </span>
+              <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">Swap Request</span>
             </h1>
             <p className="text-[#D4CCBB] text-sm sm:text-base">{activeSeason.name}</p>
           </div>
         </div>
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <div className="text-center py-16 rounded-xl bg-white/[0.02] border border-white/10">
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,151 +106,6 @@ export default async function SwapRequestPage() {
       </div>
     )
   }
-
-  // Get team info
-  const team = await prisma.teams.findUnique({
-    where: { id: session.user.teamId },
-  })
-
-  // Get own squad players with status ACTIVE
-  const ownPlayers = await prisma.transfer_history.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: session.user.teamId,
-      status: 'ACTIVE',
-    },
-    include: {
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          player_id: true,
-          seasonalPlayerStats: {
-            where: {
-              seasonId: activeSeason.id,
-            },
-            select: {
-              position: true,
-              position_group: true,
-              overallRating: true,
-              realWorldClub: true,
-              playing_style: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      soldPrice: "desc",
-    },
-  })
-
-  // Get all other teams in the season
-  const otherTeams = await prisma.season_teams.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: { not: session.user.teamId },
-    },
-    include: {
-      team: {
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true,
-        },
-      },
-    },
-  })
-
-  // Get all players from other teams
-  const otherPlayers = await prisma.transfer_history.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      teamId: { not: session.user.teamId },
-      status: 'ACTIVE',
-    },
-    include: {
-      team: {
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true,
-        },
-      },
-      basePlayer: {
-        select: {
-          id: true,
-          name: true,
-          player_id: true,
-          seasonalPlayerStats: {
-            where: {
-              seasonId: activeSeason.id,
-            },
-            select: {
-              position: true,
-              position_group: true,
-              overallRating: true,
-              realWorldClub: true,
-              playing_style: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      soldPrice: "desc",
-    },
-  })
-
-  // Get existing swap requests (both as requester and target)
-  const existingRequests = await prisma.swap_requests.findMany({
-    where: {
-      seasonId: activeSeason.id,
-      OR: [
-        { requestingTeamId: session.user.teamId },
-        { targetTeamId: session.user.teamId },
-      ],
-    },
-    include: {
-      requestingTeam: {
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true,
-        },
-      },
-      targetTeam: {
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true,
-        },
-      },
-      players: {
-        include: {
-          basePlayer: {
-            select: {
-              id: true,
-              name: true,
-              player_id: true,
-            },
-          },
-          fromTeam: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          toTeam: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      },
-    },
-  })
 
   // Transform data for client
   const myPlayers = ownPlayers.map(transfer => {

@@ -15,25 +15,47 @@ async function getSeasonTeamsData(seasonId: string) {
       return null
     }
 
-    // Get all teams in this season
-    const seasonTeams = await prisma.season_teams.findMany({
-      where: { seasonId },
-      include: {
-        team: {
-          include: {
-            managerLinks: {
-              include: {
-                manager: true
-              }
+    // PARALLELIZE: All these queries are independent
+    const [seasonTeams, playerCounts, spentData, homeWins, awayWins, totalSpentAgg, totalPlayerCount] = await Promise.all([
+      // Get all teams in this season
+      prisma.season_teams.findMany({
+        where: { seasonId },
+        include: {
+          team: {
+            include: {
+              managerLinks: { include: { manager: true } }
             }
           }
-        }
-      },
-      orderBy: { currentBudget: 'desc' }
-    })
-
-    // Get player counts and match statistics for all teams using bulk queries to avoid N+1 and connection pool timeouts
-    const [playerCounts, spentData, homeWins, awayWins] = await Promise.all([
+        },
+        orderBy: { currentBudget: 'desc' }
+      }),
+      // Player counts
+      prisma.transfer_history.groupBy({
+        by: ['teamId'], where: { seasonId, status: 'ACTIVE' }, _count: { _all: true }
+      }),
+      // Total spent per team
+      prisma.transfer_history.groupBy({
+        by: ['teamId'], where: { seasonId, status: 'ACTIVE' }, _sum: { soldPrice: true }
+      }),
+      // Home wins
+      prisma.$queryRaw<Array<{ homeTeamId: string; count: bigint }>>`
+        SELECT "homeTeamId", COUNT(*)::bigint as count
+        FROM matches WHERE status = 'COMPLETED' AND "homeScore" > "awayScore"
+        GROUP BY "homeTeamId"
+      `,
+      // Away wins
+      prisma.$queryRaw<Array<{ awayTeamId: string; count: bigint }>>`
+        SELECT "awayTeamId", COUNT(*)::bigint as count
+        FROM matches WHERE status = 'COMPLETED' AND "awayScore" > "homeScore"
+        GROUP BY "awayTeamId"
+      `,
+      // Total spent aggregate
+      prisma.transfer_history.aggregate({
+        where: { seasonId, status: 'ACTIVE' }, _sum: { soldPrice: true }
+      }),
+      // Total player count
+      prisma.transfer_history.count({ where: { seasonId, status: 'ACTIVE' } }),
+    ])
       // Count players
       prisma.transfer_history.groupBy({
         by: ['teamId'],
@@ -79,21 +101,14 @@ async function getSeasonTeamsData(seasonId: string) {
     })))
 
     const totalBudget = seasonTeams.reduce((sum, st) => sum + st.currentBudget, 0)
-    const totalSpent = await prisma.transfer_history.aggregate({
-      where: { seasonId, status: 'ACTIVE' },
-      _sum: { soldPrice: true }
-    })
-    const totalPlayers = await prisma.transfer_history.count({
-      where: { seasonId, status: 'ACTIVE' }
-    })
 
     return {
       season,
       teams: teamsWithStats,
       stats: { 
         totalBudget, 
-        totalSpent: totalSpent._sum.soldPrice || 0, 
-        totalPlayers 
+        totalSpent: totalSpentAgg._sum.soldPrice || 0, 
+        totalPlayers: totalPlayerCount 
       }
     }
   } catch (error) {

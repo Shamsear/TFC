@@ -6,27 +6,26 @@ export const dynamic = 'force-dynamic'
 
 async function getTournamentsData() {
   try {
-    // Get all seasons sorted with active first, then newest
-    const seasons = await prisma.seasons.findMany({
-      orderBy: [
-        { isActive: 'desc' },
-        { seasonNumber: 'desc' }
-      ]
-    })
-
-    // Get all tournaments with season reference and match count
-    const tournaments = await prisma.tournaments.findMany({
-      include: {
-        season: true,
-        _count: {
-          select: { matches: true }
-        }
-      },
-      orderBy: { startDate: 'desc' }
-    })
-
-    // Get match statistics for all tournaments
-    const [completedMatches, liveMatches] = await Promise.all([
+    // PARALLELIZE: All these queries are independent
+    const [seasons, tournaments, completedMatches, liveMatches] = await Promise.all([
+      // Seasons
+      prisma.seasons.findMany({
+        orderBy: [{ isActive: 'desc' }, { seasonNumber: 'desc' }]
+      }),
+      // Tournaments
+      prisma.tournaments.findMany({
+        include: { season: true, _count: { select: { matches: true } } },
+        orderBy: { startDate: 'desc' }
+      }),
+      // Completed matches
+      prisma.matches.groupBy({
+        by: ['tournamentId'], where: { status: 'COMPLETED' }, _count: { _all: true }
+      }),
+      // Live matches
+      prisma.matches.groupBy({
+        by: ['tournamentId'], where: { status: 'LIVE' }, _count: { _all: true }
+      })
+    ])
       prisma.matches.groupBy({
         by: ['tournamentId'],
         where: { status: 'COMPLETED' },

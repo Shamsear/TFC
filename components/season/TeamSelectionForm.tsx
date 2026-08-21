@@ -139,7 +139,6 @@ export default function TeamSelectionForm({
           newTeamName: null,
           newTeamLogoUrl: null,
         }))
-        .filter(a => a.managerId) // only include if we have a valid managerId
 
       const response = await fetch(`/api/seasons/${seasonId}/teams`, {
         method: "POST",

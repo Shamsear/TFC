@@ -22,6 +22,7 @@ export default async function SeasonTeamSelectionPage({
     where: { id: seasonId },
     include: {
       seasonTeams: {
+        where: { isActive: true },
         include: { team: true }
       }
     }

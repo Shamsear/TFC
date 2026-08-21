@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hash } from "bcryptjs"
 import { z } from "zod"
-import { generateUserId, generateAuditId } from "@/lib/id-generator"
+import { generateUserId, generateAuditId, generateManagerId } from "@/lib/id-generator"
 import { triggerNews } from "@/lib/news/trigger"
 
 // Validation schema
@@ -80,10 +80,9 @@ export async function POST(request: NextRequest) {
     let managerRecord = await prisma.managers.findFirst({
       where: { name: { equals: validatedData.name, mode: 'insensitive' } }
     })
-    if (!managerRecord) {
-      managerRecord = await prisma.managers.create({
-        data: { name: validatedData.name, createdAt: new Date(), updatedAt: new Date() }
-      })
+    if (!managerRecord) {        managerRecord = await prisma.managers.create({
+          data: { id: await generateManagerId(), name: validatedData.name, createdAt: new Date(), updatedAt: new Date() }
+        })
     }
 
     // Create team manager

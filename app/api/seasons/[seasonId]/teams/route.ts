@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createAuditLog } from '@/lib/audit'
-import { generateSeasonTeamId, generateFinancialId } from '@/lib/id-generator'
+import { generateSeasonTeamId, generateFinancialId, generateManagerId } from '@/lib/id-generator'
 import { triggerNews } from '@/lib/news/trigger'
 
 export async function GET(
@@ -13,7 +13,7 @@ export async function GET(
     const { seasonId } = await params
 
     const seasonTeams = await prisma.season_teams.findMany({
-      where: { seasonId },
+      where: { seasonId, isActive: true },
       include: {
         team: true
       }
@@ -102,26 +102,20 @@ async function handleManagerAssignments(
         where: { name: { equals: a.newTeamName!, mode: 'insensitive' } }
       })
 
-      let teamId: string
       if (existingTeam) {
-        teamId = existingTeam.id
-        // Update the manager name on the existing team
-        await prisma.teams.update({
-          where: { id: teamId },
-          data: { managerName: a.managerName, updatedAt: new Date() }
-        })
-      } else {
-        teamId = await generateSeasonTeamId()
-        await prisma.teams.create({
-          data: {
-            id: teamId,
-            name: a.newTeamName!,
-            managerName: a.managerName,
-            logoUrl: a.newTeamLogoUrl || '',
-            updatedAt: new Date(),
-          }
-        })
+        throw new Error(`TEAM_EXISTS:${existingTeam.name}:${existingTeam.id}`)
       }
+
+      const teamId = await generateSeasonTeamId()
+      await prisma.teams.create({
+        data: {
+          id: teamId,
+          name: a.newTeamName!,
+          managerName: a.managerName,
+          logoUrl: a.newTeamLogoUrl || '',
+          updatedAt: new Date(),
+        }
+      })
       // Ensure manager has a managers record
       const managerRecord = await prisma.managers.findFirst({
         where: { name: { equals: a.managerName, mode: 'insensitive' } }
@@ -129,7 +123,7 @@ async function handleManagerAssignments(
       let managerId = a.managerId
       if (!managerRecord) {
         const newMgr = await prisma.managers.create({
-          data: { name: a.managerName, createdAt: new Date(), updatedAt: new Date() }
+          data: { id: await generateManagerId(), name: a.managerName, createdAt: new Date(), updatedAt: new Date() }
         })
         managerId = newMgr.id
       } else {
@@ -172,48 +166,77 @@ async function handleManagerAssignments(
     }))
   )
 
-  await prisma.$transaction(
-    async (tx) => {
+  const transactionFn = async (tx: any) => {
+      // Deactivate removed teams (never delete — preserves all data)
       if (teamsToRemove.length > 0) {
-        await tx.season_teams.deleteMany({
-          where: { seasonId, teamId: { in: teamsToRemove } }
+        await tx.season_teams.updateMany({
+          where: { seasonId, teamId: { in: teamsToRemove } },
+          data: { isActive: false, updatedAt: new Date() }
         })
       }
 
       for (const { id: seasonTeamId, teamId, ledgerId, managerName } of newSeasonTeamEntries) {
-        await tx.season_teams.create({
-          data: {
-            id: seasonTeamId,
-            seasonId,
-            teamId,
-            managerName,
-            currentBudget: season.startingPurse,
-            finalBudget: null,
-            updatedAt: new Date()
-          }
+        // Check if there's an inactive record to reactivate
+        const inactive = await tx.season_teams.findFirst({
+          where: { seasonId, teamId, isActive: false }
         })
+        if (inactive) {
+          await tx.season_teams.update({
+            where: { id: inactive.id },
+            data: { isActive: true, managerName, currentBudget: season.startingPurse, updatedAt: new Date() }
+          })
+          // Reuse existing ledger or create new one
+          const existingLedger = await tx.financial_ledger.findFirst({
+            where: { seasonTeamId: inactive.id, transactionType: 'INITIAL_PURSE' }
+          })
+          if (!existingLedger) {
+            await tx.financial_ledger.create({
+              data: {
+                id: ledgerId,
+                seasonTeamId: inactive.id,
+                seasonId,
+                transactionType: 'INITIAL_PURSE',
+                amount: season.startingPurse,
+                previousBalance: 0,
+                newBalance: season.startingPurse,
+                description: 'Initial season purse'
+              }
+            })
+          }
+        } else {
+          await tx.season_teams.create({
+            data: {
+              id: seasonTeamId,
+              seasonId,
+              teamId,
+              managerName,
+              currentBudget: season.startingPurse,
+              finalBudget: null,
+              updatedAt: new Date()
+            }
+          })
 
-        await tx.financial_ledger.create({
-          data: {
-            id: ledgerId,
-            seasonTeamId,
-            seasonId,
-            transactionType: 'INITIAL_PURSE',
-            amount: season.startingPurse,
-            previousBalance: 0,
-            newBalance: season.startingPurse,
-            description: 'Initial season purse'
-          }
-        })
+          await tx.financial_ledger.create({
+            data: {
+              id: ledgerId,
+              seasonTeamId,
+              seasonId,
+              transactionType: 'INITIAL_PURSE',
+              amount: season.startingPurse,
+              previousBalance: 0,
+              newBalance: season.startingPurse,
+              description: 'Initial season purse'
+            }
+          })
+        }
       }
 
       await tx.seasons.update({
         where: { id: seasonId },
         data: { defaultMaxBidsPerTeam: finalAssignments.length, updatedAt: new Date() }
       })
-    },
-    { maxWait: 10000, timeout: 30000 }
-  )
+    }
+  await prisma.$transaction(transactionFn, { maxWait: 10000, timeout: 30000 })
 
   await createAuditLog({
     userId: session.user.id,
@@ -265,10 +288,13 @@ async function handleTeamIdsAssignment(
     }))
   )
 
-  await prisma.$transaction(
-    async (tx) => {
+  const transactionFn = async (tx: any) => {
+      // Deactivate removed teams (never delete — preserves all data)
       if (teamsToRemove.length > 0) {
-        await tx.season_teams.deleteMany({ where: { seasonId, teamId: { in: teamsToRemove } } })
+        await tx.season_teams.updateMany({
+          where: { seasonId, teamId: { in: teamsToRemove } },
+          data: { isActive: false, updatedAt: new Date() }
+        })
       }
 
       for (const { id: seasonTeamId, teamId, ledgerId } of newSeasonTeams) {
@@ -309,9 +335,8 @@ async function handleTeamIdsAssignment(
         where: { id: seasonId },
         data: { defaultMaxBidsPerTeam: teamIds.length, updatedAt: new Date() }
       })
-    },
-    { maxWait: 10000, timeout: 30000 }
-  )
+    }
+  await prisma.$transaction(transactionFn, { maxWait: 10000, timeout: 30000 })
 
   await createAuditLog({
     userId: session.user.id,

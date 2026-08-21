@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
-import { generateTeamId, generateUserId, generateSeasonTeamId, generateFinancialId } from "@/lib/id-generator"
+import { generateTeamId, generateUserId, generateSeasonTeamId, generateFinancialId, generateManagerId } from "@/lib/id-generator"
 import { generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator"
 import { hash } from "bcryptjs"
 
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
         // Update defaultMaxBidsPerTeam to match the number of teams in the season
         const teamCount = await tx.season_teams.count({
-          where: { seasonId: season.id }
+          where: { seasonId: season.id, isActive: true }
         })
         
         await tx.seasons.update({
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Find existing user (manager)
+      // Check if manager already exists
       const existingUser = await tx.users.findFirst({
         where: { 
           name: { equals: managerName.trim(), mode: 'insensitive' },
@@ -200,9 +200,9 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      let user;
-      let finalPassword = password;
-      let finalEmail = email;
+      if (existingUser) {
+        throw new Error(`MANAGER_EXISTS:${existingUser.name}:${existingUser.teamId || 'none'}`)
+      }
 
       // Ensure a managers record exists
       let managerRecord = await tx.managers.findFirst({
@@ -210,36 +210,26 @@ export async function POST(request: NextRequest) {
       })
       if (!managerRecord) {
         managerRecord = await tx.managers.create({
-          data: { name: managerName.trim(), createdAt: new Date(), updatedAt: new Date() }
+          data: { id: await generateManagerId(), name: managerName.trim(), createdAt: new Date(), updatedAt: new Date() }
         })
       }
 
-      if (existingUser) {
-        // Link existing manager to new team
-        user = await tx.users.update({
-          where: { id: existingUser.id },
-          data: { teamId: team.id, managerId: managerRecord.id }
-        })
-        finalPassword = "Use existing password";
-        finalEmail = user.email;
-      } else {
-        // Create new user (team manager)
-        user = await tx.users.create({
-          data: {
-            id: userId,
-            email,
-            name: managerName.trim(),
-            passwordHash,
-            role: "TEAM_MANAGER",
-            teamId: team.id,
-            managerId: managerRecord.id,
-            createdBy: session.user.id,
-            isActive: true
-          }
-        })
-      }
+      // Create new user (team manager)
+      const user = await tx.users.create({
+        data: {
+          id: userId,
+          email,
+          name: managerName.trim(),
+          passwordHash,
+          role: "TEAM_MANAGER",
+          teamId: team.id,
+          managerId: managerRecord.id,
+          createdBy: session.user.id,
+          isActive: true
+        }
+      })
 
-      return { team, user, password: finalPassword, email: finalEmail }
+      return { team, user, password, email }
     })
 
     // Create audit log
@@ -267,8 +257,23 @@ export async function POST(request: NextRequest) {
         email: result.email,
         password: result.password
       }
-    }, { status: 201 })
-  } catch (error) {
+    }, { status: 201 })    } catch (error) {
+    // Handle manager already exists
+    if (error instanceof Error && error.message.startsWith('MANAGER_EXISTS:')) {
+      const parts = error.message.split(':')
+      const managerName = parts[1]
+      const teamId = parts[2]
+      let teamName = 'another team'
+      if (teamId && teamId !== 'none') {
+        const team = await prisma.teams.findUnique({ where: { id: teamId }, select: { name: true } })
+        teamName = team?.name || 'another team'
+      }
+      return NextResponse.json(
+        { error: `Manager "${managerName}" already exists and is linked to ${teamName}. Use "Select Existing Team" instead, or choose a different manager name.` },
+        { status: 409 }
+      )
+    }
+
     // Handle Prisma unique constraint violation
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {

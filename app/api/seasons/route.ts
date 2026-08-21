@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
-import { generateSeasonId, generatePlayerStatsId } from "@/lib/id-generator"
+import { generateSeasonId } from "@/lib/id-generator"
 import { triggerNews } from "@/lib/news/trigger"
 
 /**
@@ -226,53 +226,78 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
 
-    // Auto-carry-forward: copy all players from previous season to this new season
+    // Auto-carry-forward: copy all players from previous season via raw SQL
     let carriedForward = 0
     try {
-      const previousSeason = await prisma.seasons.findFirst({
-        where: { seasonNumber: seasonNumber - 1 },
-        select: { id: true, name: true }
-      })
+      const copyResult = await prisma.$executeRawUnsafe(`
+        INSERT INTO seasonal_player_stats (
+          id, "basePlayerId", "seasonId", position, "realWorldClub", "overallRating",
+          star_rating, nationality, playing_style, height, weight, age, foot, featured,
+          weak_foot_usage, weak_foot_accuracy, form, injury_resistance, condition,
+          max_level, overall_at_max_level,
+          offensive_awareness, ball_control, dribbling, tight_possession, low_pass,
+          lofted_pass, finishing, heading, set_piece_taking, curl,
+          speed, acceleration, kicking_power, jumping, physical_contact, balance, stamina,
+          defensive_awareness, tackling, aggression, defensive_engagement,
+          gk_awareness, gk_catching, gk_parrying, gk_reflexes, gk_reach,
+          position_group,
+          scissors_feint, double_touch, flip_flap, marseille_turn, sombrero,
+          chop_turn, cut_behind_turn, scotch_move, sole_control, momentum_dribbling,
+          acceleration_burst, magnetic_feet, heading_skill, bullet_header,
+          long_range_curler, blitz_curler, chip_shot_control, knuckle_shot,
+          dipping_shot, rising_shot, long_range_shooting, low_screamer,
+          acrobatic_finishing, heel_trick, first_time_shot, phenomenal_finishing,
+          willpower, one_touch_pass, through_passing, weighted_pass,
+          pinpoint_crossing, edged_crossing, outside_curler, rabona,
+          no_look_pass, game_changing_pass, visionary_pass, phenomenal_pass,
+          low_lofted_pass, gk_low_punt, gk_high_punt, long_throw, gk_long_throw,
+          penalty_specialist, gk_penalty_saver, gk_directing_defence, gk_spirit_roar,
+          gamesmanship, man_marking, track_back, interception, blocker,
+          aerial_superiority, sliding_tackle, long_reach_tackle, fortress,
+          acrobatic_clearance, aerial_fort, captaincy, attack_trigger,
+          super_sub, fighting_spirit, trickster, mazing_run, speeding_bullet,
+          incisive_run, long_ball_expert, early_cross, long_ranger,
+          "createdAt", "updatedAt"
+        )
+        SELECT
+          gen_random_uuid(), s."basePlayerId", $1, s.position, s."realWorldClub", s."overallRating",
+          s.star_rating, s.nationality, s.playing_style, s.height, s.weight, s.age, s.foot, s.featured,
+          s.weak_foot_usage, s.weak_foot_accuracy, s.form, s.injury_resistance, s.condition,
+          s.max_level, s.overall_at_max_level,
+          s.offensive_awareness, s.ball_control, s.dribbling, s.tight_possession, s.low_pass,
+          s.lofted_pass, s.finishing, s.heading, s.set_piece_taking, s.curl,
+          s.speed, s.acceleration, s.kicking_power, s.jumping, s.physical_contact, s.balance, s.stamina,
+          s.defensive_awareness, s.tackling, s.aggression, s.defensive_engagement,
+          s.gk_awareness, s.gk_catching, s.gk_parrying, s.gk_reflexes, s.gk_reach,
+          s.position_group,
+          s.scissors_feint, s.double_touch, s.flip_flap, s.marseille_turn, s.sombrero,
+          s.chop_turn, s.cut_behind_turn, s.scotch_move, s.sole_control, s.momentum_dribbling,
+          s.acceleration_burst, s.magnetic_feet, s.heading_skill, s.bullet_header,
+          s.long_range_curler, s.blitz_curler, s.chip_shot_control, s.knuckle_shot,
+          s.dipping_shot, s.rising_shot, s.long_range_shooting, s.low_screamer,
+          s.acrobatic_finishing, s.heel_trick, s.first_time_shot, s.phenomenal_finishing,
+          s.willpower, s.one_touch_pass, s.through_passing, s.weighted_pass,
+          s.pinpoint_crossing, s.edged_crossing, s.outside_curler, s.rabona,
+          s.no_look_pass, s.game_changing_pass, s.visionary_pass, s.phenomenal_pass,
+          s.low_lofted_pass, s.gk_low_punt, s.gk_high_punt, s.long_throw, s.gk_long_throw,
+          s.penalty_specialist, s.gk_penalty_saver, s.gk_directing_defence, s.gk_spirit_roar,
+          s.gamesmanship, s.man_marking, s.track_back, s.interception, s.blocker,
+          s.aerial_superiority, s.sliding_tackle, s.long_reach_tackle, s.fortress,
+          s.acrobatic_clearance, s.aerial_fort, s.captaincy, s.attack_trigger,
+          s.super_sub, s.fighting_spirit, s.trickster, s.mazing_run, s.speeding_bullet,
+          s.incisive_run, s.long_ball_expert, s.early_cross, s.long_ranger,
+          NOW(), NOW()
+        FROM seasonal_player_stats s
+        JOIN seasons prev ON prev.season_number = $2 AND prev.id = s."seasonId"
+        WHERE NOT EXISTS (
+          SELECT 1 FROM seasonal_player_stats t
+          WHERE t."seasonId" = $1 AND t."basePlayerId" = s."basePlayerId"
+        )
+      `, seasonId, seasonNumber - 1)
 
-      if (previousSeason) {
-        const previousPlayers = await prisma.seasonal_player_stats.findMany({
-          where: { seasonId: previousSeason.id },
-          select: { basePlayerId: true }
-        })
-
-        if (previousPlayers.length > 0) {
-          // Get full stats for batch copy
-          const fullStats = await prisma.seasonal_player_stats.findMany({
-            where: { seasonId: previousSeason.id }
-          })
-
-          const statsToCreate: any[] = []
-          for (const stat of fullStats) {
-            const { id: _oldId, seasonId: _oldSeasonId, createdAt: _oldCreatedAt, updatedAt: _oldUpdatedAt, ...statData } = stat as any
-            statsToCreate.push({
-              id: await generatePlayerStatsId(),
-              basePlayerId: statData.basePlayerId,
-              seasonId: seasonId,
-              ...Object.fromEntries(
-                Object.entries(statData).filter(([k]) => k !== 'basePlayerId')
-              ),
-              createdAt: new Date(),
-              updatedAt: new Date()
-            })
-          }
-
-          // Bulk insert in chunks
-          const CHUNK = 500
-          for (let i = 0; i < statsToCreate.length; i += CHUNK) {
-            await prisma.seasonal_player_stats.createMany({
-              data: statsToCreate.slice(i, i + CHUNK),
-              skipDuplicates: true
-            })
-          }
-
-          carriedForward = statsToCreate.length
-          console.log(`✅ Auto-carry-forward: ${carriedForward} players from ${previousSeason.name} to ${name}`)
-        }
+      carriedForward = Number(copyResult)
+      if (carriedForward > 0) {
+        console.log(`✅ Auto-carry-forward: ${carriedForward} players carried to ${name}`)
       }
     } catch (carryErr) {
       console.error('⚠️ Auto-carry-forward failed (non-blocking):', carryErr)

@@ -271,27 +271,54 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   // Carry-forward states
   const [carryForwardLoading, setCarryForwardLoading] = useState(false)
   const [carryForwardResult, setCarryForwardResult] = useState<string | null>(null)
+  const [carryForwardStep, setCarryForwardStep] = useState<string | null>(null)
 
   const handleCarryForward = async () => {
     if (!seasonId) return
     setCarryForwardLoading(true)
     setCarryForwardResult(null)
+    setCarryForwardStep('Starting...')
     try {
       const response = await fetch(`/api/seasons/${seasonId}/carry-forward`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
       })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to carry forward players')
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response stream')
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        // Parse SSE lines
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const data = JSON.parse(line.slice(6))
+            if (data.step === 'error') {
+              setCarryForwardResult(data.error || 'Failed')
+              setCarryForwardStep(null)
+            } else if (data.step === 'complete') {
+              setCarryForwardResult(data.message || `Done! ${data.carried} players carried`)
+              setCarryForwardStep(null)
+              // Refresh the player list
+              fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, starred: starredFilter, page: currentPage })
+            } else {
+              setCarryForwardStep(data.message || data.step)
+            }
+          } catch { /* skip malformed lines */ }
+        }
       }
-      const msg = data.message || `Carried forward ${data.carried} players`
-      setCarryForwardResult(msg)
-      // Refresh the player list
-      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, starred: starredFilter, page: currentPage })
     } catch (err) {
       setCarryForwardResult(err instanceof Error ? err.message : 'Failed to carry forward')
+      setCarryForwardStep(null)
     } finally {
       setCarryForwardLoading(false)
     }
@@ -1243,7 +1270,9 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             disabled={carryForwardLoading}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/25 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 transition-all shadow-[0_0_12px_rgba(168,85,247,0.05)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {carryForwardLoading ? '⏳' : '🔄'} Carry Forward
+            {carryForwardLoading ? (
+              <><span className="animate-spin inline-block">⏳</span> <span className="truncate max-w-[160px]">{carryForwardStep || 'Processing...'}</span></>
+            ) : '🔄 Carry Forward'}
           </button>
           <button
             onClick={() => {
@@ -1261,7 +1290,7 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             📊 Export
           </button>
           {carryForwardResult && (
-            <span className="text-xs font-mono text-purple-400 max-w-[200px] truncate" title={carryForwardResult}>
+            <span className={`text-xs font-mono max-w-[300px] truncate ${carryForwardResult.includes('Successfully') ? 'text-emerald-400' : 'text-red-400'}`} title={carryForwardResult}>
               {carryForwardResult}
             </span>
           )}

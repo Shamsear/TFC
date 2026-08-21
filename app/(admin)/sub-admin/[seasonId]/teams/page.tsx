@@ -77,11 +77,21 @@ export default async function SeasonTeamSelectionPage({
     orderBy: { name: "asc" }
   })
 
-  // Get currently assigned manager-team pairs for this season
-  const assignedPairs = season.seasonTeams.map(st => ({
-    teamId: st.teamId,
-    managerName: st.managerName || st.team.managerName
-  }))
+  // Get currently assigned manager-team pairs for this season (with full details for display)
+  const assignedPairs = season.seasonTeams.map(st => {
+    const mgrName = st.managerName || st.team.managerName
+    // Find managerId from allManagers by name
+    const mgr = allManagers.find(m => m.name.toLowerCase() === mgrName?.toLowerCase())
+    return {
+      seasonTeamId: st.id,
+      teamId: st.teamId,
+      teamName: st.team.name,
+      teamLogoUrl: st.team.logoUrl,
+      managerName: mgrName,
+      managerId: mgr?.id || null,
+      currentBudget: st.currentBudget
+    }
+  })
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">

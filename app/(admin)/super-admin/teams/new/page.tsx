@@ -46,6 +46,7 @@ export default function CreateTeamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [fetchingLogo, setFetchingLogo] = useState(false)
   const [credentials, setCredentials] = useState<{
     email: string
     password: string
@@ -87,6 +88,26 @@ export default function CreateTeamPage() {
 
   const handleUploadError = (error: Error) => {
     setError(error.message)
+  }
+
+  const handleFetchLogo = async () => {
+    if (!formData.name.trim()) return
+    setFetchingLogo(true)
+    setError("")
+    try {
+      const res = await fetch('/api/teams/fetch-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamName: formData.name }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch logo')
+      setFormData(prev => ({ ...prev, logoUrl: data.logoUrl }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch logo')
+    } finally {
+      setFetchingLogo(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -262,16 +283,33 @@ export default function CreateTeamPage() {
               <label htmlFor="name" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
                 Team Name <span className="text-red-400">*</span>
               </label>
-              <input
-                type="text"
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
-                placeholder="Enter team name"
-                required
-                disabled={isSubmitting}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="flex-1 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
+                  placeholder="Enter team name"
+                  required
+                  disabled={isSubmitting}
+                />
+                <button
+                  type="button"
+                  onClick={handleFetchLogo}
+                  disabled={!formData.name.trim() || fetchingLogo || isSubmitting}
+                  className="px-3 sm:px-4 py-2 sm:py-3 bg-[#FFB347]/10 border border-[#FFB347]/30 text-[#FFB347] rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold hover:bg-[#FFB347]/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap flex items-center gap-2"
+                >
+                  {fetchingLogo ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                  Fetch Logo
+                </button>
+              </div>
             </div>
 
             {/* Manager Name */}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import { normalizeForSearch } from "@/lib/search-utils"
 import TeamLogo from "@/components/team/TeamLogo"
+import { ImageKitUpload } from "@/components/upload/ImageKitUpload"
 
 interface Manager {
   id: string
@@ -24,8 +25,13 @@ interface Team {
 }
 
 interface AssignedPair {
+  seasonTeamId: string
   teamId: string
+  teamName: string
+  teamLogoUrl: string
   managerName: string
+  managerId: string | null
+  currentBudget: number
 }
 
 interface ManagerAssignment {
@@ -34,6 +40,7 @@ interface ManagerAssignment {
   teamId: string | null
   isNewTeam: boolean
   newTeamName: string
+  newTeamLogoUrl: string
 }
 
 interface TeamSelectionFormProps {
@@ -62,6 +69,8 @@ export default function TeamSelectionForm({
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [dropdownSearch, setDropdownSearch] = useState("")
+  const [removingTeamId, setRemovingTeamId] = useState<string | null>(null)
+  const [fetchingLogoManagerId, setFetchingLogoManagerId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Handle click outside dropdown
@@ -78,26 +87,78 @@ export default function TeamSelectionForm({
 
   // Team IDs already assigned in this season
   const assignedTeamIds = useMemo(() => assignedPairs.map(p => p.teamId), [assignedPairs])
+  // Manager names already assigned in this season
+  const assignedManagerNames = useMemo(() => assignedPairs.map(p => p.managerName?.toLowerCase()), [assignedPairs])
 
-  // Filter managers based on search
-  const filteredManagers = useMemo(() => {
-    if (!searchQuery.trim()) return allManagers
+  // Managers who are already assigned to this season
+  const assignedManagers = useMemo(() => {
+    return allManagers.filter(m => assignedManagerNames.includes(m.name.toLowerCase()))
+  }, [allManagers, assignedManagerNames])
+
+  // Managers NOT yet assigned (available for selection)
+  const unassignedManagers = useMemo(() => {
+    return allManagers.filter(m => !assignedManagerNames.includes(m.name.toLowerCase()))
+  }, [allManagers, assignedManagerNames])
+
+  // Filter unassigned managers based on search
+  const filteredUnassignedManagers = useMemo(() => {
+    if (!searchQuery.trim()) return unassignedManagers
     const query = normalizeForSearch(searchQuery)
-    return allManagers.filter(m =>
+    return unassignedManagers.filter(m =>
       normalizeForSearch(m.name).includes(query) ||
       m.lastTeam && normalizeForSearch(m.lastTeam.name).includes(query)
     )
-  }, [allManagers, searchQuery])
+  }, [unassignedManagers, searchQuery])
 
-  // Available teams for assignment (not already assigned to another manager this season)
+  // Available teams for assignment (not already assigned to this season or to another manager in the form)
   const getAvailableTeams = (excludeManagerId?: string) => {
     return allTeams.filter(t => {
-      // Exclude teams already assigned to OTHER managers this season
+      // Exclude teams already assigned to this season
+      if (assignedTeamIds.includes(t.id)) return false
+      // Exclude teams already assigned to OTHER managers in the current form
       const isAssignedElsewhere = Object.entries(assignments).some(
         ([mgrId, a]) => mgrId !== excludeManagerId && a.teamId === t.id
       )
       return !isAssignedElsewhere
     })
+  }
+
+  // --- Remove an already-assigned team from the season ---
+  const handleRemoveTeam = async (pair: AssignedPair) => {
+    setRemovingTeamId(pair.teamId)
+    setError(null)
+
+    try {
+      // Re-submit all assignments EXCEPT the one being removed
+      const remainingAssignments = assignedPairs
+        .filter(p => p.teamId !== pair.teamId)
+        .map(p => ({
+          managerId: p.managerId || allManagers.find(m => m.name.toLowerCase() === p.managerName?.toLowerCase())?.id || '',
+          managerName: p.managerName,
+          teamId: p.teamId,
+          newTeamName: null,
+          newTeamLogoUrl: null,
+        }))
+        .filter(a => a.managerId) // only include if we have a valid managerId
+
+      const response = await fetch(`/api/seasons/${seasonId}/teams`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignments: remainingAssignments }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to remove team")
+      }
+
+      setSuccessMessage(`Removed ${pair.teamName} (${pair.managerName}) from ${seasonName}`)
+      setTimeout(() => router.refresh(), 1500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setRemovingTeamId(null)
+    }
   }
 
   const handleManagerToggle = (managerId: string) => {
@@ -118,6 +179,7 @@ export default function TeamSelectionForm({
             teamId: currentTeam?.id || null,
             isNewTeam: false,
             newTeamName: '',
+            newTeamLogoUrl: '',
           }
         }))
       } else {
@@ -155,6 +217,7 @@ export default function TeamSelectionForm({
         isNewTeam: !prev[managerId].isNewTeam,
         teamId: null,
         newTeamName: '',
+        newTeamLogoUrl: '',
       }
     }))
   }
@@ -169,12 +232,43 @@ export default function TeamSelectionForm({
     }))
   }
 
+  const handleNewTeamLogoChange = (managerId: string, url: string) => {
+    setAssignments(prev => ({
+      ...prev,
+      [managerId]: {
+        ...prev[managerId],
+        newTeamLogoUrl: url,
+      }
+    }))
+  }
+
+  const handleFetchLogo = async (managerId: string) => {
+    const teamName = assignments[managerId]?.newTeamName?.trim()
+    if (!teamName) return
+
+    setFetchingLogoManagerId(managerId)
+    try {
+      const res = await fetch('/api/teams/fetch-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamName }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch logo')
+      handleNewTeamLogoChange(managerId, data.logoUrl)
+    } catch (err) {
+      console.error('Fetch logo error:', err)
+    } finally {
+      setFetchingLogoManagerId(null)
+    }
+  }
+
   const handleSelectAll = () => {
-    const allIds = filteredManagers.map(m => m.id)
+    const allIds = filteredUnassignedManagers.map(m => m.id)
     setSelectedManagerIds(allIds)
 
     const newAssignments: Record<string, ManagerAssignment> = {}
-    for (const mgr of filteredManagers) {
+    for (const mgr of filteredUnassignedManagers) {
       const currentTeam = mgr.lastTeam
       newAssignments[mgr.id] = {
         managerId: mgr.id,
@@ -182,6 +276,7 @@ export default function TeamSelectionForm({
         teamId: currentTeam?.id || null,
         isNewTeam: false,
         newTeamName: '',
+        newTeamLogoUrl: '',
       }
     }
     setAssignments(newAssignments)
@@ -219,6 +314,10 @@ export default function TeamSelectionForm({
         setError(`Please enter a team name for ${assignment.managerName}`)
         return
       }
+      if (assignment.isNewTeam && !assignment.newTeamLogoUrl) {
+        setError(`Please upload a logo for ${assignment.managerName}'s new team`)
+        return
+      }
     }
 
     setIsSubmitting(true)
@@ -226,16 +325,35 @@ export default function TeamSelectionForm({
     setSuccessMessage(null)
 
     try {
+      // Include both newly selected AND already-assigned managers
+      const newAssignments = selectedManagerIds.map(mgrId => ({
+        managerId: mgrId,
+        managerName: assignments[mgrId].managerName,
+        teamId: assignments[mgrId].isNewTeam ? null : assignments[mgrId].teamId,
+        newTeamName: assignments[mgrId].isNewTeam ? assignments[mgrId].newTeamName.trim() : null,
+        newTeamLogoUrl: assignments[mgrId].isNewTeam ? assignments[mgrId].newTeamLogoUrl : null,
+      }))
+
+      const existingAssignments = assignedPairs
+        .filter(p => p.managerId) // only include if we have a valid managerId
+        .map(p => ({
+          managerId: p.managerId!,
+          managerName: p.managerName,
+          teamId: p.teamId,
+          newTeamName: null,
+          newTeamLogoUrl: null,
+        }))
+
+      // Merge: existing + new (new overrides if same managerId)
+      const managerIdSet = new Set(newAssignments.map(a => a.managerId))
+      const mergedExisting = existingAssignments.filter(a => !managerIdSet.has(a.managerId))
+      const allAssignments = [...mergedExisting, ...newAssignments]
+
       const response = await fetch(`/api/seasons/${seasonId}/teams`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          assignments: selectedManagerIds.map(mgrId => ({
-            managerId: mgrId,
-            managerName: assignments[mgrId].managerName,
-            teamId: assignments[mgrId].isNewTeam ? null : assignments[mgrId].teamId,
-            newTeamName: assignments[mgrId].isNewTeam ? assignments[mgrId].newTeamName.trim() : null,
-          }))
+          assignments: allAssignments
         }),
       })
 
@@ -245,7 +363,8 @@ export default function TeamSelectionForm({
         throw new Error(data.error || "Failed to assign teams")
       }
 
-      setSuccessMessage(`Successfully assigned ${selectedManagerIds.length} managers to ${seasonName}!`)
+      const totalAssigned = allAssignments.length
+      setSuccessMessage(`Successfully assigned ${totalAssigned} managers to ${seasonName}!`)
       setTimeout(() => router.refresh(), 1500)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
@@ -268,7 +387,85 @@ export default function TeamSelectionForm({
         </div>
       )}
 
-      {/* Manager Selection */}
+      {/* ============================================ */}
+      {/* SECTION: Currently Assigned Teams            */}
+      {/* ============================================ */}
+      {assignedPairs.length > 0 && (
+        <div className="bg-[#0D0D0D]/90 border border-emerald-500/10 rounded-2xl p-4 sm:p-6 mb-6 shadow-md">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-lg font-black text-white uppercase tracking-tight font-mono">
+                Assigned Teams
+                <span className="ml-2 text-emerald-400 text-sm">{assignedPairs.length}</span>
+              </h2>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-1">
+                Teams currently participating in {seasonName}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {assignedPairs.map((pair) => {
+              const manager = assignedManagers.find(m => m.name.toLowerCase() === pair.managerName?.toLowerCase())
+              const isRemoving = removingTeamId === pair.teamId
+
+              return (
+                <div
+                  key={pair.teamId}
+                  className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-black/40 p-0.5 flex-shrink-0 flex items-center justify-center">
+                      {pair.teamLogoUrl ? (
+                        <img src={pair.teamLogoUrl} alt={pair.teamName} className="w-full h-full object-contain rounded-lg" />
+                      ) : (
+                        <span className="text-sm font-black text-gray-500">{pair.teamName.slice(0, 2).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-extrabold text-white text-sm uppercase tracking-tight truncate">{pair.teamName}</div>
+                      <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider truncate mt-0.5">
+                        {pair.managerName}
+                      </div>
+                      {pair.currentBudget > 0 && (
+                        <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                          ${pair.currentBudget.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Remove Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTeam(pair)}
+                    disabled={isRemoving || isSubmitting}
+                    className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-bold uppercase tracking-wider hover:bg-red-500/10 hover:border-red-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono cursor-pointer"
+                  >
+                    {isRemoving ? (
+                      <>
+                        <LoadingSpinner size="sm" />
+                        <span>Removing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Remove from Season</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================ */}
+      {/* SECTION: Select New Managers                 */}
+      {/* ============================================ */}
       <div className="bg-[#0D0D0D]/90 border border-white/5 rounded-2xl p-4 sm:p-6 mb-6 shadow-md">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -311,14 +508,16 @@ export default function TeamSelectionForm({
           </div>
         </div>
 
-        {/* Manager Grid */}
-        {filteredManagers.length === 0 ? (
+        {/* Manager Grid (unassigned only) */}
+        {filteredUnassignedManagers.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-400 font-bold uppercase tracking-wider font-mono text-xs">No managers found</p>
+            <p className="text-gray-400 font-bold uppercase tracking-wider font-mono text-xs">
+              {unassignedManagers.length === 0 ? "All managers are already assigned" : "No managers found"}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {filteredManagers.map((manager) => {
+            {filteredUnassignedManagers.map((manager) => {
               const isSelected = selectedManagerIds.includes(manager.id)
               const currentTeam = manager.lastTeam
               const assignment = assignments[manager.id]
@@ -399,7 +598,7 @@ export default function TeamSelectionForm({
                           </span>
                           <svg className="w-4 h-4 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </button>
-                        
+
                         {openDropdown === manager.id && !assignment.isNewTeam && (
                           <div className="absolute left-0 right-0 z-[100] mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
                             <div className="p-2 border-b border-white/5">
@@ -428,7 +627,11 @@ export default function TeamSelectionForm({
                                     className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/[0.05] transition-colors text-left"
                                   >
                                     <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/40 p-0.5">
-                                      <img src={t.logoUrl || ''} alt={t.name} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                      {t.logoUrl ? (
+                                        <img src={t.logoUrl} alt={t.name} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                      ) : (
+                                        <span className="text-[8px] font-bold text-gray-500 flex items-center justify-center h-full">{t.name.slice(0, 2).toUpperCase()}</span>
+                                      )}
                                     </div>
                                     <span className="text-[11px] font-bold text-gray-200 truncate">{t.name}</span>
                                   </button>
@@ -455,10 +658,48 @@ export default function TeamSelectionForm({
                       </button>
 
                       {assignment.isNewTeam && (
-                        <input type="text" value={assignment.newTeamName}
-                          onChange={(e) => handleNewTeamNameChange(manager.id, e.target.value)}
-                          placeholder="Enter new team name..."
-                          className="w-full mt-2 px-3 py-2.5 bg-white/[0.02] border border-white/10 rounded-lg text-white text-xs font-bold placeholder-gray-500 focus:outline-none focus:border-[#FFB347]/50 transition-all font-mono" />
+                        <div className="mt-2 space-y-2">
+                          <div className="flex gap-2">
+                            <input type="text" value={assignment.newTeamName}
+                              onChange={(e) => handleNewTeamNameChange(manager.id, e.target.value)}
+                              placeholder="Enter new team name..."
+                              className="flex-1 px-3 py-2.5 bg-white/[0.02] border border-white/10 rounded-lg text-white text-xs font-bold placeholder-gray-500 focus:outline-none focus:border-[#FFB347]/50 transition-all font-mono" />
+                            <button
+                              type="button"
+                              onClick={() => handleFetchLogo(manager.id)}
+                              disabled={!assignment.newTeamName?.trim() || fetchingLogoManagerId === manager.id}
+                              className="px-3 py-2.5 bg-[#FFB347]/10 border border-[#FFB347]/30 text-[#FFB347] rounded-lg text-xs font-bold hover:bg-[#FFB347]/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                            >
+                              {fetchingLogoManagerId === manager.id ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              )}
+                              Fetch Logo
+                            </button>
+                          </div>
+
+                          {/* Logo preview */}
+                          {assignment.newTeamLogoUrl && (
+                            <div className="flex items-center gap-2 p-2 bg-white/[0.02] border border-white/10 rounded-lg">
+                              <img src={assignment.newTeamLogoUrl} alt="Logo preview" className="w-8 h-8 object-contain rounded" />
+                              <span className="text-[10px] text-emerald-400 font-bold">Logo fetched</span>
+                            </div>
+                          )}
+
+                          {/* Manual upload fallback */}
+                          {!assignment.newTeamLogoUrl && (
+                            <ImageKitUpload
+                              onSuccess={(url) => handleNewTeamLogoChange(manager.id, url)}
+                              onError={(err) => console.error('Logo upload error:', err)}
+                              folder="/turf-cats/teams"
+                              fileName={`team-logo-${Date.now()}`}
+                              accept="image/*"
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -472,10 +713,10 @@ export default function TeamSelectionForm({
       {/* Submit */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
-          {selectedManagerIds.length} manager{selectedManagerIds.length !== 1 ? "s" : ""} selected
+          {assignedPairs.length + selectedManagerIds.length} total managers
           {selectedManagerIds.length > 0 && (
             <span className="ml-2 text-[#E8A800]">
-              ({Object.values(assignments).filter(a => a.teamId || a.isNewTeam).length} with teams assigned)
+              ({assignedPairs.length} existing + {selectedManagerIds.length} new)
             </span>
           )}
         </div>

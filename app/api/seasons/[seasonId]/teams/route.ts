@@ -77,6 +77,7 @@ interface ManagerAssignment {
   managerName: string
   teamId: string | null
   newTeamName: string | null
+  newTeamLogoUrl: string | null
 }
 
 async function handleManagerAssignments(
@@ -93,22 +94,51 @@ async function handleManagerAssignments(
   const newTeamNames = assignments.filter(a => a.newTeamName)
   const teamIdMap = new Map<string, string>() // newTeamId -> team name
 
-  // Create new teams if needed
+  // Create new teams if needed (or find existing team by name)
   const createdTeams = await Promise.all(
     newTeamNames.map(async (a) => {
-      const teamId = await generateSeasonTeamId() // reuse ID generator
-      await prisma.teams.create({
-        data: {
-          id: teamId,
-          name: a.newTeamName!,
-          managerName: a.managerName,
-          logoUrl: '',
-          updatedAt: new Date(),
-        }
+      // Check if a team with this name already exists
+      const existingTeam = await prisma.teams.findFirst({
+        where: { name: { equals: a.newTeamName!, mode: 'insensitive' } }
       })
+
+      let teamId: string
+      if (existingTeam) {
+        teamId = existingTeam.id
+        // Update the manager name on the existing team
+        await prisma.teams.update({
+          where: { id: teamId },
+          data: { managerName: a.managerName, updatedAt: new Date() }
+        })
+      } else {
+        teamId = await generateSeasonTeamId()
+        await prisma.teams.create({
+          data: {
+            id: teamId,
+            name: a.newTeamName!,
+            managerName: a.managerName,
+            logoUrl: a.newTeamLogoUrl || '',
+            updatedAt: new Date(),
+          }
+        })
+      }
+      // Ensure manager has a managers record
+      const managerRecord = await prisma.managers.findFirst({
+        where: { name: { equals: a.managerName, mode: 'insensitive' } }
+      })
+      let managerId = a.managerId
+      if (!managerRecord) {
+        const newMgr = await prisma.managers.create({
+          data: { name: a.managerName, createdAt: new Date(), updatedAt: new Date() }
+        })
+        managerId = newMgr.id
+      } else {
+        managerId = managerRecord.id
+      }
+
       // Link manager to team
       await prisma.manager_teams.create({
-        data: { managerId: a.managerId, teamId, isCurrent: true }
+        data: { managerId, teamId, isCurrent: true }
       })
       teamIdMap.set(a.managerId, teamId)
       return { managerId: a.managerId, teamId }

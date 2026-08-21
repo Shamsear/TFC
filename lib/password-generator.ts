@@ -1,11 +1,11 @@
 /**
- * Generate a password based on team name
- * Format: {teamname}1234
+ * Generate a password from a name (manager or team)
+ * Format: {name}1234
  * Example: "AS Roma" -> "asroma1234"
  */
-export function generatePasswordFromTeamName(teamName: string): string {
+export function generatePasswordFromTeamName(name: string): string {
   // Remove special characters, spaces, convert to lowercase
-  const cleanName = teamName
+  const cleanName = name
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "") // Remove all non-alphanumeric
     .trim()
@@ -14,13 +14,13 @@ export function generatePasswordFromTeamName(teamName: string): string {
 }
 
 /**
- * Generate email from team name
- * Format: {teamname}@tfc.com
+ * Generate email from a name (manager or team)
+ * Format: {name}@tfc.com
  * Example: "Real Madrid" -> "realmadrid@tfc.com"
  */
-export function generateEmailFromTeamName(teamName: string): string {
+export function generateEmailFromTeamName(name: string): string {
   // Remove special characters, spaces, convert to lowercase
-  const cleanName = teamName
+  const cleanName = name
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "") // Remove all non-alphanumeric
     .trim()
@@ -32,14 +32,14 @@ export function generateEmailFromTeamName(teamName: string): string {
  * Check if email already exists and add suffix if needed
  */
 export async function generateUniqueEmail(
-  teamName: string,
+  name: string,
   checkExists: (email: string) => Promise<boolean>
 ): Promise<string> {
-  let email = generateEmailFromTeamName(teamName)
+  let email = generateEmailFromTeamName(name)
   let counter = 1
 
   while (await checkExists(email)) {
-    email = generateEmailFromTeamName(`${teamName}${counter}`)
+    email = generateEmailFromTeamName(`${name}${counter}`)
     counter++
   }
 

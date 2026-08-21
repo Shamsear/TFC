@@ -76,6 +76,16 @@ export async function POST(request: NextRequest) {
     // Generate user ID
     const userId = await generateUserId()
 
+    // Ensure a managers record exists
+    let managerRecord = await prisma.managers.findFirst({
+      where: { name: { equals: validatedData.name, mode: 'insensitive' } }
+    })
+    if (!managerRecord) {
+      managerRecord = await prisma.managers.create({
+        data: { name: validatedData.name, createdAt: new Date(), updatedAt: new Date() }
+      })
+    }
+
     // Create team manager
     const teamManager = await prisma.users.create({
       data: {
@@ -85,6 +95,7 @@ export async function POST(request: NextRequest) {
         passwordHash,
         role: "TEAM_MANAGER",
         teamId: validatedData.teamId,
+        managerId: managerRecord.id,
         createdBy: session.user.id,
         isActive: true,
         mustChangePassword: true,

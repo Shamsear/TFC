@@ -120,15 +120,15 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Generate credentials
-    const email = await generateUniqueEmail(name.trim(), async (email) => {
+    // Generate credentials based on manager name
+    const email = await generateUniqueEmail(managerName.trim(), async (email) => {
       const existing = await prisma.users.findUnique({
         where: { email }
       })
       return !!existing
     })
     
-    const password = generatePasswordFromTeamName(name.trim())
+    const password = generatePasswordFromTeamName(managerName.trim())
     const passwordHash = await hash(password, 10)
 
     // Generate IDs
@@ -204,11 +204,21 @@ export async function POST(request: NextRequest) {
       let finalPassword = password;
       let finalEmail = email;
 
+      // Ensure a managers record exists
+      let managerRecord = await tx.managers.findFirst({
+        where: { name: { equals: managerName.trim(), mode: 'insensitive' } }
+      })
+      if (!managerRecord) {
+        managerRecord = await tx.managers.create({
+          data: { name: managerName.trim(), createdAt: new Date(), updatedAt: new Date() }
+        })
+      }
+
       if (existingUser) {
         // Link existing manager to new team
         user = await tx.users.update({
           where: { id: existingUser.id },
-          data: { teamId: team.id }
+          data: { teamId: team.id, managerId: managerRecord.id }
         })
         finalPassword = "Use existing password";
         finalEmail = user.email;
@@ -222,6 +232,7 @@ export async function POST(request: NextRequest) {
             passwordHash,
             role: "TEAM_MANAGER",
             teamId: team.id,
+            managerId: managerRecord.id,
             createdBy: session.user.id,
             isActive: true
           }

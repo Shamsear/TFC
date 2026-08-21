@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import Image from 'next/image'
 
@@ -10,6 +10,8 @@ interface EligiblePlayer {
   player_id: string | null
   photoUrl: string
   oldSquadValue: number
+  position: string
+  overallRating: number
   previousSeasonId: string
   previousSeasonName: string
 }
@@ -154,8 +156,9 @@ export default function RetentionRequestClient({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState<'name' | 'value'>('value')
+  const [sortBy, setSortBy] = useState<'name' | 'value' | 'rating'>('rating')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [positionFilter, setPositionFilter] = useState('ALL')
 
   const [eligiblePlayers, setEligiblePlayers] = useState(initialEligiblePlayers)
   const [existingRequests, setExistingRequests] = useState(initialRequests)
@@ -167,22 +170,28 @@ export default function RetentionRequestClient({
   const pendingRequests = existingRequests.filter(r => r.status === 'pending')
   const processedRequests = existingRequests.filter(r => r.status !== 'pending')
 
+  // Position filter options derived from data
+  const positions = useMemo(() => {
+    const posSet = new Set(eligiblePlayers.map(p => p.position))
+    return ['ALL', ...Array.from(posSet).sort()]
+  }, [eligiblePlayers])
+
   // Filter and sort eligible players
-  const filteredPlayers = eligiblePlayers
-    .filter(player =>
-      player.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+  const filteredPlayers = useMemo(() => eligiblePlayers
+    .filter(player => {
+      const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesPosition = positionFilter === 'ALL' || player.position === positionFilter
+      return matchesSearch && matchesPosition
+    })
     .sort((a, b) => {
       if (sortBy === 'name') {
-        return sortOrder === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name)
+        return sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+      } else if (sortBy === 'rating') {
+        return sortOrder === 'asc' ? a.overallRating - b.overallRating : b.overallRating - a.overallRating
       } else {
-        return sortOrder === 'asc'
-          ? a.oldSquadValue - b.oldSquadValue
-          : b.oldSquadValue - a.oldSquadValue
+        return sortOrder === 'asc' ? a.oldSquadValue - b.oldSquadValue : b.oldSquadValue - a.oldSquadValue
       }
-    })
+    }), [eligiblePlayers, searchQuery, positionFilter, sortBy, sortOrder])
 
   const togglePlayerSelection = (playerId: string) => {
     const newSelected = new Set(selectedPlayers)
@@ -566,41 +575,56 @@ export default function RetentionRequestClient({
 
         {/* Eligible Players */}
         <div className="mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+          {/* Search + Filters Row */}
+          <div className="flex flex-col gap-3 mb-4">
             <h2 className="text-lg font-black text-white font-mono">Eligible Players</h2>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch gap-2">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search players by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 sm:w-40 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-xs font-mono"
+                className="flex-1 px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-sm font-mono"
               />
+              <select
+                value={positionFilter}
+                onChange={(e) => setPositionFilter(e.target.value)}
+                className="px-3 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]/30 text-xs font-mono cursor-pointer min-w-[120px]"
+              >
+                {positions.map(pos => (
+                  <option key={pos} value={pos}>{pos === 'ALL' ? 'All Positions' : pos}</option>
+                ))}
+              </select>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
                   const [newSortBy, newSortOrder] = e.target.value.split('-')
-                  setSortBy(newSortBy as 'name' | 'value')
+                  setSortBy(newSortBy as 'name' | 'value' | 'rating')
                   setSortOrder(newSortOrder as 'asc' | 'desc')
                 }}
-                className="px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]/30 text-xs font-mono cursor-pointer"
+                className="px-3 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]/30 text-xs font-mono cursor-pointer min-w-[140px]"
               >
+                <option value="rating-desc">Rating ↓</option>
+                <option value="rating-asc">Rating ↑</option>
                 <option value="value-desc">Value ↓</option>
                 <option value="value-asc">Value ↑</option>
                 <option value="name-asc">Name A-Z</option>
                 <option value="name-desc">Name Z-A</option>
               </select>
             </div>
+            <div className="text-[10px] text-gray-500 font-mono">
+              Showing {filteredPlayers.length} of {eligiblePlayers.length} players
+            </div>
           </div>
 
           {filteredPlayers.length === 0 ? (
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
               <p className="text-gray-400 font-mono text-sm">
-                {searchQuery ? 'No players match your search' : 'No eligible players for retention'}
+                {searchQuery || positionFilter !== 'ALL' ? 'No players match your filters' : 'No eligible players for retention'}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+            <div className="space-y-1.5">
               {filteredPlayers.map(player => {
                 const isSelected = selectedPlayers.has(player.id)
                 const canAfford = currentBudget >= player.oldSquadValue
@@ -609,7 +633,7 @@ export default function RetentionRequestClient({
                   <div
                     key={player.id}
                     onClick={() => canAfford && togglePlayerSelection(player.id)}
-                    className={`relative p-2.5 rounded-xl border transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl border transition-all ${
                       isSelected
                         ? 'bg-[#E8A800]/15 border-[#E8A800] shadow-lg shadow-[#E8A800]/10 cursor-pointer'
                         : canAfford && remainingRequests > 0
@@ -618,46 +642,54 @@ export default function RetentionRequestClient({
                     }`}
                   >
                     {/* Selection indicator */}
-                    {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#E8A800] flex items-center justify-center z-10">
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      isSelected ? 'bg-[#E8A800] border-[#E8A800]' : 'border-white/20'
+                    }`}>
+                      {isSelected && (
                         <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                      </div>
-                    )}
-
-                    {/* Player photo */}
-                    <div className="w-full aspect-square rounded-lg bg-white/5 flex items-center justify-center overflow-hidden mb-2">
-                      <img
-                        src={getPhotoUrl(player.player_id)}
-                        alt={player.name}
-                        className="w-full h-full object-cover"
-                      />
+                      )}
                     </div>
 
-                    {/* Player info */}
-                    <p className="font-black text-white text-[11px] leading-tight truncate mb-0.5">{player.name}</p>
-                    <p className="text-[#E8A800] text-xs font-black">{formatCurrency(player.oldSquadValue)}</p>
-                    {!canAfford && (
-                      <p className="text-[8px] text-red-400 font-mono mt-0.5">No budget</p>
-                    )}
-                    {canAfford && remainingRequests <= 0 && !isSelected && (
-                      <p className="text-[8px] text-gray-500 font-mono mt-0.5">Max reached</p>
-                    )}
+                    {/* Player photo (small) */}
+                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <img src={getPhotoUrl(player.player_id)} alt="" className="w-full h-full object-cover" />
+                    </div>
+
+                    {/* Name + Position */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-white text-sm leading-tight truncate">{player.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black text-[#E8A800] font-mono">{player.position}</span>
+                        {player.overallRating > 0 && (
+                          <span className="text-[10px] text-gray-500 font-mono">• {player.overallRating} OVR</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Value */}
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-black text-[#E8A800]">{formatCurrency(player.oldSquadValue)}</p>
+                      {!canAfford && <p className="text-[8px] text-red-400 font-mono">No budget</p>}
+                      {canAfford && remainingRequests <= 0 && !isSelected && <p className="text-[8px] text-gray-500 font-mono">Max</p>}
+                    </div>
 
                     {/* Notes input when selected */}
                     {isSelected && (
-                      <textarea
-                        value={notes[player.id] || ''}
-                        onChange={(e) => {
-                          e.stopPropagation()
-                          setNotes({ ...notes, [player.id]: e.target.value })
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="Notes..."
-                        className="w-full mt-1.5 px-2 py-1 bg-black/40 border border-white/10 rounded text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-[10px] font-mono resize-none"
-                        rows={1}
-                      />
+                      <div className="absolute left-0 right-0 bottom-[-32px] z-10">
+                        <input
+                          type="text"
+                          value={notes[player.id] || ''}
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            setNotes({ ...notes, [player.id]: e.target.value })
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Notes (optional)..."
+                          className="w-full px-3 py-1.5 bg-black/60 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-[10px] font-mono"
+                        />
+                      </div>
                     )}
                   </div>
                 )

@@ -79,7 +79,18 @@ export default async function RetentionRequestPage() {
     previousSeason
       ? prisma.transfer_history.findMany({
           where: { seasonId: previousSeason.id, teamId: team.id, status: 'ACTIVE' },
-          include: { basePlayer: { select: { id: true, name: true, player_id: true, photoUrl: true } } },
+          include: {
+            basePlayer: {
+              select: {
+                id: true, name: true, player_id: true, photoUrl: true,
+                seasonalPlayerStats: {
+                  where: { seasonId: previousSeason.id },
+                  select: { position: true, overallRating: true },
+                  take: 1,
+                },
+              },
+            },
+          },
         })
       : [],
     // Current season player IDs
@@ -118,6 +129,8 @@ export default async function RetentionRequestPage() {
     .map((t) => ({
       id: t.basePlayer.id, name: t.basePlayer.name, player_id: t.basePlayer.player_id,
       photoUrl: t.basePlayer.photoUrl, oldSquadValue: t.soldPrice,
+      position: t.basePlayer.seasonalPlayerStats?.[0]?.position || 'Unknown',
+      overallRating: t.basePlayer.seasonalPlayerStats?.[0]?.overallRating || 0,
       previousSeasonId: previousSeason!.id, previousSeasonName: previousSeason!.name,
     }))
 

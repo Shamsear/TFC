@@ -65,7 +65,70 @@ interface Props {
 }
 
 const formatCurrency = (amount: number) => {
-  return `£${(amount).toLocaleString()}`
+  return `£${amount.toLocaleString()}`
+}
+
+// Fix: always append .webp for CDN photo URLs
+const getPhotoUrl = (playerId: string | null): string => {
+  if (!playerId) return '/default-player.png'
+  const id = playerId.includes('.') ? playerId : `${playerId}.webp`
+  return getPlayerPhotoUrl(id)
+}
+
+function CountdownTimer({ endDate }: { endDate: string }) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false })
+
+  useEffect(() => {
+    const calc = () => {
+      const diff = new Date(endDate).getTime() - Date.now()
+      if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true }
+      return {
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+        expired: false,
+      }
+    }
+    setTimeLeft(calc())
+    const interval = setInterval(() => setTimeLeft(calc()), 1000)
+    return () => clearInterval(interval)
+  }, [endDate])
+
+  if (timeLeft.expired) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-lg">
+        <span className="text-xs font-black text-red-400 font-mono uppercase">Window Closed</span>
+      </div>
+    )
+  }
+
+  const segments = [
+    { value: timeLeft.days, label: 'D' },
+    { value: timeLeft.hours, label: 'H' },
+    { value: timeLeft.minutes, label: 'M' },
+    { value: timeLeft.seconds, label: 'S' },
+  ]
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {segments.map((seg, i) => (
+        <div key={seg.label} className="flex items-center gap-1">
+          <div className="flex flex-col items-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-black/40 border border-[#E8A800]/30 flex items-center justify-center">
+              <span className="text-lg sm:text-xl font-black text-[#E8A800] font-mono tabular-nums">
+                {String(seg.value).padStart(2, '0')}
+              </span>
+            </div>
+            <span className="text-[8px] text-gray-500 font-mono mt-0.5">{seg.label}</span>
+          </div>
+          {i < segments.length - 1 && (
+            <span className="text-[#E8A800] font-bold text-sm mb-3">:</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function RetentionRequestClient({
@@ -93,7 +156,7 @@ export default function RetentionRequestClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'value'>('value')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  
+
   const [eligiblePlayers, setEligiblePlayers] = useState(initialEligiblePlayers)
   const [existingRequests, setExistingRequests] = useState(initialRequests)
   const [totalRequestsCount, setTotalRequestsCount] = useState(initialTotalCount)
@@ -179,25 +242,44 @@ export default function RetentionRequestClient({
       }
 
       setSuccess(`Successfully submitted ${selectedPlayers.size} retention request${selectedPlayers.size !== 1 ? 's' : ''}!`)
+
+      // Build new pending requests from selected players for immediate display
+      const now = new Date().toISOString()
+      const newPendingRequests: ExistingRequest[] = Array.from(selectedPlayers).map(playerId => {
+        const player = eligiblePlayers.find(p => p.id === playerId)!
+        return {
+          id: `temp-${playerId}`,
+          playerId,
+          playerName: player.name,
+          oldSquadValue: player.oldSquadValue,
+          notes: notes[playerId] || null,
+          status: 'pending',
+          submittedAt: now,
+          processedAt: null,
+          rejectionReason: null,
+          basePlayer: {
+            id: player.id,
+            name: player.name,
+            player_id: player.player_id,
+          },
+          previousSeason: {
+            id: player.previousSeasonId,
+            name: player.previousSeasonName,
+            seasonNumber: 0,
+          },
+        }
+      })
+
+      // Update state immediately
+      setExistingRequests(prev => [...newPendingRequests, ...prev])
+      setTotalRequestsCount(prev => prev + selectedPlayers.size)
+      setRemainingRequests(prev => Math.max(0, prev - selectedPlayers.size))
       setSelectedPlayers(new Set())
       setNotes({})
 
-      // Refresh data
-      const refreshResponse = await fetch(`/api/team/retention-requests?seasonId=${seasonId}`)
-      const refreshData = await refreshResponse.json()
-      
-      setExistingRequests(refreshData.requests)
-      setTotalRequestsCount(refreshData.totalRequestsCount)
-      setApprovedCount(refreshData.approvedCount)
-      setRemainingRequests(refreshData.remainingRequests)
-      setRemainingApprovals(refreshData.remainingApprovals)
+      // Remove retained players from eligible list
+      setEligiblePlayers(prev => prev.filter(p => !selectedPlayers.has(p.id)))
 
-      // Refresh eligible players
-      const eligibleResponse = await fetch(`/api/team/retention-requests/eligible-players?seasonId=${seasonId}`)
-      const eligibleData = await eligibleResponse.json()
-      setEligiblePlayers(eligibleData.eligiblePlayers)
-
-      // Scroll to top to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err: any) {
       setError(err.message)
@@ -213,6 +295,8 @@ export default function RetentionRequestClient({
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
+      timeZoneName: 'short',
     })
   }
 
@@ -249,25 +333,24 @@ export default function RetentionRequestClient({
               <div className="space-y-3">
                 {existingRequests.map(request => (
                   <div key={request.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center overflow-hidden">
-                          <Image
-                            src={getPlayerPhotoUrl(request.basePlayer.player_id)}
-                            alt={request.playerName}
-                            width={48}
-                            height={48}
-                            className="object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-bold text-white">{request.playerName}</p>
-                          <p className="text-xs text-gray-500 font-mono">From {request.previousSeason.name}</p>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <Image
+                          src={getPhotoUrl(request.basePlayer.player_id)}
+                          alt={request.playerName}
+                          width={40}
+                          height={40}
+                          className="object-cover"
+                          unoptimized
+                        />
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-[#E8A800]">{formatCurrency(request.oldSquadValue)}</p>
-                        <p className={`text-xs font-mono uppercase ${
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-white text-sm truncate">{request.playerName}</p>
+                        <p className="text-[10px] text-gray-500 font-mono">From {request.previousSeason.name}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
+                        <p className={`text-[10px] font-mono uppercase ${
                           request.status === 'approved' ? 'text-green-500' :
                           request.status === 'rejected' ? 'text-red-500' :
                           'text-yellow-500'
@@ -277,8 +360,8 @@ export default function RetentionRequestClient({
                       </div>
                     </div>
                     {request.rejectionReason && (
-                      <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <p className="text-xs text-red-400 font-mono">Reason: {request.rejectionReason}</p>
+                      <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <p className="text-[10px] text-red-400 font-mono">Reason: {request.rejectionReason}</p>
                       </div>
                     )}
                   </div>
@@ -312,14 +395,14 @@ export default function RetentionRequestClient({
       <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-[#E8A800]/3 rounded-full blur-[150px] pointer-events-none" />
 
       {/* Header */}
-      <div className="border-b border-white/5 bg-[#0a0a0a]/60 backdrop-blur-xl mb-8 relative z-10 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(232,168,0,0.15)] font-mono uppercase">
+      <div className="border-b border-white/5 bg-[#0a0a0a]/60 backdrop-blur-xl mb-6 relative z-10 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight mb-1">
+            <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent font-mono uppercase">
               Player Retention
             </span>
           </h1>
-          <p className="text-gray-400 text-xs sm:text-sm font-mono font-bold uppercase tracking-wider">
+          <p className="text-gray-400 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider">
             Retain players from {previousSeason.name} at their original squad value <span className="text-gray-600">•</span> {seasonName}
           </p>
         </div>
@@ -328,83 +411,106 @@ export default function RetentionRequestClient({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Alerts */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
             <p className="text-red-400 text-sm font-mono">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+          <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
             <p className="text-green-400 text-sm font-mono">{success}</p>
           </div>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Current Budget</p>
-            <p className="text-2xl font-black text-[#E8A800]">{formatCurrency(currentBudget)}</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Requests Remaining</p>
-            <p className="text-2xl font-black text-white">{remainingRequests} / {maxRetentions}</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Approved Retentions</p>
-            <p className="text-2xl font-black text-green-500">{approvedCount}</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Pending Requests</p>
-            <p className="text-2xl font-black text-yellow-500">{pendingRequests.length}</p>
-          </div>
-        </div>
-
-        {/* Window Info */}
-        <div className="mb-8 p-4 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl">
-          <div className="flex items-center justify-between">
+        {/* Window Info + Countdown */}
+        <div className="mb-6 p-4 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <p className="text-sm font-black text-[#E8A800] font-mono">{activeWindow.name}</p>
-              <p className="text-xs text-gray-400 font-mono">
-                {formatDate(activeWindow.startDate)} - {formatDate(activeWindow.endDate)}
+              <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                {formatDate(activeWindow.startDate)} — {formatDate(activeWindow.endDate)}
               </p>
             </div>
-            <div className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
-              <p className="text-xs font-black text-green-400 font-mono uppercase">ACTIVE</p>
+            <div className="flex items-center gap-3">
+              <CountdownTimer endDate={activeWindow.endDate} />
             </div>
           </div>
         </div>
 
-        {/* Selection Summary */}
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+            <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wider mb-0.5">Budget</p>
+            <p className="text-lg font-black text-[#E8A800]">{formatCurrency(currentBudget)}</p>
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+            <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wider mb-0.5">Remaining</p>
+            <p className="text-lg font-black text-white">{remainingRequests} / {maxRetentions}</p>
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+            <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wider mb-0.5">Approved</p>
+            <p className="text-lg font-black text-green-500">{approvedCount}</p>
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+            <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wider mb-0.5">Pending</p>
+            <p className="text-lg font-black text-yellow-500">{pendingRequests.length}</p>
+          </div>
+        </div>
+
+        {/* Selection Summary + Submit */}
         {selectedPlayers.size > 0 && (
-          <div className="mb-8 p-6 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-black text-white font-mono">Selected Players ({selectedPlayers.size})</h3>
-              <div className="text-right">
-                <p className="text-xs text-gray-400 font-mono uppercase">Total Cost</p>
-                <p className="text-2xl font-black text-[#E8A800]">{formatCurrency(totalRetentionCost)}</p>
-              </div>
+          <div className="mb-6 p-4 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-black text-white font-mono">Selected ({selectedPlayers.size})</h3>
+              <p className="text-lg font-black text-[#E8A800]">{formatCurrency(totalRetentionCost)}</p>
+            </div>
+            {/* Selected player chips */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-3">
+              {Array.from(selectedPlayers).map(playerId => {
+                const player = eligiblePlayers.find(p => p.id === playerId)
+                if (!player) return null
+                return (
+                  <div key={playerId} className="flex items-center gap-2.5 px-3 py-2.5 bg-black/30 border border-[#E8A800]/40 rounded-xl h-[60px]">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                      <img src={getPhotoUrl(player.player_id)} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-white font-bold font-mono block truncate">{player.name}</span>
+                      <span className="text-[10px] text-[#E8A800] font-mono">{formatCurrency(player.oldSquadValue)}</span>
+                    </div>
+                    <button
+                      onClick={() => togglePlayerSelection(playerId)}
+                      className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })}
             </div>
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || selectedPlayers.size === 0}
-              className="w-full py-3 bg-[#E8A800] hover:bg-[#FFD066] text-black font-black rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono uppercase tracking-wider"
+              className="w-full py-2.5 bg-[#E8A800] hover:bg-[#FFD066] text-black font-black rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono uppercase tracking-wider text-sm"
             >
-              {isSubmitting ? 'Submitting...' : `Submit ${selectedPlayers.size} Retention Request${selectedPlayers.size !== 1 ? 's' : ''}`}
+              {isSubmitting ? 'Submitting...' : `Submit ${selectedPlayers.size} Retention${selectedPlayers.size !== 1 ? 's' : ''}`}
             </button>
           </div>
         )}
 
         {/* Eligible Players */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-black text-white font-mono">Eligible Players from {previousSeason.name}</h2>
-            <div className="flex items-center gap-3">
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+            <h2 className="text-lg font-black text-white font-mono">Eligible Players</h2>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <input
                 type="text"
-                placeholder="Search players..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-4 py-2 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-sm font-mono"
+                className="flex-1 sm:w-40 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-xs font-mono"
               />
               <select
                 value={`${sortBy}-${sortOrder}`}
@@ -413,24 +519,24 @@ export default function RetentionRequestClient({
                   setSortBy(newSortBy as 'name' | 'value')
                   setSortOrder(newSortOrder as 'asc' | 'desc')
                 }}
-                className="px-4 py-2 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E8A800]/30 text-sm font-mono cursor-pointer"
+                className="px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#E8A800]/30 text-xs font-mono cursor-pointer"
               >
-                <option value="value-desc">Value (High to Low)</option>
-                <option value="value-asc">Value (Low to High)</option>
-                <option value="name-asc">Name (A-Z)</option>
-                <option value="name-desc">Name (Z-A)</option>
+                <option value="value-desc">Value ↓</option>
+                <option value="value-asc">Value ↑</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
               </select>
             </div>
           </div>
 
           {filteredPlayers.length === 0 ? (
-            <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
-              <p className="text-gray-400 font-mono">
-                {searchQuery ? 'No players found matching your search' : 'No eligible players available for retention'}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+              <p className="text-gray-400 font-mono text-sm">
+                {searchQuery ? 'No players match your search' : 'No eligible players for retention'}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
               {filteredPlayers.map(player => {
                 const isSelected = selectedPlayers.has(player.id)
                 const canAfford = currentBudget >= player.oldSquadValue
@@ -439,41 +545,43 @@ export default function RetentionRequestClient({
                   <div
                     key={player.id}
                     onClick={() => canAfford && togglePlayerSelection(player.id)}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`relative p-2.5 rounded-xl border transition-all ${
                       isSelected
-                        ? 'bg-[#E8A800]/20 border-[#E8A800] shadow-lg shadow-[#E8A800]/20'
-                        : canAfford
-                        ? 'bg-white/5 border-white/10 hover:border-[#E8A800]/50 cursor-pointer'
-                        : 'bg-white/5 border-white/5 opacity-50 cursor-not-allowed'
+                        ? 'bg-[#E8A800]/15 border-[#E8A800] shadow-lg shadow-[#E8A800]/10 cursor-pointer'
+                        : canAfford && remainingRequests > 0
+                        ? 'bg-white/[0.03] border-white/10 hover:border-[#E8A800]/40 hover:bg-white/[0.05] cursor-pointer'
+                        : 'bg-white/[0.02] border-white/5 opacity-30 cursor-not-allowed'
                     }`}
                   >
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        <Image
-                          src={getPlayerPhotoUrl(player.player_id)}
-                          alt={player.name}
-                          width={64}
-                          height={64}
-                          className="object-cover"
-                        />
+                    {/* Selection indicator */}
+                    {isSelected && (
+                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#E8A800] flex items-center justify-center z-10">
+                        <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-black text-white mb-1">{player.name}</p>
-                        <p className="text-xl font-black text-[#E8A800]">{formatCurrency(player.oldSquadValue)}</p>
-                        {!canAfford && (
-                          <p className="text-xs text-red-400 font-mono mt-1">Insufficient budget</p>
-                        )}
-                      </div>
-                      {isSelected && (
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 rounded-full bg-[#E8A800] flex items-center justify-center">
-                            <svg className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
+                    )}
+
+                    {/* Player photo */}
+                    <div className="w-full aspect-square rounded-lg bg-white/5 flex items-center justify-center overflow-hidden mb-2">
+                      <img
+                        src={getPhotoUrl(player.player_id)}
+                        alt={player.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
+
+                    {/* Player info */}
+                    <p className="font-black text-white text-[11px] leading-tight truncate mb-0.5">{player.name}</p>
+                    <p className="text-[#E8A800] text-xs font-black">{formatCurrency(player.oldSquadValue)}</p>
+                    {!canAfford && (
+                      <p className="text-[8px] text-red-400 font-mono mt-0.5">No budget</p>
+                    )}
+                    {canAfford && remainingRequests <= 0 && !isSelected && (
+                      <p className="text-[8px] text-gray-500 font-mono mt-0.5">Max reached</p>
+                    )}
+
+                    {/* Notes input when selected */}
                     {isSelected && (
                       <textarea
                         value={notes[player.id] || ''}
@@ -482,9 +590,9 @@ export default function RetentionRequestClient({
                           setNotes({ ...notes, [player.id]: e.target.value })
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        placeholder="Add notes (optional)..."
-                        className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-sm font-mono resize-none"
-                        rows={2}
+                        placeholder="Notes..."
+                        className="w-full mt-1.5 px-2 py-1 bg-black/40 border border-white/10 rounded text-white placeholder-gray-500 focus:outline-none focus:border-[#E8A800]/30 text-[10px] font-mono resize-none"
+                        rows={1}
                       />
                     )}
                   </div>
@@ -497,42 +605,32 @@ export default function RetentionRequestClient({
         {/* Existing Requests */}
         {existingRequests.length > 0 && (
           <div>
-            <h2 className="text-2xl font-black text-white font-mono mb-4">Your Retention Requests</h2>
-            
+            <h2 className="text-lg font-black text-white font-mono mb-3">Your Retention Requests</h2>
+
             {/* Pending Requests */}
             {pendingRequests.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-yellow-500 font-mono mb-3">Pending Review</h3>
-                <div className="space-y-3">
+              <div className="mb-4">
+                <h3 className="text-xs font-bold text-yellow-500 font-mono uppercase tracking-wider mb-2">Pending Review ({pendingRequests.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {pendingRequests.map(request => (
-                    <div key={request.id} className="bg-white/5 border border-yellow-500/20 rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center overflow-hidden">
-                            <Image
-                              src={getPlayerPhotoUrl(request.basePlayer.player_id)}
-                              alt={request.playerName}
-                              width={48}
-                              height={48}
-                              className="object-cover"
-                            />
-                          </div>
-                          <div>
-                            <p className="font-bold text-white">{request.playerName}</p>
-                            <p className="text-xs text-gray-500 font-mono">From {request.previousSeason.name}</p>
-                            <p className="text-xs text-gray-600 font-mono">Submitted {formatDate(request.submittedAt)}</p>
-                          </div>
+                    <div key={request.id} className="bg-white/[0.03] border border-yellow-500/15 rounded-xl p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <img
+                            src={getPhotoUrl(request.basePlayer.player_id)}
+                            alt={request.playerName}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-[#E8A800]">{formatCurrency(request.oldSquadValue)}</p>
-                          <p className="text-xs font-mono uppercase text-yellow-500">Pending</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-sm truncate">{request.playerName}</p>
+                          <p className="text-[10px] text-gray-500 font-mono">From {request.previousSeason.name}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
+                          <p className="text-[9px] font-mono uppercase text-yellow-500">Pending</p>
                         </div>
                       </div>
-                      {request.notes && (
-                        <div className="mt-3 p-3 bg-white/5 rounded-lg">
-                          <p className="text-xs text-gray-400 font-mono">{request.notes}</p>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -542,34 +640,27 @@ export default function RetentionRequestClient({
             {/* Processed Requests */}
             {processedRequests.length > 0 && (
               <div>
-                <h3 className="text-lg font-bold text-gray-400 font-mono mb-3">Processed</h3>
-                <div className="space-y-3">
+                <h3 className="text-xs font-bold text-gray-400 font-mono uppercase tracking-wider mb-2">Processed ({processedRequests.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {processedRequests.map(request => (
-                    <div key={request.id} className={`bg-white/5 rounded-xl p-4 border ${
-                      request.status === 'approved' ? 'border-green-500/20' : 'border-red-500/20'
+                    <div key={request.id} className={`bg-white/[0.03] rounded-xl p-3 border ${
+                      request.status === 'approved' ? 'border-green-500/15' : 'border-red-500/15'
                     }`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center overflow-hidden">
-                            <Image
-                              src={getPlayerPhotoUrl(request.basePlayer.player_id)}
-                              alt={request.playerName}
-                              width={48}
-                              height={48}
-                              className="object-cover"
-                            />
-                          </div>
-                          <div>
-                            <p className="font-bold text-white">{request.playerName}</p>
-                            <p className="text-xs text-gray-500 font-mono">From {request.previousSeason.name}</p>
-                            <p className="text-xs text-gray-600 font-mono">
-                              Processed {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
-                            </p>
-                          </div>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <img
+                            src={getPhotoUrl(request.basePlayer.player_id)}
+                            alt={request.playerName}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-[#E8A800]">{formatCurrency(request.oldSquadValue)}</p>
-                          <p className={`text-xs font-mono uppercase ${
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-sm truncate">{request.playerName}</p>
+                          <p className="text-[10px] text-gray-500 font-mono">From {request.previousSeason.name}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
+                          <p className={`text-[9px] font-mono uppercase ${
                             request.status === 'approved' ? 'text-green-500' : 'text-red-500'
                           }`}>
                             {request.status}
@@ -577,8 +668,8 @@ export default function RetentionRequestClient({
                         </div>
                       </div>
                       {request.rejectionReason && (
-                        <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                          <p className="text-xs text-red-400 font-mono">Reason: {request.rejectionReason}</p>
+                        <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                          <p className="text-[10px] text-red-400 font-mono">{request.rejectionReason}</p>
                         </div>
                       )}
                     </div>

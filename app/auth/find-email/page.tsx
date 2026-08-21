@@ -56,6 +56,7 @@ type TeamResult = {
   teamName: string;
   managerName: string;
   logoUrl: string;
+  maskedEmail: string | null;
   email: string | null;
   userName: string;
 };
@@ -66,6 +67,33 @@ export default function FindEmailPage() {
   const [error, setError] = useState("");
   const [results, setResults] = useState<TeamResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [revealedEmails, setRevealedEmails] = useState<Set<string>>(new Set());
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+
+  const handleSelectTeam = (teamKey: string) => {
+    setSelectedTeam((prev) => (prev === teamKey ? null : teamKey));
+  };
+
+  const handleRevealEmail = (teamKey: string) => {
+    setRevealedEmails((prev) => {
+      const next = new Set(prev);
+      next.add(teamKey);
+      return next;
+    });
+  };
+
+  const handleCopyAndGoToLogin = async (email: string) => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopiedEmail(email);
+      setTimeout(() => setCopiedEmail(null), 2000);
+      window.location.href = `/auth/signin?email=${encodeURIComponent(email)}`;
+    } catch {
+      // Fallback: just navigate
+      window.location.href = `/auth/signin?email=${encodeURIComponent(email)}`;
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,48 +234,114 @@ export default function FindEmailPage() {
                   verify your team logo below
                 </p>
 
-                {results.map((team) => (
-                  <div
-                    key={`${team.teamName}-${team.managerName}`}
-                    className="relative bg-black/40 border border-white/5 rounded-2xl p-4 hover:border-[#E8A800]/20 transition-all duration-300"
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Team Logo */}
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex-shrink-0 flex items-center justify-center">
-                        {team.logoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={team.logoUrl}
-                            alt={`${team.teamName} logo`}
-                            className="w-full h-full object-contain p-1"
-                          />
-                        ) : (
-                          <span className="text-2xl font-black text-gray-600">
-                            {team.teamName.charAt(0)}
-                          </span>
-                        )}
-                      </div>
+                {results.map((team) => {
+                  const teamKey = `${team.teamName}-${team.managerName}`;
+                  const isSelected = selectedTeam === teamKey;
+                  const isRevealed = revealedEmails.has(teamKey);
 
-                      {/* Team Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider truncate">
-                          {team.teamName}
-                        </h3>
-                        <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono">
-                          Manager: {team.managerName}
-                        </p>
-                        {team.email && (
-                          <div className="mt-1.5 flex items-center gap-1.5">
-                            <CheckCircleIcon />
-                            <span className="text-xs sm:text-sm text-[#E8A800] font-bold font-mono">
-                              {team.email}
+                  return (
+                    <div
+                      key={teamKey}
+                      onClick={() => handleSelectTeam(teamKey)}
+                      className={`relative bg-black/40 border rounded-2xl p-4 transition-all duration-300 cursor-pointer select-none ${{
+                        "border-[#E8A800]/40 shadow-[0_0_15px_rgba(232,168,0,0.1)]": isSelected,
+                        "border-white/5 hover:border-[#E8A800]/20": !isSelected,
+                      }}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Team Logo */}
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex-shrink-0 flex items-center justify-center">
+                          {team.logoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={team.logoUrl}
+                              alt={`${team.teamName} logo`}
+                              className="w-full h-full object-contain p-1"
+                            />
+                          ) : (
+                            <span className="text-2xl font-black text-gray-600">
+                              {team.teamName.charAt(0)}
                             </span>
+                          )}
+                        </div>
+
+                        {/* Team Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider truncate">
+                              {team.teamName}
+                            </h3>
+                            {isSelected && <CheckCircleIcon />}
                           </div>
-                        )}
+                          <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono">
+                            Manager: {team.managerName}
+                          </p>
+                          {/* Masked email always visible */}
+                          {team.maskedEmail && (
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <MailIcon />
+                              <span className="text-xs sm:text-sm text-gray-400 font-bold font-mono">
+                                {team.maskedEmail}
+                              </span>
+                            </div>
+                          )}
+                          {/* Revealed full email */}
+                          {isSelected && isRevealed && team.email && (
+                            <div className="mt-2 space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircleIcon />
+                                <span className="text-xs sm:text-sm text-[#E8A800] font-bold font-mono">
+                                  {team.email}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyAndGoToLogin(team.email!);
+                                }}
+                                className="w-full py-2.5 px-4 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:scale-[1.02] active:scale-95 text-[#0a0a0a] text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 shadow-[0_0_10px_rgba(232,168,0,0.15)] hover:shadow-[0_0_15px_rgba(232,168,0,0.3)] flex items-center justify-center gap-2 cursor-pointer"
+                              >
+                                {copiedEmail === team.email ? (
+                                  <>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Copied! Going to Sign In...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                    Copy Email &amp; Go to Sign In
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                          {/* Reveal button */}
+                          {isSelected && !isRevealed && team.email && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRevealEmail(teamKey);
+                              }}
+                              className="mt-2 w-full py-2 px-4 bg-white/5 hover:bg-white/10 border border-[#E8A800]/20 hover:border-[#E8A800]/40 text-[#E8A800] text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              Reveal Email
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 

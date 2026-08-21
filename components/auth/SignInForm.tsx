@@ -191,6 +191,12 @@ export function SignInForm() {
       {/* Footer Links */}
       <div className="pt-2 text-center flex flex-col gap-2">
         <Link
+          href="/auth/find-email"
+          className="text-xs text-[#E8A800] hover:text-[#FFC93A] font-extrabold uppercase tracking-wider font-mono transition-colors"
+        >
+          Find My Email
+        </Link>
+        <Link
           href="/auth/forgot-password"
           className="text-xs text-[#E8A800] hover:text-[#FFC93A] font-extrabold uppercase tracking-wider font-mono transition-colors"
         >

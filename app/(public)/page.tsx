@@ -180,10 +180,10 @@ export default async function PublicLandingPage() {
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  href="/teams"
+                  href="/managers"
                   className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-black rounded-xl font-black uppercase text-xs tracking-wider transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(232,168,0,0.35)] hover:shadow-[0_0_25px_rgba(255,179,71,0.5)] text-center cursor-pointer"
                 >
-                  View Teams
+                  View Managers
                 </Link>
                 <Link
                   href="/players"

@@ -284,7 +284,7 @@ export default async function TeamTeamsPage() {
 
                         {teamDetail.trophiesWon > 0 && (
                           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-wider self-start sm:self-center shadow-inner animate-[pulse_4s_infinite]">
-                            🏆 {teamDetail.trophiesWon} Trophy{teamDetail.trophiesWon !== 1 ? 'ies' : ''}
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" /></svg>{teamDetail.trophiesWon} Trophy{teamDetail.trophiesWon !== 1 ? 'ies' : ''}
                           </div>
                         )}
                       </div>

@@ -46,7 +46,7 @@ export default function PublicFooter() {
             <nav className="grid grid-cols-2 gap-x-4 gap-y-3">
               {[
                 { label: 'Seasons', href: '/seasons' },
-                { label: 'Teams', href: '/teams' },
+                { label: 'Managers', href: '/managers' },
                 { label: 'Players', href: '/players' },
                 { label: 'Calendar', href: '/calendar' },
                 { label: 'Auctions', href: '/auctions' },

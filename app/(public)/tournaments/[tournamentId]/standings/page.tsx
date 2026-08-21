@@ -12,7 +12,15 @@ async function getTournamentStandingsData(tournamentId: string) {
           include: {
             seasonTeam: {
               include: {
-                team: true
+                team: {
+                  include: {
+                    managerLinks: {
+                      include: {
+                        manager: true
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -72,8 +80,11 @@ async function getTournamentStandingsData(tournamentId: string) {
       const points = (wins * 3) + draws
       const goalDifference = goalsFor - goalsAgainst
 
+      // Resolve managerId from team's manager links
+      const managerLink = tournamentTeam.seasonTeam.team.managerLinks?.[0]
       return {
         ...tournamentTeam.seasonTeam,
+        managerId: managerLink?.managerId || null,
         groupName: tournamentTeam.groupName,
         seedPosition: tournamentTeam.seedPosition,
         played,
@@ -190,7 +201,7 @@ export default async function TournamentStandingsPage({
               {data.teams.map((team, index) => (
                 <Link
                   key={team.id}
-                  href={`/teams/${team.teamId}`}
+                  href={team.managerId ? `/managers/${team.managerId}` : `/managers`}
                   className="group rounded-xl bg-[#111111] border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-[#181818] transition-all cursor-pointer"
                 >
                   {/* Position Badge */}

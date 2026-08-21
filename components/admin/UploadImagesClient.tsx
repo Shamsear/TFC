@@ -388,8 +388,8 @@ export default function UploadImagesClient({ hasToken }: UploadImagesClientProps
               </div>
 
               <div className="text-xs text-[#7A7367] space-y-2 mb-6 font-mono font-medium">
-                <p>💡 **Pro-Tip**: Name your image file as the eFootball Player ID (e.g. <code className="bg-white/5 px-1 py-0.5 text-white rounded">17592186045227.png</code>) to automatically fill the ID input!</p>
-                <p>📦 **Auto-Conversion**: Player photos are automatically compressed and saved as `.webp` files. Player cards are optimized as `.png` files in the browser.</p>
+                <p><strong>Pro-Tip</strong>: Name your image file as the eFootball Player ID (e.g. <code className="bg-white/5 px-1 py-0.5 text-white rounded">17592186045227.png</code>) to automatically fill the ID input!</p>
+                <p><strong>Auto-Conversion</strong>: Player photos are automatically compressed and saved as `.webp` files. Player cards are optimized as `.png` files in the browser.</p>
               </div>
             </div>
 

@@ -56,21 +56,21 @@ async function getTeamData(teamId: string, seasonId: string) {
     return null
   }
 
-  // Override manager name if we resolved a manager record
+  // Override manager name if we resolved a manager record, otherwise use team's manager
   if (resolvedManagerName) {
     team.managerName = resolvedManagerName;
+  } else {
+    resolvedManagerName = team.managerName;
   }
 
   // Get all seasons this manager or team participated in
   const allSeasonTeams = await prisma.season_teams.findMany({
-    where: resolvedManagerName
-      ? {
-          OR: [
-            { teamId: resolvedTeamId },
-            { managerName: resolvedManagerName }
-          ]
-        }
-      : { teamId: resolvedTeamId },
+    where: {
+      OR: [
+        { teamId: resolvedTeamId },
+        { managerName: { equals: resolvedManagerName, mode: 'insensitive' } }
+      ]
+    },
     include: {
       season: {
         select: {
@@ -295,7 +295,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                   unoptimized
                 />
               ) : (
-                <span className="text-3xl">⚽</span>
+                <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" /></svg>
               )}
             </div>
             

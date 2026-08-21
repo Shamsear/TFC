@@ -100,7 +100,7 @@ export default function AuditLogDeleteClient({
     <div className="space-y-6">
       <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
         <div className="mb-6 p-5 bg-red-500/[0.02] border border-red-500/20 rounded-2xl backdrop-blur-xl shadow-md">
-          <p className="text-red-400 font-black text-xs uppercase tracking-widest font-mono mb-2">⚠️ Danger Zone</p>
+          <p className="text-red-400 font-black text-xs uppercase tracking-widest font-mono mb-2">Danger Zone</p>
           <p className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono leading-relaxed">
             This tool allows you to delete individual financial ledger entries. Use with caution as deleted entries cannot be recovered.
           </p>

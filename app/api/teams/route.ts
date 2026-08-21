@@ -192,21 +192,43 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Create user (team manager)
-      const user = await tx.users.create({
-        data: {
-          id: userId,
-          email,
-          name: managerName.trim(),
-          passwordHash,
-          role: "TEAM_MANAGER",
-          teamId: team.id,
-          createdBy: session.user.id,
-          isActive: true
+      // Find existing user (manager)
+      const existingUser = await tx.users.findFirst({
+        where: { 
+          name: { equals: managerName.trim(), mode: 'insensitive' },
+          role: "TEAM_MANAGER"
         }
       })
 
-      return { team, user, password }
+      let user;
+      let finalPassword = password;
+      let finalEmail = email;
+
+      if (existingUser) {
+        // Link existing manager to new team
+        user = await tx.users.update({
+          where: { id: existingUser.id },
+          data: { teamId: team.id }
+        })
+        finalPassword = "Use existing password";
+        finalEmail = user.email;
+      } else {
+        // Create new user (team manager)
+        user = await tx.users.create({
+          data: {
+            id: userId,
+            email,
+            name: managerName.trim(),
+            passwordHash,
+            role: "TEAM_MANAGER",
+            teamId: team.id,
+            createdBy: session.user.id,
+            isActive: true
+          }
+        })
+      }
+
+      return { team, user, password: finalPassword, email: finalEmail }
     })
 
     // Create audit log
@@ -231,7 +253,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       team: result.team,
       credentials: {
-        email,
+        email: result.email,
         password: result.password
       }
     }, { status: 201 })

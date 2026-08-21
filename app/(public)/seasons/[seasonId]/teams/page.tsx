@@ -18,7 +18,15 @@ async function getSeasonTeamsData(seasonId: string) {
     const seasonTeams = await prisma.season_teams.findMany({
       where: { seasonId },
       include: {
-        team: true
+        team: {
+          include: {
+            managerLinks: {
+              include: {
+                manager: true
+              }
+            }
+          }
+        }
       },
       orderBy: { currentBudget: 'desc' }
     })
@@ -61,14 +69,26 @@ async function getSeasonTeamsData(seasonId: string) {
     const homeWinsMap = new Map(homeWins.map(hw => [hw.homeTeamId, Number(hw.count)]))
     const awayWinsMap = new Map(awayWins.map(aw => [aw.awayTeamId, Number(aw.count)]))
 
-    const teamsWithStats = seasonTeams.map((st) => {
-      return {
-        ...st,
-        playerCount: countMap.get(st.teamId) || 0,
-        spent: spentMap.get(st.teamId) || 0,
-        wins: (homeWinsMap.get(st.id) || 0) + (awayWinsMap.get(st.id) || 0)
-      }
-    })
+    // Resolve managerIds from season-specific managerName
+    const managerCache = new Map<string, string | null>()
+    async function resolveManagerId(managerName: string | null): Promise<string | null> {
+      if (!managerName) return null
+      const key = managerName.toLowerCase()
+      if (managerCache.has(key)) return managerCache.get(key)!
+      const record = await prisma.managers.findFirst({
+        where: { name: { equals: managerName, mode: 'insensitive' } }
+      })
+      managerCache.set(key, record?.id || null)
+      return record?.id || null
+    }
+
+    const teamsWithStats = await Promise.all(seasonTeams.map(async (st) => ({
+      ...st,
+      managerId: await resolveManagerId(st.managerName) || st.team.managerLinks?.[0]?.managerId || null,
+      playerCount: countMap.get(st.teamId) || 0,
+      spent: spentMap.get(st.teamId) || 0,
+      wins: (homeWinsMap.get(st.id) || 0) + (awayWinsMap.get(st.id) || 0)
+    })))
 
     const totalBudget = seasonTeams.reduce((sum, st) => sum + st.currentBudget, 0)
     const totalSpent = await prisma.transfer_history.aggregate({
@@ -152,14 +172,18 @@ export default async function SeasonTeamsPage({
                 <div className="text-2xl sm:text-3xl font-black text-white font-mono">{data.teams.length}</div>
                 <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Teams</div>
               </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-white font-mono">{data.stats.totalPlayers}</div>
-                <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Players</div>
-              </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-white font-mono">{formatCurrency(data.stats.totalSpent)}</div>
-                <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold font-sans">Total Spent</div>
-              </div>
+              {data.season.seasonNumber >= 4 && (
+                <>
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-black text-white font-mono">{data.stats.totalPlayers}</div>
+                    <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Players</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-black text-white font-mono">{formatCurrency(data.stats.totalSpent)}</div>
+                    <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold font-sans">Total Spent</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -181,7 +205,7 @@ export default async function SeasonTeamsPage({
               return (
                 <Link
                   key={team.id}
-                  href={`/teams/${team.teamId}`}
+                  href={team.managerId ? `/managers/${team.managerId}` : `/managers`}
                   className="relative block rounded-2xl bg-[#0d0d0d]/40 backdrop-blur-xl border border-white/5 p-5 hover:border-amber-500/30 hover:bg-white/[0.01] hover:shadow-[0_0_30px_rgba(232,168,0,0.05)] transition-all duration-300 group cursor-pointer overflow-hidden shadow-xl"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] via-transparent to-transparent pointer-events-none" />
@@ -197,42 +221,46 @@ export default async function SeasonTeamsPage({
                         <h3 className="text-base sm:text-lg font-black text-white mb-0.5 group-hover:text-[#FFB347] transition-colors truncate">
                           {team.team.name}
                         </h3>
-                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">{team.team.managerName}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">{team.managerName}</div>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 text-xs text-[#7A7367]">
-                      <div className="flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span className="font-extrabold uppercase text-[10px] tracking-wider text-gray-400">{team.playerCount} players</span>
+                    {data.season.seasonNumber >= 4 && (
+                      <div className="flex items-center gap-3 text-xs text-[#7A7367]">
+                        <div className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span className="font-extrabold uppercase text-[10px] tracking-wider text-gray-400">{team.playerCount} players</span>
+                        </div>
+                        <span>•</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-amber-500">★</span>
+                          <span className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">{team.wins} wins</span>
+                        </div>
                       </div>
-                      <span>•</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-amber-500">★</span>
-                        <span className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">{team.wins} wins</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Budget Section */}
-                  <div className="mb-4 relative z-10">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="text-gray-500 font-extrabold uppercase tracking-widest text-[9px]">Remaining Budget</span>
-                      <span className="text-[#F5F0E8] font-black font-mono">{formatCurrency(team.currentBudget)}</span>
+                  {/* Budget Section - only for Season 4+ */}
+                  {data.season.seasonNumber >= 4 && (
+                    <div className="mb-4 relative z-10">
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="text-gray-500 font-extrabold uppercase tracking-widest text-[9px]">Remaining Budget</span>
+                        <span className="text-[#F5F0E8] font-black font-mono">{formatCurrency(team.currentBudget)}</span>
+                      </div>
+                      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#FFC93A] to-[#E8A800] rounded-full transition-all"
+                          style={{ width: `${100 - spentPercentage}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex items-center justify-between text-[8px] text-gray-600 mt-1 font-bold font-mono">
+                        <span>SPENT: {formatCurrency(team.spent)}</span>
+                        <span>{spentPercentage.toFixed(0)}%</span>
+                      </div>
                     </div>
-                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-[#FFC93A] to-[#E8A800] rounded-full transition-all"
-                        style={{ width: `${100 - spentPercentage}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center justify-between text-[8px] text-gray-600 mt-1 font-bold font-mono">
-                      <span>SPENT: {formatCurrency(team.spent)}</span>
-                      <span>{spentPercentage.toFixed(0)}%</span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* View Link */}
                   <div className="flex items-center justify-between pt-3 border-t border-white/5 relative z-10">

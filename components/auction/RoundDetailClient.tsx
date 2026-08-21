@@ -1380,7 +1380,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       onClick={() => setShowLogModal(true)}
                       className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-blue-500/25 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer font-mono"
                     >
-                      📋 View Logs
+                      View Logs
                     </button>
                   )}
                 </>
@@ -1467,7 +1467,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 onClick={handleExportToExcel}
                 className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-emerald-500/25 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer font-mono"
               >
-                📊 Export to Excel
+                Export to Excel
               </button>
               <button
                 onClick={handleMakePublic}
@@ -1487,7 +1487,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 onClick={handleExportToExcel}
                 className="w-full sm:w-auto text-center justify-center px-4 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-emerald-500/25 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer font-mono"
               >
-                📊 Export to Excel
+                Export to Excel
               </button>
             </>
           )}
@@ -2688,7 +2688,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
             {previewResults.tieDetected && previewResults.ties && (
               <div className="mb-6 p-4 rounded-2xl bg-purple-500/[0.02] border border-purple-500/20 font-mono animate-pulse">
-                <h4 className="text-sm font-black text-purple-400 mb-1 uppercase tracking-wider">⚠️ Tiebreakers Required</h4>
+                <h4 className="text-sm font-black text-purple-400 mb-1 uppercase tracking-wider">Tiebreakers Required</h4>
                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider leading-relaxed mb-4">
                   The following players have tied bids. Tiebreakers will be created when you finalize.
                 </p>
@@ -2739,7 +2739,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
 
             {previewResults.conflicts && previewResults.conflicts.length > 0 && (
               <div className="mb-6 p-4 rounded-2xl bg-orange-500/[0.02] border border-orange-500/20 font-mono">
-                <h4 className="text-sm font-black text-orange-400 mb-1 uppercase tracking-wider">⚠️ Conflicts (Bulk Round)</h4>
+                <h4 className="text-sm font-black text-orange-400 mb-1 uppercase tracking-wider">Conflicts (Bulk Round)</h4>
                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider leading-relaxed mb-4">
                   Multiple teams bid on these players. Create bulk tiebreakers to resolve.
                 </p>
@@ -2792,7 +2792,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               <div className="mb-4">
                 <div className="text-[10px] text-purple-400 font-extrabold uppercase tracking-widest font-mono mb-1">Winner</div>
                 <div className="text-xl sm:text-2xl font-black text-yellow-400 mb-2 uppercase tracking-tight">
-                  🏆 {spinResult.winnerName}
+                  <svg className="w-4 h-4 inline-block mr-1 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" /></svg>{spinResult.winnerName}
                 </div>
                 <div className="text-base font-extrabold text-white uppercase tracking-wide">
                   {spinResult.playerName}

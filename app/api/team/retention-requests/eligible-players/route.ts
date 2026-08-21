@@ -42,27 +42,38 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Verify team participated in previous season
+    // 1. Get the current user's team and manager name
+    const currentTeam = await prisma.teams.findUnique({
+      where: { id: session.user.teamId }
+    })
+
+    if (!currentTeam) {
+      return NextResponse.json({ error: 'Current team not found' }, { status: 404 })
+    }
+
+    const managerName = currentTeam.managerName
+
+    // 2. Verify manager participated in previous season (under ANY team name)
     const previousSeasonTeam = await prisma.season_teams.findFirst({
       where: {
         seasonId: previousSeason.id,
-        teamId: session.user.teamId
+        managerName: managerName
       }
     })
 
     if (!previousSeasonTeam) {
       return NextResponse.json({ 
         eligiblePlayers: [], 
-        message: `Your team did not participate in ${previousSeason.name}`,
+        message: `Manager ${managerName} did not participate in ${previousSeason.name}`,
         previousSeason 
       })
     }
 
-    // Get all players from previous season that are ACTIVE
+    // 3. Get all players from previous season that are ACTIVE, using the old teamId!
     const previousSeasonPlayers = await prisma.transfer_history.findMany({
       where: {
         seasonId: previousSeason.id,
-        teamId: session.user.teamId,
+        teamId: previousSeasonTeam.teamId, // Uses the team they managed LAST season
         status: 'ACTIVE',
       },
       include: {

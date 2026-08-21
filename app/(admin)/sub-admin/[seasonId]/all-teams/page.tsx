@@ -99,13 +99,33 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
     positionMapByTeam.get(teamId)![position] = Number(count)
   }
 
+  // Fetch all-time trophies per manager (across all seasons)
+  const allSeasonTeams = await prisma.season_teams.findMany({
+    select: {
+      teamId: true,
+      managerName: true,
+      trophiesWon: true
+    }
+  })
+
+  // Group all-time trophies by manager name
+  const allTimeTrophiesByManager = new Map<string, number>()
+  for (const st of allSeasonTeams) {
+    const key = st.managerName || ''
+    if (key) {
+      allTimeTrophiesByManager.set(key, (allTimeTrophiesByManager.get(key) || 0) + st.trophiesWon)
+    }
+  }
+
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {
+    const allTimeTrophies = allTimeTrophiesByManager.get(st.team.managerName) || 0
     return {
       ...st,
       playerCount: countMap.get(st.team.id) || 0,
       totalSpent: spentMap.get(st.team.id) || 0,
-      playersByPosition: positionMapByTeam.get(st.team.id) || {}
+      playersByPosition: positionMapByTeam.get(st.team.id) || {},
+      allTimeTrophies
     }
   })
 
@@ -228,7 +248,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                         unoptimized
                       />
                     ) : (
-                      <span className="text-xl">⚽</span>
+                      <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" /></svg>
                     )}
                   </div>
 
@@ -244,9 +264,18 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                         </p>
                       </div>
 
-                      {teamDetail.trophiesWon > 0 && (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] font-black uppercase tracking-wider font-mono self-start sm:self-center shadow-inner animate-[pulse_4s_infinite]">
-                          🏆 {teamDetail.trophiesWon} Trophy{teamDetail.trophiesWon !== 1 ? 'ies' : ''}
+                      {(teamDetail.trophiesWon > 0 || teamDetail.allTimeTrophies > 0) && (
+                        <div className="inline-flex items-center gap-3 self-start sm:self-center">
+                          {teamDetail.trophiesWon > 0 && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] font-black uppercase tracking-wider font-mono shadow-inner">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" /></svg>{teamDetail.trophiesWon} This Season
+                            </div>
+                          )}
+                          {teamDetail.allTimeTrophies > 0 && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-400 text-[10px] font-black uppercase tracking-wider font-mono shadow-inner">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" /></svg>{teamDetail.allTimeTrophies} All-Time
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

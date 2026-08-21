@@ -62,6 +62,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/teams',
+        destination: '/managers',
+        permanent: true,
+      },
+    ];
+  },
   // Empty turbopack config to silence the warning
   turbopack: {},
 };

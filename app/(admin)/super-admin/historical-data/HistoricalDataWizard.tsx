@@ -2207,7 +2207,7 @@ export default function HistoricalDataWizard({
           {/* Combined Stats Summary Table */}
           {combinedTeamStats.length > 0 && combinedTeamStats.some(t => t.played > 0) && (
             <div className="p-4 bg-black/30 border border-white/10 rounded-xl">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">📊 Combined Stats Across All Tournaments</h3>
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3"><svg className="w-4 h-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>Combined Stats Across All Tournaments</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -2252,11 +2252,11 @@ export default function HistoricalDataWizard({
                 return (
                   <div key={t.id} className="space-y-4 border-b border-white/5 pb-5 last:border-0 last:pb-0">
                     <h4 className="text-white font-bold text-sm flex items-center gap-2 pl-1">
-                      ⚔️ {t.name || "Unnamed Tournament"}
+                      <svg className="w-4 h-4 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{t.name || "Unnamed Tournament"}
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <SearchableSelect
-                        label="🏆 Winner"
+                        label="Winner"
                         value={tournAwards.winnerTeamId}
                         options={[{value: "", label: "-- Select Winner --"}, ...teamAwardOptions]}
                         onChange={(val) => {
@@ -2306,35 +2306,35 @@ export default function HistoricalDataWizard({
               
               <div className="space-y-1">
                 <SearchableSelect
-                  label="⚽ Golden Boot"
+                  label="Golden Boot"
                   value={awards.goldenBootTeamId}
                   options={[{value: "", label: "-- Select Golden Boot --"}, ...teamAwardOptions]}
                   onChange={(val) => setAwards({...awards, goldenBootTeamId: val})}
                 />
                 {goldenBootSuggestions.length > 0 && goldenBootSuggestions[0].goalsFor > 0 && (
                   <p className="text-xs text-green-400 pl-1 font-medium animate-fadeIn">
-                    💡 Suggestion: <strong className="text-white font-semibold">{goldenBootSuggestions[0].name}</strong> ({goldenBootSuggestions[0].goalsFor} goals)
+                    <svg className="w-3 h-3 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>Suggestion: <strong className="text-white font-semibold">{goldenBootSuggestions[0].name}</strong> ({goldenBootSuggestions[0].goalsFor} goals)
                   </p>
                 )}
               </div>
               
               <div className="space-y-1">
                 <SearchableSelect
-                  label="🧤 Golden Glove"
+                  label="Golden Glove"
                   value={awards.goldenGloveTeamId}
                   options={[{value: "", label: "-- Select Golden Glove --"}, ...teamAwardOptions]}
                   onChange={(val) => setAwards({...awards, goldenGloveTeamId: val})}
                 />
                 {goldenGloveSuggestions.length > 0 && goldenGloveSuggestions[0]?.goalsAgainst > 0 && (
                   <p className="text-xs text-blue-400 pl-1 font-medium animate-fadeIn">
-                    💡 Suggestion: <strong className="text-white font-semibold">{goldenGloveSuggestions[0].name}</strong> ({goldenGloveSuggestions[0].goalsAgainst} conceded)
+                    <svg className="w-3 h-3 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>Suggestion: <strong className="text-white font-semibold">{goldenGloveSuggestions[0].name}</strong> ({goldenGloveSuggestions[0].goalsAgainst} conceded)
                   </p>
                 )}
               </div>
 
               <div>
                 <SearchableSelect
-                  label="✨ Ballon d'Or"
+                  label="Ballon d'Or"
                   value={awards.ballonDorTeamId}
                   options={[{value: "", label: "-- Select Ballon d'Or --"}, ...teamAwardOptions]}
                   onChange={(val) => setAwards({...awards, ballonDorTeamId: val})}

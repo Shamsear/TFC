@@ -8,12 +8,13 @@ interface NotInSeasonMessageProps {
     logoUrl: string
     managerName: string
   }
+  managerId?: string | null
   activeSeason: {
     name: string
   } | null
 }
 
-export default function NotInSeasonMessage({ team, activeSeason }: NotInSeasonMessageProps) {
+export default function NotInSeasonMessage({ team, managerId, activeSeason }: NotInSeasonMessageProps) {
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,7 +60,7 @@ export default function NotInSeasonMessage({ team, activeSeason }: NotInSeasonMe
               View All Seasons
             </Link>
             <Link
-              href={`/teams/${team.id}`}
+              href={managerId ? `/managers/${managerId}` : `/managers`}
               className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-colors"
             >
               View Team Profile

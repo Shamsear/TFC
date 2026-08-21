@@ -10,16 +10,21 @@ async function getTeamsData() {
     const seasons = await prisma.seasons.findMany({
       orderBy: [
         { isActive: 'desc' },
-        { createdAt: 'desc' }
+        { seasonNumber: 'desc' }
       ]
     })
 
-    // Get all teams with their overall data
+    // Get all teams with their overall data, including manager links
     const allTeams = await prisma.teams.findMany({
       include: {
         seasonTeams: {
           include: {
             season: true
+          }
+        },
+        managerLinks: {
+          include: {
+            manager: true
           }
         }
       },
@@ -64,21 +69,59 @@ async function getTeamsData() {
     const overallHomeWinsMap = new Map(overallHomeWins.map(hw => [hw.teamId, Number(hw.count)]))
     const overallAwayWinsMap = new Map(overallAwayWins.map(aw => [aw.teamId, Number(aw.count)]))
 
-    // Calculate overall stats for each team
-    const overallTeams = allTeams.map((team) => {
-      const activeSeasonTeam = team.seasonTeams.find(st => st.season.isActive)
-      return {
-        id: team.id,
-        name: team.name,
-        managerName: team.managerName,
-        logoUrl: team.logoUrl,
-        totalPlayers: overallCountMap.get(team.id) || 0,
-        totalSpent: overallSpentMap.get(team.id) || 0,
-        totalWins: (overallHomeWinsMap.get(team.id) || 0) + (overallAwayWinsMap.get(team.id) || 0),
-        currentBudget: activeSeasonTeam?.currentBudget || 0,
-        seasonsCount: team.seasonTeams.length
+    // Calculate overall stats per manager (group by managerId)
+    // The same manager can have different teams across seasons — group by managerId to avoid duplicates
+    const managerMap = new Map<string, {
+      managerId: string | null
+      managerPhotoUrl: string | null
+      managerName: string
+      totalPlayers: number
+      totalSpent: number
+      totalWins: number
+      seasonsCount: number
+    }>()
+
+    for (const team of allTeams) {
+      const managerLink = team.managerLinks[0]
+      // Use managerId as key when available, fall back to managerName
+      const key = managerLink?.managerId || team.managerName
+      const existing = managerMap.get(key)
+      if (existing) {
+        existing.totalPlayers += overallCountMap.get(team.id) || 0
+        existing.totalSpent += overallSpentMap.get(team.id) || 0
+        existing.totalWins += (overallHomeWinsMap.get(team.id) || 0) + (overallAwayWinsMap.get(team.id) || 0)
+        existing.seasonsCount += team.seasonTeams.length
+        // Prefer the manager link info if available
+        if (!existing.managerId && managerLink) {
+          existing.managerId = managerLink.managerId
+          existing.managerPhotoUrl = managerLink.manager?.photoUrl || null
+        }
+      } else {
+        managerMap.set(key, {
+          managerId: managerLink?.managerId || null,
+          managerPhotoUrl: managerLink?.manager?.photoUrl || null,
+          managerName: team.managerName,
+          totalPlayers: overallCountMap.get(team.id) || 0,
+          totalSpent: overallSpentMap.get(team.id) || 0,
+          totalWins: (overallHomeWinsMap.get(team.id) || 0) + (overallAwayWinsMap.get(team.id) || 0),
+          seasonsCount: team.seasonTeams.length
+        })
       }
-    })
+    }
+
+    const overallTeams = Array.from(managerMap.values()).map(m => ({
+      id: m.managerId || m.managerName,
+      managerId: m.managerId,
+      managerPhotoUrl: m.managerPhotoUrl,
+      name: m.managerName,
+      managerName: m.managerName,
+      logoUrl: m.managerPhotoUrl || '',
+      totalPlayers: m.totalPlayers,
+      totalSpent: m.totalSpent,
+      totalWins: m.totalWins,
+      currentBudget: 0,
+      seasonsCount: m.seasonsCount
+    }))
 
     // --- 2. Fetch bulk season-specific statistics ---
     const [
@@ -140,25 +183,72 @@ async function getTeamsData() {
 
     for (const season of seasons) {
       const seasonTeamData = allSeasonTeams.filter(st => st.seasonId === season.id)
-      
-      const teamsWithStats = seasonTeamData.map((st) => {
-        return {
-          id: st.team.id,
-          name: st.team.name,
-          managerName: st.team.managerName,
-          logoUrl: st.team.logoUrl,
-          seasonPlayers: seasonCountMap.get(`${season.id}-${st.teamId}`) || 0,
-          seasonSpent: seasonSpentMap.get(`${season.id}-${st.teamId}`) || 0,
-          seasonWins: (seasonHomeWinsMap.get(st.id) || 0) + (seasonAwayWinsMap.get(st.id) || 0),
-          seasonBudget: st.currentBudget,
-          totalPlayers: 0,
-          totalSpent: 0,
-          totalWins: 0,
-          currentBudget: 0,
-          seasonsCount: 0
+
+      // Group by MANAGER (not team) — use season_teams.managerName for the season-specific owner
+      const managerSeasonMap = new Map<string, {
+        managerId: string | null
+        managerPhotoUrl: string | null
+        managerName: string
+        teamName: string
+        teamLogo: string
+        seasonPlayers: number
+        seasonSpent: number
+        seasonWins: number
+        seasonBudget: number
+      }>()
+
+      for (const st of seasonTeamData) {
+        // Use the SEASON-SPECIFIC manager name, not the team's current manager
+        const mgrName = st.managerName || st.team.managerName
+        const teamData = allTeams.find(t => t.id === st.teamId)
+        const managerLink = teamData?.managerLinks?.[0]
+        // Group by managerId when available to avoid duplicate entries
+        const mapKey = managerLink?.managerId || mgrName
+        const existing = managerSeasonMap.get(mapKey)
+
+        const players = seasonCountMap.get(`${season.id}-${st.teamId}`) || 0
+        const spent = seasonSpentMap.get(`${season.id}-${st.teamId}`) || 0
+        const wins = (seasonHomeWinsMap.get(st.id) || 0) + (seasonAwayWinsMap.get(st.id) || 0)
+
+        if (existing) {
+          // Same manager had multiple teams in this season (unlikely but safe)
+          existing.seasonPlayers += players
+          existing.seasonSpent += spent
+          existing.seasonWins += wins
+          existing.seasonBudget += st.currentBudget
+        } else {
+          managerSeasonMap.set(mapKey, {
+            managerId: managerLink?.managerId || null,
+            managerPhotoUrl: managerLink?.manager?.photoUrl || null,
+            managerName: mgrName,
+            teamName: st.team.name,
+            teamLogo: st.team.logoUrl,
+            seasonPlayers: players,
+            seasonSpent: spent,
+            seasonWins: wins,
+            seasonBudget: st.currentBudget
+          })
         }
-      })
-      
+      }
+
+      const teamsWithStats = Array.from(managerSeasonMap.values()).map(m => ({
+        id: m.managerId || m.managerName,
+        managerId: m.managerId,
+        managerPhotoUrl: m.managerPhotoUrl,
+        name: m.teamName,
+        managerName: m.managerName,
+        logoUrl: m.teamLogo,
+        seasonPlayers: m.seasonPlayers,
+        seasonSpent: m.seasonSpent,
+        seasonWins: m.seasonWins,
+        seasonBudget: m.seasonBudget,
+        totalPlayers: 0,
+        totalSpent: 0,
+        totalWins: 0,
+        currentBudget: 0,
+        seasonsCount: 0
+      }))
+
       seasonTeams[season.id] = teamsWithStats
 
       seasonStats[season.id] = {

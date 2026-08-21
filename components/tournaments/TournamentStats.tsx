@@ -8,6 +8,7 @@ import StatsPoster from './StatsPoster'
 
 export interface TeamStatRow {
   teamId: string
+  managerId?: string | null
   seasonTeamId: string
   teamName: string
   logoUrl?: string | null
@@ -648,7 +649,7 @@ export default function TournamentStats({
             return (
               <Link
                 key={team.teamId}
-                href={`${teamLinkBase}/${team.teamId}`}
+                href={team.managerId ? `/managers/${team.managerId}` : `/managers`}
                 className={`flex items-center gap-2 px-3 py-3.5 sm:gap-4 sm:px-5 sm:py-4 transition-all duration-300 group ${
                   isMe ? 'bg-[#E8A800]/[0.05] border-y border-[#E8A800]/10' : 'hover:bg-white/[0.02]'
                 }`}

@@ -72,7 +72,7 @@ export default function AdminFooterClient({ isSuperAdmin, activeSeasonId }: Admi
                   {[
                     { label: 'Dashboard', href: '/sub-admin' },
                     { label: 'Import', href: '/sub-admin/import' },
-                    { label: 'Teams', href: '/teams' },
+                    { label: 'Managers', href: '/managers' },
                     { label: 'Tournaments', href: '/tournaments' },
                     ...(activeSeasonId ? [
                       { label: 'Players', href: `/sub-admin/${activeSeasonId}/all-players` },

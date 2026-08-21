@@ -10,7 +10,7 @@ async function getTournamentsData() {
     const seasons = await prisma.seasons.findMany({
       orderBy: [
         { isActive: 'desc' },
-        { createdAt: 'desc' }
+        { seasonNumber: 'desc' }
       ]
     })
 

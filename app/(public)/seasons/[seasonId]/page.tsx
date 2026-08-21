@@ -140,74 +140,76 @@ export default async function SeasonPage({
             </div>
           </div>
 
-          {/* Stats Overview */}
-          <div className="mb-12">
-            <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)] animate-pulse" />
-              <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">
-                Season Statistics
-              </h2>
+          {/* Stats Overview - only for Season 4+ */}
+          {data.season.seasonNumber >= 4 && (
+            <div className="mb-12">
+              <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)] animate-pulse" />
+                <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">
+                  Season Statistics
+                </h2>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {/* Players */}
+                <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all duration-300 shadow-md">
+                  <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#E8A800]/20">
+                    <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">{data.stats.totalPlayers}</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Players</div>
+                </div>
+
+                {/* Matches */}
+                <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#FFB347]/30 hover:bg-dark-200 transition-all duration-300 shadow-md">
+                  <div className="w-10 h-10 rounded-xl bg-[#FFB347]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#FFB347]/20">
+                    <svg className="w-5 h-5 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">{data.stats.totalMatches}</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Matches</div>
+                </div>
+
+                {/* Goals */}
+                <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#ff6600]/30 hover:bg-dark-200 transition-all duration-300 shadow-md">
+                  <div className="w-10 h-10 rounded-xl bg-[#ff6600]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#ff6600]/20">
+                    <svg className="w-5 h-5 text-[#ff6600]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">{data.stats.totalGoals}</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Goals</div>
+                </div>
+
+                {/* Total Spent */}
+                <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all duration-300 shadow-md col-span-2 sm:col-span-1">
+                  <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#E8A800]/20">
+                    <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">£{formatCurrency(data.stats.totalSpent)}</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Spent</div>
+                </div>
+
+                {/* Average per Team */}
+                <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#FFB347]/30 hover:bg-dark-200 transition-all duration-300 shadow-md col-span-2 sm:col-span-1">
+                  <div className="w-10 h-10 rounded-xl bg-[#FFB347]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#FFB347]/20">
+                    <svg className="w-5 h-5 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">
+                    £{formatCurrency(data.stats.totalTeams > 0 ? data.stats.totalSpent / data.stats.totalTeams : 0)}
+                  </div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Avg / Team</div>
+                </div>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {/* Players */}
-              <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all duration-300 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#E8A800]/20">
-                  <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">{data.stats.totalPlayers}</div>
-                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Players</div>
-              </div>
-
-              {/* Matches */}
-              <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#FFB347]/30 hover:bg-dark-200 transition-all duration-300 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-[#FFB347]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#FFB347]/20">
-                  <svg className="w-5 h-5 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">{data.stats.totalMatches}</div>
-                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Matches</div>
-              </div>
-
-              {/* Goals */}
-              <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#ff6600]/30 hover:bg-dark-200 transition-all duration-300 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-[#ff6600]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#ff6600]/20">
-                  <svg className="w-5 h-5 text-[#ff6600]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                  </svg>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">{data.stats.totalGoals}</div>
-                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Goals</div>
-              </div>
-
-              {/* Total Spent */}
-              <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#E8A800]/30 hover:bg-dark-200 transition-all duration-300 shadow-md col-span-2 sm:col-span-1">
-                <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#E8A800]/20">
-                  <svg className="w-5 h-5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">£{formatCurrency(data.stats.totalSpent)}</div>
-                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Spent</div>
-              </div>
-
-              {/* Average per Team */}
-              <div className="group rounded-2xl bg-dark-100 border border-white/5 p-5 hover:border-[#FFB347]/30 hover:bg-dark-200 transition-all duration-300 shadow-md col-span-2 sm:col-span-1">
-                <div className="w-10 h-10 rounded-xl bg-[#FFB347]/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform duration-300 border border-[#FFB347]/20">
-                  <svg className="w-5 h-5 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white mb-1 font-mono">
-                  £{formatCurrency(data.stats.totalTeams > 0 ? data.stats.totalSpent / data.stats.totalTeams : 0)}
-                </div>
-                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Avg / Team</div>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Quick Access */}
           <div className="mb-12">
@@ -218,7 +220,7 @@ export default async function SeasonPage({
               </h2>
             </div>
             
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className={`gap-4 sm:gap-5 ${data.season.seasonNumber >= 4 ? 'grid sm:grid-cols-2 lg:grid-cols-3' : 'grid sm:grid-cols-2'}`}>
               {/* View Teams - Primary Action */}
               <Link
                 href={`/seasons/${seasonId}/teams`}
@@ -258,26 +260,26 @@ export default async function SeasonPage({
                 </div>
                 <h3 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#E8A800] transition-colors uppercase tracking-wider">Calendar</h3>
                 <p className="text-sm text-gray-500 font-medium">View upcoming matches and events</p>
-              </Link>
-
-              {/* Players */}
-              <Link
-                href="/players"
-                className="group rounded-2xl bg-dark-100 border border-[#FFB347]/20 p-6 sm:p-7 hover:border-[#FFB347]/40 hover:bg-dark-200 transition-all duration-300 shadow-md"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#FFB347]/10 flex items-center justify-center group-hover:bg-[#FFB347]/20 transition-colors border border-[#FFB347]/20">
-                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </Link>              {/* Players - only for Season 4+ */}
+              {data.season.seasonNumber >= 4 && (
+                <Link
+                  href="/players"
+                  className="group rounded-2xl bg-dark-100 border border-[#FFB347]/20 p-6 sm:p-7 hover:border-[#FFB347]/40 hover:bg-dark-200 transition-all duration-300 shadow-md"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#FFB347]/10 flex items-center justify-center group-hover:bg-[#FFB347]/20 transition-colors border border-[#FFB347]/20">
+                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-[#FFB347]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <svg className="w-5 h-5 text-gray-500 group-hover:text-[#FFB347] group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
                   </div>
-                  <svg className="w-5 h-5 text-gray-500 group-hover:text-[#FFB347] group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </div>
-                <h3 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#FFB347] transition-colors uppercase tracking-wider">Players</h3>
-                <p className="text-sm text-gray-500 font-medium">Browse {data.stats.totalPlayers} registered players</p>
-              </Link>
+                  <h3 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#FFB347] transition-colors uppercase tracking-wider">Players</h3>
+                  <p className="text-sm text-gray-500 font-medium">Browse {data.stats.totalPlayers} registered players</p>
+                </Link>
+              )}
             </div>
           </div>
 

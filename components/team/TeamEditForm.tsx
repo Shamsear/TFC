@@ -133,33 +133,35 @@ export default function TeamEditForm({ team, returnUrl = `/super-admin/teams/${t
           {/* Team Name */}
           <div>
             <label htmlFor="name" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
-              Team Name <span className="text-red-400">*</span>
+              Team Name
             </label>
             <input
               type="text"
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
-              placeholder="Enter team name"
-              required
+              disabled
+              className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none transition-all text-gray-400 opacity-70 cursor-not-allowed text-sm sm:text-base"
             />
+            <p className="text-xs text-gray-500 mt-2">
+              Team names cannot be edited to preserve historical stats. If this franchise is changing its name for a new season, please create a new team with the same Manager Name.
+            </p>
           </div>
 
           {/* Manager Name */}
           <div>
             <label htmlFor="managerName" className="block text-sm font-bold mb-2 sm:mb-3 text-white">
-              Manager Name <span className="text-red-400">*</span>
+              Manager Name
             </label>
             <input
               type="text"
               id="managerName"
               value={formData.managerName}
-              onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
-              className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-[#E8A800]/50 focus:ring-2 focus:ring-[#E8A800]/20 transition-all text-white placeholder-gray-500 text-sm sm:text-base"
-              placeholder="Enter manager name"
-              required
+              disabled
+              className="w-full bg-black/50 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none transition-all text-gray-400 opacity-70 cursor-not-allowed text-sm sm:text-base"
             />
+            <p className="text-xs text-gray-500 mt-2">
+              Manager names cannot be edited here as they link the franchise's history across multiple seasons.
+            </p>
           </div>
 
           {/* Logo Upload */}

@@ -19,7 +19,7 @@ async function getSeasonsData() {
       },
       orderBy: [
         { isActive: 'desc' },
-        { createdAt: 'desc' }
+        { seasonNumber: 'desc' }
       ]
     })
 
@@ -88,8 +88,8 @@ export default async function SeasonsPage() {
             </p>
           </div>
 
-          {/* Seasons Grid */}
-          {seasons.length === 0 ? (
+          {/* Empty State */}
+          {seasons.length === 0 && (
             <div className="text-center py-16 rounded-2xl bg-dark-100 border border-white/5 shadow-md">
               <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -97,9 +97,17 @@ export default async function SeasonsPage() {
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2 uppercase tracking-wide">No Seasons Found</h3>
               <p className="text-sm text-gray-400">Seasons will appear here once they are created</p>
             </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              {seasons.map((season) => (
+          )}
+
+          {/* Modern Seasons (4+) */}
+          {seasons.filter(s => s.seasonNumber >= 4).length > 0 && (
+            <div className="mb-12">
+              <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)] animate-pulse" />
+                <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">Active Leagues</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                {seasons.filter(s => s.seasonNumber >= 4).map((season) => (
                 <Link
                   key={season.id}
                   href={`/seasons/${season.id}`}
@@ -125,53 +133,59 @@ export default async function SeasonsPage() {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-2.5 mb-4">
+                    <div className={`gap-2.5 mb-4 ${season.seasonNumber >= 4 ? 'grid grid-cols-3' : 'grid grid-cols-2'}`}>
                       <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
                         <div className="text-lg font-black text-blue-400 font-mono">{season.stats.totalTeams}</div>
                         <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Teams</div>
                       </div>
-                      <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
-                        <div className="text-lg font-black text-[#FFB347] font-mono">{season.stats.totalPlayers}</div>
-                        <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Players</div>
-                      </div>
+                      {season.seasonNumber >= 4 && (
+                        <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
+                          <div className="text-lg font-black text-[#FFB347] font-mono">{season.stats.totalPlayers}</div>
+                          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Players</div>
+                        </div>
+                      )}
                       <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
                         <div className="text-lg font-black text-[#E8A800] font-mono">{season.stats.totalTournaments}</div>
                         <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Tourneys</div>
                       </div>
                     </div>
 
-                    {/* Additional Stats */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/40 border border-white/5">
-                        <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <div>
-                          <div className="text-sm font-black text-white font-mono">{season.stats.totalMatches}</div>
-                          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Matches</div>
+                    {/* Additional Stats - only for Season 4+ */}
+                    {season.seasonNumber >= 4 && (
+                      <>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/40 border border-white/5">
+                            <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <div>
+                              <div className="text-sm font-black text-white font-mono">{season.stats.totalMatches}</div>
+                              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Matches</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/40 border border-white/5">
+                            <svg className="w-4 h-4 text-[#ff6600] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <div>
+                              <div className="text-sm font-black text-white font-mono">{season.stats.totalGoals}</div>
+                              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Goals</div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/40 border border-white/5">
-                        <svg className="w-4 h-4 text-[#ff6600] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <div>
-                          <div className="text-sm font-black text-white font-mono">{season.stats.totalGoals}</div>
-                          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Goals</div>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Total Spent */}
-                    <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 mb-4 shadow-sm shadow-[#E8A800]/5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4.5 h-4.5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider font-mono">Total Spent</span>
-                      </div>
-                      <span className="text-base font-black text-[#E8A800] font-mono">£{season.stats.totalSpent.toLocaleString()}</span>
-                    </div>
+                        {/* Total Spent */}
+                        <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-[#E8A800]/10 to-[#FFB347]/10 border border-[#E8A800]/20 mb-4 shadow-sm shadow-[#E8A800]/5 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4.5 h-4.5 text-[#E8A800]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider font-mono">Total Spent</span>
+                          </div>
+                          <span className="text-base font-black text-[#E8A800] font-mono">£{season.stats.totalSpent.toLocaleString()}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* View Link */}
@@ -185,6 +199,56 @@ export default async function SeasonsPage() {
                   </div>
                 </Link>
               ))}
+              </div>
+            </div>
+          )}
+
+          {/* Historical Seasons (1-3) */}
+          {seasons.filter(s => s.seasonNumber < 4).length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-gray-500" />
+                <h2 className="text-xl sm:text-2xl font-black text-gray-400 uppercase tracking-wider">Historical Seasons</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                {seasons.filter(s => s.seasonNumber < 4).map((season) => (
+                  <Link
+                    key={season.id}
+                    href={`/seasons/${season.id}`}
+                    className="group rounded-2xl bg-dark-100 border border-white/5 p-6 hover:border-white/20 hover:bg-dark-200 transition-all shadow-md duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="mb-5">
+                        <div className="flex items-center justify-between gap-3 mb-2.5">
+                          <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-gray-300 transition-colors line-clamp-1">
+                            {season.name}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
+                          <div className="text-lg font-black text-gray-400 font-mono">{season.stats.totalTeams}</div>
+                          <div className="text-[9px] text-gray-600 font-bold uppercase tracking-wider font-mono">Teams</div>
+                        </div>
+                        <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
+                          <div className="text-lg font-black text-gray-400 font-mono">{season.stats.totalTournaments}</div>
+                          <div className="text-[9px] text-gray-600 font-bold uppercase tracking-wider font-mono">Tourneys</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-4">
+                      <span className="text-xs font-black uppercase tracking-wider text-gray-500 group-hover:text-gray-400 transition-colors">
+                        View Season Details
+                      </span>
+                      <svg className="w-4 h-4 text-gray-500 group-hover:translate-x-1 group-hover:text-gray-400 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>

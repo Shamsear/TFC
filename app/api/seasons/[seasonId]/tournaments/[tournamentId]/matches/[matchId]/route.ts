@@ -5,10 +5,7 @@ import { createAuditLog } from '@/lib/audit'
 import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
 import { evaluateTeamAchievements } from '@/lib/achievements-engine'
 import { triggerNews } from '@/lib/news/trigger'
-import { getTournamentContext, generateContextNarrative } from '@/lib/news/tournament-context'
-import { detectMatchScenarios } from '@/lib/news/scenario-detector'
-import { getCleanManagerName } from '@/lib/news/utils'
-import { NewsEventType } from '@/lib/news/types'
+import { getTournamentContext, generateContextNarrative, detectMatchScenarios, getCleanManagerName, type NewsEventType } from '@/lib/news/stubs'
 
 // ⚡ Increase timeout for news generation (Vercel default is 10s)
 export const maxDuration = 60; // 60 seconds max execution time

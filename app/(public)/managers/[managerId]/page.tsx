@@ -11,9 +11,9 @@ import {
   BADGE_DEFINITIONS
 } from "@/lib/achievements-math"
 
-interface TeamDetailPageProps {
+interface ManagerDetailPageProps {
   params: Promise<{
-    teamId: string
+    managerId: string
   }>
 }
 
@@ -66,24 +66,28 @@ async function getTeamData(teamId: string) {
   // Override manager name if we resolved a manager record
   if (resolvedManagerName) {
     team.managerName = resolvedManagerName;
+  } else {
+    resolvedManagerName = team.managerName;
   }
 
-  // Get all seasons this manager or team participated in
+  // Get all seasons this manager participated in — only query by managerName
   const allSeasonTeams = await prisma.season_teams.findMany({
-    where: resolvedManagerName
-      ? {
-          OR: [
-            { teamId: resolvedTeamId },
-            { managerName: resolvedManagerName }
-          ]
-        }
-      : { teamId: resolvedTeamId },
+    where: {
+      managerName: { equals: resolvedManagerName, mode: 'insensitive' }
+    },
     include: {
       season: {
         select: {
           id: true,
           name: true,
           startingPurse: true
+        }
+      },
+      team: {
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true
         }
       },
       standings: {
@@ -199,6 +203,8 @@ async function getTeamData(teamId: string) {
     return {
       seasonId: st.seasonId,
       seasonName: st.season.name,
+      seasonTeamName: st.team.name,
+      seasonTeamLogo: st.team.logoUrl,
       startingPurse,
       finalBudget: st.finalBudget,
       currentBudget: st.currentBudget,
@@ -263,9 +269,9 @@ async function getTeamData(teamId: string) {
   }
 }
 
-export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
-  const { teamId } = await params
-  const teamData = await getTeamData(teamId)
+export default async function TeamDetailPage({ params }: ManagerDetailPageProps) {
+  const { managerId } = await params
+  const teamData = await getTeamData(managerId)
 
   if (!teamData) {
     notFound()
@@ -284,54 +290,24 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   // Rank Details
   const rank = getRankDetails(level)
 
-  // Unlocked badges mapping
+  // Unlocked badges (passed to TeamDetailTabs)
   const unlockedBadges = team.unlockedBadges || []
-  const unlockedMap = new Map<string, any>()
-  unlockedBadges.forEach(b => {
-    unlockedMap.set(b.badgeKey, b)
-  })
-
-  const getTierColorClass = (tier: string) => {
-    switch (tier) {
-      case 'PLATINUM': return 'text-red-400 bg-red-950/40 border border-red-500/20';
-      case 'GOLD': return 'text-amber-400 bg-amber-950/40 border border-amber-500/20';
-      case 'SILVER': return 'text-slate-300 bg-slate-800/40 border border-slate-500/20';
-      default: return 'text-[#E8A800] bg-[#E8A800]/10 border border-[#E8A800]/20';
-    }
-  }
-
-  const getBadgeImageFilter = (badgeKey: string, unlocked: boolean) => {
-    if (!unlocked) {
-      return { filter: 'grayscale(1) opacity(0.25) contrast(0.75) brightness(0.75)' };
-    }
-
-    let filter = '';
-    if (badgeKey.endsWith('_1')) {
-      filter = 'hue-rotate(185deg) saturate(1.4) brightness(1.1) contrast(1.1)';
-    } else if (badgeKey.endsWith('_2')) {
-      filter = 'hue-rotate(42deg) saturate(1.8) brightness(1.2) contrast(1.1)';
-    } else if (badgeKey.endsWith('_3')) {
-      filter = 'hue-rotate(325deg) saturate(2) brightness(1.1) contrast(1.2)';
-    }
-
-    return filter ? { filter } : {};
-  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-16">
         {/* Back Button */}
         <Link
-          href={`/teams`}
+          href={`/managers`}
           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.02] border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all font-bold text-xs uppercase tracking-wider cursor-pointer mb-6"
         >
           <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Back to All Teams
+          Back to All Managers
         </Link>
 
-        {/* Team Header */}
+        {/* Manager Header */}
         <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6 sm:p-8 mb-8 relative overflow-hidden shadow-2xl backdrop-blur-xl">
           <div 
             className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[120px] opacity-10 pointer-events-none transition-all duration-1000"
@@ -340,13 +316,13 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#ff6600]/5 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
 
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
-            {/* Team Logo & Rank Overlay */}
+            {/* Manager Logo & Rank Overlay */}
             <div className="relative flex-shrink-0">
               <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-black/40 ring-4 ring-white/5 flex items-center justify-center shadow-xl">
                 {team.logoUrl ? (
                   <Image
                     src={team.logoUrl}
-                    alt={team.name}
+                    alt={team.managerName}
                     fill
                     className="object-contain p-3"
                     priority
@@ -375,11 +351,11 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               </div>
             </div>
 
-            {/* Team Info */}
+            {/* Manager Info */}
             <div className="flex-1 text-center sm:text-left w-full">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center sm:justify-start mb-2">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent tracking-tight leading-none">
-                  {team.name}
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent tracking-tight leading-none">
+                  {team.managerName}
                 </h1>
                 
                 {/* Level Tag with Micro Rank Emblem */}
@@ -402,7 +378,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                 </span>
               </div>
               <p className="text-gray-400 text-base mb-4 font-semibold">
-                Manager: {team.managerName}
+                Current Franchise: <span className="text-white">{team.name}</span>
               </p>
 
               {/* Progress Bar */}
@@ -461,86 +437,23 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           </div>
         </div>
 
-        {/* Tabbed Season View (Like Team Portal) */}
+        {/* Tabbed Season View */}
         {seasons.length > 0 ? (
           <div className="mb-12">
             <TeamDetailTabs
               team={team}
               seasons={seasons}
               viewerRole="public"
+              unlockedBadges={unlockedBadges}
+              badgeDefinitions={Object.values(BADGE_DEFINITIONS)}
             />
           </div>
         ) : (
           <div className="rounded-2xl bg-dark-100 p-8 text-center border border-white/5 shadow-md mb-8">
-            <p className="text-gray-400 text-sm">No season data registered yet for this team.</p>
+            <p className="text-gray-400 text-sm">No season data registered yet for this manager.</p>
           </div>
         )}
 
-        {/* Achievements Showcase */}
-        <div className="rounded-2xl bg-white/[0.01] border border-white/5 backdrop-blur-xl p-6 md:p-8 shadow-2xl">
-          <h2 className="text-2xl font-black tracking-tight text-white mb-6 flex items-center gap-3">
-            <svg className="w-6 h-6 text-[#E8A800] shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25c0-1.657-1.343-3-3-3H15m-6 0H7.5c-1.657 0-3 1.343-3 3 0 2.222 1.385 4.099 3.32 4.792a6.002 6.002 0 0010.36 0c1.935-.693 3.32-2.57 3.32-4.792z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.25v2.25M9 21.75h6" />
-            </svg>
-            Achievements Showcase
-            <span className="text-xs font-normal text-gray-500 font-mono">({unlockedBadges.length}/{Object.keys(BADGE_DEFINITIONS).length} unlocked)</span>
-          </h2>
-
-          {unlockedBadges.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-white/5 rounded-xl bg-black/20 text-gray-400 text-sm">
-              No badges unlocked yet by this team.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {Object.values(BADGE_DEFINITIONS).map(badge => {
-                const unlocked = unlockedMap.get(badge.key);
-                const tierColor = getTierColorClass(badge.tier);
-
-                return (
-                  <div 
-                    key={badge.key}
-                    className={`relative group rounded-xl p-5 border text-center transition-all duration-300 select-none flex flex-col items-center justify-between ${
-                      unlocked 
-                        ? 'bg-white/[0.01] hover:bg-white/[0.03] border-white/10 hover:-translate-y-1 hover:border-[#E8A800]/25' 
-                        : 'bg-black/40 border-white/[0.03] opacity-40'
-                    }`}
-                  >
-                    {unlocked && (
-                      <span className="absolute top-2.5 right-2.5 h-4 w-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center text-[10px]">
-                        ✓
-                      </span>
-                    )}
-
-                    <div className="mb-4 relative h-16 w-16 flex items-center justify-center">
-                      <Image
-                        src={badge.image}
-                        alt={badge.name}
-                        width={64}
-                        height={64}
-                        className="object-contain"
-                        style={getBadgeImageFilter(badge.key, !!unlocked)}
-                      />
-                    </div>
-
-                    <div className="w-full">
-                      <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full w-fit mx-auto mb-2 ${tierColor}`}>
-                        {badge.tier}
-                      </div>
-                      <h3 className={`text-sm font-semibold tracking-tight leading-snug line-clamp-1 ${unlocked ? 'text-white' : 'text-gray-500'}`}>
-                        {badge.name}
-                      </h3>
-                      <p className="text-[10px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-                        {badge.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )

@@ -65,7 +65,6 @@ export default function AdminNavigationClient({ user, isSuperAdmin, activeSeason
     { name: "Passwords", href: "/super-admin/password-requests" },
     { name: "Audit Logs", href: "/super-admin/audit-logs" },
     { name: "Notifications", href: "/super-admin/notifications" },
-    { name: "News", href: "/super-admin/news" },
   ]
 
   const subAdminPrimary = [

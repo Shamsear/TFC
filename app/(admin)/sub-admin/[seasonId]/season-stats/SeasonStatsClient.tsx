@@ -521,7 +521,7 @@ export default function SeasonStatsClient({ season, seasonTeams }: SeasonStatsCl
                                   unoptimized
                                 />
                               ) : (
-                                <span className="text-xs">⚽</span>
+                                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" /></svg>
                               )}
                             </div>
                             <div>
@@ -534,7 +534,7 @@ export default function SeasonStatsClient({ season, seasonTeams }: SeasonStatsCl
                             </div>
                             {team.trophiesWon > 0 && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/25 text-amber-400 flex items-center gap-0.5">
-                                🏆 {team.trophiesWon}
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" /></svg>{team.trophiesWon}
                               </span>
                             )}
                           </div>

@@ -17,6 +17,7 @@ interface MatchDetailViewProps {
         id: string
         name: string
         logoUrl: string
+        managerId?: string | null
       }
     }
     awayTeam: {
@@ -24,6 +25,7 @@ interface MatchDetailViewProps {
         id: string
         name: string
         logoUrl: string
+        managerId?: string | null
       }
     }
     tournament: {
@@ -93,7 +95,7 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
         <div className="sm:hidden space-y-4 mb-4">
           {/* Home Team */}
           <Link
-            href={`/teams/${match.homeTeam.team.id}`}
+            href={match.homeTeam.team.managerId ? `/managers/${match.homeTeam.team.managerId}` : `/managers`}
             className="flex items-center gap-3 p-3 rounded-lg bg-[#111111] border border-white/10 hover:border-[#E8A800]/30 transition-all"
           >
             <div className="relative w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-white/5 border border-white/10">
@@ -128,7 +130,7 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
 
           {/* Away Team */}
           <Link
-            href={`/teams/${match.awayTeam.team.id}`}
+            href={match.awayTeam.team.managerId ? `/managers/${match.awayTeam.team.managerId}` : `/managers`}
             className="flex items-center gap-3 p-3 rounded-lg bg-[#111111] border border-white/10 hover:border-[#E8A800]/30 transition-all"
           >
             <div className="relative w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-white/5 border border-white/10">
@@ -165,7 +167,7 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
         {/* Teams - Desktop */}
         <div className="hidden sm:flex items-center justify-center gap-8 mb-6">
           <Link
-            href={`/teams/${match.homeTeam.team.id}`}
+            href={match.homeTeam.team.managerId ? `/managers/${match.homeTeam.team.managerId}` : `/managers`}
             className="text-center flex-1 hover:opacity-80 transition-opacity"
           >
             <div className="relative w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden bg-white/5 border border-white/10">
@@ -209,7 +211,7 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
           </div>
 
           <Link
-            href={`/teams/${match.awayTeam.team.id}`}
+            href={match.awayTeam.team.managerId ? `/managers/${match.awayTeam.team.managerId}` : `/managers`}
             className="text-center flex-1 hover:opacity-80 transition-opacity"
           >
             <div className="relative w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden bg-white/5 border border-white/10">

@@ -6,6 +6,7 @@ import Image from 'next/image'
 export interface StandingRow {
   id: string
   teamId: string
+  managerId?: string | null
   groupName?: string | null
   position?: number | null
   played: number
@@ -21,6 +22,7 @@ export interface StandingRow {
       id: string
       name: string
       logoUrl?: string | null
+      managerLinks?: { managerId: string | null }[]
     }
   }
 }
@@ -109,7 +111,7 @@ export default function TournamentTable({ standings, myTeamId, teamLinkBase = '/
                       {/* Team Link & Logo */}
                       <td className="px-3 py-3 sm:px-5 sm:py-4">
                         <Link
-                          href={`${teamLinkBase}/${row.seasonTeam.team.id}`}
+                          href={row.managerId ? `/managers/${row.managerId}` : `/managers`}
                           className="flex items-center gap-2 sm:gap-3 group/link w-fit"
                         >
                           <div className="relative w-7 h-7 sm:w-9 sm:h-9 flex-shrink-0 rounded-lg overflow-hidden bg-black/40 border border-white/10 p-0.5 shadow-inner group-hover/link:scale-105 transition-transform duration-200">

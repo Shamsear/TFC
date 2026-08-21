@@ -13,7 +13,15 @@ async function getTournamentTeamsData(tournamentId: string) {
           include: {
             seasonTeam: {
               include: {
-                team: true
+                team: {
+                  include: {
+                    managerLinks: {
+                      include: {
+                        manager: true
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -40,7 +48,7 @@ async function getTournamentTeamsData(tournamentId: string) {
     })
 
     // Calculate tournament-specific stats for each team
-    const teamsWithStats = tournament.tournamentTeams.map((tournamentTeam) => {
+    const teamsWithStats = await Promise.all(tournament.tournamentTeams.map(async (tournamentTeam) => {
       const teamId = tournamentTeam.teamId
       
       let played = 0
@@ -73,8 +81,23 @@ async function getTournamentTeamsData(tournamentId: string) {
       const points = (wins * 3) + draws
       const goalDifference = goalsFor - goalsAgainst
 
+      // Resolve managerId from season-specific manager name (not current team owner)
+      let managerId: string | null = null
+      const seasonManagerName = tournamentTeam.seasonTeam.managerName
+      if (seasonManagerName) {
+        const managerRecord = await prisma.managers.findFirst({
+          where: { name: { equals: seasonManagerName, mode: 'insensitive' } }
+        })
+        managerId = managerRecord?.id || null
+      }
+      // Fallback to current team owner if no season-specific match
+      if (!managerId) {
+        const fallbackLink = tournamentTeam.seasonTeam.team.managerLinks?.[0]
+        managerId = fallbackLink?.managerId || null
+      }
       return {
         ...tournamentTeam.seasonTeam,
+        managerId,
         groupName: tournamentTeam.groupName,
         seedPosition: tournamentTeam.seedPosition,
         played,
@@ -86,7 +109,7 @@ async function getTournamentTeamsData(tournamentId: string) {
         goalDifference,
         points
       }
-    })
+    }))
 
     const teams = teamsWithStats.sort((a, b) => {
       // Sort by points, then goal difference, then goals scored
@@ -152,7 +175,7 @@ export default async function TournamentTeamsPage({
             <div>
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  🏆 {data.tournament.tournamentType}
+                  <svg className="w-3 h-3 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>{data.tournament.tournamentType}
                 </span>
                 <span className="text-[10px] font-black text-gray-500 uppercase">
                   {data.tournament.season.name}
@@ -200,7 +223,7 @@ export default async function TournamentTeamsPage({
             {data.teams.map((team, index) => (
               <Link
                 key={team.id}
-                href={`/teams/${team.teamId}`}
+                href={team.managerId ? `/managers/${team.managerId}` : `/managers`}
                 className="relative block rounded-2xl bg-[#0d0d0d]/40 backdrop-blur-xl border border-white/5 p-5 hover:border-amber-500/30 hover:bg-white/[0.01] hover:shadow-[0_0_30px_rgba(232,168,0,0.05)] transition-all duration-300 group cursor-pointer overflow-hidden shadow-xl"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] via-transparent to-transparent pointer-events-none" />

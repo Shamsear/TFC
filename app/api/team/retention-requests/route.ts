@@ -108,11 +108,29 @@ export async function POST(request: NextRequest) {
     // Create retention requests
     const requests = await Promise.all(
       retentions.map(async (retention: any) => {
-        // Verify player was in team's previous season squad
+        // 1. Get current team manager
+        const currentTeam = await prisma.teams.findUnique({
+          where: { id: teamId }
+        })
+        const managerName = currentTeam?.managerName
+
+        // 2. Verify manager participated in previous season
+        const previousSeasonTeam = await prisma.season_teams.findFirst({
+          where: {
+            seasonId: previousSeason.id,
+            managerName: managerName
+          }
+        })
+
+        if (!previousSeasonTeam) {
+          throw new Error(`Manager ${managerName} did not participate in ${previousSeason.name}`)
+        }
+
+        // 3. Verify player was in the manager's previous season squad
         const previousTransfer = await prisma.transfer_history.findFirst({
           where: {
             seasonId: previousSeason.id,
-            teamId,
+            teamId: previousSeasonTeam.teamId,
             basePlayerId: retention.playerId,
             status: 'ACTIVE',
           },
@@ -120,18 +138,6 @@ export async function POST(request: NextRequest) {
 
         if (!previousTransfer) {
           throw new Error(`Player ${retention.playerName} was not in your squad during ${previousSeason.name}`)
-        }
-
-        // Verify team participated in previous season
-        const previousSeasonTeam = await prisma.season_teams.findFirst({
-          where: {
-            seasonId: previousSeason.id,
-            teamId
-          }
-        })
-
-        if (!previousSeasonTeam) {
-          throw new Error(`Your team did not participate in ${previousSeason.name}`)
         }
 
         // Check if player is already in current season squad

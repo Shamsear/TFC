@@ -141,7 +141,7 @@ export default function LedgerFlowFixClient({ seasonId }: { seasonId: string }) 
         <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 backdrop-blur-xl shadow-md">
           <div className="mb-6">
             <h3 className="text-lg font-black text-white mb-4 uppercase tracking-wider font-mono">
-              {data.summary.mode === 'apply' ? '✅ Fixes Applied' : '📋 Preview Results'}
+              {data.summary.mode === 'apply' ? 'Fixes Applied' : 'Preview Results'}
             </h3>
             <div className="grid grid-cols-3 gap-4 text-xs">
               <div className="bg-white/[0.01] border border-white/5 rounded-xl p-3 shadow-md">

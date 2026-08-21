@@ -104,7 +104,6 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
     { name: "Finances", href: "/team/finances" },
     { name: "Retentions", href: "/team/retentions" },
     { name: "Achievements", href: "/team/achievements" },
-    { name: "News", href: "/team/news" },
   ]
 
   const inactiveSeasonNavigation = [
@@ -133,7 +132,6 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
       { name: "Finances", href: "/team/finances" },
       { name: "Retentions", href: "/team/retentions" },
       { name: "Achievements", href: "/team/achievements" },
-      { name: "News", href: "/team/news" },
     ]
     : []
 
@@ -406,7 +404,6 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
                     <Link href="/team/finances" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/finances") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Finances</Link>
                     <Link href="/team/retentions" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/retentions") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Retentions</Link>
                     <Link href="/team/achievements" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/achievements") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>Achievements</Link>
-                    <Link href="/team/news" className={`text-xs font-black uppercase tracking-wider transition-colors py-2 px-3 rounded-lg ${isActive("/team/news") ? "text-[#FFB347] bg-white/[0.03]" : "text-gray-500 hover:text-white"}`} onClick={() => setMobileMenuOpen(false)}>News</Link>
                   </div>
                 )}
               </div>

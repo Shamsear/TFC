@@ -51,6 +51,21 @@ export default async function TeamDashboardPage() {
   }
 
   // Team is in active season - show dashboard
+
+  // Get all-time trophies for this manager across all seasons
+  const allTimeTrophies = await prisma.season_teams.aggregate({
+    where: {
+      managerName: {
+        equals: team.managerName,
+        mode: 'insensitive'
+      }
+    },
+    _sum: {
+      trophiesWon: true
+    }
+  })
+  const totalAllTimeTrophies = allTimeTrophies._sum.trophiesWon || 0
+
   // Get squad count for current season (only ACTIVE players)
   const squadCount = await prisma.transfer_history.count({
     where: {
@@ -517,7 +532,12 @@ export default async function TeamDashboardPage() {
             <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#E8A800] mb-1">
               {currentSeasonTeam.trophiesWon}
             </div>
-            <div className="text-xs text-gray-400 font-medium">This season</div>
+            <div className="text-xs text-gray-400 font-medium">
+              This season
+              {totalAllTimeTrophies > 0 && (
+                <span className="text-purple-400 font-bold"> • {totalAllTimeTrophies} All-Time</span>
+              )}
+            </div>
           </div>
         </div>
 

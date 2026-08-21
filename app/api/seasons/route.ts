@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
 import { createAuditLog } from "@/lib/audit"
-import { generateSeasonId } from "@/lib/id-generator"
+import { generateSeasonId, generatePlayerStatsId } from "@/lib/id-generator"
 import { triggerNews } from "@/lib/news/trigger"
 
 /**
@@ -226,6 +226,59 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || 'unknown'
     })
 
+    // Auto-carry-forward: copy all players from previous season to this new season
+    let carriedForward = 0
+    try {
+      const previousSeason = await prisma.seasons.findFirst({
+        where: { seasonNumber: seasonNumber - 1 },
+        select: { id: true, name: true }
+      })
+
+      if (previousSeason) {
+        const previousPlayers = await prisma.seasonal_player_stats.findMany({
+          where: { seasonId: previousSeason.id },
+          select: { basePlayerId: true }
+        })
+
+        if (previousPlayers.length > 0) {
+          // Get full stats for batch copy
+          const fullStats = await prisma.seasonal_player_stats.findMany({
+            where: { seasonId: previousSeason.id }
+          })
+
+          const statsToCreate: any[] = []
+          for (const stat of fullStats) {
+            const { id: _oldId, seasonId: _oldSeasonId, createdAt: _oldCreatedAt, updatedAt: _oldUpdatedAt, ...statData } = stat as any
+            statsToCreate.push({
+              id: await generatePlayerStatsId(),
+              basePlayerId: statData.basePlayerId,
+              seasonId: seasonId,
+              ...Object.fromEntries(
+                Object.entries(statData).filter(([k]) => k !== 'basePlayerId')
+              ),
+              createdAt: new Date(),
+              updatedAt: new Date()
+            })
+          }
+
+          // Bulk insert in chunks
+          const CHUNK = 500
+          for (let i = 0; i < statsToCreate.length; i += CHUNK) {
+            await prisma.seasonal_player_stats.createMany({
+              data: statsToCreate.slice(i, i + CHUNK),
+              skipDuplicates: true
+            })
+          }
+
+          carriedForward = statsToCreate.length
+          console.log(`✅ Auto-carry-forward: ${carriedForward} players from ${previousSeason.name} to ${name}`)
+        }
+      }
+    } catch (carryErr) {
+      console.error('⚠️ Auto-carry-forward failed (non-blocking):', carryErr)
+      // Don't fail season creation if carry-forward fails
+    }
+
     // Generate AI news for season creation
     try {
       await triggerNews('season_created', {
@@ -243,7 +296,7 @@ export async function POST(request: NextRequest) {
       console.warn('[News AI] Failed to generate season creation news:', newsErr);
     }
 
-    return NextResponse.json(season, { status: 201 })
+    return NextResponse.json({ ...season, carriedForward }, { status: 201 })
   } catch (error) {
     // Handle Prisma unique constraint violation
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

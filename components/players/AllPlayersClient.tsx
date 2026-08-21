@@ -268,6 +268,35 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
   const [exportMode, setExportMode] = useState<'single' | 'multiple'>('single')
   const [exportLoading, setExportLoading] = useState(false)
 
+  // Carry-forward states
+  const [carryForwardLoading, setCarryForwardLoading] = useState(false)
+  const [carryForwardResult, setCarryForwardResult] = useState<string | null>(null)
+
+  const handleCarryForward = async () => {
+    if (!seasonId) return
+    setCarryForwardLoading(true)
+    setCarryForwardResult(null)
+    try {
+      const response = await fetch(`/api/seasons/${seasonId}/carry-forward`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to carry forward players')
+      }
+      const msg = data.message || `Carried forward ${data.carried} players`
+      setCarryForwardResult(msg)
+      // Refresh the player list
+      fetchPlayers({ search: searchQuery, position: positionFilter, team: teamFilter, group: groupFilter, starred: starredFilter, page: currentPage })
+    } catch (err) {
+      setCarryForwardResult(err instanceof Error ? err.message : 'Failed to carry forward')
+    } finally {
+      setCarryForwardLoading(false)
+    }
+  }
+
   const handleExportMultipleFiles = async () => {
     console.log('🔵 [EXPORT-MULTI] Starting multiple files export...')
     setExportLoading(true)
@@ -1210,6 +1239,13 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
             </button>
           )}
           <button
+            onClick={handleCarryForward}
+            disabled={carryForwardLoading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/25 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 transition-all shadow-[0_0_12px_rgba(168,85,247,0.05)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {carryForwardLoading ? '⏳' : '🔄'} Carry Forward
+          </button>
+          <button
             onClick={() => {
               console.log('🔵 [EXPORT] Export button clicked')
               console.log('🔵 [EXPORT] Current state:', {
@@ -1224,6 +1260,11 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
           >
             📊 Export
           </button>
+          {carryForwardResult && (
+            <span className="text-xs font-mono text-purple-400 max-w-[200px] truncate" title={carryForwardResult}>
+              {carryForwardResult}
+            </span>
+          )}
         </div>
       </div>
 

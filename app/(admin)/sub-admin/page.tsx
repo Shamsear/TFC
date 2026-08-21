@@ -302,6 +302,42 @@ export default async function SubAdminDashboard() {
                 </Link>
 
                 <Link
+                  href={`/sub-admin/${activeSeason.id}/retention-requests`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFB347]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <TrophyIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Retention Requests</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Review team retention requests</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href={`/sub-admin/${activeSeason.id}/retention-windows`}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFB347] to-[#FFA500] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFB347]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-black">
+                      <TrophyIcon />
+                    </div>
+                    <div className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Retention Windows</div>
+                    <div className="text-[10px] font-bold text-black/60 uppercase tracking-wide">Manage retention windows</div>
+                  </div>
+                </Link>
+
+                <Link
                   href={`/sub-admin/${activeSeason.id}/tournaments`}
                   className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFC93A] to-[#FFB800] p-5 hover:scale-[1.02] transition-all shadow-lg hover:shadow-[#FFC93A]/20 text-[#0a0a0a] flex flex-col justify-between min-h-[110px]"
                 >

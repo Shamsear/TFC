@@ -171,26 +171,42 @@ export default function RetentionRequestsAdminClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#070708] text-white pt-24 pb-12 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute top-10 left-10 w-[500px] h-[500px] bg-[#E8A800]/5 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-[#E8A800]/3 rounded-full blur-[150px] pointer-events-none" />
-
-      {/* Header */}
-      <div className="border-b border-white/5 bg-[#0a0a0a]/60 backdrop-blur-xl mb-8 relative z-10 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-2">
-            <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(232,168,0,0.15)] font-mono uppercase">
-              Retention Requests
-            </span>
-          </h1>
-          <p className="text-gray-400 text-xs sm:text-sm font-mono font-bold uppercase tracking-wider">
-            Review and process player retention requests <span className="text-gray-600">•</span> {seasonName}
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+      {/* Back Link */}
+      <div className="mb-6">
+        <a
+          href={`/sub-admin/${seasonId}/retention`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Retention
+        </a>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      {/* Header */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Retention Requests
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            Review and process player retention requests for {seasonName}
+          </p>
+        </div>
+        <a
+          href={`/sub-admin/${seasonId}/retention-windows`}
+          className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-3 bg-white/[0.03] border border-white/10 text-white rounded-lg sm:rounded-xl font-bold hover:bg-white/[0.06] transition-all text-xs sm:text-sm font-mono uppercase"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Windows
+        </a>
+      </div>
+
+      <div>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white/5 border border-white/10 rounded-xl p-4">

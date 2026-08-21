@@ -138,7 +138,61 @@ export default async function RetentionModulePage({
     where: { seasonId }
   })
 
-  const maxRetentionsPerTeam = 5 // Default retention limit
+  // Get active retention window
+  const activeWindow = await prisma.retention_windows.findFirst({
+    where: {
+      seasonId,
+      status: 'ACTIVE',
+    },
+  })
+
+  const maxRetentionsPerTeam = activeWindow?.retentionLimit || 5
+
+  // Get banned team IDs from the window
+  const bannedTeamIds = activeWindow?.bannedTeamIds
+    ? JSON.parse(activeWindow.bannedTeamIds) as string[]
+    : []
+
+  // Filter out banned teams from the players list
+  const filteredTeamsWithPlayers = bannedTeamIds.length > 0
+    ? teamsWithPlayers.filter(t => !bannedTeamIds.includes(t.teamId))
+    : teamsWithPlayers
+
+  // Identify ineligible teams based on manager presence:
+  // A team is ineligible if its manager did NOT participate in the previous season (with any team)
+  const previousSeasonTeams = await prisma.season_teams.findMany({
+    where: { seasonId: previousSeason.id },
+    select: { managerName: true },
+  })
+  const previousSeasonManagerNames = new Set(
+    previousSeasonTeams.map(st => st.managerName).filter(Boolean)
+  )
+
+  // Current season teams whose manager did NOT participate in the previous season
+  const ineligibleNoPreviousSeason = season.seasonTeams
+    .filter(st => !st.managerName || !previousSeasonManagerNames.has(st.managerName))
+    .map(st => ({
+      teamId: st.team.id,
+      teamName: st.team.name,
+      teamLogoUrl: st.team.logoUrl || "",
+      managerName: st.managerName || "",
+      reason: "new_team" as const,
+    }))
+
+  // Banned teams (may or may not have players from previous season)
+  const ineligibleBannedTeams = bannedTeamIds.length > 0
+    ? season.seasonTeams
+        .filter(st => bannedTeamIds.includes(st.teamId))
+        .map(st => ({
+          teamId: st.team.id,
+          teamName: st.team.name,
+          teamLogoUrl: st.team.logoUrl || "",
+          managerName: st.managerName || "",
+          reason: "banned" as const,
+        }))
+    : []
+
+  const ineligibleTeams = [...ineligibleNoPreviousSeason, ...ineligibleBannedTeams]
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
@@ -156,17 +210,62 @@ export default async function RetentionModulePage({
       </div>
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
-          Player Retention
-        </h1>
-        <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-          Retain players from {previousSeason.name} for {season.name}
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            Player Retention
+          </h1>
+          <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+            Retain players from {previousSeason.name} for {season.name}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/sub-admin/${seasonId}/retention-windows`}
+            className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-3 bg-white/[0.03] border border-white/10 text-white rounded-lg sm:rounded-xl font-bold hover:bg-white/[0.06] transition-all text-xs sm:text-sm font-mono uppercase"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Windows
+          </Link>
+          <Link
+            href={`/sub-admin/${seasonId}/retention-requests`}
+            className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-3 bg-gradient-to-r from-[#E8A800] to-[#FFB347] text-[#0a0a0a] rounded-lg sm:rounded-xl font-bold hover:from-[#FFC93A] hover:to-[#FFB347] transition-all hover:scale-105 shadow-lg hover:shadow-[#E8A800]/50 text-xs sm:text-sm font-mono uppercase"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Requests
+          </Link>
+        </div>
       </div>
 
       {/* Season Info */}
       <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-xl">
+        {/* Active Window Info */}
+        {activeWindow && (
+          <div className="mb-4 p-4 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-black text-[#E8A800] font-mono">{activeWindow.name}</p>
+                <p className="text-xs text-gray-400 font-mono">
+                  {new Date(activeWindow.startDate).toLocaleDateString()} - {new Date(activeWindow.endDate).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
+                <p className="text-xs font-black text-green-400 font-mono uppercase">{activeWindow.status}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        {!activeWindow && (
+          <div className="mb-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+            <p className="text-xs font-bold text-yellow-400 font-mono">
+              No active retention window. <Link href={`/sub-admin/${seasonId}/retention-windows`} className="underline hover:text-yellow-300">Create one</Link> to set limits and eligible teams.
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center lg:text-left">
             <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-1">Current Season</div>
@@ -191,7 +290,7 @@ export default async function RetentionModulePage({
       <RetentionModule
         seasonId={seasonId}
         previousSeasonId={previousSeason.id}
-        teamsWithPlayers={teamsWithPlayers}
+        teamsWithPlayers={filteredTeamsWithPlayers}
         maxRetentionsPerTeam={maxRetentionsPerTeam}
         existingRetentions={existingRetentions.map(r => ({
           basePlayerId: r.basePlayerId,
@@ -199,6 +298,7 @@ export default async function RetentionModulePage({
             t.players.some(p => p.id === r.basePlayerId)
           )?.teamId || ""
         }))}
+        ineligibleTeams={ineligibleTeams}
       />
     </div>
   )

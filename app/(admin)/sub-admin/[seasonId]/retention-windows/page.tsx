@@ -64,6 +64,39 @@ export default async function RetentionWindowsAdminPage({ params }: Props) {
 
   const teams = seasonTeams.map((st) => st.team)
 
+  // Find previous season to check manager eligibility
+  const seasonData = await prisma.seasons.findUnique({
+    where: { id: seasonId },
+    select: { seasonNumber: true },
+  })
+
+  const previousSeason = seasonData
+    ? await prisma.seasons.findFirst({
+        where: { seasonNumber: { lt: seasonData.seasonNumber! } },
+        orderBy: { seasonNumber: "desc" },
+        select: { id: true },
+      })
+    : null
+
+  const previousSeasonManagers = previousSeason
+    ? await prisma.season_teams.findMany({
+        where: { seasonId: previousSeason.id },
+        select: { managerName: true },
+      })
+    : []
+  const previousManagerNames = new Set(
+    previousSeasonManagers.map((st) => st.managerName).filter(Boolean)
+  )
+
+  const ineligibleTeams = seasonTeams
+    .filter((st) => !st.managerName || !previousManagerNames.has(st.managerName))
+    .map((st) => ({
+      teamId: st.team.id,
+      teamName: st.team.name,
+      teamLogoUrl: st.team.logoUrl || "",
+      managerName: st.managerName || "",
+    }))
+
   return (
     <RetentionWindowsClient
       seasonId={seasonId}
@@ -76,6 +109,7 @@ export default async function RetentionWindowsAdminPage({ params }: Props) {
         updatedAt: window.updatedAt.toISOString(),
       }))}
       teams={teams}
+      ineligibleTeams={ineligibleTeams}
     />
   )
 }

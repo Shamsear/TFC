@@ -20,12 +20,21 @@ interface TeamWithPlayers {
   players: Player[]
 }
 
+interface IneligibleTeam {
+  teamId: string
+  teamName: string
+  teamLogoUrl: string
+  managerName: string
+  reason: "new_team" | "banned"
+}
+
 interface RetentionModuleProps {
   seasonId: string
   previousSeasonId: string
   teamsWithPlayers: TeamWithPlayers[]
   maxRetentionsPerTeam: number
   existingRetentions: Array<{ basePlayerId: string; teamId: string }>
+  ineligibleTeams?: IneligibleTeam[]
 }
 
 export default function RetentionModule({
@@ -34,6 +43,7 @@ export default function RetentionModule({
   teamsWithPlayers,
   maxRetentionsPerTeam,
   existingRetentions,
+  ineligibleTeams = [],
 }: RetentionModuleProps) {
   const router = useRouter()
   
@@ -192,6 +202,67 @@ export default function RetentionModule({
       {successMessage && (
         <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4 mb-6">
           <p className="text-emerald-400 text-sm">{successMessage}</p>
+        </div>
+      )}
+
+      {/* Ineligible Teams Section */}
+      {ineligibleTeams.length > 0 && (
+        <div className="mb-6">
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-xs font-black text-red-400 uppercase tracking-wider font-mono">
+                  Not Eligible for Retention
+                </div>
+                <div className="text-[10px] text-gray-500 font-bold font-mono">
+                  {ineligibleTeams.length} team{ineligibleTeams.length !== 1 ? 's' : ''} cannot retain players
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+              {ineligibleTeams.map(team => (
+                <div
+                  key={team.teamId}
+                  className={`flex items-center gap-3 p-3 rounded-xl border ${
+                    team.reason === "banned"
+                      ? "bg-red-500/5 border-red-500/20"
+                      : "bg-yellow-500/5 border-yellow-500/20"
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 ring-1 ring-white/10">
+                    {team.teamLogoUrl ? (
+                      <img
+                        src={team.teamLogoUrl}
+                        alt={team.teamName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
+                        {team.teamName.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-white text-sm truncate">{team.teamName}</div>
+                    {team.managerName && (
+                      <div className="text-[10px] text-gray-400 font-mono truncate">{team.managerName}</div>
+                    )}
+                    <div className={`text-[10px] font-bold uppercase tracking-wider font-mono ${
+                      team.reason === "banned" ? "text-red-400" : "text-yellow-400"
+                    }`}>
+                      {team.reason === "banned" ? "🚫 Banned" : "⚠️ No previous season"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

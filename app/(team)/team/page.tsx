@@ -810,6 +810,18 @@ export default async function TeamDashboardPage() {
               <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-yellow-400 uppercase tracking-wider transition-colors">Release</div>
             </Link>
             <Link
+              href="/team/retention-request"
+              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-orange-500/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
+            >
+              <div className="absolute top-0 right-0 w-16 h-16 bg-orange-500/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-orange-500/[0.03] transition-colors" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 mx-auto mb-2 sm:mb-3 group-hover:bg-orange-500/20 transition-colors shadow-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-orange-400 uppercase tracking-wider transition-colors">Retention</div>
+            </Link>
+            <Link
               href="/team/swap-request"
               className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-cyan-500/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
             >

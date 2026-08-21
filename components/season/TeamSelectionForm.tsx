@@ -324,7 +324,7 @@ export default function TeamSelectionForm({
               const assignment = assignments[manager.id]
 
               return (
-                <div key={manager.id} className={`rounded-xl border transition-all ${isSelected ? "border-[#E8A800] bg-[#E8A800]/10 shadow-lg shadow-[#E8A800]/5" : "border-white/5 bg-white/[0.01] hover:border-[#E8A800]/30 hover:bg-white/[0.03]"}`}>
+                <div key={manager.id} className={`rounded-xl border transition-all ${isSelected ? "border-[#E8A800] bg-[#E8A800]/10 shadow-lg shadow-[#E8A800]/5 relative z-10" : "border-white/5 bg-white/[0.01] hover:border-[#E8A800]/30 hover:bg-white/[0.03]"}`}>
                   {/* Manager Header - Clickable to select/deselect */}
                   <label className="cursor-pointer block p-4">
                     <input type="checkbox" checked={isSelected} onChange={() => handleManagerToggle(manager.id)} className="sr-only" />
@@ -401,7 +401,7 @@ export default function TeamSelectionForm({
                         </button>
                         
                         {openDropdown === manager.id && !assignment.isNewTeam && (
-                          <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                          <div className="absolute left-0 right-0 z-[100] mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
                             <div className="p-2 border-b border-white/5">
                               <input
                                 type="text"
@@ -412,7 +412,7 @@ export default function TeamSelectionForm({
                                 autoFocus
                               />
                             </div>
-                            <div className="max-h-48 overflow-y-auto">
+                            <div className="max-h-48 overflow-y-auto scrollbar-thin">
                               {getAvailableTeams(manager.id)
                                 .filter(t => t.id !== currentTeam?.id)
                                 .filter(t => !dropdownSearch || t.name.toLowerCase().includes(dropdownSearch.toLowerCase()))
@@ -427,10 +427,10 @@ export default function TeamSelectionForm({
                                     }}
                                     className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/[0.05] transition-colors text-left"
                                   >
-                                    <div className="w-6 h-6 flex-shrink-0">
-                                      <TeamLogo logoUrl={t.logoUrl} teamName={t.name} size="sm" />
+                                    <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/40 p-0.5">
+                                      <img src={t.logoUrl || ''} alt={t.name} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                                     </div>
-                                    <span className="text-xs font-bold text-white truncate">{t.name}</span>
+                                    <span className="text-[11px] font-bold text-gray-200 truncate">{t.name}</span>
                                   </button>
                                 ))}
                               {getAvailableTeams(manager.id)

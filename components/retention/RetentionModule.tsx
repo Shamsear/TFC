@@ -51,6 +51,18 @@ export default function RetentionModule({
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(teamsWithPlayers[0]?.teamId || "")
+  const [teamSearch, setTeamSearch] = useState("")
+
+  // Filter teams by search query
+  const filteredTeams = teamsWithPlayers.filter(t =>
+    !teamSearch || t.teamName.toLowerCase().includes(teamSearch.toLowerCase())
+  )
+
+  // Teams to display based on filter
+  const visibleTeams = selectedTeamId
+    ? filteredTeams.filter(t => t.teamId === selectedTeamId)
+    : filteredTeams
 
   const handlePlayerToggle = (teamId: string, playerId: string) => {
     setSelectedPlayers(prev => {
@@ -183,6 +195,53 @@ export default function RetentionModule({
         </div>
       )}
 
+      {/* Team Filter */}
+      {teamsWithPlayers.length > 0 && (
+        <div className="mb-6">
+          <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6">
+            <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-3">
+              Filter by Team
+            </div>
+            {/* Search */}
+            <div className="relative mb-3">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={teamSearch}
+                onChange={(e) => setTeamSearch(e.target.value)}
+                placeholder="Search teams..."
+                className="w-full pl-9 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-500 text-xs focus:outline-none focus:border-[#E8A800]/50 font-mono"
+              />
+            </div>
+            {/* Team pills */}
+            <div className="flex flex-wrap gap-2">
+              {filteredTeams.map(team => (
+                <button
+                  key={team.teamId}
+                  type="button"
+                  onClick={() => setSelectedTeamId(team.teamId)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
+                    selectedTeamId === team.teamId
+                      ? "bg-[#E8A800] text-[#0a0a0a]"
+                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {team.teamLogoUrl && (
+                    <img src={team.teamLogoUrl} alt="" className="w-4 h-4 object-contain rounded" />
+                  )}
+                  <span className="truncate max-w-[120px]">{team.teamName}</span>
+                  <span className="text-[10px] opacity-60">{team.players.length}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Teams with Players */}
       {teamsWithPlayers.length === 0 ? (
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
@@ -197,8 +256,7 @@ export default function RetentionModule({
           </p>
         </div>
       ) : (
-        <div className="space-y-4 sm:space-y-6">
-          {teamsWithPlayers.map((team) => {
+        <div className="space-y-4 sm:space-y-6">           {visibleTeams.map((team) => {
             const selectionCount = getTeamSelectionCount(team.teamId)
             const isAtLimit = selectionCount >= maxRetentionsPerTeam
 
@@ -312,6 +370,11 @@ export default function RetentionModule({
               </div>
             )
           })}
+          {visibleTeams.length === 0 && teamsWithPlayers.length > 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-sm font-mono font-bold">No teams match your search</p>
+            </div>
+          )}
         </div>
       )}
 

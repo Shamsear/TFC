@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import { normalizeForSearch } from "@/lib/search-utils"
@@ -71,19 +71,18 @@ export default function TeamSelectionForm({
   const [dropdownSearch, setDropdownSearch] = useState("")
   const [removingTeamId, setRemovingTeamId] = useState<string | null>(null)
   const [fetchingLogoManagerId, setFetchingLogoManagerId] = useState<string | null>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Handle click outside dropdown
+  // Handle click outside dropdown (works across all manager cards)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (openDropdown && !(event.target as HTMLElement).closest('[data-dropdown-area]')) {
         setOpenDropdown(null)
         setDropdownSearch("")
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+  }, [openDropdown])
 
   // Team IDs already assigned in this season
   const assignedTeamIds = useMemo(() => assignedPairs.map(p => p.teamId), [assignedPairs])
@@ -110,12 +109,10 @@ export default function TeamSelectionForm({
     )
   }, [unassignedManagers, searchQuery])
 
-  // Available teams for assignment (not already assigned to this season or to another manager in the form)
+  // Available teams for assignment (not already assigned to another manager in the current form selections)
   const getAvailableTeams = (excludeManagerId?: string) => {
     return allTeams.filter(t => {
-      // Exclude teams already assigned to this season
-      if (assignedTeamIds.includes(t.id)) return false
-      // Exclude teams already assigned to OTHER managers in the current form
+      // Exclude teams already picked by OTHER new managers in the current form
       const isAssignedElsewhere = Object.entries(assignments).some(
         ([mgrId, a]) => mgrId !== excludeManagerId && a.teamId === t.id
       )
@@ -345,7 +342,11 @@ export default function TeamSelectionForm({
 
       // Merge: existing + new (new overrides if same managerId)
       const managerIdSet = new Set(newAssignments.map(a => a.managerId))
-      const mergedExisting = existingAssignments.filter(a => !managerIdSet.has(a.managerId))
+      // Also drop existing assignments for teams being taken over by new managers
+      const newTeamIds = new Set(newAssignments.filter(a => a.teamId).map(a => a.teamId))
+      const mergedExisting = existingAssignments.filter(a =>
+        !managerIdSet.has(a.managerId) && !newTeamIds.has(a.teamId)
+      )
       const allAssignments = [...mergedExisting, ...newAssignments]
 
       const response = await fetch(`/api/seasons/${seasonId}/teams`, {
@@ -577,7 +578,7 @@ export default function TeamSelectionForm({
                       )}
 
                       {/* Option: Select different team - Custom searchable dropdown */}
-                      <div className="relative mb-2" ref={dropdownRef}>
+                      <div className="relative mb-2" data-dropdown-area="true">
                         <button
                           type="button"
                           onClick={() => {

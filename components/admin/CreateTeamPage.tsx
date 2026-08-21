@@ -114,7 +114,8 @@ export default function CreateTeamPage({ backHref, backLabel, teamsViewHref }: P
       .catch(() => setAssignedTeamIds(new Set()))
   }, [formData.seasonId])
 
-  const availableTeams = existingTeams.filter(t => !assignedTeamIds.has(t.id))
+  // Show all teams — assigned teams can be reassigned to a new manager
+  const availableTeams = existingTeams
 
   // Debounced check for existing manager name
   useEffect(() => {
@@ -413,7 +414,7 @@ export default function CreateTeamPage({ backHref, backLabel, teamsViewHref }: P
                       />
                       {assignedTeamIds.size > 0 && (
                         <p className="text-gray-500 text-xs mt-2">
-                          {assignedTeamIds.size} team{assignedTeamIds.size !== 1 ? "s" : ""} already in this season (hidden)
+                          {assignedTeamIds.size} team{assignedTeamIds.size !== 1 ? "s" : ""} already in this season — selecting one will reassign its manager
                         </p>
                       )}
                     </div>

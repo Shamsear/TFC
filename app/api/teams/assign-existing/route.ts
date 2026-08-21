@@ -73,7 +73,13 @@ export async function POST(request: NextRequest) {
           where: { seasonId: season.id, teamId, isActive: true }
         })
 
-        if (!existingSeasonTeam) {
+        if (existingSeasonTeam) {
+          // Team is already in the season — update the managerName
+          await tx.season_teams.update({
+            where: { id: existingSeasonTeam.id },
+            data: { managerName: managerName.trim(), updatedAt: new Date() }
+          })
+        } else {
           const seasonTeamId = await generateSeasonTeamId()
           const ledgerId = await generateFinancialId()
 
@@ -82,6 +88,7 @@ export async function POST(request: NextRequest) {
               id: seasonTeamId,
               seasonId: season.id,
               teamId,
+              managerName: managerName.trim(),
               currentBudget: season.startingPurse,
               trophiesWon: 0,
               updatedAt: new Date()

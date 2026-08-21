@@ -155,6 +155,14 @@ async function handleManagerAssignments(
   const teamsToRemove = existingTeamIds.filter(id => !newTeamIds.includes(id))
   // Teams to add (new assignments not yet in season)
   const teamsToAdd = finalAssignments.filter(a => !existingTeamIds.includes(a.teamId))
+  // Teams already in season but managerName needs updating
+  const teamsToUpdate = finalAssignments.filter(a => {
+    if (existingTeamIds.includes(a.teamId)) {
+      const existing = existingSeasonTeams.find(st => st.teamId === a.teamId)
+      return existing && existing.managerName?.toLowerCase() !== a.managerName.toLowerCase()
+    }
+    return false
+  })
 
   // Generate IDs outside transaction
   const newSeasonTeamEntries = await Promise.all(
@@ -229,6 +237,14 @@ async function handleManagerAssignments(
             }
           })
         }
+      }
+
+      // Update managerName for teams already in season where manager changed
+      for (const { teamId, managerName } of teamsToUpdate) {
+        await tx.season_teams.updateMany({
+          where: { seasonId, teamId, isActive: true },
+          data: { managerName, updatedAt: new Date() }
+        })
       }
 
       await tx.seasons.update({

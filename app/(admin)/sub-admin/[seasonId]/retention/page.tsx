@@ -32,12 +32,12 @@ export default async function RetentionModulePage({
     redirect("/sub-admin")
   }
 
-  // Find previous season (by creation date)
+  // Find previous season by season number
   const previousSeason = await prisma.seasons.findFirst({
     where: {
-      createdAt: { lt: season.createdAt }
+      seasonNumber: { lt: season.seasonNumber! }
     },
-    orderBy: { createdAt: "desc" }
+    orderBy: { seasonNumber: "desc" }
   })
 
   if (!previousSeason) {

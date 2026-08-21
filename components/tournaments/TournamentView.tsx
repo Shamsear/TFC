@@ -17,6 +17,7 @@ interface TournamentViewProps {
     season: {
       id: string
       name: string
+      isHistorical: boolean
     }
     status: string
   }
@@ -36,7 +37,7 @@ export default function TournamentView({
   teams,
 }: TournamentViewProps) {
   const [activeTab, setActiveTab] = useState<'overall' | 'matches' | 'table' | 'stats'>('overall')
-  const isHistorical = ['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(tournament.season.id)
+  const isHistorical = tournament.season.isHistorical
 
   const completedMatches = matches.filter(m => m.status === 'COMPLETED')
   const liveMatches = matches.filter(m => m.status === 'LIVE')

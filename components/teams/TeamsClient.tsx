@@ -8,6 +8,7 @@ interface Season {
   id: string
   name: string
   isActive: boolean
+  isHistorical: boolean
 }
 
 interface TeamData {
@@ -65,10 +66,8 @@ export default function TeamsClient({
   const currentStats = selectedView === 'overall' ? overallStats : (seasonStats[selectedView] || overallStats)
   const isOverallView = selectedView === 'overall'
 
-  // Check if active season is S1-S3 (hide players/invested for legacy seasons)
-  const activeSeasonName = seasons.find(s => s.id === selectedView)?.name || ''
-  const activeSeasonNum = parseInt(activeSeasonName.match(/\d+/)?.[0] || '0', 10)
-  const isLegacySeason = !isOverallView && activeSeasonNum >= 1 && activeSeasonNum <= 3
+  const activeSeason = seasons.find(s => s.id === selectedView)
+  const isLegacySeason = !isOverallView && (activeSeason?.isHistorical ?? false)
 
   return (
     <div className="relative">

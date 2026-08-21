@@ -93,10 +93,21 @@ export default async function RetentionRequestsAdminPage({ params }: Props) {
       seasonId={seasonId}
       seasonName={season.name}
       requests={requests.map((req) => ({
-        ...req,
+        id: req.id,
+        playerId: req.playerId,
+        playerName: req.playerName,
+        oldSquadValue: req.oldSquadValue,
+        notes: req.notes,
         submittedAt: req.submittedAt?.toISOString() || '',
         processedAt: req.processedAt?.toISOString() || null,
-        status: req.status || 'pending',
+        status: (req.status || 'pending') as string,
+        rejectionReason: req.rejectionReason,
+        team: req.team,
+        basePlayer: req.basePlayer,
+        previousSeason: req.previousSeason,
+        retentionWindow: req.retentionWindow,
+        processor: req.processor,
+        retentionWindowId: req.retentionWindowId,
       }))}
       activeWindow={
         activeWindow

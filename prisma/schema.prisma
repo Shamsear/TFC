@@ -227,6 +227,7 @@ model seasons {
   defaultBasePrice      Int?                    @default(100000) @map("defaultBasePrice")
   releaseWindowOpen     Boolean?                @default(false) @map("release_window_open")
   swapWindowOpen        Boolean?                @default(false) @map("swap_window_open")
+  isHistorical          Boolean                 @default(false) @map("is_historical")
   auctionCalendar       auction_calendar[]
   auctionPlans          auction_plans[]
   auctionSettings       auction_settings?

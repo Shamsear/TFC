@@ -20,70 +20,40 @@ async function getLandingPageData() {
 
     const seasonId = activeSeason?.id
 
-    // Fetch stats counters
-    const [teamsCount, playersCount, matchesCount, seasonsCount] = await Promise.all([
-      seasonId 
-        ? prisma.season_teams.count({ where: { seasonId } })
-        : prisma.season_teams.count(),
-      seasonId 
-        ? prisma.seasonal_player_stats.count({ where: { seasonId } })
-        : prisma.seasonal_player_stats.count(),
-      seasonId 
-        ? prisma.matches.count({ where: { tournament: { seasonId } } })
-        : prisma.matches.count(),
-      prisma.seasons.count()
+    // Fetch all-time stats counters (across all seasons)
+    const [teamsCount, playersCount, matchesCount, seasonsCount, totalTransfers] = await Promise.all([
+      prisma.season_teams.groupBy({ by: ['teamId'], _count: { _all: true } }).then(r => r.length),
+      prisma.seasonal_player_stats.count(),
+      prisma.matches.count(),
+      prisma.seasons.count(),
+      prisma.transfer_history.count({ where: { status: 'ACTIVE' } })
     ])
 
-    // Get recent transfers with serializable data only
-    const transfersRaw = seasonId 
-      ? await prisma.transfer_history.findMany({
-          where: { seasonId, status: 'ACTIVE' },
-          take: 5,
-          orderBy: { createdAt: 'desc' },
+    // Get recent transfers (all-time)
+    const transfersRaw = await prisma.transfer_history.findMany({
+      where: { status: 'ACTIVE' },
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        soldPrice: true,
+        basePlayer: {
           select: {
-            id: true,
-            soldPrice: true,
-            basePlayer: {
-              select: {
-                name: true
-              }
-            },
-            team: {
-              select: {
-                name: true
-              }
-            },
-            season: {
-              select: {
-                name: true
-              }
-            }
+            name: true
           }
-        })
-      : await prisma.transfer_history.findMany({
-          where: { status: 'ACTIVE' },
-          take: 5,
-          orderBy: { createdAt: 'desc' },
+        },
+        team: {
           select: {
-            id: true,
-            soldPrice: true,
-            basePlayer: {
-              select: {
-                name: true
-              }
-            },
-            team: {
-              select: {
-                name: true
-              }
-            },
-            season: {
-              select: {
-                name: true
-              }
-            }
+            name: true
           }
-        })
+        },
+        season: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
 
     // Convert to plain objects
     const recentTransfers = transfersRaw.map(transfer => ({
@@ -203,25 +173,22 @@ export default async function PublicLandingPage() {
               <div className="text-center group">
                 <div className="text-4xl sm:text-5xl font-black text-white mb-2 transition-transform group-hover:scale-105 duration-300 drop-shadow-[0_0_10px_rgba(232,168,0,0.25)]">
                   {data.stats.teams}
-                </div>
-                <div className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-                  Active Teams
+                </div>                  <div className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+                  Teams
                 </div>
               </div>
               <div className="text-center group">
                 <div className="text-4xl sm:text-5xl font-black text-white mb-2 transition-transform group-hover:scale-105 duration-300 drop-shadow-[0_0_10px_rgba(255,179,71,0.25)]">
                   {data.stats.players}
-                </div>
-                <div className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-                  Total Players
+                </div>                  <div className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+                  Players
                 </div>
               </div>
               <div className="text-center group">
                 <div className="text-4xl sm:text-5xl font-black text-white mb-2 transition-transform group-hover:scale-105 duration-300 drop-shadow-[0_0_10px_rgba(232,168,0,0.25)]">
                   {data.stats.matches}
-                </div>
-                <div className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-                  Matches Played
+                </div>                  <div className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
+                  Matches
                 </div>
               </div>
               <div className="text-center group">

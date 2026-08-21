@@ -100,14 +100,14 @@ export default async function SeasonsPage() {
           )}
 
           {/* Modern Seasons (4+) */}
-          {seasons.filter(s => s.seasonNumber >= 4).length > 0 && (
+          {seasons.filter(s => !s.isHistorical).length > 0 && (
             <div className="mb-12">
               <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)] animate-pulse" />
                 <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider">Active Leagues</h2>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                {seasons.filter(s => s.seasonNumber >= 4).map((season) => (
+                {seasons.filter(s => !s.isHistorical).map((season) => (
                 <Link
                   key={season.id}
                   href={`/seasons/${season.id}`}
@@ -133,12 +133,12 @@ export default async function SeasonsPage() {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className={`gap-2.5 mb-4 ${season.seasonNumber >= 4 ? 'grid grid-cols-3' : 'grid grid-cols-2'}`}>
+                    <div className={`gap-2.5 mb-4 ${!season.isHistorical ? 'grid grid-cols-3' : 'grid grid-cols-2'}`}>
                       <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
                         <div className="text-lg font-black text-blue-400 font-mono">{season.stats.totalTeams}</div>
                         <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Teams</div>
                       </div>
-                      {season.seasonNumber >= 4 && (
+                      {!season.isHistorical && (
                         <div className="text-center p-3 rounded-xl bg-black/40 border border-white/5">
                           <div className="text-lg font-black text-[#FFB347] font-mono">{season.stats.totalPlayers}</div>
                           <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">Players</div>
@@ -151,7 +151,7 @@ export default async function SeasonsPage() {
                     </div>
 
                     {/* Additional Stats - only for Season 4+ */}
-                    {season.seasonNumber >= 4 && (
+                    {!season.isHistorical && (
                       <>
                         <div className="grid grid-cols-2 gap-3 mb-4">
                           <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/40 border border-white/5">
@@ -204,14 +204,14 @@ export default async function SeasonsPage() {
           )}
 
           {/* Historical Seasons (1-3) */}
-          {seasons.filter(s => s.seasonNumber < 4).length > 0 && (
+          {seasons.filter(s => s.isHistorical).length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-gray-500" />
                 <h2 className="text-xl sm:text-2xl font-black text-gray-400 uppercase tracking-wider">Historical Seasons</h2>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                {seasons.filter(s => s.seasonNumber < 4).map((season) => (
+                {seasons.filter(s => s.isHistorical).map((season) => (
                   <Link
                     key={season.id}
                     href={`/seasons/${season.id}`}

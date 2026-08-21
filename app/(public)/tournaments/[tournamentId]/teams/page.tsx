@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import TeamLogo from '@/components/team/TeamLogo'
+import { resolveManagerId } from '@/lib/manager-resolve'
 
 async function getTournamentTeamsData(tournamentId: string) {
   try {
@@ -81,20 +82,8 @@ async function getTournamentTeamsData(tournamentId: string) {
       const points = (wins * 3) + draws
       const goalDifference = goalsFor - goalsAgainst
 
-      // Resolve managerId from season-specific manager name (not current team owner)
-      let managerId: string | null = null
-      const seasonManagerName = tournamentTeam.seasonTeam.managerName
-      if (seasonManagerName) {
-        const managerRecord = await prisma.managers.findFirst({
-          where: { name: { equals: seasonManagerName, mode: 'insensitive' } }
-        })
-        managerId = managerRecord?.id || null
-      }
-      // Fallback to current team owner if no season-specific match
-      if (!managerId) {
-        const fallbackLink = tournamentTeam.seasonTeam.team.managerLinks?.[0]
-        managerId = fallbackLink?.managerId || null
-      }
+      const managerId = await resolveManagerId(prisma, tournamentTeam.seasonTeam.managerName)
+        || tournamentTeam.seasonTeam.team.managerLinks?.[0]?.managerId || null
       return {
         ...tournamentTeam.seasonTeam,
         managerId,

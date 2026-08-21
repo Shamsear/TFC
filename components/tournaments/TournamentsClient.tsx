@@ -7,6 +7,7 @@ interface Season {
   id: string
   name: string
   isActive: boolean
+  isHistorical: boolean
 }
 
 interface Tournament {
@@ -21,6 +22,7 @@ interface Tournament {
   liveMatches: number
   season: {
     name: string
+    isHistorical: boolean
   }
   _count: {
     matches: number
@@ -186,7 +188,7 @@ export default function TournamentsClient({
               ? (tournament.completedMatches / tournament._count.matches) * 100 
               : 0
 
-            const isHistorical = ['TFCS-1', 'TFCS-2', 'TFCS-3'].includes(tournament.seasonId)
+            const isHistorical = tournament.season.isHistorical
 
             return (
               <Link

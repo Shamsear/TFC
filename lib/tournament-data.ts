@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { resolveManagerId } from '@/lib/manager-resolve'
 import type { TeamStatRow } from '@/components/tournaments/TournamentStats'
 import type { StandingRow } from '@/components/tournaments/TournamentTable'
 
@@ -40,22 +41,9 @@ export async function getTournamentTableData(tournamentId: string) {
     orderBy: [{ groupName: 'asc' }, { position: 'asc' }, { points: 'desc' }],
   })
 
-  // Resolve managerId from season-specific managerName (not current team owner)
-  const managerCache = new Map<string, string | null>()
-  async function resolveManagerId(managerName: string | null): Promise<string | null> {
-    if (!managerName) return null
-    const key = managerName.toLowerCase()
-    if (managerCache.has(key)) return managerCache.get(key)!
-    const record = await prisma.managers.findFirst({
-      where: { name: { equals: managerName, mode: 'insensitive' } }
-    })
-    managerCache.set(key, record?.id || null)
-    return record?.id || null
-  }
-
   const standingsWithManagerId = await Promise.all(standings.map(async s => ({
     ...s,
-    managerId: await resolveManagerId(s.seasonTeam.managerName) || s.seasonTeam.team.managerLinks?.[0]?.managerId || null
+    managerId: await resolveManagerId(prisma, s.seasonTeam.managerName) || s.seasonTeam.team.managerLinks?.[0]?.managerId || null
   })))
 
   return { tournament, standings: standingsWithManagerId as StandingRow[] }
@@ -108,22 +96,9 @@ export async function getTournamentStatsData(tournamentId: string) {
     if (m.homeScore === 0) cleanSheetMap[m.awayTeamId] = (cleanSheetMap[m.awayTeamId] ?? 0) + 1
   }
 
-  // Resolve managerIds from season-specific managerName
-  const managerCache2 = new Map<string, string | null>()
-  async function resolveId(managerName: string | null): Promise<string | null> {
-    if (!managerName) return null
-    const key = managerName.toLowerCase()
-    if (managerCache2.has(key)) return managerCache2.get(key)!
-    const record = await prisma.managers.findFirst({
-      where: { name: { equals: managerName, mode: 'insensitive' } }
-    })
-    managerCache2.set(key, record?.id || null)
-    return record?.id || null
-  }
-
   const teams: TeamStatRow[] = await Promise.all(standings.map(async (s) => ({
     teamId: s.seasonTeam.team.id,
-    managerId: await resolveId(s.seasonTeam.managerName) || s.seasonTeam.team.managerLinks?.[0]?.managerId || null,
+    managerId: await resolveManagerId(prisma, s.seasonTeam.managerName) || s.seasonTeam.team.managerLinks?.[0]?.managerId || null,
     seasonTeamId: s.seasonTeam.id,
     teamName: s.seasonTeam.team.name,
     logoUrl: s.seasonTeam.team.logoUrl,

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import TeamLogo from '@/components/team/TeamLogo'
+import { resolveManagerId } from '@/lib/manager-resolve'
 
 async function getSeasonTeamsData(seasonId: string) {
   try {
@@ -69,22 +70,9 @@ async function getSeasonTeamsData(seasonId: string) {
     const homeWinsMap = new Map(homeWins.map(hw => [hw.homeTeamId, Number(hw.count)]))
     const awayWinsMap = new Map(awayWins.map(aw => [aw.awayTeamId, Number(aw.count)]))
 
-    // Resolve managerIds from season-specific managerName
-    const managerCache = new Map<string, string | null>()
-    async function resolveManagerId(managerName: string | null): Promise<string | null> {
-      if (!managerName) return null
-      const key = managerName.toLowerCase()
-      if (managerCache.has(key)) return managerCache.get(key)!
-      const record = await prisma.managers.findFirst({
-        where: { name: { equals: managerName, mode: 'insensitive' } }
-      })
-      managerCache.set(key, record?.id || null)
-      return record?.id || null
-    }
-
     const teamsWithStats = await Promise.all(seasonTeams.map(async (st) => ({
       ...st,
-      managerId: await resolveManagerId(st.managerName) || st.team.managerLinks?.[0]?.managerId || null,
+      managerId: await resolveManagerId(prisma, st.managerName) || st.team.managerLinks?.[0]?.managerId || null,
       playerCount: countMap.get(st.teamId) || 0,
       spent: spentMap.get(st.teamId) || 0,
       wins: (homeWinsMap.get(st.id) || 0) + (awayWinsMap.get(st.id) || 0)
@@ -172,7 +160,7 @@ export default async function SeasonTeamsPage({
                 <div className="text-2xl sm:text-3xl font-black text-white font-mono">{data.teams.length}</div>
                 <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Teams</div>
               </div>
-              {data.season.seasonNumber >= 4 && (
+              {!data.season.isHistorical && (
                 <>
                   <div>
                     <div className="text-2xl sm:text-3xl font-black text-white font-mono">{data.stats.totalPlayers}</div>
@@ -225,7 +213,7 @@ export default async function SeasonTeamsPage({
                       </div>
                     </div>
                     
-                    {data.season.seasonNumber >= 4 && (
+                    {!data.season.isHistorical && (
                       <div className="flex items-center gap-3 text-xs text-[#7A7367]">
                         <div className="flex items-center gap-1">
                           <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,7 +231,7 @@ export default async function SeasonTeamsPage({
                   </div>
 
                   {/* Budget Section - only for Season 4+ */}
-                  {data.season.seasonNumber >= 4 && (
+                  {!data.season.isHistorical && (
                     <div className="mb-4 relative z-10">
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="text-gray-500 font-extrabold uppercase tracking-widest text-[9px]">Remaining Budget</span>

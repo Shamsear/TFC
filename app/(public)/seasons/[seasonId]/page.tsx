@@ -141,7 +141,7 @@ export default async function SeasonPage({
           </div>
 
           {/* Stats Overview - only for Season 4+ */}
-          {data.season.seasonNumber >= 4 && (
+          {!data.season.isHistorical && (
             <div className="mb-12">
               <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#E8A800] shadow-[0_0_8px_rgba(232,168,0,0.5)] animate-pulse" />
@@ -220,7 +220,7 @@ export default async function SeasonPage({
               </h2>
             </div>
             
-            <div className={`gap-4 sm:gap-5 ${data.season.seasonNumber >= 4 ? 'grid sm:grid-cols-2 lg:grid-cols-3' : 'grid sm:grid-cols-2'}`}>
+            <div className={`gap-4 sm:gap-5 ${!data.season.isHistorical ? 'grid sm:grid-cols-2 lg:grid-cols-3' : 'grid sm:grid-cols-2'}`}>
               {/* View Teams - Primary Action */}
               <Link
                 href={`/seasons/${seasonId}/teams`}
@@ -261,7 +261,7 @@ export default async function SeasonPage({
                 <h3 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#E8A800] transition-colors uppercase tracking-wider">Calendar</h3>
                 <p className="text-sm text-gray-500 font-medium">View upcoming matches and events</p>
               </Link>              {/* Players - only for Season 4+ */}
-              {data.season.seasonNumber >= 4 && (
+              {!data.season.isHistorical && (
                 <Link
                   href="/players"
                   className="group rounded-2xl bg-dark-100 border border-[#FFB347]/20 p-6 sm:p-7 hover:border-[#FFB347]/40 hover:bg-dark-200 transition-all duration-300 shadow-md"

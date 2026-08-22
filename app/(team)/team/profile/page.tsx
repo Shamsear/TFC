@@ -27,8 +27,16 @@ export default async function TeamProfilePage() {
     redirect("/team/not-in-season")
   }
 
-  // Resolve current manager
-  const mgrMap = await resolveTeamManagerNames([session.user.teamId])
+  // Get active season early
+  const activeSeason = await getActiveSeason()
+
+  // Resolve current manager from season_teams (authoritative)
+  const currentSeasonTeamForMgr = activeSeason
+    ? await prisma.season_teams.findFirst({
+        where: { seasonId: activeSeason.id, teamId: session.user.teamId! },
+        select: { managerName: true }
+      })
+    : null
 
   // Fetch team info with minimal nested data
   const teamRaw = await prisma.teams.findUnique({
@@ -66,14 +74,11 @@ export default async function TeamProfilePage() {
   // Resolve manager name
   const team = {
     ...teamRaw,
-    managerName: mgrMap.get(teamRaw.id) || teamRaw.managerName
+    managerName: currentSeasonTeamForMgr?.managerName || teamRaw.managerName
   }
 
   // Check if user can edit this team
   const canEdit = await canEditTeam(team.id)
-
-  // Get active season
-  const activeSeason = await getActiveSeason()
 
   // Get current season team data
   const currentSeasonTeam = activeSeason

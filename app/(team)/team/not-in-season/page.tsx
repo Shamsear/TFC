@@ -42,14 +42,20 @@ export default async function NotInSeasonPage() {
     redirect("/auth/signin")
   }
 
-  // Resolve current manager name
+  // Get active season early
+  const activeSeason = await getActiveSeason()
+
+  // Resolve current manager name from season_teams (authoritative)
+  const currentSeasonTeamForMgr = activeSeason
+    ? await prisma.season_teams.findFirst({
+        where: { seasonId: activeSeason.id, teamId: teamRaw.id },
+        select: { managerName: true }
+      })
+    : null
   const team = {
     ...teamRaw,
-    managerName: teamRaw.managerLinks[0]?.manager?.name || teamRaw.managerName
+    managerName: currentSeasonTeamForMgr?.managerName || teamRaw.managerLinks[0]?.manager?.name || teamRaw.managerName
   }
-
-  // Get active season (reliable: uses TFCS-N ID sorting)
-  const activeSeason = await getActiveSeason()
 
   // Get team's past seasons
   const pastSeasons = team.seasonTeams.filter(st => !st.season.isActive)

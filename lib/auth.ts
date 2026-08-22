@@ -30,7 +30,7 @@ export const authConfig: NextAuthConfig = {
         // Always resolve current teamId to reflect team reassignments
         if (token.role === "TEAM_MANAGER" && token.id) {
           try {
-            // First check manager_teams.isCurrent (authoritative)
+            // 1. Try via users.managerId → managers → manager_teams.isCurrent
             const mgrLink = await prisma.manager_teams.findFirst({
               where: { manager: { user: { id: token.id as string } }, isCurrent: true },
               select: { teamId: true }
@@ -38,12 +38,30 @@ export const authConfig: NextAuthConfig = {
             if (mgrLink) {
               session.user.teamId = mgrLink.teamId
             } else {
-              // Fallback: DB users.teamId
+              // 2. Try via users.name → managers.name → manager_teams.isCurrent
               const user = await prisma.users.findUnique({
                 where: { id: token.id as string },
-                select: { teamId: true }
+                select: { teamId: true, name: true, managerId: true }
               })
-              session.user.teamId = user?.teamId || (token.teamId as string) || undefined
+              if (user?.name) {
+                const mgrByName = await prisma.managers.findFirst({
+                  where: { name: { equals: user.name, mode: 'insensitive' } },
+                  select: { id: true }
+                })
+                if (mgrByName) {
+                  const mgrTeam = await prisma.manager_teams.findFirst({
+                    where: { managerId: mgrByName.id, isCurrent: true },
+                    select: { teamId: true }
+                  })
+                  if (mgrTeam) {
+                    session.user.teamId = mgrTeam.teamId
+                  }
+                }
+              }
+              // 3. If still no teamId, use DB users.teamId or JWT token
+              if (!session.user.teamId) {
+                session.user.teamId = user?.teamId || (token.teamId as string) || undefined
+              }
             }
           } catch {
             session.user.teamId = token.teamId as string

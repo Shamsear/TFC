@@ -146,10 +146,10 @@ async function handleManagerAssignments(
         update: { isCurrent: true },
         create: { managerId, teamId, isCurrent: true },
       })
-      // Update user's teamId so their session reflects the new team
+      // Update user's teamId and managerId so their session reflects the new team
       await prisma.users.updateMany({
         where: { name: { equals: a.managerName, mode: 'insensitive' }, role: 'TEAM_MANAGER' },
-        data: { teamId }
+        data: { teamId, managerId }
       })
       teamIdMap.set(a.managerId, teamId)
       return { managerId: a.managerId, teamId }
@@ -261,13 +261,13 @@ async function handleManagerAssignments(
           where: { seasonId, teamId, isActive: true },
           data: { managerName, updatedAt: new Date() }
         })
-        // Also update user's teamId for reassigned managers
+        // Also update user's teamId and managerId for reassigned managers
+        const newMgr = await tx.managers.findFirst({ where: { name: { equals: managerName, mode: 'insensitive' } } })
         await tx.users.updateMany({
           where: { name: { equals: managerName, mode: 'insensitive' }, role: 'TEAM_MANAGER' },
-          data: { teamId }
+          data: { teamId, ...(newMgr ? { managerId: newMgr.id } : {}) }
         })
         // Update manager_teams.isCurrent for the new manager
-        const newMgr = await tx.managers.findFirst({ where: { name: { equals: managerName, mode: 'insensitive' } } })
         if (newMgr) {
           // Deactivate old isCurrent links for this manager
           await tx.manager_teams.updateMany({

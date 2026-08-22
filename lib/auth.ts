@@ -32,7 +32,7 @@ export const authConfig: NextAuthConfig = {
           try {
             // First check manager_teams.isCurrent (authoritative)
             const mgrLink = await prisma.manager_teams.findFirst({
-              where: { manager: { users: { some: { id: token.id as string } } }, isCurrent: true },
+              where: { manager: { user: { id: token.id as string } }, isCurrent: true },
               select: { teamId: true }
             })
             if (mgrLink) {

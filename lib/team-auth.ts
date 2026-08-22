@@ -221,9 +221,10 @@ export async function checkTeamSeasonParticipation() {
     return { isParticipating: false, activeSeason: null, seasonTeam: null, team: null }
   }
 
-  // Get active season
+  // Get active season (order by seasonNumber to get latest, not just first)
   const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true }
+    where: { isActive: true },
+    orderBy: { seasonNumber: 'desc' }
   })
 
   if (!activeSeason) {

@@ -44,6 +44,7 @@ export default async function TeamDashboardPage() {
   // Get active season
   const activeSeason = await prisma.seasons.findFirst({
     where: { isActive: true },
+    orderBy: { seasonNumber: 'desc' }
   })
 
   // Check if team is participating in active season

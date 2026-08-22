@@ -63,17 +63,12 @@ export default async function RetentionRequestPage() {
   }
 
   // Find the MANAGER's previous season (what team were they managing before?)
-  // Use the resolved manager name from season_teams, not the user's name (they can differ)
-  const mgrLink = await prisma.manager_teams.findFirst({
-    where: { manager: { user: { id: session.user.id! } }, isCurrent: true },
-    include: { manager: { select: { name: true } } }
+  // Use the current season's season_teams.managerName — always the authoritative source
+  const currentSeasonTeamEntry = await prisma.season_teams.findUnique({
+    where: { seasonId_teamId: { seasonId: activeSeason.id, teamId: team.id } },
+    select: { managerName: true },
   })
-  let managerName = mgrLink?.manager?.name || ''
-  if (!managerName) {
-    // Fallback: match by user name
-    const user = await prisma.users.findUnique({ where: { id: session.user.id! }, select: { name: true } })
-    managerName = user?.name || ''
-  }
+  const managerName = currentSeasonTeamEntry?.managerName || ''
   const mgrHistory = managerName
     ? await prisma.season_teams.findMany({
         where: { managerName: { equals: managerName, mode: 'insensitive' }, seasonId: { not: activeSeason.id } },

@@ -94,6 +94,7 @@ export default function RetentionRequestsAdminClient({
   const approvedCount = requests.filter(r => r.status === 'approved').length
   const rejectedCount = requests.filter(r => r.status === 'rejected').length
   const totalPendingValue = requests.filter(r => r.status === 'pending').reduce((s, r) => s + r.oldSquadValue, 0)
+  const teamsRequested = new Set(requests.map(r => r.team.id)).size
 
   const toggleTeam = (teamId: string) => {
     setExpandedTeams(prev => {
@@ -191,6 +192,15 @@ export default function RetentionRequestsAdminClient({
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
   })
 
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const copyRequest = (req: RetentionRequest) => {
+    const text = `${req.playerName} | ${req.team.name} | ${formatCurrency(req.oldSquadValue)} | ${req.status.toUpperCase()} | From ${req.previousSeason.name}`
+    navigator.clipboard.writeText(text)
+    setCopiedId(req.id)
+    setTimeout(() => setCopiedId(null), 1500)
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Back */}
@@ -216,7 +226,7 @@ export default function RetentionRequestsAdminClient({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <div className="bg-white/5 border border-white/10 rounded-xl p-3">
           <p className="text-[9px] text-gray-500 font-mono uppercase">Total</p>
           <p className="text-xl font-black text-white">{requests.length}</p>
@@ -232,6 +242,10 @@ export default function RetentionRequestsAdminClient({
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
           <p className="text-[9px] text-gray-500 font-mono uppercase">Rejected</p>
           <p className="text-xl font-black text-red-500">{rejectedCount}</p>
+        </div>
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+          <p className="text-[9px] text-gray-500 font-mono uppercase">Teams Requested</p>
+          <p className="text-xl font-black text-blue-400">{teamsRequested}</p>
         </div>
         <div className="bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-xl p-3">
           <p className="text-[9px] text-gray-500 font-mono uppercase">Pending Value</p>
@@ -385,6 +399,21 @@ export default function RetentionRequestsAdminClient({
                           }`}>
                             {req.status}
                           </div>
+
+                          {/* Copy Button */}
+                          {(req.status === 'approved' || req.status === 'rejected') && (
+                            <button
+                              onClick={() => copyRequest(req)}
+                              className="p-1.5 rounded hover:bg-white/10 transition-colors flex-shrink-0"
+                              title="Copy details"
+                            >
+                              {copiedId === req.id ? (
+                                <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              ) : (
+                                <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                              )}
+                            </button>
+                          )}
 
                           {/* Time */}
                           <span className="text-[9px] text-gray-600 font-mono flex-shrink-0 hidden sm:block">{formatDate(req.submittedAt)}</span>

@@ -26,11 +26,8 @@ const TrophyIcon = () => (
 )
 
 async function getTeamData(teamId: string) {
-  // First, resolve the manager name for this team
-  const mgrMap = await resolveTeamManagerNames([teamId])
-
-  // Get team basic info
-  const team = await prisma.teams.findUnique({
+  // Check if this is a team ID or a manager name
+  let team = await prisma.teams.findUnique({
     where: { id: teamId },
     include: {
       managerLinks: {
@@ -41,12 +38,41 @@ async function getTeamData(teamId: string) {
     }
   })
 
+  let resolvedManagerName: string | null = null
+
+  if (team) {
+    // It's a team ID — resolve the manager name
+    const mgrMap = await resolveTeamManagerNames([teamId])
+    resolvedManagerName = mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
+    team.managerName = resolvedManagerName
+  } else {
+    // It's a manager name — find their latest season_team to get the team
+    const latestSeasonTeam = await prisma.season_teams.findFirst({
+      where: { managerName: { equals: teamId, mode: 'insensitive' } },
+      include: {
+        team: {
+          include: {
+            managerLinks: {
+              where: { isCurrent: true },
+              include: { manager: true },
+              take: 1
+            }
+          }
+        }
+      },
+      orderBy: { season: { seasonNumber: 'desc' } }
+    })
+
+    if (!latestSeasonTeam) return null
+
+    team = latestSeasonTeam.team as any
+    resolvedManagerName = teamId
+    team!.managerName = resolvedManagerName
+  }
+
   if (!team) {
     return null
   }
-
-  const resolvedManagerName = mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
-  team.managerName = resolvedManagerName
 
   // Get ALL seasons for this MANAGER (not just this team)
   // This ensures when Shadow moves from Al Hilal to Schalke, all seasons show together

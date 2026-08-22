@@ -29,109 +29,131 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
-export default async function TeamsRegistryPage() {
+export default async function ManagersRegistryPage() {
   const session = await auth()
 
   if (session?.user?.role !== "SUPER_ADMIN") {
     redirect("/")
   }
 
-  const teamsRaw = await prisma.teams.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      managerLinks: {
-        where: { isCurrent: true },
-        include: { manager: true },
-        take: 1
+  // Get all managers as primary entities
+  const allManagers = await prisma.managers.findMany({
+    select: {
+      id: true,
+      name: true,
+      photoUrl: true,
+      teamLinks: {
+        select: {
+          teamId: true,
+          isCurrent: true,
+          team: { select: { id: true, name: true, logoUrl: true } }
+        },
+        orderBy: { isCurrent: 'desc' }
       }
-    }
+    },
+    orderBy: { name: 'asc' }
   })
 
-  // Resolve current manager for each team
-  // 1. Use manager_teams.isCurrent (authoritative, already in query)
-  // 2. Fallback: active season's season_teams.managerName only
-  // Do NOT use resolveTeamManagerNames — it falls back to LATEST season_teams ever, which is stale
-  const activeSeason = await prisma.seasons.findFirst({ where: { isActive: true }, select: { id: true }, orderBy: { seasonNumber: 'desc' } })
+  // Get ALL season_teams to resolve current teams and career stats
+  const allSeasonTeams = await prisma.season_teams.findMany({
+    select: {
+      managerName: true,
+      teamId: true,
+      seasonId: true,
+      team: { select: { id: true, name: true, logoUrl: true } },
+      season: { select: { id: true, seasonNumber: true, isActive: true } }
+    },
+    orderBy: { season: { seasonNumber: 'desc' } }
+  })
 
-  // Build manager map from isCurrent links first
-  const mgrMap = new Map<string, string>()
-  for (const team of teamsRaw) {
-    const linkName = team.managerLinks[0]?.manager?.name
-    if (linkName) mgrMap.set(team.id, linkName)
+  // Build manager name → managerId lookup
+  const managerNameToId = new Map<string, string>()
+  const managerIdToRecord = new Map<string, typeof allManagers[0]>()
+  for (const mgr of allManagers) {
+    managerNameToId.set(mgr.name.toLowerCase(), mgr.id)
+    managerIdToRecord.set(mgr.id, mgr)
   }
 
-  // For teams without an isCurrent link, get from active season's season_teams
-  const teamsNeedingFallback = teamsRaw.filter(t => !mgrMap.has(t.id))
-  if (teamsNeedingFallback.length > 0 && activeSeason) {
-    const fallbackTeamIds = teamsNeedingFallback.map(t => t.id)
-    const fallbackEntries = await prisma.season_teams.findMany({
-      where: { teamId: { in: fallbackTeamIds }, seasonId: activeSeason.id, managerName: { not: null } },
-      select: { teamId: true, managerName: true }
-    })
-    for (const entry of fallbackEntries) {
-      if (entry.managerName) mgrMap.set(entry.teamId, entry.managerName)
+  // Resolve current team for each manager
+  const currentTeamByManager = new Map<string, { teamId: string; teamName: string; teamLogo: string | null }>()
+  for (const mgr of allManagers) {
+    const currentLink = mgr.teamLinks.find(l => l.isCurrent)
+    if (currentLink) {
+      currentTeamByManager.set(mgr.id, {
+        teamId: currentLink.teamId,
+        teamName: currentLink.team.name,
+        teamLogo: currentLink.team.logoUrl
+      })
+      continue
+    }
+    // Fallback: latest season_teams entry by season number
+    const latestSeasonTeam = allSeasonTeams.find(
+      st => st.managerName && st.managerName.toLowerCase() === mgr.name.toLowerCase()
+    )
+    if (latestSeasonTeam) {
+      currentTeamByManager.set(mgr.id, {
+        teamId: latestSeasonTeam.teamId,
+        teamName: latestSeasonTeam.team.name,
+        teamLogo: latestSeasonTeam.team.logoUrl
+      })
     }
   }
 
-  // Get unique manager names to batch-query their career stats
-  const uniqueMgrNames = [...new Set(
-    teamsRaw.map(t => mgrMap.get(t.id)).filter((n): n is string => !!n)
-  )]
-
-  // Query ALL season_teams by managerName for career stats
-  const allMgrSeasonTeams = uniqueMgrNames.length > 0
-    ? await prisma.season_teams.findMany({
-        where: { managerName: { in: uniqueMgrNames, mode: 'insensitive' } },
-        select: { managerName: true, teamId: true, seasonId: true }
-      })
-    : []
-
-  // Build a lookup: seasonId+teamId → managerName (lowercase)
-  const teamSeasonToManager = new Map<string, string>()
-  for (const st of allMgrSeasonTeams) {
-    const key = `${st.seasonId}:${st.teamId}`
-    teamSeasonToManager.set(key, st.managerName?.toLowerCase() || '')
+  // Count seasons per manager (using season_teams entries)
+  const seasonCountByManager = new Map<string, Set<string>>()
+  for (const st of allSeasonTeams) {
+    const mgrId = managerNameToId.get((st.managerName || '').toLowerCase())
+    if (mgrId) {
+      if (!seasonCountByManager.has(mgrId)) {
+        seasonCountByManager.set(mgrId, new Set())
+      }
+      seasonCountByManager.get(mgrId)!.add(st.seasonId)
+    }
   }
 
-  // Count seasons per manager
-  const statsByName = new Map<string, { seasons: number; transfers: number }>()
-  for (const st of allMgrSeasonTeams) {
-    const key = st.managerName?.toLowerCase() || ''
-    if (!key) continue
-    const s = statsByName.get(key) || { seasons: 0, transfers: 0 }
-    s.seasons++
-    statsByName.set(key, s)
-  }
-
-  // Count transfers per manager using groupBy on the season+team pairs
-  const seasonPairs = allMgrSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }))
-  const transferCounts = seasonPairs.length > 0
+  // Count transfers per manager — query ALL transfers (not just ACTIVE) for accurate counts
+  const transferPairs = allSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }))
+  const transferCounts = transferPairs.length > 0
     ? await prisma.transfer_history.groupBy({
         by: ['seasonId', 'teamId'],
         where: {
-          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId }))
+          OR: transferPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId }))
         },
         _count: { _all: true }
       })
     : []
 
+  // Build teamSeasonToManager lookup
+  const teamSeasonToManager = new Map<string, string>()
+  for (const st of allSeasonTeams) {
+    const key = `${st.seasonId}:${st.teamId}`
+    teamSeasonToManager.set(key, st.managerName?.toLowerCase() || '')
+  }
+
+  // Accumulate transfer counts per manager
+  const transfersByManager = new Map<string, number>()
   for (const tc of transferCounts) {
     const key = `${tc.seasonId}:${tc.teamId}`
     const mgrName = teamSeasonToManager.get(key) || ''
     if (!mgrName) continue
-    const s = statsByName.get(mgrName) || { seasons: 0, transfers: 0 }
-    s.transfers += tc._count._all
-    statsByName.set(mgrName, s)
+    const mgrId = managerNameToId.get(mgrName)
+    if (!mgrId) continue
+    transfersByManager.set(mgrId, (transfersByManager.get(mgrId) || 0) + tc._count._all)
   }
 
-  const teams = teamsRaw.map(team => {
-    const managerName = mgrMap.get(team.id) || null
-    const mgrStats = managerName ? (statsByName.get(managerName.toLowerCase()) || { seasons: 0, transfers: 0 }) : { seasons: 0, transfers: 0 }
+  // Build final manager data
+  const managers = allManagers.map(mgr => {
+    const currentTeam = currentTeamByManager.get(mgr.id)
+    const seasons = seasonCountByManager.get(mgr.id)?.size || 0
+    const transfers = transfersByManager.get(mgr.id) || 0
     return {
-      ...team,
-      managerName,
-      managerSeasons: mgrStats.seasons,
-      managerTransfers: mgrStats.transfers
+      id: mgr.id,
+      name: mgr.name,
+      photoUrl: mgr.photoUrl,
+      currentTeamName: currentTeam?.teamName || null,
+      currentTeamLogo: currentTeam?.teamLogo || null,
+      seasons,
+      transfers
     }
   })
 
@@ -142,11 +164,11 @@ export default async function TeamsRegistryPage() {
         <div className="mb-6 sm:mb-8 lg:mb-12">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black mb-2 sm:mb-3">
             <span className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent">
-              Global Team Registry
+              Global Manager Registry
             </span>
           </h1>
           <p className="text-[#D4CCBB] text-sm sm:text-base lg:text-lg">
-            Manage all teams across all seasons
+            All managers across all seasons
           </p>
         </div>
 
@@ -161,12 +183,12 @@ export default async function TeamsRegistryPage() {
           </Link>
         </div>
 
-        {teams.length === 0 ? (
+        {managers.length === 0 ? (
           <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-8 sm:p-12 text-center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-4 sm:mb-6">
               <UsersIcon />
             </div>
-            <div className="text-lg sm:text-xl font-bold text-white mb-2">No teams in the registry yet</div>
+            <div className="text-lg sm:text-xl font-bold text-white mb-2">No managers in the registry yet</div>
             <div className="text-[#D4CCBB] mb-4 sm:mb-6 text-sm sm:text-base">Create your first team to get started</div>
             <Link
               href="/super-admin/teams/new"
@@ -178,36 +200,42 @@ export default async function TeamsRegistryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {teams.map((team) => {
+            {managers.map((mgr) => {
               return (
                 <div
-                  key={team.id}
+                  key={mgr.id}
                   className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-[#E8A800]/30 hover:bg-white/[0.07] transition-all"
                 >
-                  {/* Team Logo Section */}
+                  {/* Manager / Team Logo Section */}
                   <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#E8A800]/5 to-[#FFB347]/5"></div>
-                    {team.logoUrl ? (
+                    {mgr.photoUrl ? (
                       <img
-                        src={team.logoUrl}
-                        alt={team.name}
+                        src={mgr.photoUrl}
+                        alt={mgr.name}
+                        className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover relative z-10"
+                      />
+                    ) : mgr.currentTeamLogo ? (
+                      <img
+                        src={mgr.currentTeamLogo}
+                        alt={mgr.currentTeamName || ''}
                         className="w-24 h-24 sm:w-32 sm:h-32 object-contain relative z-10"
                       />
                     ) : (
                       <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#E8A800]/20 to-[#FFB347]/20 flex items-center justify-center relative z-10">
                         <span className="text-2xl sm:text-4xl font-black text-white">
-                          {team.name.substring(0, 2).toUpperCase()}
+                          {mgr.name.substring(0, 2).toUpperCase()}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Team Info Section */}
+                  {/* Manager Info Section */}
                   <div className="p-4 sm:p-6">
-                    <h3 className="text-lg sm:text-xl font-bold text-white mb-1 truncate">{team.name}</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-white mb-1 truncate">{mgr.name}</h3>
                     <div className="text-xs sm:text-sm text-[#D4CCBB] mb-3 sm:mb-4 flex items-center gap-2">
                       <UsersIcon />
-                      <span className="truncate">{team.managerName}</span>
+                      <span className="truncate">{mgr.currentTeamName || 'No team assigned'}</span>
                     </div>
                     
                     {/* Stats Grid */}
@@ -218,7 +246,7 @@ export default async function TeamsRegistryPage() {
                           <div className="text-xs text-gray-400">Seasons</div>
                         </div>
                         <div className="text-lg sm:text-2xl font-black text-[#E8A800]">
-                          {team.managerSeasons}
+                          {mgr.seasons}
                         </div>
                       </div>
                       <div className="rounded-lg sm:rounded-xl bg-[#FFB347]/10 border border-[#FFB347]/20 p-2 sm:p-3">
@@ -227,14 +255,14 @@ export default async function TeamsRegistryPage() {
                           <div className="text-xs text-gray-400">Transfers</div>
                         </div>
                         <div className="text-lg sm:text-2xl font-black text-[#FFB347]">
-                          {team.managerTransfers}
+                          {mgr.transfers}
                         </div>
                       </div>
                     </div>
 
                     {/* View Details Button */}
                     <Link
-                      href={`/super-admin/teams/${team.id}`}
+                      href={`/super-admin/teams/${mgr.name}`}
                       className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white/5 border border-white/10 group-hover:border-[#E8A800]/30 transition-all"
                     >
                       <span className="text-xs sm:text-sm font-bold text-white">View Details</span>

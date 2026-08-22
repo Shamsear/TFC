@@ -75,7 +75,6 @@ export default async function RetentionRequestsAdminPage({ params }: Props) {
       },
     },
     orderBy: [
-      { status: 'asc' }, // pending first
       { submittedAt: 'desc' },
     ],
   })

@@ -21,12 +21,18 @@ async function getTournamentData(tournamentId: string) {
     const matches = await prisma.matches.findMany({
       where: { tournamentId },
       orderBy: { matchDate: 'asc' },
-      include: {
+      select: {
+        id: true,
+        round: true,
+        matchDate: true,
+        status: true,
+        homeScore: true,
+        awayScore: true,
         homeTeam: {
-          include: { team: true }
+          select: { id: true, team: { select: { id: true, name: true, logoUrl: true } } }
         },
         awayTeam: {
-          include: { team: true }
+          select: { id: true, team: { select: { id: true, name: true, logoUrl: true } } }
         }
       }
     })

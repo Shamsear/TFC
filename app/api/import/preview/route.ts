@@ -133,15 +133,36 @@ export async function POST(request: NextRequest) {
 
     // Get existing players
     let existingPlayers;
-    try {
-      existingPlayers = await prisma.base_players.findMany({
-        include: {
-          seasonalPlayerStats: {
-            where: { seasonId },
-            take: 1
+    try {      existingPlayers = await prisma.base_players.findMany({
+      select: {
+        id: true,
+        name: true,
+        player_id: true,
+        normalized_name: true,
+        photoUrl: true,
+        seasonalPlayerStats: {
+          where: { seasonId },
+          take: 1,
+          select: {
+            seasonId: true,
+            position: true,
+            overallRating: true,
+            realWorldClub: true,
+            nationality: true,
+            playing_style: true,
+            offensive_awareness: true,
+            ball_control: true,
+            dribbling: true,
+            speed: true,
+            acceleration: true,
+            finishing: true,
+            low_pass: true,
+            defensive_awareness: true,
+            tackling: true
           }
         }
-      });
+      }
+    });
     } catch (dbError) {
       console.error('Database error fetching existing players:', dbError);
       return NextResponse.json(

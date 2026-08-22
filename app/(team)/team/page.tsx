@@ -96,9 +96,9 @@ export default async function TeamDashboardPage() {
         status: "SCHEDULED",
       },
       include: {
-        homeTeam: { include: { team: true } },
-        awayTeam: { include: { team: true } },
-        tournament: true,
+        homeTeam: { select: { id: true, team: { select: { id: true, name: true, logoUrl: true } } } },
+        awayTeam: { select: { id: true, team: { select: { id: true, name: true, logoUrl: true } } } },
+        tournament: { select: { id: true, name: true } },
       },
       orderBy: { matchDate: "asc" },
       take: 5,
@@ -179,9 +179,16 @@ export default async function TeamDashboardPage() {
     // Recent auction results
     prisma.transfer_history.findMany({
       where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
-      include: {
+      select: {
+        id: true,
+        soldPrice: true,
+        createdAt: true,
         basePlayer: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            player_id: true,
+            photoUrl: true,
             seasonalPlayerStats: { where: { seasonId: activeSeason.id }, select: { position: true, position_group: true, overallRating: true } },
           },
         },

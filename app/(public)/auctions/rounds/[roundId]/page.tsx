@@ -33,13 +33,23 @@ async function getRoundData(roundId: string) {
       where: { roundId: round.id, status: 'ACTIVE' },
       include: {
         basePlayer: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            player_id: true,
+            photoUrl: true,
             seasonalPlayerStats: {
-              where: { seasonId: round.seasonId }
+              where: { seasonId: round.seasonId },
+              select: {
+                position: true,
+                position_group: true,
+                overallRating: true,
+                realWorldClub: true
+              }
             }
           }
         },
-        team: true
+        team: { select: { id: true, name: true, logoUrl: true } }
       },
       orderBy: { soldPrice: 'desc' }
     })

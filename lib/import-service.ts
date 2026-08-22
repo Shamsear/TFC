@@ -73,7 +73,13 @@ export async function importSeasonData(
   if (previousSeason) {
     const previousStats = await prisma.seasonal_player_stats.findMany({
       where: { seasonId: previousSeason.id },
-      include: { basePlayer: true }
+      select: {
+        position: true,
+        realWorldClub: true,
+        overallRating: true,
+        star_rating: true,
+        basePlayer: { select: { name: true } }
+      }
     });
 
     for (const stat of previousStats) {

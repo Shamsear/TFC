@@ -64,10 +64,21 @@ export async function POST(request: NextRequest) {
 
     // Get existing players
     const existingPlayers = await prisma.base_players.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        player_id: true,
+        normalized_name: true,
+        photoUrl: true,
         seasonalPlayerStats: {
           where: { seasonId },
-          take: 1
+          take: 1,
+          select: {
+            seasonId: true,
+            position: true,
+            overallRating: true,
+            realWorldClub: true
+          }
         }
       }
     });

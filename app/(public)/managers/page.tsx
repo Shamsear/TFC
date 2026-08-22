@@ -15,12 +15,19 @@ async function getTeamsData() {
 
     // ── 1. Get all managers as the primary entity ──────────────────
     const allManagers = await prisma.managers.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        photoUrl: true,
         teamLinks: {
-          include: { team: true },
+          select: {
+            teamId: true,
+            isCurrent: true,
+            team: { select: { id: true, name: true, logoUrl: true } }
+          },
           orderBy: { isCurrent: 'desc' }
         },
-        user: true
+        user: { select: { id: true } }
       },
       orderBy: { name: 'asc' }
     })
@@ -28,7 +35,16 @@ async function getTeamsData() {
     // ── 2. Resolve CURRENT team for each manager ──────────────────
     //    Priority: manager_teams.isCurrent → latest season_teams by seasonNumber
     const allSeasonTeams = await prisma.season_teams.findMany({
-      include: { team: true, season: { select: { id: true, seasonNumber: true } } },
+      select: {
+        id: true,
+        teamId: true,
+        seasonId: true,
+        managerName: true,
+        currentBudget: true,
+        trophiesWon: true,
+        team: { select: { id: true, name: true, logoUrl: true, managerName: true } },
+        season: { select: { id: true, seasonNumber: true } }
+      },
       orderBy: { season: { seasonNumber: 'desc' } }
     })
 

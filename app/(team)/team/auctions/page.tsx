@@ -74,13 +74,24 @@ async function getAuctionsData(seasonId: string) {
       orderBy: { createdAt: 'desc' },
       include: {
         basePlayer: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            player_id: true,
+            photoUrl: true,
             seasonalPlayerStats: {
-              where: { seasonId }
+              where: { seasonId },
+              select: {
+                position: true,
+                position_group: true,
+                overallRating: true,
+                realWorldClub: true,
+                nationality: true
+              }
             }
           }
         },
-        team: true,
+        team: { select: { id: true, name: true, logoUrl: true } },
         round: {
           select: {
             id: true,

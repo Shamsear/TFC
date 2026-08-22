@@ -21,13 +21,24 @@ async function getAuctionResults() {
       where: { seasonId: activeSeason.id, status: 'ACTIVE' },
       include: {
         basePlayer: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            player_id: true,
+            photoUrl: true,
             seasonalPlayerStats: {
-              where: { seasonId: activeSeason.id }
+              where: { seasonId: activeSeason.id },
+              select: {
+                position: true,
+                position_group: true,
+                overallRating: true,
+                realWorldClub: true,
+                nationality: true
+              }
             }
           }
         },
-        team: true,
+        team: { select: { id: true, name: true, logoUrl: true } },
         round: {
           select: {
             roundNumber: true,

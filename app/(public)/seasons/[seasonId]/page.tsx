@@ -26,6 +26,11 @@ async function getSeasonData(seasonId: string) {
         tournament: {
           seasonId: seasonId
         }
+      },
+      select: {
+        status: true,
+        homeScore: true,
+        awayScore: true
       }
     })
 

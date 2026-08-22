@@ -25,9 +25,15 @@ async function getCalendarData() {
       prisma.matches.findMany({
         where: { tournament: { seasonId: activeSeason.id } },
         orderBy: { matchDate: 'asc' },
-        include: {
-          homeTeam: { include: { team: true } },
-          awayTeam: { include: { team: true } },
+        select: {
+          id: true,
+          round: true,
+          matchDate: true,
+          status: true,
+          homeScore: true,
+          awayScore: true,
+          homeTeam: { select: { id: true, team: { select: { id: true, name: true, logoUrl: true } } } },
+          awayTeam: { select: { id: true, team: { select: { id: true, name: true, logoUrl: true } } } },
           tournament: { select: { id: true, name: true } }
         }
       })

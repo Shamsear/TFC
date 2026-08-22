@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { getActiveSeason } from '@/lib/get-active-season'
 
 // Force dynamic rendering to avoid stale cache
 export const dynamic = 'force-dynamic'
@@ -7,10 +8,7 @@ export const dynamic = 'force-dynamic'
 async function getAuctionsData() {
   try {
     // Get active season
-    const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true },
-      orderBy: { seasonNumber: 'desc' }
-    })
+    const activeSeason = await getActiveSeason()
 
     if (!activeSeason) {
       return { rounds: [], seasonName: null, stats: { total: 0, active: 0, completed: 0 } }

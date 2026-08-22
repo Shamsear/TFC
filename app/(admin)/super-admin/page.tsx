@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import PushToggle from "@/components/notifications/PushToggle"
 import { resolveTeamManagerNames } from '@/lib/resolve-manager'
+import { getActiveSeason } from '@/lib/get-active-season'
 
 // Icon Components
 const TrophyIcon = () => (
@@ -47,14 +48,7 @@ export default async function SuperAdminDashboard() {
   const [teamsCount, seasonsCount, latestSeason, recentTeamsRaw] = await Promise.all([
     prisma.teams.count(),
     prisma.seasons.count(),
-    prisma.seasons.findFirst({
-      orderBy: { seasonNumber: "desc" },
-      include: {
-        seasonTeams: {
-          include: { team: true }
-        }
-      }
-    }),
+    getActiveSeason(),
     prisma.teams.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },

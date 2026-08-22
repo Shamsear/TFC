@@ -222,16 +222,18 @@ async function getPlayerData(playerId: string, seasonId: string) {
 export default async function PublicPlayerDetailPage({ params }: PlayerDetailPageProps) {
   const { playerId } = await params
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // Get active season (reliable: uses TFCS-N ID sorting)
+  const activeSeason = await getActiveSeason()
 
-  // If there's no active season, find the most recent season
-  const season = activeSeason || await prisma.seasons.findFirst({
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // If there's no active season, find the most recent season by ID
+  const season = activeSeason || (await (async () => {
+    const all = await prisma.seasons.findMany({ select: { id: true } })
+    return all.sort((a, b) => {
+      const numA = parseInt(a.id.replace('TFCS-', ''), 10) || 0
+      const numB = parseInt(b.id.replace('TFCS-', ''), 10) || 0
+      return numB - numA
+    })[0] || null
+  })())
 
   if (!season) {
     notFound()

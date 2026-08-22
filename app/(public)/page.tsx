@@ -3,21 +3,15 @@ import Link from 'next/link'
 import { AuthRedirect } from '@/components/AuthRedirect'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { getActiveSeason } from '@/lib/get-active-season'
 
 // Force dynamic rendering to avoid stale cache
 export const dynamic = 'force-dynamic'
 
 async function getLandingPageData() {
   try {
-    // Get active season
-    const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true },
-      orderBy: { seasonNumber: 'desc' },
-      select: {
-        id: true,
-        name: true
-      }
-    })
+    // Get active season (reliable: uses TFCS-N ID sorting)
+    const activeSeason = await getActiveSeason()
 
     const seasonId = activeSeason?.id
 

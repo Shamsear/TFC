@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import CalendarView from '@/components/calendar/CalendarView'
+import { getActiveSeason } from '@/lib/get-active-season'
 
 // Force dynamic rendering to avoid stale cache
 export const dynamic = 'force-dynamic'
@@ -7,10 +8,7 @@ export const dynamic = 'force-dynamic'
 async function getCalendarData() {
   try {
     // Get active season
-    const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true },
-      orderBy: { seasonNumber: 'desc' }
-    })
+    const activeSeason = await getActiveSeason()
 
     if (!activeSeason) {
       return { auctions: [], matches: [], seasonName: null }

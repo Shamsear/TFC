@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import PushToggle from "@/components/notifications/PushToggle"
+import { getActiveSeasonId } from "@/lib/get-active-season"
 
 // Icon Components
 const TrophyIcon = () => (
@@ -100,19 +101,28 @@ export default async function SubAdminDashboard() {
 
   const assignedSeasonIds = user?.subAdminSeasons.map(s => s.seasonId) || []
 
-  // Fetch active season (only if assigned to this sub-admin)
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { 
-      isActive: true,
-      id: { in: assignedSeasonIds }
-    },
-    orderBy: { seasonNumber: 'desc' },
-    include: {
-      seasonTeams: {
-        include: { team: true }
-      }
-    }
-  })
+  // Fetch active season (reliable: uses TFCS-N ID sorting)
+  const activeSeasonId = await getActiveSeasonId()
+  const activeSeason = activeSeasonId && assignedSeasonIds.includes(activeSeasonId)
+    ? await prisma.seasons.findUnique({
+        where: { id: activeSeasonId },
+        include: {
+          seasonTeams: {
+            include: { team: true }
+          }
+        }
+      })
+    : await prisma.seasons.findFirst({
+        where: { 
+          isActive: true,
+          id: { in: assignedSeasonIds }
+        },
+        include: {
+          seasonTeams: {
+            include: { team: true }
+          }
+        }
+      })
 
   // Fetch only seasons assigned to this sub-admin
   const allSeasons = await prisma.seasons.findMany({

@@ -4,6 +4,7 @@ import Image from "next/image"
 import { prisma } from "@/lib/prisma"
 import TeamDetailTabs from "@/components/team/TeamDetailTabs"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { getActiveSeason } from "@/lib/get-active-season"
 import { 
   getCumulativeXPForLevel, 
   getXPForNextLevel, 
@@ -79,10 +80,7 @@ async function getTeamData(teamId: string) {
   }
 
   // Get active season info
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' }
-  });
+  const activeSeason = await getActiveSeason()
 
   // Get team basic info
   const team = await prisma.teams.findUnique({

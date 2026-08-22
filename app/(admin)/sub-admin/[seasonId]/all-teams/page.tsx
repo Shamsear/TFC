@@ -30,6 +30,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
           id: true,
           currentBudget: true,
           trophiesWon: true,
+          managerName: true,
           team: {
             select: {
               id: true,
@@ -120,6 +121,8 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
 
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {
+    // Prefer: current manager_teams link > season_teams.managerName > teams.managerName
+    const resolvedManagerName = mgrMap.get(st.team.id) || st.managerName || st.team.managerName
     const allTimeTrophies = allTimeTrophiesByTeam.get(st.team.id) || 0
     return {
       ...st,
@@ -261,7 +264,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                           {teamDetail.team.name}
                         </h3>
                         <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-0.5">
-                          Manager: {mgrMap.get(teamDetail.team.id) || teamDetail.team.managerName}
+                          Manager: {teamsWithDetails.find(t => t.team.id === teamDetail.team.id)?.resolvedManagerName || teamDetail.team.managerName}
                         </p>
                       </div>
 

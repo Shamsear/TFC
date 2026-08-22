@@ -41,32 +41,37 @@ export async function GET(
       orderBy: { createdAt: "asc" },
     })
 
-    // For each team, find the user (team manager) email
-    const teamIds = seasonTeams.map((st) => st.teamId)
+    // For each season team, find the user (team manager) email by manager NAME
+    // This ensures we get the correct email for the season-specific manager,
+    // not the current user linked to the teamId
+    const managerNames = seasonTeams
+      .map((st) => st.managerName)
+      .filter((name): name is string => !!name)
+
+    const uniqueManagerNames = [...new Set(managerNames.map((n) => n.toLowerCase()))]
 
     const managers = await prisma.users.findMany({
       where: {
-        teamId: { in: teamIds },
+        name: { in: uniqueManagerNames, mode: "insensitive" },
         role: "TEAM_MANAGER",
       },
       select: {
-        teamId: true,
-        email: true,
         name: true,
+        email: true,
       },
     })
 
-    const managerMap = new Map(
-      managers.map((m) => [m.teamId, { email: m.email, name: m.name }])
+    const emailByName = new Map(
+      managers.map((m) => [m.name.toLowerCase(), m.email])
     )
 
     const result = seasonTeams.map((st, index) => {
-      const manager = managerMap.get(st.teamId)
+      const email = emailByName.get(st.managerName?.toLowerCase() || "") || "N/A"
       return {
         number: index + 1,
-        managerName: st.managerName || st.team.managerName || manager?.name || "N/A",
+        managerName: st.managerName || st.team.managerName || "N/A",
         teamName: st.team.name,
-        email: manager?.email || "N/A",
+        email,
       }
     })
 

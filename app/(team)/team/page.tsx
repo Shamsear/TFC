@@ -2,74 +2,130 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
-import TeamDashboardTabs from "@/components/team/TeamDashboardTabs"
 import TeamLogo from "@/components/team/TeamLogo"
 import TiebreakerSection from "@/components/team/TiebreakerSection"
 import { getActiveSeason } from "@/lib/get-active-season"
+import { calculateLevelFromXP } from "@/lib/achievements-math"
+import {
+  Users,
+  Trophy,
+  Gavel,
+  ClipboardCheck,
+  UserSearch,
+  Star,
+  UserMinus,
+  ShieldCheck,
+  ArrowLeftRight,
+  Coins,
+  Award,
+  ChevronRight,
+  Zap,
+  Timer,
+  CircleDollarSign,
+  TrendingUp,
+  TrendingDown,
+  Swords,
+  Handshake,
+  CalendarClock,
+  CalendarDays,
+  Target,
+  type LucideIcon,
+} from "lucide-react"
 
 export const metadata = {
   title: "Team Dashboard | Turf Cats",
   description: "Team manager dashboard",
 }
 
+/* ── Action menu definition ── */
+interface ActionItem {
+  label: string
+  desc: string
+  href: string
+  icon: LucideIcon
+  color: string
+}
+
+const actionSections: { heading: string; items: ActionItem[] }[] = [
+  {
+    heading: "Squad & Scouting",
+    items: [
+      { label: "Auction", desc: "Bid on new players", href: "/team/auction", icon: Gavel, color: "text-amber-400" },
+      { label: "Planner", desc: "Plan your draft picks", href: "/team/auction-planner", icon: ClipboardCheck, color: "text-sky-400" },
+      { label: "Squad", desc: "View your team roster", href: "/team/squad", icon: Users, color: "text-cyan-400" },
+      { label: "Players", desc: "Browse the player pool", href: "/team/players", icon: UserSearch, color: "text-emerald-400" },
+      { label: "Starred", desc: "Your shortlist of targets", href: "/team/starred", icon: Star, color: "text-yellow-400" },
+    ],
+  },
+  {
+    heading: "Transfers",
+    items: [
+      { label: "Transfers", desc: "Transfer history & status", href: "/team/transfers", icon: Handshake, color: "text-teal-400" },
+      { label: "Release", desc: "Request to let a player go", href: "/team/release-request", icon: UserMinus, color: "text-orange-400" },
+      { label: "Retention", desc: "Lock in a player", href: "/team/retention-request", icon: ShieldCheck, color: "text-pink-400" },
+      { label: "Swap", desc: "Propose a player exchange", href: "/team/swap-request", icon: ArrowLeftRight, color: "text-sky-400" },
+    ],
+  },
+  {
+    heading: "Season",
+    items: [
+      { label: "Matches", desc: "Fixtures & results", href: "/team/matches", icon: Swords, color: "text-violet-400" },
+      { label: "Finances", desc: "Budget & ledger", href: "/team/finances", icon: Coins, color: "text-amber-300" },
+      { label: "Achievements", desc: "Trophies & badges", href: "/team/achievements", icon: Award, color: "text-purple-400" },
+    ],
+  },
+]
+
 export default async function TeamDashboardPage() {
   const session = await auth()
+  if (!session?.user?.teamId) redirect("/auth/signin")
 
-  if (!session?.user?.teamId) {
-    redirect("/auth/signin")
-  }
-
-  // Fetch team info with current manager resolution
   const teamRaw = await prisma.teams.findUnique({
     where: { id: session.user.teamId },
     include: {
-      managerLinks: {
-        where: { isCurrent: true },
-        include: { manager: true },
-        take: 1
-      }
-    }
+      managerLinks: { where: { isCurrent: true }, include: { manager: true }, take: 1 },
+    },
   })
+  if (!teamRaw) redirect("/auth/signin")
 
-  if (!teamRaw) {
-    redirect("/auth/signin")
-  }
-
-  // Get active season early (reusable for manager resolution + dashboard)
   const activeSeason = await getActiveSeason()
 
-  // Resolve current manager name from current season's season_teams (authoritative)
   const currentSeasonTeamForMgr = activeSeason
     ? await prisma.season_teams.findFirst({
         where: { seasonId: activeSeason.id, teamId: teamRaw.id },
-        select: { managerName: true }
+        select: { managerName: true },
       })
     : null
-  const team = {
-    ...teamRaw,
-    managerName: currentSeasonTeamForMgr?.managerName || teamRaw.managerLinks[0]?.manager?.name || teamRaw.managerName
+  const resolvedMgrName =
+    currentSeasonTeamForMgr?.managerName ||
+    teamRaw.managerLinks[0]?.manager?.name ||
+    teamRaw.managerName
+  const team = { ...teamRaw, managerName: resolvedMgrName }
+
+  let managerXP = teamRaw.xp
+  let managerLevel = teamRaw.level
+  if (resolvedMgrName) {
+    const mgrTeamIds = await prisma.season_teams.findMany({
+      where: { managerName: { equals: resolvedMgrName, mode: "insensitive" } },
+      select: { teamId: true },
+      distinct: ["teamId"],
+    })
+    const allMgrTeams = await prisma.teams.findMany({
+      where: { id: { in: mgrTeamIds.map((t) => t.teamId) } },
+      select: { xp: true, level: true },
+    })
+    managerXP = allMgrTeams.reduce((sum, t) => sum + t.xp, 0)
+    managerLevel = calculateLevelFromXP(managerXP)
   }
 
-  // Check if team is participating in active season
   const currentSeasonTeam = activeSeason
     ? await prisma.season_teams.findUnique({
-        where: {
-          seasonId_teamId: {
-            seasonId: activeSeason.id,
-            teamId: team.id,
-          },
-        },
+        where: { seasonId_teamId: { seasonId: activeSeason.id, teamId: team.id } },
       })
     : null
 
-  // If team is not in active season, redirect to not-in-season page
-  if (!currentSeasonTeam || !activeSeason) {
-    redirect("/team/not-in-season")
-  }
+  if (!currentSeasonTeam || !activeSeason) redirect("/team/not-in-season")
 
-  // Team is in active season - show dashboard
-  // PARALLELIZE: All remaining queries are independent of each other
   const [
     allTimeTrophies,
     squadCount,
@@ -80,20 +136,11 @@ export default async function TeamDashboardPage() {
     pendingBulkTiebreakers,
     activeNormalTiebreakers,
     pendingNormalTiebreakers,
-    recentAuctionResults,
     squadPlayers,
     teamSquad,
   ] = await Promise.all([
-    // All-time trophies — query by teamId (not stale managerName)
-    prisma.season_teams.aggregate({
-      where: { teamId: team.id },
-      _sum: { trophiesWon: true }
-    }),
-    // Squad count
-    prisma.transfer_history.count({
-      where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
-    }),
-    // Upcoming matches
+    prisma.season_teams.aggregate({ where: { teamId: team.id }, _sum: { trophiesWon: true } }),
+    prisma.transfer_history.count({ where: { seasonId: activeSeason.id, teamId: team.id, status: "ACTIVE" } }),
     prisma.matches.findMany({
       where: {
         tournament: { seasonId: activeSeason.id },
@@ -106,104 +153,45 @@ export default async function TeamDashboardPage() {
         tournament: { select: { id: true, name: true } },
       },
       orderBy: { matchDate: "asc" },
-      take: 5,
+      take: 4,
     }),
-    // Recent transactions
-    prisma.financial_ledger.findMany({
-      where: { seasonTeamId: currentSeasonTeam.id },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    // Active auction rounds
+    prisma.financial_ledger.findMany({ where: { seasonTeamId: currentSeasonTeam.id }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.rounds.findMany({
-      where: {
-        seasonId: activeSeason.id,
-        status: 'active',
-        endTime: { gte: new Date() },
-      },
+      where: { seasonId: activeSeason.id, status: "active", endTime: { gte: new Date() } },
       select: {
         id: true, roundNumber: true, position: true, position_group: true, roundType: true, endTime: true,
         teamRoundBids: { where: { teamId: team.id }, select: { submitted: true, bidCount: true } },
         bulkRoundSelections: { where: { teamId: team.id }, select: { submitted: true } },
       },
-      orderBy: { endTime: 'asc' },
+      orderBy: { endTime: "asc" },
       take: 3,
     }),
-    // Active bulk tiebreakers
     prisma.bulk_tiebreakers.findMany({
-      where: {
-        round: { seasonId: activeSeason.id },
-        status: 'active',
-        participants: { some: { teamId: team.id, status: 'active' } }
-      },
-      include: {
-        basePlayer: { select: { id: true, name: true } },
-        round: { select: { id: true, roundNumber: true } },
-        participants: { where: { status: 'active' }, select: { teamId: true } }
-      },
+      where: { round: { seasonId: activeSeason.id }, status: "active", participants: { some: { teamId: team.id, status: "active" } } },
+      include: { basePlayer: { select: { id: true, name: true } }, round: { select: { id: true, roundNumber: true } }, participants: { where: { status: "active" }, select: { teamId: true } } },
     }),
-    // Pending bulk tiebreakers
     prisma.bulk_tiebreakers.findMany({
-      where: {
-        round: { seasonId: activeSeason.id },
-        status: 'pending',
-        participants: { some: { teamId: team.id, status: 'active' } }
-      },
-      include: {
-        basePlayer: { select: { id: true, name: true } },
-        round: { select: { id: true, roundNumber: true } },
-        participants: { where: { status: 'active' }, select: { teamId: true } }
-      },
+      where: { round: { seasonId: activeSeason.id }, status: "pending", participants: { some: { teamId: team.id, status: "active" } } },
+      include: { basePlayer: { select: { id: true, name: true } }, round: { select: { id: true, roundNumber: true } }, participants: { where: { status: "active" }, select: { teamId: true } } },
     }),
-    // Active normal tiebreakers
     prisma.tiebreakers.findMany({
-      where: {
-        round: { seasonId: activeSeason.id },
-        status: 'active',
-        teamTiebreakerBids: { some: { teamId: team.id } }
-      },
+      where: { round: { seasonId: activeSeason.id }, status: "active", teamTiebreakerBids: { some: { teamId: team.id } } },
       include: {
         basePlayer: { select: { id: true, name: true, photoUrl: true } },
         round: { select: { id: true, roundNumber: true } },
-        teamTiebreakerBids: { where: { teamId: team.id }, select: { submitted: true, oldBidAmount: true, newBidAmount: true } }
+        teamTiebreakerBids: { where: { teamId: team.id }, select: { submitted: true, oldBidAmount: true, newBidAmount: true } },
       },
     }),
-    // Pending normal tiebreakers
     prisma.tiebreakers.findMany({
-      where: {
-        round: { seasonId: activeSeason.id },
-        status: 'pending',
-        teamTiebreakerBids: { some: { teamId: team.id } }
-      },
+      where: { round: { seasonId: activeSeason.id }, status: "pending", teamTiebreakerBids: { some: { teamId: team.id } } },
       include: {
         basePlayer: { select: { id: true, name: true, photoUrl: true } },
         round: { select: { id: true, roundNumber: true } },
-        teamTiebreakerBids: { select: { teamId: true } }
+        teamTiebreakerBids: { select: { teamId: true } },
       },
     }),
-    // Recent auction results
     prisma.transfer_history.findMany({
-      where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
-      select: {
-        id: true,
-        soldPrice: true,
-        createdAt: true,
-        basePlayer: {
-          select: {
-            id: true,
-            name: true,
-            player_id: true,
-            photoUrl: true,
-            seasonalPlayerStats: { where: { seasonId: activeSeason.id }, select: { position: true, position_group: true, overallRating: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    }),
-    // Squad players
-    prisma.transfer_history.findMany({
-      where: { seasonId: activeSeason.id, teamId: team.id, status: 'ACTIVE' },
+      where: { seasonId: activeSeason.id, teamId: team.id, status: "ACTIVE" },
       include: {
         basePlayer: {
           select: {
@@ -212,149 +200,185 @@ export default async function TeamDashboardPage() {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     }),
-    // Squad formation
     prisma.team_squads.findUnique({
-      where: { team_id_season_id: { team_id: team.id, season_id: activeSeason.id } }
+      where: { team_id_season_id: { team_id: team.id, season_id: activeSeason.id } },
     }),
   ])
 
   const totalAllTimeTrophies = allTimeTrophies._sum.trophiesWon || 0
 
-  // Fetch team details for tiebreakers (depends on pending results)
-  const pendingBulkTiebreakerTeamIds = pendingBulkTiebreakers.flatMap(t => t.participants.map(p => p.teamId))
-  const pendingNormalTiebreakerTeamIds = pendingNormalTiebreakers.flatMap(t => t.teamTiebreakerBids.map(b => b.teamId))
+  const pendingBulkTiebreakerTeamIds = pendingBulkTiebreakers.flatMap((t) => t.participants.map((p) => p.teamId))
+  const pendingNormalTiebreakerTeamIds = pendingNormalTiebreakers.flatMap((t) => t.teamTiebreakerBids.map((b) => b.teamId))
   const allTiebreakerTeamIds = [...new Set([...pendingBulkTiebreakerTeamIds, ...pendingNormalTiebreakerTeamIds])]
 
-  const tiebreakerTeams = allTiebreakerTeamIds.length > 0
-    ? await prisma.teams.findMany({ where: { id: { in: allTiebreakerTeamIds } }, select: { id: true, name: true, logoUrl: true } })
-    : []
+  const tiebreakerTeams =
+    allTiebreakerTeamIds.length > 0
+      ? await prisma.teams.findMany({ where: { id: { in: allTiebreakerTeamIds } }, select: { id: true, name: true, logoUrl: true } })
+      : []
 
-  const pendingBulkTiebreakersWithTeams = pendingBulkTiebreakers.map(t => ({
+  const pendingBulkTiebreakersWithTeams = pendingBulkTiebreakers.map((t) => ({
     ...t,
-    participants: t.participants.map(p => ({ ...p, team: tiebreakerTeams.find(team => team.id === p.teamId) }))
+    participants: t.participants.map((p) => ({ ...p, team: tiebreakerTeams.find((tm) => tm.id === p.teamId) })),
+  }))
+  const pendingNormalTiebreakersWithTeams = pendingNormalTiebreakers.map((t) => ({
+    ...t,
+    teamTiebreakerBids: t.teamTiebreakerBids.map((b) => ({ ...b, team: tiebreakerTeams.find((tm) => tm.id === b.teamId) })),
   }))
 
-  const pendingNormalTiebreakersWithTeams = pendingNormalTiebreakers.map(t => ({
-    ...t,
-    teamTiebreakerBids: t.teamTiebreakerBids.map(b => ({ ...b, team: tiebreakerTeams.find(team => team.id === b.teamId) }))
-  }))
+  const budgetPct = activeSeason.startingPurse > 0
+    ? Math.round((currentSeasonTeam.currentBudget / activeSeason.startingPurse) * 100)
+    : 0
 
-  const totalActiveTiebreakers = activeBulkTiebreakers.length + activeNormalTiebreakers.length
-  const totalPendingTiebreakers = pendingBulkTiebreakers.length + pendingNormalTiebreakers.length
-
-  const activeRoundWithBids = activeRounds.length > 0 ? activeRounds[0] : null
+  const nextMatch = upcomingMatches[0] || null
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 relative overflow-hidden">
-      {/* Decorative Spotlights */}
-      <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-[#E8A800]/[0.03] blur-[150px] pointer-events-none" />
-      <div className="absolute top-[20%] right-[10%] w-[700px] h-[700px] rounded-full bg-emerald-500/[0.03] blur-[180px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[5%] w-[500px] h-[500px] rounded-full bg-cyan-500/[0.03] blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-[#08080A] text-white pt-14 sm:pt-16 md:pt-20" style={{ colorScheme: "dark" }}>
+      {/* ── AMBIENT GLOW ── */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        aria-hidden="true"
+      >
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[800px] h-[300px] sm:h-[500px] rounded-full blur-[120px] sm:blur-[160px] opacity-[0.06]"
+          style={{
+            background: `radial-gradient(ellipse, rgba(232,168,0,${Math.min(0.15 + managerLevel * 0.01, 0.5)}) 0%, transparent 70%)`,
+          }}
+        />
+      </div>
 
-      {/* Header */}
-      <div className="border-b border-white/[0.06] bg-black/40 backdrop-blur-xl mb-6 sm:mb-8 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-4">
+      {/* ── HERO ── */}
+      <section className="relative z-10 border-b border-white/[0.04] bg-black/30 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 py-3 sm:py-4 md:py-5">
+            {/* Logo */}
             <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="lg" />
-            <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
-                <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(232,168,0,0.15)]">
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <h1 className="dash-hero font-black leading-tight text-wrap-balance">
+                <span className="bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] bg-clip-text text-transparent">
                   {team.name}
                 </span>
               </h1>
-              <p className="text-[#D4CCBB] text-sm sm:text-base font-medium">Manager: {team.managerName}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#E8A800]/10 border border-[#E8A800]/20 rounded-lg">
-              <span className="text-[#E8A800] font-medium text-xs sm:text-sm">Current Season:</span>
-              <span className="text-white font-bold text-xs sm:text-sm">{activeSeason.name}</span>
-            </div>
-            
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg">
-              <span className="text-purple-400 font-medium text-xs sm:text-sm">XP:</span>
-              <span className="text-white font-bold text-xs sm:text-sm">{team.xp}</span>
+              <p className="text-[#8A8690] dash-body font-semibold mt-0.5 truncate">
+                {team.managerName}
+              </p>
             </div>
 
-            <Link
-              href="/team/achievements"
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFD573] text-xs sm:text-sm font-black text-black rounded-lg hover:scale-[1.03] transition-all shadow-[0_0_20px_rgba(232,168,0,0.25)] hover:shadow-[0_0_30px_rgba(232,168,0,0.4)]"
-            >
-              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12M4 7h16M4 7v3a4 4 0 004 4h8a4 4 0 004-4V7M4 7a2 2 0 012-2h12a2 2 0 012 2" />
-              </svg>
-              Achievements Cabinet
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 relative z-10">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {/* Budget */}
-          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/[0.02] rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/[0.04] transition-colors" />
-            <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-bold uppercase tracking-widest">Current Budget</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400 mb-1">
-              £{currentSeasonTeam.currentBudget.toLocaleString()}
-            </div>
-            <div className="text-xs text-gray-400 font-medium">
-              Starting: £{activeSeason.startingPurse.toLocaleString()}
-            </div>
-          </div>
-
-          {/* Squad Size */}
-          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/[0.02] rounded-full blur-2xl pointer-events-none group-hover:bg-cyan-500/[0.04] transition-colors" />
-            <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-bold uppercase tracking-widest">Squad Size</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-cyan-400 mb-1">{squadCount}</div>
-            <Link
-              href="/team/squad"
-              className="text-xs text-[#E8A800] hover:text-[#FFC93A] inline-flex items-center gap-1 transition-colors font-medium"
-            >
-              View Squad
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-
-          {/* Upcoming Matches */}
-          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/[0.02] rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/[0.04] transition-colors" />
-            <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-bold uppercase tracking-widest">Upcoming Matches</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-indigo-400 mb-1">{upcomingMatches.length}</div>
-            <Link
-              href="/team/matches"
-              className="text-xs text-[#E8A800] hover:text-[#FFC93A] inline-flex items-center gap-1 transition-colors font-medium"
-            >
-              View Schedule
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-
-          {/* Trophies */}
-          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8A800]/[0.02] rounded-full blur-2xl pointer-events-none group-hover:bg-[#E8A800]/[0.04] transition-colors" />
-            <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-bold uppercase tracking-widest">Trophies Won</div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#E8A800] mb-1">
-              {currentSeasonTeam.trophiesWon}
-            </div>
-            <div className="text-xs text-gray-400 font-medium">
-              This season
-              {totalAllTimeTrophies > 0 && (
-                <span className="text-purple-400 font-bold"> • {totalAllTimeTrophies} All-Time</span>
-              )}
+            {/* Badges */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 bg-[#E8A800]/[0.08] border border-[#E8A800]/15 rounded-lg dash-caption font-bold text-white/80">
+                <CalendarClock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#E8A800] shrink-0" />
+                <span className="hidden sm:inline">{activeSeason.name}</span>
+                <span className="sm:hidden">{activeSeason.name.split(" ").pop()}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 px-1.5 py-1 sm:px-2 sm:py-1.5 bg-purple-500/[0.08] border border-purple-500/15 rounded-lg dash-caption font-bold">
+                <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-400 shrink-0" />
+                <span className="text-purple-300">Lv.{managerLevel}</span>
+                <span className="text-white/30 hidden md:inline">{managerXP} XP</span>
+              </span>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Tiebreakers Section */}
+      {/* ── GOLD SEPARATOR ── */}
+      <div className="relative z-10 h-px bg-gradient-to-r from-transparent via-[#E8A800]/25 to-transparent" aria-hidden="true" />
+
+      {/* ── STATS STRIP ── */}
+      <section className="relative z-10 border-b border-white/[0.04] bg-[#0A0A0C]/80 backdrop-blur-sm" aria-label="Team statistics">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 md:gap-3">
+            {/* Budget — prominent on mobile */}
+            <div className="col-span-2 sm:col-span-2 lg:col-span-1 flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-white/[0.02] border border-emerald-500/15 sm:border-white/[0.04] lg:border-white/[0.04]">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <CircleDollarSign className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-emerald-400" aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline justify-between gap-1.5">
+                  <span className="dash-caption text-[#5A5660] font-bold uppercase tracking-wider">Budget</span>
+                  <span className="dash-stat-sm font-black text-emerald-400 tabular-nums">
+                    £{currentSeasonTeam.currentBudget.toLocaleString()}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mt-1.5" role="progressbar" aria-valuenow={budgetPct} aria-valuemin={0} aria-valuemax={100} aria-label={`${budgetPct}% of budget remaining`}>
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/40 transition-all duration-500"
+                    style={{ width: `${Math.min(budgetPct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Squad */}
+            <div className="flex items-center gap-2 sm:gap-2.5 px-2.5 py-2.5 sm:px-3 sm:py-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-cyan-400" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-1">
+                  <span className="dash-stat-sm font-black text-cyan-400 tabular-nums">{squadCount}</span>
+                  <span className="dash-caption text-[#5A5660] font-bold uppercase tracking-wider">Players</span>
+                </div>
+                <Link
+                  href="/team/squad"
+                  className="dash-caption text-[#E8A800] font-bold hover:underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-[#E8A800] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A] rounded"
+                >
+                  View squad →
+                </Link>
+              </div>
+            </div>
+
+            {/* Next match */}
+            <div className="flex items-center gap-2 sm:gap-2.5 px-2.5 py-2.5 sm:px-3 sm:py-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
+                <Swords className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-violet-400" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                {nextMatch ? (
+                  <>
+                    <div className="dash-body font-black text-violet-300 truncate">
+                      {nextMatch.homeTeam.team.id === currentSeasonTeam.id
+                        ? `vs ${nextMatch.awayTeam.team.name}`
+                        : `vs ${nextMatch.homeTeam.team.name}`}
+                    </div>
+                    <div className="dash-caption text-[#5A5660] font-bold tabular-nums">
+                      {new Date(nextMatch.matchDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="dash-body font-black text-[#3A3A3A]">—</div>
+                    <div className="dash-caption text-[#3A3A3A] font-bold">No matches</div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Trophies */}
+            <div className="flex items-center gap-2 sm:gap-2.5 px-2.5 py-2.5 sm:px-3 sm:py-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#E8A800]/10 flex items-center justify-center shrink-0">
+                <Trophy className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-[#E8A800]" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <div className="dash-stat-sm font-black text-[#E8A800] tabular-nums">
+                  {currentSeasonTeam.trophiesWon}
+                  {totalAllTimeTrophies > 0 && (
+                    <span className="dash-caption text-purple-400 font-bold ml-1">({totalAllTimeTrophies})</span>
+                  )}
+                </div>
+                <div className="dash-caption text-[#5A5660] font-bold uppercase tracking-wider">Trophies</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── MAIN CONTENT ── */}
+      <main className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6">
+        {/* Urgent Alerts */}
         <TiebreakerSection
           activeNormalTiebreakers={activeNormalTiebreakers}
           activeBulkTiebreakers={activeBulkTiebreakers}
@@ -362,386 +386,350 @@ export default async function TeamDashboardPage() {
           pendingBulkTiebreakers={pendingBulkTiebreakersWithTeams}
         />
 
-        {/* Active Auction Rounds - Prominent Alert */}
+        {/* Active Auction Rounds */}
         {activeRounds.length > 0 && (
-          <div className="mb-6 sm:mb-8">
-            <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#E8A800]/20 to-[#FFB347]/20 border-2 border-[#E8A800]/50 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800] flex items-center justify-center animate-pulse">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+          <section className="mb-4 sm:mb-5 md:mb-6" aria-label="Active auction rounds">
+            <div className="rounded-xl sm:rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-3 sm:p-4 md:p-5">
+              <div className="flex items-center gap-2.5 sm:gap-3 mb-3">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
+                  <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-black animate-pulse" aria-hidden="true" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white">Active Auction Rounds</h2>
-                  <p className="text-xs sm:text-sm text-[#D4CCBB]">{activeRounds.length} round{activeRounds.length > 1 ? 's' : ''} in progress</p>
+                  <h2 className="dash-h3 font-black text-white">
+                    Auction Active
+                    {activeRounds.length > 1 && <span className="text-amber-300/60"> ({activeRounds.length})</span>}
+                  </h2>
+                  <p className="dash-caption text-amber-200/40 font-medium">Place your bids before time runs out</p>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-1.5 sm:space-y-2">
                 {activeRounds.map((round) => {
                   const teamBid = round.teamRoundBids[0]
                   const timeRemaining = round.endTime ? new Date(round.endTime).getTime() - Date.now() : 0
                   const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60))
                   const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60))
                   const isUrgent = hoursRemaining < 2
-                  const roundPath = round.roundType === 'bulk'
-                    ? `/team/auction/bulk-rounds/${round.id}`
-                    : `/team/auction/rounds/${round.id}`
+                  const roundPath = round.roundType === "bulk" ? `/team/auction/bulk-rounds/${round.id}` : `/team/auction/rounds/${round.id}`
+                  const isSubmitted = round.roundType === "bulk" ? round.bulkRoundSelections[0]?.submitted : teamBid?.submitted
+                  const bidCount = teamBid?.bidCount
 
                   return (
                     <Link
                       key={round.id}
                       href={roundPath}
-                      className="block bg-black/40 border border-white/20 rounded-lg p-4 hover:border-[#E8A800] hover:bg-black/60 transition-all group"
+                      className="flex items-center gap-2.5 sm:gap-3 bg-black/30 border border-white/[0.08] rounded-lg p-2.5 sm:p-3 hover:border-amber-400/30 hover:bg-black/40 transition-all group touch-min focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A]"
                     >
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-white font-black text-base sm:text-lg">Round {round.roundNumber}</h3>
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                              LIVE
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[#D4CCBB]">
-                            <span className="font-medium truncate max-w-[200px] sm:max-w-none">
-                              {round.position ? `${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}` : 'All Positions'}
-                            </span>
-                            <span className="text-[#7A7367]">•</span>
-                            <span>{round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}</span>
-                          </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 flex-wrap">
+                          <span className="dash-body font-black text-white">Round {round.roundNumber}</span>
+                          <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 dash-caption font-bold border border-emerald-500/25 uppercase tracking-wider">Live</span>
+                          <span className="dash-caption text-[#5A5660] font-medium">
+                            {round.roundType === "normal" ? "Standard" : "Bulk"}
+                            {" · "}
+                            {round.position ? `${round.position}${round.position_group && round.position_group !== "ALL" ? ` ${round.position_group}` : ""}` : "All"}
+                          </span>
                         </div>
-                        <div className="text-right">
-                          <div className={`text-lg sm:text-xl font-black ${isUrgent ? 'text-red-400' : 'text-[#FFB347]'}`}>
-                            {hoursRemaining > 0 && `${hoursRemaining}h `}
-                            {minutesRemaining}m
-                          </div>
-                          <div className="text-xs text-[#7A7367]">remaining</div>
-                        </div>
+                        {isSubmitted ? (
+                          <span className="dash-caption text-emerald-400 font-bold">✓ Submitted{bidCount ? ` (${bidCount})` : ""}</span>
+                        ) : bidCount ? (
+                          <span className="dash-caption text-amber-400 font-bold">In Progress ({bidCount})</span>
+                        ) : (
+                          <span className="dash-caption text-red-400 font-bold">No bids placed</span>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          {round.roundType === 'bulk' ? (
-                            round.bulkRoundSelections[0] ? (
-                              round.bulkRoundSelections[0].submitted ? (
-                                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                                  ✓ Submitted
-                                </span>
-                              ) : (
-                                <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30">
-                                  In Progress
-                                </span>
-                              )
-                            ) : (
-                              <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
-                                No Selections Placed
-                              </span>
-                            )
-                          ) : (
-                            teamBid ? (
-                              teamBid.submitted ? (
-                                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                                  ✓ Submitted ({teamBid.bidCount} bids)
-                                </span>
-                              ) : (
-                                <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30">
-                                  In Progress ({teamBid.bidCount} bids)
-                                </span>
-                              )
-                            ) : (
-                              <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
-                                No Bids Placed
-                              </span>
-                            )
-                          )}
+                      <div className="text-right shrink-0">
+                        <div className={`dash-body font-black tabular-nums ${isUrgent ? "text-red-400" : "text-amber-300"}`}>
+                          {hoursRemaining > 0 && `${hoursRemaining}h `}{minutesRemaining}m
                         </div>
-                        <div className="text-[#E8A800] group-hover:text-[#FFC93A] font-bold text-sm inline-flex items-center gap-1 transition-colors">
-                          {round.roundType === 'bulk'
-                            ? (round.bulkRoundSelections[0]?.submitted ? 'View Selections' : 'Select Players')
-                            : (teamBid?.submitted ? 'View Bids' : 'Place Bids')}
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
+                        <div className="dash-caption text-[#5A5660] font-medium">remaining</div>
                       </div>
+                      <ChevronRight className="w-4 h-4 text-[#3A3A3A] group-hover:text-amber-400 transition-colors shrink-0" aria-hidden="true" />
                     </Link>
                   )
                 })}
               </div>
               <Link
                 href="/team/auction"
-                className="mt-4 block text-center py-3 rounded-lg bg-[#E8A800] hover:bg-[#FFC93A] text-black font-bold text-sm transition-colors"
+                className="mt-2.5 sm:mt-3 flex items-center justify-center gap-1.5 py-2.5 sm:py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black dash-body font-black uppercase tracking-wider transition-colors touch-min focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A]"
               >
-                View All Auction Rounds
+                View All Rounds <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
               </Link>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {/* Upcoming Matches */}
-          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/[0.02] rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/[0.04] transition-colors" />
-            <div className="flex items-center justify-between mb-4 sm:mb-6 relative z-10">
-              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">Upcoming Matches</h2>
-              <Link
-                href="/team/matches"
-                className="text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] font-black uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors"
-              >
-                <span>View All</span>
-                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-            {upcomingMatches.length > 0 ? (
-              <div className="space-y-3 relative z-10">
-                {upcomingMatches.map((match) => (
-                  <Link
-                    key={match.id}
-                    href={`/team/matches/${match.id}`}
-                    className="block bg-white/[0.02] border border-white/5 rounded-xl p-3 sm:p-4 hover:border-[#E8A800]/30 hover:bg-white/[0.04] transition-all duration-300 transform hover:scale-[1.01]"
-                  >
-                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2">
-                      {new Date(match.matchDate).toLocaleDateString()} • {match.tournament.name}
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-white font-black text-sm truncate">{match.homeTeam.team.name}</span>
-                      <span className="text-gray-500 text-xs font-black uppercase tracking-widest flex-shrink-0">vs</span>
-                      <span className="text-white font-black text-sm truncate text-right">{match.awayTeam.team.name}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 sm:py-12 relative z-10">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 mx-auto mb-3 sm:mb-4">
-                  <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="text-gray-500 text-sm font-semibold">No upcoming matches scheduled</p>
-              </div>
-            )}
-          </div>
- 
-          {/* Recent Transactions */}
-          <div className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/[0.02] rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/[0.04] transition-colors" />
-            <div className="flex items-center justify-between mb-4 sm:mb-6 relative z-10">
-              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">Recent Transactions</h2>
-              <Link
-                href="/team/finances"
-                className="text-xs sm:text-sm text-[#E8A800] hover:text-[#FFC93A] font-black uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors"
-              >
-                <span>View All</span>
-                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-            {recentTransactions.length > 0 ? (
-              <div className="space-y-3 relative z-10">
-                {recentTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="bg-white/[0.02] border border-white/5 rounded-xl p-3 sm:p-4 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-black text-xs sm:text-sm uppercase tracking-wider">
-                        {transaction.transactionType.replace(/_/g, " ")}
-                      </span>
-                      <span
-                        className={`font-black text-xs sm:text-sm ${
-                          transaction.amount >= 0
-                            ? "text-emerald-400"
-                            : "text-red-400"
-                        }`}
+        {/* ── TWO-COLUMN LAYOUT ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_320px] gap-4 sm:gap-5">
+          {/* LEFT: Main feed */}
+          <div className="space-y-4 sm:space-y-5 min-w-0">
+            {/* Upcoming Matches */}
+            <Card
+              icon={<Swords className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-400" />}
+              iconBg="bg-violet-500/10"
+              title="Upcoming Matches"
+              action={upcomingMatches.length > 0 ? { label: "View All", href: "/team/matches" } : undefined}
+            >
+              {upcomingMatches.length > 0 ? (
+                <div className="space-y-1.5 sm:space-y-2">
+                  {upcomingMatches.map((match) => {
+                    const isHome = match.homeTeam.team.id === currentSeasonTeam.id
+                    const opponent = isHome ? match.awayTeam.team : match.homeTeam.team
+                    return (
+                      <Link
+                        key={match.id}
+                        href={`/team/matches/${match.id}`}
+                        className="flex items-center gap-2 sm:gap-2.5 md:gap-3 bg-white/[0.02] border border-white/[0.04] rounded-lg p-2.5 sm:p-3 hover:border-violet-500/25 hover:bg-white/[0.03] transition-all touch-min focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A]"
                       >
-                        {transaction.amount >= 0 ? "+" : ""}£
-                        {Math.abs(transaction.amount).toLocaleString()}
+                        <div className="shrink-0 text-center w-9 sm:w-10 md:w-12">
+                          <div className="dash-caption text-[#5A5660] font-bold uppercase">
+                            {new Date(match.matchDate).toLocaleDateString("en-GB", { weekday: "short" })}
+                          </div>
+                          <div className="dash-small font-black text-white tabular-nums">
+                            {new Date(match.matchDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 text-center">
+                          <div className="flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2">
+                            <span className="dash-small font-bold text-[#8A8690] truncate max-w-[70px] sm:max-w-[80px]">{team.name}</span>
+                            <span className="dash-caption text-[#3A3A3A] font-black uppercase px-0.5">{isHome ? "H" : "A"}</span>
+                            <span className="dash-caption text-[#3A3A3A] font-black">vs</span>
+                            <span className="dash-small font-bold text-white truncate max-w-[70px] sm:max-w-[80px]">{opponent.name}</span>
+                          </div>
+                          <div className="dash-caption text-[#3A3A3A] font-medium mt-0.5 truncate">{match.tournament.name}</div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-[#3A3A3A] shrink-0" aria-hidden="true" />
+                      </Link>
+                    )
+                  })}
+                </div>
+              ) : (
+                <EmptyState icon={<CalendarDays className="w-6 h-6 sm:w-7 sm:h-7" />} text="No upcoming matches" />
+              )}
+            </Card>
+
+            {/* Recent Transactions */}
+            <Card
+              icon={<TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />}
+              iconBg="bg-emerald-500/10"
+              title="Recent Transactions"
+              action={recentTransactions.length > 0 ? { label: "View All", href: "/team/finances" } : undefined}
+            >
+              {recentTransactions.length > 0 ? (
+                <div className="space-y-0.5 sm:space-y-1">
+                  {recentTransactions.map((tx) => (
+                    <div key={tx.id} className="flex items-center gap-2 sm:gap-2.5 md:gap-3 px-2 sm:px-2.5 md:px-3 py-2 sm:py-2.5 rounded-lg hover:bg-white/[0.02] transition-colors">
+                      <div className={`shrink-0 ${tx.amount >= 0 ? "text-emerald-400" : "text-red-400"}`} aria-hidden="true">
+                        {tx.amount >= 0 ? <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 sm:gap-1.5">
+                          <span className="dash-small font-bold text-white uppercase tracking-wider truncate">
+                            {tx.transactionType.replace(/_/g, " ")}
+                          </span>
+                          {tx.playerName && (
+                            <span className="dash-caption text-[#E8A800] font-bold truncate">· {tx.playerName}</span>
+                          )}
+                        </div>
+                        <div className="dash-caption text-[#5A5660] truncate">{tx.description}</div>
+                      </div>
+                      <span className={`dash-small font-black tabular-nums shrink-0 ${tx.amount >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {tx.amount >= 0 ? "+" : ""}£{Math.abs(tx.amount).toLocaleString()}
                       </span>
                     </div>
-                    {transaction.playerName && (
-                      <div className="text-xs text-[#E8A800] font-black tracking-wide mb-1">{transaction.playerName}</div>
-                    )}
-                    <div className="text-xs text-gray-400 font-medium line-clamp-1">{transaction.description}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 sm:py-12 relative z-10">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 mx-auto mb-3 sm:mb-4">
-                  <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  ))}
                 </div>
-                <p className="text-gray-500 text-sm font-semibold">No transactions yet</p>
-              </div>
-            )}
+              ) : (
+                <EmptyState icon={<Coins className="w-6 h-6 sm:w-7 sm:h-7" />} text="No transactions yet" />
+              )}
+            </Card>
+
+            {/* Squad preview */}
+            <Card
+              icon={<Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />}
+              iconBg="bg-cyan-500/10"
+              title="Your Squad"
+              action={squadPlayers.length > 0 ? { label: "Full Roster", href: "/team/squad" } : undefined}
+            >
+              <SquadPreview squadPlayers={squadPlayers} />
+            </Card>
           </div>
-        </div>
- 
-        {/* Quick Actions */}
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-black text-white mb-4 sm:mb-6 tracking-tight">Quick Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-            <Link
-              href="/team/auction"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8A800]/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-[#E8A800]/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-[#E8A800] uppercase tracking-wider transition-colors">Auction</div>
-            </Link>
-            <Link
-              href="/team/auction-planner"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8A800]/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-[#E8A800]/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-[#E8A800] uppercase tracking-wider transition-colors">Planner</div>
-            </Link>
-            <Link
-              href="/team/release-request"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-yellow-500/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-yellow-500/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mx-auto mb-2 sm:mb-3 group-hover:bg-yellow-500/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-yellow-400 uppercase tracking-wider transition-colors">Release</div>
-            </Link>
-            <Link
-              href="/team/retention-request"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-orange-500/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-orange-500/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-orange-500/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 mx-auto mb-2 sm:mb-3 group-hover:bg-orange-500/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-orange-400 uppercase tracking-wider transition-colors">Retention</div>
-            </Link>
-            <Link
-              href="/team/swap-request"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-cyan-500/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-cyan-500/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto mb-2 sm:mb-3 group-hover:bg-cyan-500/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-cyan-400 uppercase tracking-wider transition-colors">Swap</div>
-            </Link>
-            <Link
-              href="/team/transfers"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-emerald-500/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-2 sm:mb-3 group-hover:bg-emerald-500/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-emerald-400 uppercase tracking-wider transition-colors">Transfers</div>
-            </Link>
-            <Link
-              href="/team/starred"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8A800]/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-[#E8A800]/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-[#E8A800] uppercase tracking-wider transition-colors">Starred</div>
-            </Link>
-            <Link
-              href="/team/players"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8A800]/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-[#E8A800]/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-[#E8A800] uppercase tracking-wider transition-colors">All Players</div>
-            </Link>
-            <Link
-              href="/team/squad"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8A800]/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-[#E8A800]/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-[#E8A800] uppercase tracking-wider transition-colors">Squad</div>
-            </Link>
-            <Link
-              href="/team/matches"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8A800]/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-[#E8A800]/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-[#E8A800] uppercase tracking-wider transition-colors">Matches</div>
-            </Link>
-            <Link
-              href="/team/tournaments"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8A800]/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-[#E8A800]/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800] mx-auto mb-2 sm:mb-3 group-hover:bg-[#E8A800]/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-              </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-[#E8A800] uppercase tracking-wider transition-colors">Tournaments</div>
-            </Link>
+
+          {/* RIGHT: Action sidebar */}
+          <aside className="space-y-4 sm:space-y-5">
+            {/* Achievements CTA */}
             <Link
               href="/team/achievements"
-              className="relative rounded-2xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 hover:border-purple-500/30 hover:bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 text-center group"
+              className="flex items-center gap-3 p-3 sm:p-3.5 md:p-4 rounded-xl bg-gradient-to-r from-[#E8A800]/10 to-amber-500/[0.06] border border-[#E8A800]/20 hover:border-[#E8A800]/35 transition-all group touch-min focus-visible:ring-2 focus-visible:ring-[#E8A800] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A]"
             >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/[0.01] rounded-full blur-xl pointer-events-none group-hover:bg-purple-500/[0.03] transition-colors" />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mx-auto mb-2 sm:mb-3 group-hover:bg-purple-500/20 transition-colors shadow-lg">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12M4 7h16M4 7v3a4 4 0 004 4h8a4 4 0 004-4V7M4 7a2 2 0 012-2h12a2 2 0 012 2" />
-                </svg>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#E8A800]/15 flex items-center justify-center shrink-0">
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#E8A800]" aria-hidden="true" />
               </div>
-              <div className="text-white font-extrabold text-xs sm:text-sm group-hover:text-purple-400 uppercase tracking-wider transition-colors">Badges</div>
+              <div className="flex-1 min-w-0">
+                <div className="dash-body font-black text-white group-hover:text-[#FFB347] transition-colors">Achievements Cabinet</div>
+                <div className="dash-caption text-[#5A5660] font-medium">View trophies & badges earned</div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#3A3A3A] group-hover:text-[#E8A800] transition-colors shrink-0" aria-hidden="true" />
             </Link>
-          </div>
-        </div>
 
-        {/* Tabbed Section - Bids and Squad */}
-        <div className="mt-6 sm:mt-8 mb-6 sm:mb-8">
-          <TeamDashboardTabs
-            activeBids={[]}
-            squadPlayers={squadPlayers}
-            teamSquad={teamSquad}
-          />
+            {/* Action menu */}
+            <nav className="rounded-xl bg-[#0E0E11]/90 border border-white/[0.04] overflow-hidden" aria-label="Quick actions">
+              {actionSections.map((section) => (
+                <div key={section.heading}>
+                  <div className="px-3 sm:px-3.5 md:px-4 pt-2.5 sm:pt-3 pb-1">
+                    <h3 className="dash-caption font-black text-[#3A3A3A] uppercase tracking-[0.15em]">{section.heading}</h3>
+                  </div>
+                  <div className="px-1 pb-1">
+                    {section.items.map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="flex items-center gap-2 sm:gap-2.5 md:gap-3 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg hover:bg-white/[0.03] transition-colors group touch-min focus-visible:ring-2 focus-visible:ring-[#E8A800] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A]"
+                        >
+                          <Icon className={`w-4 h-4 ${item.color} shrink-0`} aria-hidden="true" />
+                          <div className="flex-1 min-w-0">
+                            <span className="dash-small font-bold text-[#8A8690] group-hover:text-white transition-colors">
+                              {item.label}
+                            </span>
+                            <span className="dash-caption text-[#3A3A3A] ml-1.5 hidden sm:inline">
+                              {item.desc}
+                            </span>
+                          </div>
+                          <ChevronRight className="w-3 h-3 text-[#2A2A32] group-hover:text-[#5A5660] transition-colors shrink-0" aria-hidden="true" />
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </aside>
         </div>
+      </main>
+    </div>
+  )
+}
+
+/* ── Card wrapper ── */
+function Card({
+  icon,
+  iconBg,
+  title,
+  action,
+  children,
+}: {
+  icon: React.ReactNode
+  iconBg: string
+  title: string
+  action?: { label: string; href: string }
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-xl sm:rounded-2xl bg-[#0E0E11]/90 border border-white/[0.04] overflow-hidden">
+      <div className="flex items-center justify-between px-3 sm:px-3.5 md:px-4 py-2.5 sm:py-3 border-b border-white/[0.03]">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-md ${iconBg} flex items-center justify-center`} aria-hidden="true">
+            {icon}
+          </div>
+          <h2 className="dash-small font-black text-[#8A8690] uppercase tracking-wider">{title}</h2>
+        </div>
+        {action && (
+          <Link
+            href={action.href}
+            className="dash-caption text-[#E8A800] hover:text-[#FFC93A] font-black uppercase tracking-wider inline-flex items-center gap-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-[#E8A800] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A] rounded"
+          >
+            {action.label} <ChevronRight className="w-3 h-3" aria-hidden="true" />
+          </Link>
+        )}
       </div>
+      <div className="p-2.5 sm:p-3 md:p-4">{children}</div>
+    </section>
+  )
+}
+
+/* ── Empty state ── */
+function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="text-center py-5 sm:py-6 md:py-8">
+      <div className="text-[#2A2A32] mx-auto mb-2 flex justify-center" aria-hidden="true">{icon}</div>
+      <p className="text-[#5A5660] dash-body font-semibold">{text}</p>
+    </div>
+  )
+}
+
+/* ── Squad preview ── */
+function SquadPreview({ squadPlayers }: { squadPlayers: any[] }) {
+  const getPositionColor = (pos: string) => {
+    const u = pos?.toUpperCase()
+    if (u === "GK") return "bg-yellow-500/10 border-yellow-500/25 text-yellow-400"
+    if (["CB", "LB", "RB"].includes(u)) return "bg-blue-500/10 border-blue-500/25 text-blue-400"
+    if (["DMF", "CMF", "LMF", "RMF"].includes(u)) return "bg-green-500/10 border-green-500/25 text-green-400"
+    if (u === "AMF") return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+    if (u === "SS") return "bg-orange-500/10 border-orange-500/25 text-orange-400"
+    if (["LWF", "RWF", "CF"].includes(u)) return "bg-red-500/10 border-red-500/25 text-red-400"
+    return "bg-gray-500/10 border-gray-500/25 text-gray-400"
+  }
+
+  if (squadPlayers.length === 0) {
+    return (
+      <div className="text-center py-4 sm:py-5">
+        <Users className="w-6 h-6 sm:w-7 sm:h-7 text-[#2A2A32] mx-auto mb-2" aria-hidden="true" />
+        <p className="text-[#5A5660] dash-body font-semibold mb-0.5">No players yet</p>
+        <p className="text-[#3A3A3A] dash-caption">
+          Head to{" "}
+          <Link href="/team/auction" className="text-[#E8A800] hover:underline focus-visible:ring-2 focus-visible:ring-[#E8A800] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A] rounded">
+            Auction
+          </Link>{" "}
+          to start building.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      {squadPlayers.slice(0, 6).map((player: any) => {
+        const stats = player.basePlayer.seasonalPlayerStats[0]
+        const position = stats?.position || "N/A"
+        const positionGroup = stats?.position_group
+        const rating = stats?.overallRating || 0
+        return (
+          <Link
+            key={player.id}
+            href={`/team/players/${player.basePlayer.id}`}
+            className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-2.5 py-2 rounded-lg hover:bg-white/[0.03] transition-colors group touch-min focus-visible:ring-2 focus-visible:ring-[#E8A800] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A]"
+          >
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md overflow-hidden bg-white/5 border border-white/[0.08] shrink-0">
+              {player.basePlayer.photoUrl ? (
+                <img src={player.basePlayer.photoUrl} alt="" className="w-full h-full object-cover" loading="lazy" width={32} height={32} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[#3A3A3A]">
+                  <UserSearch className="w-3.5 h-3.5" aria-hidden="true" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="dash-small font-bold text-[#8A8690] truncate group-hover:text-white transition-colors">{player.basePlayer.name}</div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className={`inline-flex px-1 py-0.5 rounded border text-[7px] sm:text-[8px] font-extrabold uppercase tracking-wider ${getPositionColor(position)}`}>
+                  {positionGroup && positionGroup !== "ALL" ? `${position}·${positionGroup}` : position}
+                </span>
+                <span className="text-[7px] sm:text-[8px] font-bold text-amber-400 tabular-nums">★ {rating}</span>
+              </div>
+            </div>
+            <span className="dash-small font-black text-emerald-400 tabular-nums">£{player.soldPrice.toLocaleString()}</span>
+          </Link>
+        )
+      })}
+      {squadPlayers.length > 6 && (
+        <Link
+          href="/team/squad"
+          className="block text-center py-2 dash-caption text-[#E8A800] font-bold hover:underline focus-visible:ring-2 focus-visible:ring-[#E8A800] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A] rounded"
+        >
+          +{squadPlayers.length - 6} more players
+        </Link>
+      )}
     </div>
   )
 }

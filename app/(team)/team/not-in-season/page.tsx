@@ -27,7 +27,7 @@ export default async function NotInSeasonPage() {
           season: true,
         },
         orderBy: {
-          createdAt: "desc",
+          season: { seasonNumber: "desc" },
         },
       },
       managerLinks: {
@@ -179,12 +179,14 @@ export default async function NotInSeasonPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">Final Budget</div>
-                      <div className="text-emerald-400 font-black">
-                        £{st.finalBudget?.toLocaleString() || st.currentBudget.toLocaleString()}
+                    {st.season.seasonNumber >= 4 && (
+                      <div className="text-right">
+                        <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">Final Budget</div>
+                        <div className="text-emerald-400 font-black">
+                          £{st.finalBudget?.toLocaleString() || st.currentBudget.toLocaleString()}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="text-right">
                       <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">Trophies</div>
                       <div className="text-[#E8A800] font-black">{st.trophiesWon}</div>

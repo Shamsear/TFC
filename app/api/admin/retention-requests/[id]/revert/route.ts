@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

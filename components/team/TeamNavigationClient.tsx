@@ -146,24 +146,24 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0a]/60 backdrop-blur-xl shadow-xl transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
           {/* Logo - Left Side */}
-          <Link href="/team" className="flex items-center gap-3 hover:opacity-90 transition-opacity relative z-10 group">
-            <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden ring-2 ring-white/5 bg-black/40 p-1 flex-shrink-0 group-hover:ring-[#E8A800]/30 transition-all">
+          <Link href="/team" className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition-opacity relative z-10 group">
+            <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl overflow-hidden ring-2 ring-white/5 bg-black/40 p-0.5 sm:p-1 flex-shrink-0 group-hover:ring-[#E8A800]/30 transition-all">
               <Image
                 src="/logo.jpeg"
                 alt="Turf Cats"
                 fill
-                className="object-contain p-1 rounded-xl"
+                className="object-contain p-0.5 sm:p-1 rounded-lg sm:rounded-xl"
                 priority
               />
             </div>
             <div>
-              <div className="text-lg sm:text-xl font-black bg-gradient-to-r from-[#FFC93A] via-[#FFD066] to-[#E8A800] bg-clip-text text-transparent group-hover:brightness-110 transition-all leading-tight">
+              <div className="text-sm sm:text-lg md:text-xl font-black bg-gradient-to-r from-[#FFC93A] via-[#FFD066] to-[#E8A800] bg-clip-text text-transparent group-hover:brightness-110 transition-all leading-tight">
                 Turf Cats
               </div>
-              <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider mt-0.5 font-mono">
+              <div className="hidden sm:block text-[10px] text-gray-500 font-extrabold uppercase tracking-wider mt-0.5 font-mono">
                 Team Manager
               </div>
             </div>
@@ -314,7 +314,8 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-gray-500 hover:text-white transition-colors relative z-10"
+            className="md:hidden p-2.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors relative z-10 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               {mobileMenuOpen ? (
@@ -328,7 +329,7 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/5 relative z-10 animate-[fadeIn_0.2s_ease-out] max-h-[70vh] overflow-y-auto">
+          <div className="md:hidden py-3 border-t border-white/5 relative z-10 animate-[fadeIn_0.2s_ease-out] max-h-[75vh] overflow-y-auto overscroll-contain">
             <nav className="flex flex-col gap-2 px-2">
               {/* Main Links */}
               <Link

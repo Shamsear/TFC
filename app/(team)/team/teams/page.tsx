@@ -130,14 +130,15 @@ export default async function TeamTeamsPage() {
     positionMapByTeam.get(teamId)![position] = Number(count)
   }
 
-  // Resolve current managers for all teams
+  // Use season_teams.managerName directly (authoritative for this season)
+  // Only fallback to resolveTeamManagerNames for teams missing managerName
   const teamIds = season.seasonTeams.map(st => st.team.id)
   const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
 
   // Resolve manager IDs for detail page links
   const managerIds = await Promise.all(
     season.seasonTeams.map(async (st) => {
-      const mgrName = mgrMap.get(st.team.id) || st.managerName || st.team.managerName
+      const mgrName = st.managerName || st.team.managerName || mgrMap.get(st.team.id) || null
       const mgrId = await resolveManagerId(prisma, mgrName)
       return { teamId: st.team.id, managerId: mgrId }
     })
@@ -148,7 +149,7 @@ export default async function TeamTeamsPage() {
   const teamsWithDetails = season.seasonTeams.map(st => {
     return {
       ...st,
-      resolvedManagerName: mgrMap.get(st.team.id) || st.managerName || st.team.managerName,
+      resolvedManagerName: st.managerName || st.team.managerName || mgrMap.get(st.team.id),
       resolvedManagerId: managerIdByTeam.get(st.team.id) || null,
       playerCount: countMap.get(st.team.id) || 0,
       totalSpent: spentMap.get(st.team.id) || 0,

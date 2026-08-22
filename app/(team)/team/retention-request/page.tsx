@@ -14,31 +14,25 @@ export default async function RetentionRequestPage() {
     redirect('/login')
   }
 
-  // Resolve the manager's CURRENT team from manager_teams.isCurrent (not stale session.teamId)
+  // Get active season first (reliable: uses TFCS-N ID sorting)
+  const activeSeason = await getActiveSeason()
+
+  // Resolve the manager's CURRENT team from season_teams (authoritative)
   let teamId = session.user.teamId!
-  try {
-    // Path 1: via users.managerId
-    const mgrLink = await prisma.manager_teams.findFirst({
-      where: { manager: { user: { id: session.user.id! } }, isCurrent: true },
-      select: { teamId: true }
-    })
-    if (mgrLink) {
-      teamId = mgrLink.teamId
-    } else {
-      // Path 2: via users.name
-      const user = await prisma.users.findUnique({ where: { id: session.user.id! }, select: { name: true } })
-      if (user?.name) {
-        const mgr = await prisma.managers.findFirst({ where: { name: { equals: user.name, mode: 'insensitive' } }, select: { id: true } })
-        if (mgr) {
-          const link = await prisma.manager_teams.findFirst({ where: { managerId: mgr.id, isCurrent: true }, select: { teamId: true } })
-          if (link) teamId = link.teamId
-        }
+  if (activeSeason) {
+    // Get manager name via users.managerId → managers.name (handles Badsha→Savad case)
+    const user = await prisma.users.findUnique({ where: { id: session.user.id! }, select: { managerId: true } })
+    if (user?.managerId) {
+      const mgr = await prisma.managers.findUnique({ where: { id: user.managerId }, select: { name: true } })
+      if (mgr?.name) {
+        const stEntry = await prisma.season_teams.findFirst({
+          where: { seasonId: activeSeason.id, managerName: { equals: mgr.name, mode: 'insensitive' } },
+          select: { teamId: true }
+        })
+        if (stEntry) teamId = stEntry.teamId
       }
     }
-  } catch {}
-
-  // Get active season (reliable: uses TFCS-N ID sorting)
-  const activeSeason = await getActiveSeason()
+  }
 
   if (!activeSeason) {
     return (

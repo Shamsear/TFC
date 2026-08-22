@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 import { triggerNews } from '@/lib/news/trigger'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

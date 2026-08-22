@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { canEditTeam, checkTeamSeasonParticipation } from "@/lib/team-auth"
-import { resolveTeamManagerNames } from "@/lib/resolve-manager"
 import { getActiveSeason } from "@/lib/get-active-season"
 import Image from "next/image"
 import Link from "next/link"
@@ -56,12 +55,13 @@ export default async function TeamProfilePage() {
             select: {
               id: true,
               name: true,
-              isActive: true
+              isActive: true,
+              seasonNumber: true
             }
           }
         },
         orderBy: {
-          createdAt: "desc",
+          season: { seasonNumber: "desc" },
         },
       },
     },
@@ -314,12 +314,14 @@ export default async function TeamProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Budget</div>
-                        <div className="text-emerald-400 font-black text-sm">
-                          £{st.currentBudget.toLocaleString()}
+                      {st.season.seasonNumber >= 4 && (
+                        <div className="text-right">
+                          <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Budget</div>
+                          <div className="text-emerald-400 font-black text-sm">
+                            £{st.currentBudget.toLocaleString()}
+                          </div>
                         </div>
-                      </div>
+                      )}
                       <div className="text-right">
                         <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Trophies</div>
                         <div className="text-[#E8A800] font-black text-sm">

@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth'
 import { randomUUID } from 'crypto'
 import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 /**
  * POST /api/admin/retention-requests/batch
  * 

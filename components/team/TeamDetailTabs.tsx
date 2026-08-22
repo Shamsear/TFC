@@ -593,19 +593,23 @@ export default function TeamDetailTabs({
                                 </div>
                               </div>
                             )}
-                            <div className="text-center min-w-[70px]">
-                              <div className="text-[9px] text-gray-500 uppercase font-bold tracking-wider font-mono mb-0.5">Current</div>
-                              <div className="text-xs font-extrabold text-emerald-400 font-mono">
-                                {formatCurrency(s.currentBudget)}
-                              </div>
-                            </div>
-                            {s.finalBudget !== null && (
-                              <div className="text-center min-w-[70px]">
-                                <div className="text-[9px] text-gray-500 uppercase font-bold tracking-wider font-mono mb-0.5">Final</div>
-                                <div className="text-xs font-extrabold text-purple-400 font-mono">
-                                  {formatCurrency(s.finalBudget)}
+                            {(() => { const sn = parseInt(s.seasonName.replace(/[^0-9]/g, '')); return sn >= 4; })() && (
+                              <>
+                                <div className="text-center min-w-[70px]">
+                                  <div className="text-[9px] text-gray-500 uppercase font-bold tracking-wider font-mono mb-0.5">Current</div>
+                                  <div className="text-xs font-extrabold text-emerald-400 font-mono">
+                                    {formatCurrency(s.currentBudget)}
+                                  </div>
                                 </div>
-                              </div>
+                                {s.finalBudget !== null && (
+                                  <div className="text-center min-w-[70px]">
+                                    <div className="text-[9px] text-gray-500 uppercase font-bold tracking-wider font-mono mb-0.5">Final</div>
+                                    <div className="text-xs font-extrabold text-purple-400 font-mono">
+                                      {formatCurrency(s.finalBudget)}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
                             )}
                             <div className="text-center min-w-[70px]">
                               <div className="text-[9px] text-gray-500 uppercase font-bold tracking-wider font-mono mb-0.5">Squad Size</div>

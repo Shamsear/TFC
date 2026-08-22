@@ -5,6 +5,9 @@ import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-s
 import { triggerNews } from '@/lib/news/trigger'
 import { randomUUID } from 'crypto'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

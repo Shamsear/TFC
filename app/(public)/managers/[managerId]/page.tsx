@@ -6,6 +6,7 @@ import TeamDetailTabs from "@/components/team/TeamDetailTabs"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 import { getActiveSeason } from "@/lib/get-active-season"
 import { 
+  calculateLevelFromXP,
   getCumulativeXPForLevel, 
   getXPForNextLevel, 
   getRankDetails,
@@ -243,6 +244,24 @@ async function getTeamData(teamId: string) {
   // All-time stats
   const totalTrophies = allSeasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0);
   const allTimeHighestSigning = allTransfers.reduce((max, t) => Math.max(max, t.soldPrice), 0);
+
+  // Manager-based XP: sum across ALL teams this manager has managed
+  const mgrTeamIds = [...new Set(allSeasonTeams.map(st => st.teamId))];
+  const mgrTeams = await prisma.teams.findMany({
+    where: { id: { in: mgrTeamIds } },
+    select: { xp: true, level: true, unlockedBadges: true, xpHistory: { orderBy: { createdAt: 'desc' } } },
+  });
+  const totalXP = mgrTeams.reduce((sum, t) => sum + t.xp, 0);
+  const maxLevel = calculateLevelFromXP(totalXP);
+  const allUnlockedBadges = mgrTeams.flatMap(t => t.unlockedBadges);
+  const allXpHistory = mgrTeams.flatMap(t => t.xpHistory)
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Override team XP/level/badges with aggregated manager data
+  team.xp = totalXP;
+  team.level = maxLevel;
+  team.unlockedBadges = allUnlockedBadges;
+  (team as any).xpHistory = allXpHistory;
 
   return JSON.parse(JSON.stringify({
     team,

@@ -33,10 +33,10 @@ export default async function TeamAuctionPage() {
     redirect("/auth/signin")
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    select: {
+  // Get active season    const activeSeason = await prisma.seasons.findFirst({
+      where: { isActive: true },
+      orderBy: { seasonNumber: 'desc' },
+      select: {
       id: true,
       name: true,
       seasonNumber: true

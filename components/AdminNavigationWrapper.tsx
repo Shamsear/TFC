@@ -11,7 +11,8 @@ export default async function AdminNavigation() {
   if (!isSuperAdmin) {
     const activeSeason = await prisma.seasons.findFirst({
       where: { isActive: true },
-      select: { id: true }
+      select: { id: true },
+      orderBy: { seasonNumber: 'desc' }
     });
     activeSeasonId = activeSeason?.id || null;
   }

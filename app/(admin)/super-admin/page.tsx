@@ -48,7 +48,7 @@ export default async function SuperAdminDashboard() {
     prisma.teams.count(),
     prisma.seasons.count(),
     prisma.seasons.findFirst({
-      orderBy: { createdAt: "desc" },
+      orderBy: { seasonNumber: "desc" },
       include: {
         seasonTeams: {
           include: { team: true }

@@ -17,6 +17,7 @@ export default async function RetentionRequestPage() {
   const activeSeason = await prisma.seasons.findFirst({
     where: { isActive: true },
     select: { id: true, name: true, seasonNumber: true },
+    orderBy: { seasonNumber: 'desc' }
   })
 
   if (!activeSeason) {

@@ -80,7 +80,8 @@ async function getTeamData(teamId: string) {
 
   // Get active season info
   const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true }
+    where: { isActive: true },
+    orderBy: { seasonNumber: 'desc' }
   });
 
   // Get team basic info

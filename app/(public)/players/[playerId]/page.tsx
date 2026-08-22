@@ -224,12 +224,13 @@ export default async function PublicPlayerDetailPage({ params }: PlayerDetailPag
 
   // Get active season
   const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true }
+    where: { isActive: true },
+    orderBy: { seasonNumber: 'desc' }
   })
 
   // If there's no active season, find the most recent season
   const season = activeSeason || await prisma.seasons.findFirst({
-    orderBy: { createdAt: 'desc' }
+    orderBy: { seasonNumber: 'desc' }
   })
 
   if (!season) {

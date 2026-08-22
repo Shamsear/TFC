@@ -129,7 +129,8 @@ export async function POST(request: NextRequest) {
     } else {
       // Default to active season
       season = await prisma.seasons.findFirst({
-        where: { isActive: true }
+        where: { isActive: true },
+        orderBy: { seasonNumber: 'desc' }
       })
     }
 

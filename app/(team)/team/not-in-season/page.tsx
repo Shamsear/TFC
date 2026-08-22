@@ -50,6 +50,7 @@ export default async function NotInSeasonPage() {
   // Get active season
   const activeSeason = await prisma.seasons.findFirst({
     where: { isActive: true },
+    orderBy: { seasonNumber: 'desc' }
   })
 
   // Get team's past seasons

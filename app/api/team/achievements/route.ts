@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     // Get active season
     const activeSeason = await prisma.seasons.findFirst({
       where: { isActive: true },
+      orderBy: { seasonNumber: 'desc' },
     })
 
     // Get all unlocked badges for this team

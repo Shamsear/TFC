@@ -8,7 +8,8 @@ async function getCalendarData() {
   try {
     // Get active season
     const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true }
+      where: { isActive: true },
+      orderBy: { seasonNumber: 'desc' }
     })
 
     if (!activeSeason) {

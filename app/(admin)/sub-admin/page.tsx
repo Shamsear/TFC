@@ -106,6 +106,7 @@ export default async function SubAdminDashboard() {
       isActive: true,
       id: { in: assignedSeasonIds }
     },
+    orderBy: { seasonNumber: 'desc' },
     include: {
       seasonTeams: {
         include: { team: true }

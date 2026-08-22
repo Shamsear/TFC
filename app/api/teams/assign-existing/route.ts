@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid season ID" }, { status: 400 })
       }
     } else {
-      season = await prisma.seasons.findFirst({ where: { isActive: true } })
+      season = await prisma.seasons.findFirst({ where: { isActive: true }, orderBy: { seasonNumber: 'desc' } })
     }
 
     // Generate credentials based on manager name

@@ -30,6 +30,7 @@ export default async function TeamNavigation() {
       id: true,
       name: true,
     },
+    orderBy: { seasonNumber: 'desc' }
   })
 
   // Check if team is in active season

@@ -209,6 +209,7 @@ export default function RetentionRequestsAdminClient({
   }
 
   const [reverting, setReverting] = useState<string | null>(null)
+  const [revertingTeam, setRevertingTeam] = useState<string | null>(null)
 
   const revertRetention = async (req: RetentionRequest) => {
     if (!confirm(`Revert retention for ${req.playerName}? This will restore £${req.oldSquadValue.toLocaleString()} to the team's budget and remove the player from their squad.`)) return
@@ -228,6 +229,35 @@ export default function RetentionRequestsAdminClient({
       alert(`Error: ${err.message}`)
     } finally {
       setReverting(null)
+    }
+  }
+
+  const revertTeamApprovals = async (group: TeamGroup) => {
+    const approved = group.requests.filter(r => r.status === 'approved')
+    if (approved.length === 0) return
+    if (!confirm(`Revert ALL ${approved.length} approved retention(s) for ${group.teamName}? This will restore budgets and remove players from squads.`)) return
+
+    setRevertingTeam(group.teamId)
+    try {
+      let reverted = 0
+      for (const req of approved) {
+        const res = await fetch(`/api/admin/retention-requests/${req.id}/revert`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+        if (res.ok) reverted++
+      }
+
+      setRequests(prev => prev.map(r =>
+        r.team.id === group.teamId && r.status === 'approved'
+          ? { ...r, status: 'pending', processedAt: null, processedBy: null }
+          : r
+      ))
+      alert(`Reverted ${reverted} retention(s) for ${group.teamName}`)
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setRevertingTeam(null)
     }
   }
 
@@ -427,7 +457,7 @@ export default function RetentionRequestsAdminClient({
                   {/* Copy All Requests */}
                   <button
                     onClick={e => { e.stopPropagation(); copyTeamRequests(group) }}
-                    className="p-1.5 rounded hover:bg-white/10 transition-colors flex-shrink-0 ml-auto"
+                    className="p-1.5 rounded hover:bg-white/10 transition-colors flex-shrink-0"
                     title="Copy all requests"
                   >
                     {copiedTeamId === group.teamId ? (
@@ -436,6 +466,22 @@ export default function RetentionRequestsAdminClient({
                       <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                     )}
                   </button>
+
+                  {/* Revert All Approved for this team */}
+                  {group.requests.some(r => r.status === 'approved') && (
+                    <button
+                      onClick={e => { e.stopPropagation(); revertTeamApprovals(group) }}
+                      disabled={revertingTeam === group.teamId}
+                      className="p-1.5 rounded hover:bg-red-500/10 transition-colors flex-shrink-0 disabled:opacity-50"
+                      title="Revert all approved retentions"
+                    >
+                      {revertingTeam === group.teamId ? (
+                        <svg className="w-3.5 h-3.5 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4" /></svg>
+                      )}
+                    </button>
+                  )}
 
                   <svg className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

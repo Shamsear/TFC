@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
 import { resolveTeamManagerNames } from '@/lib/resolve-manager'
+import { resolveManagerId } from '@/lib/manager-resolve'
 
 interface AllTeamsPageProps {
   params: Promise<{
@@ -119,14 +120,24 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
   const teamIds = season.seasonTeams.map(st => st.team.id)
   const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
 
+  // Resolve manager IDs for all teams (for detail page links)
+  const managerIds = await Promise.all(
+    season.seasonTeams.map(async (st) => {
+      const mgrName = mgrMap.get(st.team.id) || st.managerName || st.team.managerName
+      const mgrId = await resolveManagerId(prisma, mgrName)
+      return { teamId: st.team.id, managerId: mgrId }
+    })
+  )
+  const managerIdByTeam = new Map(managerIds.map(m => [m.teamId, m.managerId]))
+
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {
-    // Prefer: current manager_teams link > season_teams.managerName > teams.managerName
     const resolvedManagerName = mgrMap.get(st.team.id) || st.managerName || st.team.managerName
     const allTimeTrophies = allTimeTrophiesByTeam.get(st.team.id) || 0
     return {
       ...st,
       resolvedManagerName,
+      resolvedManagerId: managerIdByTeam.get(st.team.id) || null,
       playerCount: countMap.get(st.team.id) || 0,
       totalSpent: spentMap.get(st.team.id) || 0,
       playersByPosition: positionMapByTeam.get(st.team.id) || {},
@@ -236,7 +247,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
             return (
               <Link
                 key={teamDetail.id}
-                href={`/sub-admin/${seasonId}/all-teams/${teamDetail.team.id}`}
+                href={`/sub-admin/${seasonId}/all-teams/${teamDetail.resolvedManagerId || teamDetail.team.id}`}
                 className="relative block rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 hover:border-[#E8A800]/30 hover:bg-white/[0.02] transition-all duration-300 group cursor-pointer overflow-hidden shadow-2xl backdrop-blur-xl"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] via-transparent to-transparent pointer-events-none" />

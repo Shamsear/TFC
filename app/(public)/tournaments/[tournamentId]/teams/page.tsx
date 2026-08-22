@@ -17,9 +17,11 @@ async function getTournamentTeamsData(tournamentId: string) {
                 team: {
                   include: {
                     managerLinks: {
+                      where: { isCurrent: true },
                       include: {
                         manager: true
-                      }
+                      },
+                      take: 1
                     }
                   }
                 }

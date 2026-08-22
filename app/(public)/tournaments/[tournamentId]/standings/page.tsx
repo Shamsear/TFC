@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { resolveManagerId } from '@/lib/manager-resolve'
 
 async function getTournamentStandingsData(tournamentId: string) {
   try {
@@ -15,9 +16,11 @@ async function getTournamentStandingsData(tournamentId: string) {
                 team: {
                   include: {
                     managerLinks: {
+                      where: { isCurrent: true },
                       include: {
                         manager: true
-                      }
+                      },
+                      take: 1
                     }
                   }
                 }
@@ -47,7 +50,7 @@ async function getTournamentStandingsData(tournamentId: string) {
     })
 
     // Calculate tournament-specific stats for each team
-    const teamsWithStats = tournament.tournamentTeams.map((tournamentTeam) => {
+    const teamsWithStats = await Promise.all(tournament.tournamentTeams.map(async (tournamentTeam) => {
       const teamId = tournamentTeam.teamId
       
       let played = 0
@@ -80,11 +83,12 @@ async function getTournamentStandingsData(tournamentId: string) {
       const points = (wins * 3) + draws
       const goalDifference = goalsFor - goalsAgainst
 
-      // Resolve managerId from team's manager links
-      const managerLink = tournamentTeam.seasonTeam.team.managerLinks?.[0]
+      // Resolve managerId: prefer season_teams.managerName, then manager_links
+      const managerId = await resolveManagerId(prisma, tournamentTeam.seasonTeam.managerName)
+        || tournamentTeam.seasonTeam.team.managerLinks?.[0]?.managerId || null
       return {
         ...tournamentTeam.seasonTeam,
-        managerId: managerLink?.managerId || null,
+        managerId,
         groupName: tournamentTeam.groupName,
         seedPosition: tournamentTeam.seedPosition,
         played,
@@ -96,7 +100,7 @@ async function getTournamentStandingsData(tournamentId: string) {
         goalDifference,
         points
       }
-    })
+    }))
 
     const teams = teamsWithStats.sort((a, b) => {
       // Sort by points, then goal difference, then goals scored

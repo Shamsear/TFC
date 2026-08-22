@@ -24,19 +24,19 @@ export default function TiebreakerSection({
   if (totalActive === 0 && totalPending === 0) return null
 
   return (
-    <div className="mb-6 sm:mb-8">
+    <div className="mb-4 sm:mb-5 md:mb-6">
       {/* Active Tiebreakers */}
       {totalActive > 0 && (
-        <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50 p-4 sm:p-6 mb-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500 flex items-center justify-center animate-pulse">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50 p-3 sm:p-4 md:p-6 mb-3 sm:mb-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl bg-purple-500 flex items-center justify-center animate-pulse shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-white">Action Required: Active Tiebreakers</h2>
-              <p className="text-xs sm:text-sm text-[#D4CCBB]">
+              <h2 className="dash-h3 font-black text-white">Action Required: Active Tiebreakers</h2>
+              <p className="dash-small text-[#D4CCBB]">
                 {totalActive} tiebreaker{totalActive > 1 ? 's' : ''} need{totalActive === 1 ? 's' : ''} your bid now
               </p>
             </div>
@@ -54,25 +54,25 @@ export default function TiebreakerSection({
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30">
+                        <div className="font-bold text-white dash-small md:text-sm">{tie.basePlayer.name}</div>
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 dash-caption sm:text-xs font-bold border border-purple-500/30">
                           Normal Round
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 dash-caption sm:text-xs font-bold border border-emerald-500/30">
                           LIVE
                         </span>
                       </div>
-                      <div className="text-xs text-[#D4CCBB]">
+                      <div className="dash-small text-[#D4CCBB]">
                         Round {tie.round.roundNumber} • Original bid: £{tie.originalAmount.toLocaleString()}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       {teamBid?.submitted ? (
-                        <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                        <span className="px-2 sm:px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 dash-caption sm:text-xs font-bold border border-emerald-500/30">
                           ✓ Submitted
                         </span>
                       ) : (
-                        <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30 animate-pulse">
+                        <span className="px-2 sm:px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 dash-caption sm:text-xs font-bold border border-amber-500/30 animate-pulse">
                           Bid Now
                         </span>
                       )}
@@ -90,24 +90,24 @@ export default function TiebreakerSection({
               <Link
                 key={tie.id}
                 href={`/team/auction/bulk-tiebreakers/${tie.id}`}
-                className="block rounded-lg bg-black/30 border border-amber-500/30 hover:bg-amber-500/5 p-3 cursor-pointer"
+                className="block rounded-lg bg-black/30 border border-amber-500/30 hover:bg-amber-500/5 p-2.5 sm:p-3 cursor-pointer touch-min"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+                      <div className="font-bold text-white dash-small md:text-sm">{tie.basePlayer.name}</div>
+                      <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 dash-caption sm:text-xs font-bold border border-amber-500/30">
                         Bulk Round
                       </span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                      <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 dash-caption sm:text-xs font-bold border border-emerald-500/30">
                         LIVE
                       </span>
                     </div>
-                    <div className="text-xs text-[#D4CCBB]">
+                    <div className="dash-small text-[#D4CCBB]">
                       Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} teams tied
                     </div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                  <span className="px-2 sm:px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 dash-caption sm:text-xs font-bold border border-emerald-500/30">
                     Bid Now →
                   </span>
                 </div>
@@ -122,19 +122,19 @@ export default function TiebreakerSection({
         <div>
           <button
             onClick={() => setShowPending(!showPending)}
-            className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+            className="w-full flex items-center justify-between p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all touch-min"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="text-left">
-                <h2 className="text-base sm:text-lg font-bold text-white">
+                <h2 className="dash-body font-bold text-white">
                   Pending Tiebreakers ({totalPending})
                 </h2>
-                <p className="text-xs sm:text-sm text-[#D4CCBB]">Awaiting admin to start</p>
+                <p className="dash-small text-[#D4CCBB]">Awaiting admin to start</p>
               </div>
             </div>
             <svg 
@@ -154,20 +154,20 @@ export default function TiebreakerSection({
                 <Link
                   key={tie.id}
                   href={`/team/auction/tiebreakers/${tie.id}/preview`}
-                  className="block rounded-lg bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all p-3"
+                  className="block rounded-lg bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all p-2.5 sm:p-3 touch-min"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+                        <div className="font-bold text-white dash-small md:text-sm">{tie.basePlayer.name}</div>
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 dash-caption sm:text-xs font-bold border border-amber-500/30">
                           Normal Round
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30">
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 dash-caption sm:text-xs font-bold border border-gray-500/30">
                           Pending
                         </span>
                       </div>
-                      <div className="text-xs text-[#D4CCBB]">
+                      <div className="dash-small text-[#D4CCBB]">
                         Round {tie.round.roundNumber} • {tie.teamTiebreakerBids.length} contested teams
                       </div>
                     </div>
@@ -183,20 +183,20 @@ export default function TiebreakerSection({
                 <Link
                   key={tie.id}
                   href={`/team/auction/bulk-tiebreakers/${tie.id}/preview`}
-                  className="block rounded-lg bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all p-3"
+                  className="block rounded-lg bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all p-2.5 sm:p-3 touch-min"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="font-bold text-white text-sm sm:text-base">{tie.basePlayer.name}</div>
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+                        <div className="font-bold text-white dash-small md:text-sm">{tie.basePlayer.name}</div>
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 dash-caption sm:text-xs font-bold border border-amber-500/30">
                           Bulk Round
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs font-bold border border-gray-500/30">
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 dash-caption sm:text-xs font-bold border border-gray-500/30">
                           Pending
                         </span>
                       </div>
-                      <div className="text-xs text-[#D4CCBB]">
+                      <div className="dash-small text-[#D4CCBB]">
                         Round {tie.round.roundNumber} • £{tie.basePrice.toLocaleString()} • {tie.participants.length} contested teams
                       </div>
                     </div>

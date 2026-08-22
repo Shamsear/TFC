@@ -208,6 +208,29 @@ export default function RetentionRequestsAdminClient({
     setTimeout(() => setCopiedId(null), 1500)
   }
 
+  const [reverting, setReverting] = useState<string | null>(null)
+
+  const revertRetention = async (req: RetentionRequest) => {
+    if (!confirm(`Revert retention for ${req.playerName}? This will restore £${req.oldSquadValue.toLocaleString()} to the team's budget and remove the player from their squad.`)) return
+    setReverting(req.id)
+    try {
+      const res = await fetch(`/api/admin/retention-requests/${req.id}/revert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setRequests(prev => prev.map(r =>
+        r.id === req.id ? { ...r, status: 'pending', processedAt: null, processedBy: null } : r
+      ))
+      alert(data.message || 'Retention reverted')
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setReverting(null)
+    }
+  }
+
   const copyTeamRequests = (group: TeamGroup) => {
     const approved = group.requests.filter(r => r.status === 'approved')
     const pending = group.requests.filter(r => r.status === 'pending')
@@ -479,6 +502,22 @@ export default function RetentionRequestsAdminClient({
                                 <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                               ) : (
                                 <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                              )}
+                            </button>
+                          )}
+
+                          {/* Revert Button (approved only) */}
+                          {req.status === 'approved' && (
+                            <button
+                              onClick={() => revertRetention(req)}
+                              disabled={reverting === req.id}
+                              className="p-1.5 rounded hover:bg-red-500/10 transition-colors flex-shrink-0 disabled:opacity-50"
+                              title="Revert retention"
+                            >
+                              {reverting === req.id ? (
+                                <svg className="w-3.5 h-3.5 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                              ) : (
+                                <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4" /></svg>
                               )}
                             </button>
                           )}

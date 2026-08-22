@@ -63,6 +63,13 @@ async function getTeamData(teamId: string, seasonId: string) {
     resolvedManagerName = team.managerName;
   }
 
+  // Get the season-specific manager name for this season
+  const currentSeasonTeam = await prisma.season_teams.findFirst({
+    where: { seasonId, teamId: resolvedTeamId },
+    select: { managerName: true }
+  });
+  const seasonManagerName = currentSeasonTeam?.managerName || resolvedManagerName;
+
   // Get all seasons — only by teamId to avoid leaking old team seasons
   const allSeasonTeams = await prisma.season_teams.findMany({
     where: { teamId: resolvedTeamId },
@@ -213,9 +220,11 @@ async function getTeamData(teamId: string, seasonId: string) {
 
   return JSON.parse(JSON.stringify({
     team,
+    seasonManagerName,
     seasons: detailedSeasons
   })) as {
     team: typeof team;
+    seasonManagerName: string;
     seasons: typeof detailedSeasons;
   }
 }
@@ -233,7 +242,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     notFound()
   }
 
-  const { team, seasons } = teamData
+  const { team, seasonManagerName, seasons } = teamData
 
   // Level Progression Math
   const level = team.level
@@ -348,7 +357,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               </Link>
             </div>
             <p className="text-gray-400 text-sm font-extrabold uppercase font-mono mb-4">
-              Manager: {team.managerName}
+              Manager: {seasonManagerName}
             </p>
 
             {/* Progress Bar */}

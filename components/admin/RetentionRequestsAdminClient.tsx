@@ -87,7 +87,12 @@ export default function RetentionRequestsAdminClient({
         group.totalValue += req.oldSquadValue
       }
     }
-    return Array.from(map.values()).sort((a, b) => b.pendingCount - a.pendingCount || a.teamName.localeCompare(b.teamName))
+    return Array.from(map.values()).sort((a, b) => {
+      // Sort by latest submission time (newest first)
+      const aLatest = a.requests.length > 0 ? Math.max(...a.requests.map(r => new Date(r.submittedAt).getTime())) : 0
+      const bLatest = b.requests.length > 0 ? Math.max(...b.requests.map(r => new Date(r.submittedAt).getTime())) : 0
+      return bLatest - aLatest
+    })
   }, [requests, filter, searchQuery])
 
   const pendingCount = requests.filter(r => r.status === 'pending').length
@@ -194,11 +199,28 @@ export default function RetentionRequestsAdminClient({
 
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
+  const [copiedTeamId, setCopiedTeamId] = useState<string | null>(null)
+
   const copyRequest = (req: RetentionRequest) => {
     const text = `${req.playerName} | ${req.team.name} | ${formatCurrency(req.oldSquadValue)} | ${req.status.toUpperCase()} | From ${req.previousSeason.name}`
     navigator.clipboard.writeText(text)
     setCopiedId(req.id)
     setTimeout(() => setCopiedId(null), 1500)
+  }
+
+  const copyTeamRequests = (group: TeamGroup) => {
+    const lines = [
+      `${group.teamName} — ${group.requests.length} request(s)`,
+      '─'.repeat(40),
+      ...group.requests.map(r =>
+        `${r.playerName} | ${formatCurrency(r.oldSquadValue)} | ${r.status.toUpperCase()} | From ${r.previousSeason.name}`
+      ),
+      '─'.repeat(40),
+      `Pending: ${group.pendingCount} | Value: ${formatCurrency(group.totalValue)}`
+    ]
+    navigator.clipboard.writeText(lines.join('\n'))
+    setCopiedTeamId(group.teamId)
+    setTimeout(() => setCopiedTeamId(null), 1500)
   }
 
   return (
@@ -346,7 +368,20 @@ export default function RetentionRequestsAdminClient({
                     </span>
                   )}
 
-                  <svg className={`w-4 h-4 text-gray-500 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  {/* Copy All Requests */}
+                  <button
+                    onClick={e => { e.stopPropagation(); copyTeamRequests(group) }}
+                    className="p-1.5 rounded hover:bg-white/10 transition-colors flex-shrink-0 ml-auto"
+                    title="Copy all requests"
+                  >
+                    {copiedTeamId === group.teamId ? (
+                      <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    )}
+                  </button>
+
+                  <svg className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>

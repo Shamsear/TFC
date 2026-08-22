@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { resolveTeamManagerNames } from '@/lib/resolve-manager'
+
 
 // Icon Components
 const PlusIcon = () => (
@@ -48,13 +48,19 @@ export default async function TeamsRegistryPage() {
   })
 
   // Resolve current manager for each team
-  // Prefer manager_teams.isCurrent (authoritative) over season_teams fallback
-  const allTeamIds = teamsRaw.map(t => t.id)
-  const mgrMap = await resolveTeamManagerNames(allTeamIds)
-
-  // For teams WITHOUT a manager_teams.isCurrent link, try to get from
-  // the active season's season_teams — not the latest ever, to avoid stale data
+  // 1. Use manager_teams.isCurrent (authoritative, already in query)
+  // 2. Fallback: active season's season_teams.managerName only
+  // Do NOT use resolveTeamManagerNames — it falls back to LATEST season_teams ever, which is stale
   const activeSeason = await prisma.seasons.findFirst({ where: { isActive: true }, select: { id: true } })
+
+  // Build manager map from isCurrent links first
+  const mgrMap = new Map<string, string>()
+  for (const team of teamsRaw) {
+    const linkName = team.managerLinks[0]?.manager?.name
+    if (linkName) mgrMap.set(team.id, linkName)
+  }
+
+  // For teams without an isCurrent link, get from active season's season_teams
   const teamsNeedingFallback = teamsRaw.filter(t => !mgrMap.has(t.id))
   if (teamsNeedingFallback.length > 0 && activeSeason) {
     const fallbackTeamIds = teamsNeedingFallback.map(t => t.id)
@@ -69,7 +75,7 @@ export default async function TeamsRegistryPage() {
 
   // Get unique manager names to batch-query their career stats
   const uniqueMgrNames = [...new Set(
-    teamsRaw.map(t => mgrMap.get(t.id) || t.managerLinks[0]?.manager?.name || t.managerName).filter(Boolean)
+    teamsRaw.map(t => mgrMap.get(t.id)).filter((n): n is string => !!n)
   )]
 
   // Query ALL season_teams by managerName for career stats
@@ -119,8 +125,8 @@ export default async function TeamsRegistryPage() {
   }
 
   const teams = teamsRaw.map(team => {
-    const managerName = mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
-    const mgrStats = statsByName.get(managerName?.toLowerCase() || '') || { seasons: 0, transfers: 0 }
+    const managerName = mgrMap.get(team.id) || null
+    const mgrStats = managerName ? (statsByName.get(managerName.toLowerCase()) || { seasons: 0, transfers: 0 }) : { seasons: 0, transfers: 0 }
     return {
       ...team,
       managerName,

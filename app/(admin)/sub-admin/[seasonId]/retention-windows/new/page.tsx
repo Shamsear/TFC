@@ -56,7 +56,7 @@ export default async function CreateRetentionWindowPage({ params }: Props) {
 
   // Resolve current managers
   const teamIds = seasonTeams.map(st => st.team.id)
-  const mgrMap = await resolveTeamManagerNames(teamIds)
+  const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
 
   // Build seasonTeams with eligibility: manager participated in previous season (any team)
   const seasonTeamsWithEligibility = seasonTeams.map(st => {

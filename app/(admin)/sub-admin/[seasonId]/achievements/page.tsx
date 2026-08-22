@@ -61,7 +61,7 @@ export default async function AllTeamsAchievementsPage({ params }: PageProps) {
   });
 
   // Resolve current managers
-  const mgrMap = await resolveTeamManagerNames(teams.map(t => t.id))
+  const mgrMap = await resolveTeamManagerNames(teams.map(t => t.id), seasonId)
   const teamsWithManagers = teams.map(t => ({
     ...t,
     managerName: mgrMap.get(t.id) || t.managerName

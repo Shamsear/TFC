@@ -11,10 +11,12 @@ import { prisma } from "./prisma";
  *   const displayName = mgrMap.get(team.id) || team.managerName;
  */
 export async function resolveTeamManagerNames(
-  teamIds: string[]
+  teamIds: string[],
+  seasonId?: string
 ): Promise<Map<string, string>> {
   if (teamIds.length === 0) return new Map();
 
+  // 1. Try manager_teams.isCurrent links
   const links = await prisma.manager_teams.findMany({
     where: {
       teamId: { in: teamIds },
@@ -27,11 +29,41 @@ export async function resolveTeamManagerNames(
   });
 
   const map = new Map<string, string>();
+  const unresolved: string[] = [];
   for (const link of links) {
     if (link.manager?.name) {
       map.set(link.teamId, link.manager.name);
     }
   }
+  for (const id of teamIds) {
+    if (!map.has(id)) unresolved.push(id);
+  }
+
+  // 2. Fallback: latest season_teams.managerName for teams without a current link
+  if (unresolved.length > 0) {
+    const seasonTeams = await prisma.season_teams.findMany({
+      where: {
+        teamId: { in: unresolved },
+        ...(seasonId ? { seasonId } : {}),
+        managerName: { not: null },
+      },
+      select: {
+        teamId: true,
+        managerName: true,
+      },
+      orderBy: seasonId ? undefined : { createdAt: 'desc' },
+      ...(seasonId ? {} : {}),
+    });
+    // Keep first per team (latest if ordered desc)
+    const seen = new Set<string>();
+    for (const st of seasonTeams) {
+      if (!seen.has(st.teamId) && st.managerName) {
+        map.set(st.teamId, st.managerName);
+        seen.add(st.teamId);
+      }
+    }
+  }
+
   return map;
 }
 

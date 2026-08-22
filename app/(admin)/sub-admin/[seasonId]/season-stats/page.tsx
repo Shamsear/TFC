@@ -48,7 +48,7 @@ export default async function SeasonStatsPage({ params }: PageProps) {
 
   // Resolve current managers for all teams
   const teamIds = seasonTeams.map(st => st.teamId)
-  const mgrMap = await resolveTeamManagerNames(teamIds)
+  const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
 
   // Override team.managerName with resolved current manager
   const seasonTeamsWithManagers = seasonTeams.map(st => ({

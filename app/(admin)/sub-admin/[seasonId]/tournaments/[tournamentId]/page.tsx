@@ -95,7 +95,7 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
     teamId: st.team.id,
     name: st.team.name,
     logoUrl: st.team.logoUrl,
-    managerName: st.team.managerName,
+    managerName: st.managerName || st.team.managerName,
     primaryColor: st.team.primaryColor
   }))
 
@@ -117,7 +117,7 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
     seasonTeamId: s.teamId,
     teamName: s.seasonTeam.team.name,
     logoUrl: s.seasonTeam.team.logoUrl,
-    managerName: s.seasonTeam.team.managerName,
+    managerName: s.seasonTeam.managerName || s.seasonTeam.team.managerName,
     primaryColor: s.seasonTeam.team.primaryColor,
     played: s.played,
     won: s.won,

@@ -171,7 +171,7 @@ export default async function RetentionModulePage({
 
   // Resolve current managers for all teams
   const allTeamIds = season.seasonTeams.map(st => st.team.id)
-  const mgrMap = await resolveTeamManagerNames(allTeamIds)
+  const mgrMap = await resolveTeamManagerNames(allTeamIds, seasonId)
 
   // Current season teams whose manager did NOT participate in the previous season
   const ineligibleNoPreviousSeason = season.seasonTeams

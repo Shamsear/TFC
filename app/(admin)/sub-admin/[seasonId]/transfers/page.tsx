@@ -68,7 +68,7 @@ export default async function TransfersPage({ params }: TransfersPageProps) {
 
   // Resolve current managers for all teams
   const teamIds = [...new Set(transfers.map(t => t.teamId))]
-  const mgrMap = await resolveTeamManagerNames(teamIds)
+  const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
 
   // Override team.managerName with resolved current manager
   const transfersWithManagers = transfers.map(t => ({

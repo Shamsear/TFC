@@ -37,7 +37,6 @@ async function getTeamData(teamId: string, seasonId: string) {
     if (managerLink) {
       resolvedTeamId = managerLink.teamId;
     } else {
-      // Check season_teams for any season matching managerName
       const seasonTeamLink = await prisma.season_teams.findFirst({
         where: { managerName: { equals: manager.name, mode: 'insensitive' } }
       });
@@ -47,7 +46,7 @@ async function getTeamData(teamId: string, seasonId: string) {
     }
   }
 
-  // Get team basic info
+  // Get team basic info (for header display)
   const team = await prisma.teams.findUnique({
     where: { id: resolvedTeamId }
   })
@@ -56,11 +55,14 @@ async function getTeamData(teamId: string, seasonId: string) {
     return null
   }
 
-  // Override manager name if we resolved a manager record, otherwise use team's manager
-  if (resolvedManagerName) {
-    team.managerName = resolvedManagerName;
-  } else {
-    resolvedManagerName = team.managerName;
+  // Resolve the manager name
+  if (!resolvedManagerName) {
+    // Try to get from season_teams for this season first
+    const currentSeasonEntry = await prisma.season_teams.findFirst({
+      where: { seasonId, teamId: resolvedTeamId },
+      select: { managerName: true }
+    });
+    resolvedManagerName = currentSeasonEntry?.managerName || team.managerName;
   }
 
   // Get the season-specific manager name for this season
@@ -70,15 +72,25 @@ async function getTeamData(teamId: string, seasonId: string) {
   });
   const seasonManagerName = currentSeasonTeam?.managerName || resolvedManagerName;
 
-  // Get all seasons — only by teamId to avoid leaking old team seasons
+  // Get ALL seasons for this MANAGER (not just this team)
+  // This ensures when Shadow moves from Al Hilal to Schalke, all seasons show together
   const allSeasonTeams = await prisma.season_teams.findMany({
-    where: { teamId: resolvedTeamId },
+    where: {
+      managerName: { equals: resolvedManagerName, mode: 'insensitive' }
+    },
     include: {
       season: {
         select: {
           id: true,
           name: true,
           startingPurse: true
+        }
+      },
+      team: {
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true
         }
       },
       standings: {
@@ -116,6 +128,9 @@ async function getTeamData(teamId: string, seasonId: string) {
         }
       })
     : [];
+
+  // Use the resolved team for header (the team in the current season)
+  const headerTeam = allSeasonTeams.find(st => st.seasonId === seasonId)?.team || team;
 
   // Get all saved squad formations for these teams and seasons
   const allSquads = allSeasonTeams.length > 0
@@ -219,7 +234,7 @@ async function getTeamData(teamId: string, seasonId: string) {
   });
 
   return JSON.parse(JSON.stringify({
-    team,
+    team: headerTeam,
     seasonManagerName,
     seasons: detailedSeasons
   })) as {

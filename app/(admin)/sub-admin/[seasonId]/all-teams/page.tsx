@@ -117,7 +117,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
 
   // Resolve current managers for all teams
   const teamIds = season.seasonTeams.map(st => st.team.id)
-  const mgrMap = await resolveTeamManagerNames(teamIds)
+  const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
 
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {

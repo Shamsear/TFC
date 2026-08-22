@@ -209,6 +209,9 @@ async function getTeamData(teamId: string, seasonId: string) {
     return {
       seasonId: st.seasonId,
       seasonName: st.season.name,
+      seasonTeamId: st.teamId,
+      seasonTeamName: st.team?.name || team.name,
+      seasonTeamLogo: st.team?.logoUrl || team.logoUrl,
       startingPurse,
       finalBudget: st.finalBudget,
       currentBudget: st.currentBudget,

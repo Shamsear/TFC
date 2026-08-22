@@ -130,9 +130,21 @@ async function handleManagerAssignments(
         managerId = managerRecord.id
       }
 
-      // Link manager to team
-      await prisma.manager_teams.create({
-        data: { managerId, teamId, isCurrent: true }
+      // Deactivate any previous isCurrent links for this manager
+      await prisma.manager_teams.updateMany({
+        where: { managerId, isCurrent: true },
+        data: { isCurrent: false }
+      })
+      // Link manager to new team
+      await prisma.manager_teams.upsert({
+        where: {
+          managerId_teamId: {
+            managerId,
+            teamId,
+          },
+        },
+        update: { isCurrent: true },
+        create: { managerId, teamId, isCurrent: true },
       })
       teamIdMap.set(a.managerId, teamId)
       return { managerId: a.managerId, teamId }

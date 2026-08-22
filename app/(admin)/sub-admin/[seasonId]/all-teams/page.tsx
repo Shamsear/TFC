@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 
 interface AllTeamsPageProps {
   params: Promise<{
@@ -112,6 +113,10 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
   for (const st of allSeasonTeams) {
     allTimeTrophiesByTeam.set(st.teamId, (allTimeTrophiesByTeam.get(st.teamId) || 0) + st.trophiesWon)
   }
+
+  // Resolve current managers for all teams
+  const teamIds = season.seasonTeams.map(st => st.team.id)
+  const mgrMap = await resolveTeamManagerNames(teamIds)
 
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {
@@ -256,7 +261,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                           {teamDetail.team.name}
                         </h3>
                         <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-0.5">
-                          Manager: {teamDetail.team.managerName}
+                          Manager: {mgrMap.get(teamDetail.team.id) || teamDetail.team.managerName}
                         </p>
                       </div>
 

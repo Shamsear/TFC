@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AchievementsClient } from "@/components/team/AchievementsClient";
+import { resolveTeamManagerNames } from "@/lib/resolve-manager";
 
 interface PageProps {
   params: Promise<{
@@ -27,5 +28,12 @@ export default async function AchievementsPage({ params }: PageProps) {
     notFound();
   }
 
-  return <AchievementsClient team={team} />;
+  // Resolve current manager
+  const mgrMap = await resolveTeamManagerNames([team.id])
+  const teamWithManager = {
+    ...team,
+    managerName: mgrMap.get(team.id) || team.managerName
+  }
+
+  return <AchievementsClient team={teamWithManager} />;
 }

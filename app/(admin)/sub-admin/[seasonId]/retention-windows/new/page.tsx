@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import RetentionWindowForm from "@/components/admin/RetentionWindowForm"
+import { resolveTeamManagerNames } from "@/lib/resolve-manager"
 
 interface Props {
   params: Promise<{ seasonId: string }>
@@ -53,14 +54,21 @@ export default async function CreateRetentionWindowPage({ params }: Props) {
     previousSeasonManagers.map(st => st.managerName).filter(Boolean)
   )
 
+  // Resolve current managers
+  const teamIds = seasonTeams.map(st => st.team.id)
+  const mgrMap = await resolveTeamManagerNames(teamIds)
+
   // Build seasonTeams with eligibility: manager participated in previous season (any team)
-  const seasonTeamsWithEligibility = seasonTeams.map(st => ({
-    id: st.team.id,
-    name: st.team.name,
-    logoUrl: st.team.logoUrl,
-    managerName: st.managerName || "",
-    hasPreviousSeason: Boolean(st.managerName && previousManagerNames.has(st.managerName)),
-  }))
+  const seasonTeamsWithEligibility = seasonTeams.map(st => {
+    const currentManager = mgrMap.get(st.team.id) || st.managerName || ""
+    return {
+      id: st.team.id,
+      name: st.team.name,
+      logoUrl: st.team.logoUrl,
+      managerName: currentManager,
+      hasPreviousSeason: Boolean(currentManager && previousManagerNames.has(currentManager)),
+    }
+  })
 
   return (
     <RetentionWindowForm

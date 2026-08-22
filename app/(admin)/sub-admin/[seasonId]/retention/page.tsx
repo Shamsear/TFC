@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import RetentionModule from "@/components/retention/RetentionModule"
+import { resolveTeamManagerNames } from "@/lib/resolve-manager"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
 
 export default async function RetentionModulePage({
@@ -168,14 +169,21 @@ export default async function RetentionModulePage({
     previousSeasonTeams.map(st => st.managerName).filter(Boolean)
   )
 
+  // Resolve current managers for all teams
+  const allTeamIds = season.seasonTeams.map(st => st.team.id)
+  const mgrMap = await resolveTeamManagerNames(allTeamIds)
+
   // Current season teams whose manager did NOT participate in the previous season
   const ineligibleNoPreviousSeason = season.seasonTeams
-    .filter(st => !st.managerName || !previousSeasonManagerNames.has(st.managerName))
+    .filter(st => {
+      const currentMgr = mgrMap.get(st.team.id) || st.managerName
+      return !currentMgr || !previousSeasonManagerNames.has(currentMgr)
+    })
     .map(st => ({
       teamId: st.team.id,
       teamName: st.team.name,
       teamLogoUrl: st.team.logoUrl || "",
-      managerName: st.managerName || "",
+      managerName: mgrMap.get(st.team.id) || st.managerName || "",
       reason: "new_team" as const,
     }))
 
@@ -187,7 +195,7 @@ export default async function RetentionModulePage({
           teamId: st.team.id,
           teamName: st.team.name,
           teamLogoUrl: st.team.logoUrl || "",
-          managerName: st.managerName || "",
+          managerName: mgrMap.get(st.team.id) || st.managerName || "",
           reason: "banned" as const,
         }))
     : []

@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
 import { checkTeamSeasonParticipation } from '@/lib/team-auth'
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 
 export const metadata = {
   title: "Teams | Team Dashboard",
@@ -126,6 +127,10 @@ export default async function TeamTeamsPage() {
     }
     positionMapByTeam.get(teamId)![position] = Number(count)
   }
+
+  // Resolve current managers for all teams
+  const teamIds = season.seasonTeams.map(st => st.team.id)
+  const mgrMap = await resolveTeamManagerNames(teamIds)
 
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {
@@ -278,7 +283,7 @@ export default async function TeamTeamsPage() {
                             )}
                           </h3>
                           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">
-                            Manager: {teamDetail.team.managerName}
+                            Manager: {mgrMap.get(teamDetail.team.id) || teamDetail.team.managerName}
                           </p>
                         </div>
 

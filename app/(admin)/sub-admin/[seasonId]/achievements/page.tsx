@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AllTeamsAchievementsClient } from "@/components/admin/AllTeamsAchievementsClient";
+import { resolveTeamManagerNames } from "@/lib/resolve-manager";
 
 interface PageProps {
   params: Promise<{
@@ -59,5 +60,12 @@ export default async function AllTeamsAchievementsPage({ params }: PageProps) {
     ]
   });
 
-  return <AllTeamsAchievementsClient teams={teams} season={season} />;
+  // Resolve current managers
+  const mgrMap = await resolveTeamManagerNames(teams.map(t => t.id))
+  const teamsWithManagers = teams.map(t => ({
+    ...t,
+    managerName: mgrMap.get(t.id) || t.managerName
+  }))
+
+  return <AllTeamsAchievementsClient teams={teamsWithManagers} season={season} />;
 }

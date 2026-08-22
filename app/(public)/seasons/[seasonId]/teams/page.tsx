@@ -196,7 +196,7 @@ export default async function SeasonTeamsPage({
                         <h3 className="text-base sm:text-lg font-black text-white mb-0.5 group-hover:text-[#FFB347] transition-colors truncate">
                           {team.team.name}
                         </h3>
-                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">{team.managerName}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">{team.team.managerLinks?.[0]?.manager?.name || team.managerName}</div>
                       </div>
                     </div>
                     

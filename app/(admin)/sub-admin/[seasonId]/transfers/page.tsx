@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import TransfersClient from '@/components/admin/TransfersClient'
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 
 interface TransfersPageProps {
   params: Promise<{
@@ -65,9 +66,22 @@ export default async function TransfersPage({ params }: TransfersPageProps) {
     }
   })
 
+  // Resolve current managers for all teams
+  const teamIds = [...new Set(transfers.map(t => t.teamId))]
+  const mgrMap = await resolveTeamManagerNames(teamIds)
+
+  // Override team.managerName with resolved current manager
+  const transfersWithManagers = transfers.map(t => ({
+    ...t,
+    team: {
+      ...t.team,
+      managerName: mgrMap.get(t.teamId) || t.team.managerName
+    }
+  }))
+
   return (
     <TransfersClient 
-      transfers={transfers} 
+      transfers={transfersWithManagers} 
       seasonId={seasonId}
       seasonName={season.name}
     />

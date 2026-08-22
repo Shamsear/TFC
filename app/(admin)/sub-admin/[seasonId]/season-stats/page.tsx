@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import SeasonStatsClient from "./SeasonStatsClient";
+import { resolveTeamManagerNames } from "@/lib/resolve-manager";
 
 interface PageProps {
   params: Promise<{
@@ -45,9 +46,22 @@ export default async function SeasonStatsPage({ params }: PageProps) {
     },
   });
 
+  // Resolve current managers for all teams
+  const teamIds = seasonTeams.map(st => st.teamId)
+  const mgrMap = await resolveTeamManagerNames(teamIds)
+
+  // Override team.managerName with resolved current manager
+  const seasonTeamsWithManagers = seasonTeams.map(st => ({
+    ...st,
+    team: {
+      ...st.team,
+      managerName: mgrMap.get(st.teamId) || st.team.managerName
+    }
+  }))
+
   // Serialize before passing to client component to avoid Next.js serialization warnings
   const serializedSeason = JSON.parse(JSON.stringify(season));
-  const serializedSeasonTeams = JSON.parse(JSON.stringify(seasonTeams));
+  const serializedSeasonTeams = JSON.parse(JSON.stringify(seasonTeamsWithManagers));
 
   return (
     <SeasonStatsClient

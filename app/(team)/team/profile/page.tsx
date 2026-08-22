@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { canEditTeam, checkTeamSeasonParticipation } from "@/lib/team-auth"
+import { resolveTeamManagerNames } from "@/lib/resolve-manager"
 import Image from "next/image"
 import Link from "next/link"
 import TeamLogo from "@/components/team/TeamLogo"
@@ -25,8 +26,11 @@ export default async function TeamProfilePage() {
     redirect("/team/not-in-season")
   }
 
+  // Resolve current manager
+  const mgrMap = await resolveTeamManagerNames([session.user.teamId])
+
   // Fetch team info with minimal nested data
-  const team = await prisma.teams.findUnique({
+  const teamRaw = await prisma.teams.findUnique({
     where: { id: session.user.teamId },
     select: {
       id: true,
@@ -54,8 +58,14 @@ export default async function TeamProfilePage() {
     },
   })
 
-  if (!team) {
+  if (!teamRaw) {
     redirect("/auth/signin")
+  }
+
+  // Resolve manager name
+  const team = {
+    ...teamRaw,
+    managerName: mgrMap.get(teamRaw.id) || teamRaw.managerName
   }
 
   // Check if user can edit this team

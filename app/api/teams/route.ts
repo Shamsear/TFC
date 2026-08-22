@@ -18,10 +18,23 @@ export async function GET(request: NextRequest) {
     // Add limit to prevent loading all teams
     const teams = await prisma.teams.findMany({
       orderBy: { name: "asc" },
-      take: 100 // Limit to 100 teams
+      take: 100, // Limit to 100 teams
+      include: {
+        managerLinks: {
+          where: { isCurrent: true },
+          include: { manager: { select: { name: true } } },
+          take: 1
+        }
+      }
     })
 
-    return NextResponse.json(teams)
+    // Resolve current manager name for each team
+    const teamsWithManagers = teams.map(t => ({
+      ...t,
+      managerName: t.managerLinks[0]?.manager?.name || t.managerName
+    }))
+
+    return NextResponse.json(teamsWithManagers)
   } catch (error) {
     logError("Failed to fetch teams", error, extractRequestContext(request))
     

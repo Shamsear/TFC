@@ -56,20 +56,40 @@ async function getTeamData(teamId: string, seasonId: string) {
     return null
   }
 
-  // Override manager name if we resolved a manager record
-  if (resolvedManagerName) {
-    team.managerName = resolvedManagerName;
+  // Resolve the manager name
+  if (!resolvedManagerName) {
+    const currentSeasonEntry = await prisma.season_teams.findFirst({
+      where: { seasonId, teamId: resolvedTeamId },
+      select: { managerName: true }
+    });
+    resolvedManagerName = currentSeasonEntry?.managerName || team.managerName;
   }
 
-  // Get all seasons — only by teamId to avoid leaking old team seasons
+  // Get the season-specific manager name for header
+  const currentSeasonTeam = await prisma.season_teams.findFirst({
+    where: { seasonId, teamId: resolvedTeamId },
+    select: { managerName: true }
+  });
+  const seasonManagerName = currentSeasonTeam?.managerName || resolvedManagerName;
+
+  // Get ALL seasons for this MANAGER (not just this team)
   const allSeasonTeams = await prisma.season_teams.findMany({
-    where: { teamId: resolvedTeamId },
+    where: {
+      managerName: { equals: resolvedManagerName, mode: 'insensitive' }
+    },
     include: {
       season: {
         select: {
           id: true,
           name: true,
           startingPurse: true
+        }
+      },
+      team: {
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true
         }
       },
       standings: {
@@ -84,6 +104,9 @@ async function getTeamData(teamId: string, seasonId: string) {
       }
     }
   });
+
+  // Use the resolved team for header
+  const headerTeam = allSeasonTeams.find(st => st.seasonId === seasonId)?.team || team;
 
   // PARALLELIZE: These 2 queries are independent
   const seasonPairs = allSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }));
@@ -165,6 +188,8 @@ async function getTeamData(teamId: string, seasonId: string) {
     return {
       seasonId: st.seasonId,
       seasonName: st.season.name,
+      seasonTeamName: st.team?.name || team.name,
+      seasonTeamLogo: st.team?.logoUrl || team.logoUrl,
       startingPurse,
       finalBudget: st.finalBudget,
       currentBudget: st.currentBudget,
@@ -190,10 +215,12 @@ async function getTeamData(teamId: string, seasonId: string) {
   });
 
   return JSON.parse(JSON.stringify({
-    team,
+    team: headerTeam,
+    seasonManagerName,
     seasons: detailedSeasons
   })) as {
     team: typeof team;
+    seasonManagerName: string;
     seasons: typeof detailedSeasons;
   }
 }
@@ -219,7 +246,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     notFound()
   }
 
-  const { team, seasons } = teamData
+  const { team, seasonManagerName, seasons } = teamData
 
   // Level Progression Math
   const level = team.level
@@ -324,7 +351,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                 </span>
               </div>
               <p className="text-gray-400 text-lg mb-4">
-                Manager: {team.managerName}
+                Manager: {seasonManagerName}
               </p>
 
               {/* Progress Bar */}

@@ -3,6 +3,7 @@ import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import PushToggle from "@/components/notifications/PushToggle"
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 
 // Icon Components
 const TrophyIcon = () => (
@@ -68,9 +69,10 @@ export default async function SuperAdminDashboard() {
   ])
 
   // Resolve current manager for each recent team
+  const mgrMap = await resolveTeamManagerNames(recentTeamsRaw.map(t => t.id))
   const recentTeams = recentTeamsRaw.map(team => ({
     ...team,
-    managerName: team.managerLinks[0]?.manager?.name || team.managerName
+    managerName: mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
   }))
 
   return (

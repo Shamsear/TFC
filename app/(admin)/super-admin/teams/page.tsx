@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 
 // Icon Components
 const PlusIcon = () => (
@@ -52,10 +53,12 @@ export default async function TeamsRegistryPage() {
     }
   })
 
-  // Resolve current manager for each team
+  // Resolve current manager for each team via season_teams fallback
+  const allTeamIds = teamsRaw.map(t => t.id)
+  const mgrMap = await resolveTeamManagerNames(allTeamIds)
   const teams = teamsRaw.map(team => ({
     ...team,
-    managerName: team.managerLinks[0]?.manager?.name || team.managerName
+    managerName: mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
   }))
 
   return (

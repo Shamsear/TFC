@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { checkTeamSeasonParticipation } from '@/lib/team-auth'
 import { resolveTeamManagerNames } from '@/lib/resolve-manager'
+import { resolveManagerId } from '@/lib/manager-resolve'
 
 export const metadata = {
   title: "Teams | Team Dashboard",
@@ -130,12 +131,24 @@ export default async function TeamTeamsPage() {
 
   // Resolve current managers for all teams
   const teamIds = season.seasonTeams.map(st => st.team.id)
-  const mgrMap = await resolveTeamManagerNames(teamIds)
+  const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
+
+  // Resolve manager IDs for detail page links
+  const managerIds = await Promise.all(
+    season.seasonTeams.map(async (st) => {
+      const mgrName = mgrMap.get(st.team.id) || st.managerName || st.team.managerName
+      const mgrId = await resolveManagerId(prisma, mgrName)
+      return { teamId: st.team.id, managerId: mgrId }
+    })
+  )
+  const managerIdByTeam = new Map(managerIds.map(m => [m.teamId, m.managerId]))
 
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {
     return {
       ...st,
+      resolvedManagerName: mgrMap.get(st.team.id) || st.managerName || st.team.managerName,
+      resolvedManagerId: managerIdByTeam.get(st.team.id) || null,
       playerCount: countMap.get(st.team.id) || 0,
       totalSpent: spentMap.get(st.team.id) || 0,
       playersByPosition: positionMapByTeam.get(st.team.id) || {}
@@ -243,7 +256,7 @@ export default async function TeamTeamsPage() {
               return (
                 <Link
                   key={teamDetail.id}
-                  href={`/team/teams/${teamDetail.team.id}`}
+                  href={teamDetail.resolvedManagerId ? `/managers/${teamDetail.resolvedManagerId}` : `/team/teams/${teamDetail.team.id}`}
                   className={`relative block rounded-2xl p-5 sm:p-6 backdrop-blur-xl shadow-xl overflow-hidden group transition-all duration-300 border ${
                     isMyTeam
                       ? 'bg-emerald-500/[0.01] border-emerald-500/20 shadow-[0_0_35px_rgba(16,185,129,0.05)]'
@@ -283,7 +296,7 @@ export default async function TeamTeamsPage() {
                             )}
                           </h3>
                           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">
-                            Manager: {mgrMap.get(teamDetail.team.id) || teamDetail.team.managerName}
+                            Manager: {teamDetail.resolvedManagerName}
                           </p>
                         </div>
 

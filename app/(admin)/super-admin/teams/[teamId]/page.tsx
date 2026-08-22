@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import Image from 'next/image'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 
 interface TeamDetailPageProps {
   params: Promise<{
@@ -61,8 +62,9 @@ async function getTeamData(teamId: string) {
     return null
   }
 
-  // Resolve current manager name from managers table
-  team.managerName = team.managerLinks[0]?.manager?.name || team.managerName
+  // Resolve current manager name
+  const mgrMap = await resolveTeamManagerNames([team.id])
+  team.managerName = mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
 
   // Calculate stats
   const totalSeasons = team.seasonTeams.length

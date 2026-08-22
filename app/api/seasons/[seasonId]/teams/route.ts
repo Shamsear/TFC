@@ -146,6 +146,11 @@ async function handleManagerAssignments(
         update: { isCurrent: true },
         create: { managerId, teamId, isCurrent: true },
       })
+      // Update user's teamId so their session reflects the new team
+      await prisma.users.updateMany({
+        where: { name: { equals: a.managerName, mode: 'insensitive' }, role: 'TEAM_MANAGER' },
+        data: { teamId }
+      })
       teamIdMap.set(a.managerId, teamId)
       return { managerId: a.managerId, teamId }
     })
@@ -164,11 +169,10 @@ async function handleManagerAssignments(
   const newTeamIds = finalAssignments.map(a => a.teamId)
 
   // Teams to remove (were in season but no longer assigned)
-  const teamsToRemove = existingTeamIds.filter(id => !newTeamIds.includes(id))
-  // Teams to add (new assignments not yet in season)
-  const teamsToAdd = finalAssignments.filter(a => !existingTeamIds.includes(a.teamId))
-  // Teams already in season but managerName needs updating
-  const teamsToUpdate = finalAssignments.filter(a => {
+  const teamsToRemove = existingTeamIds.filter(id => !newTeamIds.includes(id))      // Teams to add (new assignments not yet in season)
+      const teamsToAdd = finalAssignments.filter(a => !existingTeamIds.includes(a.teamId))
+      // Teams already in season but managerName needs updating (manager reassigned)
+      const teamsToUpdate = finalAssignments.filter(a => {
     if (existingTeamIds.includes(a.teamId)) {
       const existing = existingSeasonTeams.find(st => st.teamId === a.teamId)
       return existing && existing.managerName?.toLowerCase() !== a.managerName.toLowerCase()
@@ -256,6 +260,11 @@ async function handleManagerAssignments(
         await tx.season_teams.updateMany({
           where: { seasonId, teamId, isActive: true },
           data: { managerName, updatedAt: new Date() }
+        })
+        // Also update user's teamId for reassigned managers
+        await tx.users.updateMany({
+          where: { name: { equals: managerName, mode: 'insensitive' }, role: 'TEAM_MANAGER' },
+          data: { teamId }
         })
       }
 

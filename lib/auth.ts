@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import type { NextAuthConfig } from "next-auth"
+import { prisma } from "./prisma"
 
 // Middleware-compatible auth config (no Prisma)
 export const authConfig: NextAuthConfig = {
@@ -26,7 +27,18 @@ export const authConfig: NextAuthConfig = {
         if (token.role) {
           session.user.role = token.role as any
         }
-        if (token.teamId) {
+        // Always fetch current teamId from DB to reflect team reassignments
+        if (token.role === "TEAM_MANAGER" && token.id) {
+          try {
+            const user = await prisma.users.findUnique({
+              where: { id: token.id as string },
+              select: { teamId: true }
+            })
+            session.user.teamId = user?.teamId || (token.teamId as string) || undefined
+          } catch {
+            session.user.teamId = token.teamId as string
+          }
+        } else if (token.teamId) {
           session.user.teamId = token.teamId as string
         }
         ;(session.user as any).mustChangePassword = !!token.mustChangePassword

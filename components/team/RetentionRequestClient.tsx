@@ -297,6 +297,49 @@ export default function RetentionRequestClient({
     }
   }
 
+  const handleWithdraw = async (requestId: string) => {
+    if (!confirm('Are you sure you want to withdraw this retention request?')) return
+
+    try {
+      const response = await fetch('/api/team/retention-requests', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to withdraw request')
+      }
+
+      // Remove from state
+      setExistingRequests(prev => prev.filter(r => r.id !== requestId))
+      setTotalRequestsCount(prev => Math.max(0, prev - 1))
+      setRemainingRequests(prev => prev + 1)
+
+      // Add player back to eligible list
+      const withdrawnRequest = existingRequests.find(r => r.id === requestId)
+      if (withdrawnRequest) {
+        setEligiblePlayers(prev => [...prev, {
+          id: withdrawnRequest.playerId,
+          name: withdrawnRequest.playerName,
+          player_id: withdrawnRequest.basePlayer.player_id,
+          photoUrl: getPhotoUrl(withdrawnRequest.basePlayer.player_id),
+          oldSquadValue: withdrawnRequest.oldSquadValue,
+          position: '',
+          overallRating: 0,
+          previousSeasonId: withdrawnRequest.previousSeason.id,
+          previousSeasonName: withdrawnRequest.previousSeason.name,
+        }])
+      }
+
+      setSuccess('Request withdrawn successfully')
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('en-GB', {
       day: '2-digit',
@@ -490,6 +533,15 @@ export default function RetentionRequestClient({
                           <p className="font-bold text-[#E8A800] text-sm">{formatCurrency(request.oldSquadValue)}</p>
                           <p className="text-[9px] font-mono uppercase text-yellow-500">Pending</p>
                         </div>
+                        <button
+                          onClick={() => handleWithdraw(request.id)}
+                          className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
+                          title="Withdraw request"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   ))}

@@ -237,6 +237,54 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session?.user?.teamId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { requestId } = body
+
+    if (!requestId) {
+      return NextResponse.json({ error: 'Request ID required' }, { status: 400 })
+    }
+
+    // Find the request
+    const retentionRequest = await prisma.retention_requests.findUnique({
+      where: { id: requestId },
+    })
+
+    if (!retentionRequest) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+    }
+
+    // Verify team ownership
+    if (retentionRequest.teamId !== session.user.teamId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Only allow withdrawing pending requests
+    if (retentionRequest.status !== 'pending') {
+      return NextResponse.json({ error: 'Can only withdraw pending requests' }, { status: 400 })
+    }
+
+    // Delete the request
+    await prisma.retention_requests.delete({
+      where: { id: requestId },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('Error withdrawing retention request:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to withdraw retention request' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()

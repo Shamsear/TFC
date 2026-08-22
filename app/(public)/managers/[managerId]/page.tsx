@@ -20,28 +20,60 @@ interface ManagerDetailPageProps {
 async function getTeamData(teamId: string) {
   let resolvedTeamId = teamId;
   let resolvedManagerName: string | null = null;
+  let resolvedManagerRecord = null;
 
-  // Resolve manager if teamId is a manager ID
+  // ── Step 1: Resolve the manager ────────────────────────────────
+  // Try as manager ID first
   const manager = await prisma.managers.findUnique({
-    where: { id: teamId }
+    where: { id: teamId },
+    include: {
+      teamLinks: {
+        include: { team: true },
+        orderBy: { isCurrent: 'desc' }
+      },
+      user: true
+    }
   });
 
   if (manager) {
     resolvedManagerName = manager.name;
-    // Find the linked team from manager_teams
-    const managerLink = await prisma.manager_teams.findFirst({
-      where: { managerId: manager.id },
-      orderBy: { isCurrent: 'desc' }
-    });
-    if (managerLink) {
-      resolvedTeamId = managerLink.teamId;
+    resolvedManagerRecord = manager;
+
+    // Find current team: prefer isCurrent flag, fallback to first link
+    const currentLink = manager.teamLinks.find(l => l.isCurrent) || manager.teamLinks[0];
+    if (currentLink) {
+      resolvedTeamId = currentLink.teamId;
     } else {
-      // Check season_teams for any season matching managerName
-      const seasonTeamLink = await prisma.season_teams.findFirst({
-        where: { managerName: { equals: manager.name, mode: 'insensitive' } }
+      // Fallback: find most recent season_teams entry
+      const latestSeasonTeam = await prisma.season_teams.findFirst({
+        where: { managerName: { equals: manager.name, mode: 'insensitive' } },
+        include: { season: { select: { seasonNumber: true } } },
+        orderBy: { season: { seasonNumber: 'desc' } }
       });
-      if (seasonTeamLink) {
-        resolvedTeamId = seasonTeamLink.teamId;
+      if (latestSeasonTeam) {
+        resolvedTeamId = latestSeasonTeam.teamId;
+      }
+    }
+  } else {
+    // Try as team ID directly
+    const team = await prisma.teams.findUnique({ where: { id: teamId } });
+    if (team) {
+      resolvedManagerName = team.managerName;
+      // Check if there's a manager record for this name
+      const mgrRecord = await prisma.managers.findFirst({
+        where: { name: { equals: team.managerName, mode: 'insensitive' } },
+        include: {
+          teamLinks: { include: { team: true }, orderBy: { isCurrent: 'desc' } },
+          user: true
+        }
+      });
+      if (mgrRecord) {
+        resolvedManagerRecord = mgrRecord;
+        resolvedManagerName = mgrRecord.name;
+        const currentLink = mgrRecord.teamLinks.find(l => l.isCurrent) || mgrRecord.teamLinks[0];
+        if (currentLink) {
+          resolvedTeamId = currentLink.teamId;
+        }
       }
     }
   }
@@ -49,7 +81,7 @@ async function getTeamData(teamId: string) {
   // Get active season info
   const activeSeason = await prisma.seasons.findFirst({
     where: { isActive: true }
-  })
+  });
 
   // Get team basic info
   const team = await prisma.teams.findUnique({
@@ -57,20 +89,21 @@ async function getTeamData(teamId: string) {
     include: {
       unlockedBadges: true
     }
-  })
+  });
 
   if (!team) {
-    return null
+    return null;
   }
 
-  // Override manager name if we resolved a manager record
+  // Override manager name with the resolved canonical name
   if (resolvedManagerName) {
     team.managerName = resolvedManagerName;
   } else {
     resolvedManagerName = team.managerName;
   }
 
-  // Get all seasons this manager participated in — only query by managerName
+  // ── Step 2: Get ALL seasons this manager participated in ────────
+  // Query season_teams by the canonical manager name
   const allSeasonTeams = await prisma.season_teams.findMany({
     where: {
       managerName: { equals: resolvedManagerName, mode: 'insensitive' }
@@ -103,7 +136,7 @@ async function getTeamData(teamId: string) {
     }
   });
 
-  // PARALLELIZE: These 3 queries are independent of each other
+  // ── Step 3: Fetch transfers and squads for all season-team pairs ─
   const seasonPairs = allSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }));
   const [allTransfers, allSquads] = allSeasonTeams.length > 0
     ? await Promise.all([
@@ -124,12 +157,10 @@ async function getTeamData(teamId: string) {
     ])
     : [[], []];
 
-  // Build the detailed seasons list
+  // ── Step 4: Build detailed season data ──────────────────────────
   const detailedSeasons = allSeasonTeams.map(st => {
-    // Filter transfers for this season and team
     const seasonTransfers = allTransfers.filter(t => t.seasonId === st.seasonId && t.teamId === st.teamId);
 
-    // Build squad grouped by position
     const squadByPosition = seasonTransfers.reduce((acc, transfer) => {
       let stats = transfer.basePlayer.seasonalPlayerStats.find(s => s.seasonId === st.seasonId);
       if (!stats && transfer.basePlayer.seasonalPlayerStats.length > 0) {
@@ -153,13 +184,11 @@ async function getTeamData(teamId: string) {
       return acc;
     }, {} as Record<string, any[]>);
 
-    // Count positions
     const positionCounts = Object.entries(squadByPosition).reduce((acc, [position, players]) => {
       acc[position] = players.length;
       return acc;
     }, {} as Record<string, number>);
 
-    // Calculate total spent and average rating
     const totalSpent = seasonTransfers.reduce((sum, t) => sum + t.soldPrice, 0);
     const averageRating = seasonTransfers.length > 0
       ? Math.round(seasonTransfers.reduce((sum, t) => {
@@ -171,10 +200,8 @@ async function getTeamData(teamId: string) {
         }, 0) / seasonTransfers.length)
       : 0;
 
-    // Find formation
     const formationObj = allSquads.find(q => q.season_id === st.seasonId && q.team_id === st.teamId);
 
-    // Standings & Performance calculations for summary
     const played = st.standings.reduce((sum, s) => sum + s.played, 0);
     const won = st.standings.reduce((sum, s) => sum + s.won, 0);
     const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0);
@@ -203,7 +230,6 @@ async function getTeamData(teamId: string) {
       goalsAgainst,
       goalDiff,
       points,
-      // Full details:
       playerCount: seasonTransfers.length,
       totalSpent,
       averageRating,
@@ -215,7 +241,7 @@ async function getTeamData(teamId: string) {
     };
   });
 
-  // All-time stats calculation (reuse allTransfers — same query)
+  // All-time stats
   const totalTrophies = allSeasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0);
   const allTimeHighestSigning = allTransfers.reduce((max, t) => Math.max(max, t.soldPrice), 0);
 
@@ -261,7 +287,7 @@ export default async function TeamDetailPage({ params }: ManagerDetailPageProps)
   // Rank Details
   const rank = getRankDetails(level)
 
-  // Unlocked badges (passed to TeamDetailTabs)
+  // Unlocked badges
   const unlockedBadges = team.unlockedBadges || []
 
   return (
@@ -306,7 +332,7 @@ export default async function TeamDetailPage({ params }: ManagerDetailPageProps)
                 )}
               </div>
               
-              {/* Floating Rank Badge Emblem Overlay */}
+              {/* Floating Rank Badge */}
               <div 
                 className="absolute -bottom-2 -right-2 h-10 w-10 sm:h-12 sm:w-12 rounded-full border border-white/10 bg-[#0d0d10] p-1.5 shadow-[0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center backdrop-blur-xl hover:scale-110 transition-transform duration-200"
                 title={`${rank.title} Emblem`}
@@ -329,7 +355,7 @@ export default async function TeamDetailPage({ params }: ManagerDetailPageProps)
                   {team.managerName}
                 </h1>
                 
-                {/* Level Tag with Micro Rank Emblem */}
+                {/* Level Tag */}
                 <span 
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mx-auto sm:mx-0 border w-fit"
                   style={{ 

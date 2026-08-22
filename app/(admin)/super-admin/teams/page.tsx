@@ -35,7 +35,7 @@ export default async function TeamsRegistryPage() {
     redirect("/")
   }
 
-  const teams = await prisma.teams.findMany({
+  const teamsRaw = await prisma.teams.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       seasonTeams: {
@@ -43,9 +43,20 @@ export default async function TeamsRegistryPage() {
           season: true
         }
       },
-      transferHistory: true
+      transferHistory: true,
+      managerLinks: {
+        where: { isCurrent: true },
+        include: { manager: true },
+        take: 1
+      }
     }
   })
+
+  // Resolve current manager for each team
+  const teams = teamsRaw.map(team => ({
+    ...team,
+    managerName: team.managerLinks[0]?.manager?.name || team.managerName
+  }))
 
   return (
     <div className="text-white px-4 sm:px-6 lg:px-8 pb-8">

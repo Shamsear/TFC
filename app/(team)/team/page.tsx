@@ -19,13 +19,26 @@ export default async function TeamDashboardPage() {
     redirect("/auth/signin")
   }
 
-  // Fetch team info
-  const team = await prisma.teams.findUnique({
+  // Fetch team info with current manager resolution
+  const teamRaw = await prisma.teams.findUnique({
     where: { id: session.user.teamId },
+    include: {
+      managerLinks: {
+        where: { isCurrent: true },
+        include: { manager: true },
+        take: 1
+      }
+    }
   })
 
-  if (!team) {
+  if (!teamRaw) {
     redirect("/auth/signin")
+  }
+
+  // Resolve current manager name
+  const team = {
+    ...teamRaw,
+    managerName: teamRaw.managerLinks[0]?.manager?.name || teamRaw.managerName
   }
 
   // Get active season
@@ -66,9 +79,9 @@ export default async function TeamDashboardPage() {
     squadPlayers,
     teamSquad,
   ] = await Promise.all([
-    // All-time trophies
+    // All-time trophies — query by teamId (not stale managerName)
     prisma.season_teams.aggregate({
-      where: { managerName: { equals: team.managerName, mode: 'insensitive' } },
+      where: { teamId: team.id },
       _sum: { trophiesWon: true }
     }),
     // Squad count

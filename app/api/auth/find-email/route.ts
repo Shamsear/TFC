@@ -3,8 +3,14 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * POST /api/auth/find-email
- * Public endpoint: looks up login email by team name or manager name.
- * Returns matching teams with logos and partially masked emails for verification.
+ * Public endpoint: looks up login email by team name or manager/user name.
+ *
+ * Two search paths:
+ *  1. Search **users** by name → resolve their current team via teamId
+ *  2. Search **teams** by name → include teamManagers linked to each team
+ *
+ * Returns the *latest* team association for each manager (users.teamId
+ * always points to the team the manager is currently on).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -18,19 +24,55 @@ export async function POST(request: NextRequest) {
     }
 
     const searchTerm = query.trim();
+    const resultsMap = new Map<string, TeamResult>();
 
-    // Search for teams matching name or managerName
-    const teams = await prisma.teams.findMany({
+    // ── Path 1: Search users by name (TEAM_MANAGER, active) ───────────
+    const matchingUsers = await prisma.users.findMany({
       where: {
-        OR: [
-          { name: { contains: searchTerm, mode: "insensitive" } },
-          { managerName: { contains: searchTerm, mode: "insensitive" } },
-        ],
+        role: "TEAM_MANAGER",
+        isActive: true,
+        name: { contains: searchTerm, mode: "insensitive" },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        team: {
+          select: {
+            id: true,
+            name: true,
+            managerName: true,
+            logoUrl: true,
+          },
+        },
+      },
+      take: 10,
+    });
+
+    for (const user of matchingUsers) {
+      if (user.team) {
+        const key = user.team.id; // deduplicate by team ID
+        resultsMap.set(key, {
+          teamName: user.team.name,
+          managerName: user.team.managerName,
+          logoUrl: user.team.logoUrl,
+          maskedEmail: maskEmail(user.email),
+          email: user.email,
+          userName: user.name || user.team.managerName,
+        });
+      }
+    }
+
+    // ── Path 2: Search teams by name ──────────────────────────────────
+    const matchingTeams = await prisma.teams.findMany({
+      where: {
+        name: { contains: searchTerm, mode: "insensitive" },
       },
       include: {
         teamManagers: {
           where: { role: "TEAM_MANAGER", isActive: true },
           select: {
+            id: true,
             email: true,
             name: true,
           },
@@ -39,7 +81,23 @@ export async function POST(request: NextRequest) {
       take: 10,
     });
 
-    if (teams.length === 0) {
+    for (const team of matchingTeams) {
+      if (!resultsMap.has(team.id)) {
+        const manager = team.teamManagers[0];
+        resultsMap.set(team.id, {
+          teamName: team.name,
+          managerName: team.managerName,
+          logoUrl: team.logoUrl,
+          maskedEmail: manager ? maskEmail(manager.email) : null,
+          email: manager?.email || null,
+          userName: manager?.name || team.managerName,
+        });
+      }
+    }
+
+    const results = Array.from(resultsMap.values()).slice(0, 10);
+
+    if (results.length === 0) {
       return NextResponse.json(
         {
           error: "No teams found matching your search. Try a different name.",
@@ -48,18 +106,6 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     }
-
-    // Return teams with masked emails for verification and full email for reveal
-    const results = teams.map((team) => ({
-      teamName: team.name,
-      managerName: team.managerName,
-      logoUrl: team.logoUrl,
-      maskedEmail: team.teamManagers[0]
-        ? maskEmail(team.teamManagers[0].email)
-        : null,
-      email: team.teamManagers[0]?.email || null,
-      userName: team.teamManagers[0]?.name || team.managerName,
-    }));
 
     return NextResponse.json({ teams: results });
   } catch (error) {
@@ -70,6 +116,17 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// ── Types ─────────────────────────────────────────────────────────────
+
+type TeamResult = {
+  teamName: string;
+  managerName: string;
+  logoUrl: string;
+  maskedEmail: string | null;
+  email: string | null;
+  userName: string;
+};
 
 /**
  * Partially masks an email address for privacy.

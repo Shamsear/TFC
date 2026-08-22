@@ -99,27 +99,23 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
     positionMapByTeam.get(teamId)![position] = Number(count)
   }
 
-  // Fetch all-time trophies per manager (across all seasons)
+  // Fetch all-time trophies per team (across all seasons)
   const allSeasonTeams = await prisma.season_teams.findMany({
     select: {
       teamId: true,
-      managerName: true,
       trophiesWon: true
     }
   })
 
-  // Group all-time trophies by manager name
-  const allTimeTrophiesByManager = new Map<string, number>()
+  // Group all-time trophies by teamId
+  const allTimeTrophiesByTeam = new Map<string, number>()
   for (const st of allSeasonTeams) {
-    const key = st.managerName || ''
-    if (key) {
-      allTimeTrophiesByManager.set(key, (allTimeTrophiesByManager.get(key) || 0) + st.trophiesWon)
-    }
+    allTimeTrophiesByTeam.set(st.teamId, (allTimeTrophiesByTeam.get(st.teamId) || 0) + st.trophiesWon)
   }
 
   // Combine with seasonTeams
   const teamsWithDetails = season.seasonTeams.map(st => {
-    const allTimeTrophies = allTimeTrophiesByManager.get(st.team.managerName) || 0
+    const allTimeTrophies = allTimeTrophiesByTeam.get(st.team.id) || 0
     return {
       ...st,
       playerCount: countMap.get(st.team.id) || 0,

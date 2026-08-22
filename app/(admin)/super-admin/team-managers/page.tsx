@@ -15,17 +15,37 @@ export default async function TeamManagersPage() {
     redirect("/auth/signin")
   }
 
-  // Fetch all team managers
+  // Fetch all team managers with their manager record and team links
   const teamManagers = await prisma.users.findMany({
     where: {
       role: "TEAM_MANAGER",
     },
     include: {
       team: true,
+      manager: {
+        include: {
+          teamLinks: {
+            where: { isCurrent: true },
+            include: { team: true },
+            take: 1
+          }
+        }
+      }
     },
     orderBy: {
       createdAt: "desc",
     },
+  })
+
+  // Resolve the CURRENT team for each manager from manager_teams
+  const resolvedManagers = teamManagers.map(tm => {
+    const currentTeamLink = tm.manager?.teamLinks?.[0]
+    const currentTeam = currentTeamLink?.team || tm.team
+    return {
+      ...tm,
+      // Override team with the resolved current team
+      team: currentTeam || tm.team
+    }
   })
 
   // Get teams without managers
@@ -36,9 +56,9 @@ export default async function TeamManagersPage() {
     },
   })
 
-  const assignedTeamIds = teamManagers
-    .filter((tm) => tm.teamId)
-    .map((tm) => tm.teamId)
+  const assignedTeamIds = resolvedManagers
+    .filter((tm) => tm.team)
+    .map((tm) => tm.team!.id)
 
   const unassignedTeams = allTeams.filter(
     (team) => !assignedTeamIds.includes(team.id)
@@ -70,7 +90,7 @@ export default async function TeamManagersPage() {
           <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
             <div className="text-gray-400 text-sm mb-1">Total Managers</div>
             <div className="text-3xl font-bold text-white">
-              {teamManagers.length}
+              {resolvedManagers.length}
             </div>
           </div>
           <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
@@ -114,8 +134,8 @@ export default async function TeamManagersPage() {
                 </tr>
               </thead>
               <tbody>
-                {teamManagers.length > 0 ? (
-                  teamManagers.map((manager) => (
+                {resolvedManagers.length > 0 ? (
+                  resolvedManagers.map((manager) => (
                     <tr
                       key={manager.id}
                       className="border-b border-white/5 hover:bg-white/5 transition-colors"

@@ -61,16 +61,9 @@ async function getTeamData(teamId: string, seasonId: string) {
     team.managerName = resolvedManagerName;
   }
 
-  // Get all seasons this manager or team participated in
+  // Get all seasons — only by teamId to avoid leaking old team seasons
   const allSeasonTeams = await prisma.season_teams.findMany({
-    where: resolvedManagerName
-      ? {
-          OR: [
-            { teamId: resolvedTeamId },
-            { managerName: resolvedManagerName }
-          ]
-        }
-      : { teamId: resolvedTeamId },
+    where: { teamId: resolvedTeamId },
     include: {
       season: {
         select: {

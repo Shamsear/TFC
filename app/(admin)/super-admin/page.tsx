@@ -43,7 +43,7 @@ export default async function SuperAdminDashboard() {
   }
 
   // Fetch overview data
-  const [teamsCount, seasonsCount, latestSeason, recentTeams] = await Promise.all([
+  const [teamsCount, seasonsCount, latestSeason, recentTeamsRaw] = await Promise.all([
     prisma.teams.count(),
     prisma.seasons.count(),
     prisma.seasons.findFirst({
@@ -56,9 +56,22 @@ export default async function SuperAdminDashboard() {
     }),
     prisma.teams.findMany({
       take: 5,
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      include: {
+        managerLinks: {
+          where: { isCurrent: true },
+          include: { manager: true },
+          take: 1
+        }
+      }
     })
   ])
+
+  // Resolve current manager for each recent team
+  const recentTeams = recentTeamsRaw.map(team => ({
+    ...team,
+    managerName: team.managerLinks[0]?.manager?.name || team.managerName
+  }))
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">

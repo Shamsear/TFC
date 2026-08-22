@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic'
 
 async function getTeamsData() {
   try {
-    // Get all seasons
     const seasons = await prisma.seasons.findMany({
       orderBy: [
         { isActive: 'desc' },
@@ -14,36 +13,64 @@ async function getTeamsData() {
       ]
     })
 
-    // Get all teams with their overall data, including manager links
-    const allTeams = await prisma.teams.findMany({
+    // ── 1. Get all managers as the primary entity ──────────────────
+    const allManagers = await prisma.managers.findMany({
       include: {
-        seasonTeams: {
-          include: {
-            season: true
-          }
+        teamLinks: {
+          include: { team: true },
+          orderBy: { isCurrent: 'desc' }
         },
-        managerLinks: {
-          include: {
-            manager: true
-          }
-        }
+        user: true
       },
       orderBy: { name: 'asc' }
     })
 
-    // Get all managers for the master list
-    const allManagers = await prisma.managers.findMany({
-      include: { teamLinks: { include: { team: true } } },
-      orderBy: { name: 'asc' }
-    })
-
-    // Get all active season_teams for manager resolution
+    // ── 2. Resolve CURRENT team for each manager ──────────────────
+    //    Priority: manager_teams.isCurrent → latest season_teams by seasonNumber
     const allSeasonTeams = await prisma.season_teams.findMany({
-      where: { isActive: true },
-      include: { team: true, season: true }
+      include: { team: true, season: { select: { id: true, seasonNumber: true } } },
+      orderBy: { season: { seasonNumber: 'desc' } }
     })
 
-    // --- 1. Fetch bulk overall team statistics ---
+    const currentTeamByManager = new Map<string, {
+      teamId: string
+      teamName: string
+      teamLogo: string
+    }>()
+
+    for (const mgr of allManagers) {
+      // Prefer manager_teams with isCurrent
+      const currentLink = mgr.teamLinks.find(l => l.isCurrent)
+      if (currentLink) {
+        currentTeamByManager.set(mgr.id, {
+          teamId: currentLink.teamId,
+          teamName: currentLink.team.name,
+          teamLogo: currentLink.team.logoUrl
+        })
+        continue
+      }
+
+      // Fallback: latest season_teams entry by season number
+      const latestSeasonTeam = allSeasonTeams.find(
+        st => st.managerName && st.managerName.toLowerCase() === mgr.name.toLowerCase()
+      )
+      if (latestSeasonTeam) {
+        currentTeamByManager.set(mgr.id, {
+          teamId: latestSeasonTeam.teamId,
+          teamName: latestSeasonTeam.team.name,
+          teamLogo: latestSeasonTeam.team.logoUrl
+        })
+      }
+    }
+
+    // Also build a lookup: managerName (lowercase) → managerId
+    // For season-specific views where we need to find the manager by name
+    const managerNameToId = new Map<string, string>()
+    for (const mgr of allManagers) {
+      managerNameToId.set(mgr.name.toLowerCase(), mgr.id)
+    }
+
+    // ── 3. Fetch OVERALL stats per manager (across ALL teams/seasons) ─
     const [
       overallPlayerCounts,
       overallSpentData,
@@ -81,91 +108,89 @@ async function getTeamsData() {
     const overallHomeWinsMap = new Map(overallHomeWins.map(hw => [hw.teamId, Number(hw.count)]))
     const overallAwayWinsMap = new Map(overallAwayWins.map(aw => [aw.teamId, Number(aw.count)]))
 
-    // Calculate overall stats per manager
-    // Stats (players, spent, wins) are TEAM-level — iterate over allTeams once per team
-    // Group by the most recent season_teams.managerName for that team
-    const teamManagerName = new Map<string, string>() // teamId -> managerName
+    // Map teamId → managerIds (a team could have had multiple managers)
+    // We attribute stats to the LATEST manager for each team
+    const teamToManager = new Map<string, string>() // teamId → managerId (latest)
     for (const st of allSeasonTeams) {
-      // Keep the latest season's managerName for each team
-      const existing = teamManagerName.get(st.teamId)
-      if (!existing || (st.season?.seasonNumber ?? 0) > 0) {
-        teamManagerName.set(st.teamId, st.managerName || st.team.managerName)
+      const mgrId = managerNameToId.get((st.managerName || '').toLowerCase())
+      if (mgrId) {
+        teamToManager.set(st.teamId, mgrId) // last one wins (ordered desc by seasonNumber)
       }
     }
 
+    // Build overall stats per manager
     const overallManagerMap = new Map<string, {
-      managerId: string | null
-      managerPhotoUrl: string | null
+      managerId: string
       managerName: string
+      photoUrl: string | null
       totalPlayers: number
       totalSpent: number
       totalWins: number
       seasonsCount: number
     }>()
 
-    for (const team of allTeams) {
-      // Resolve which manager owns this team (use season_teams first, then managerLink, then team.managerName)
-      const mgrName = teamManagerName.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
-      if (!mgrName) continue
-
-      // Resolve managerId and photo from managers table
-      const mgrRecord = allManagers.find(m => m.name.toLowerCase() === mgrName.toLowerCase())
-      const managerLink = team.managerLinks.find(l => l.managerId === mgrRecord?.id) || team.managerLinks[0]
-      const key = mgrRecord?.id || mgrName
-
-      const players = overallCountMap.get(team.id) || 0
-      const spent = overallSpentMap.get(team.id) || 0
-      const wins = (overallHomeWinsMap.get(team.id) || 0) + (overallAwayWinsMap.get(team.id) || 0)
-
-      const existing = overallManagerMap.get(key)
-      if (existing) {
-        existing.totalPlayers += players
-        existing.totalSpent += spent
-        existing.totalWins += wins
-        existing.seasonsCount += team.seasonTeams.length
-      } else {
-        overallManagerMap.set(key, {
-          managerId: mgrRecord?.id || null,
-          managerPhotoUrl: managerLink?.manager?.photoUrl || mgrRecord?.photoUrl || null,
-          managerName: mgrName,
-          totalPlayers: players,
-          totalSpent: spent,
-          totalWins: wins,
-          seasonsCount: team.seasonTeams.length
-        })
-      }
-    }
-
-    // Also add managers who have NO teams yet (e.g. newly created)
+    // Initialize all managers
     for (const mgr of allManagers) {
-      if (!overallManagerMap.has(mgr.id)) {
-        overallManagerMap.set(mgr.id, {
-          managerId: mgr.id,
-          managerPhotoUrl: mgr.photoUrl || null,
-          managerName: mgr.name,
-          totalPlayers: 0,
-          totalSpent: 0,
-          totalWins: 0,
-          seasonsCount: 0
-        })
+      overallManagerMap.set(mgr.id, {
+        managerId: mgr.id,
+        managerName: mgr.name,
+        photoUrl: mgr.photoUrl || null,
+        totalPlayers: 0,
+        totalSpent: 0,
+        totalWins: 0,
+        seasonsCount: 0
+      })
+    }
+
+    // Aggregate stats: each team's stats go to its latest manager
+    // But we want COMBINED stats per manager across ALL their teams
+    // So we iterate season_teams and accumulate per manager
+    for (const st of allSeasonTeams) {
+      const mgrId = managerNameToId.get((st.managerName || '').toLowerCase())
+      if (!mgrId) continue
+
+      const entry = overallManagerMap.get(mgrId)!
+      entry.totalPlayers += overallCountMap.get(st.teamId) || 0
+      entry.totalSpent += overallSpentMap.get(st.teamId) || 0
+      entry.totalWins += (overallHomeWinsMap.get(st.teamId) || 0) + (overallAwayWinsMap.get(st.teamId) || 0)
+    }
+
+    // Count seasons per manager
+    const seasonCountByManager = new Map<string, Set<string>>()
+    for (const st of allSeasonTeams) {
+      const mgrId = managerNameToId.get((st.managerName || '').toLowerCase())
+      if (mgrId) {
+        if (!seasonCountByManager.has(mgrId)) {
+          seasonCountByManager.set(mgrId, new Set())
+        }
+        seasonCountByManager.get(mgrId)!.add(st.seasonId)
+      }
+    }
+    for (const [mgrId, seasonSet] of seasonCountByManager) {
+      const entry = overallManagerMap.get(mgrId)
+      if (entry) {
+        entry.seasonsCount = seasonSet.size
       }
     }
 
-    const overallTeams = Array.from(overallManagerMap.values()).map(m => ({
-      id: m.managerId || m.managerName,
-      managerId: m.managerId,
-      managerPhotoUrl: m.managerPhotoUrl,
-      name: m.managerName,
-      managerName: m.managerName,
-      logoUrl: m.managerPhotoUrl || '',
-      totalPlayers: m.totalPlayers,
-      totalSpent: m.totalSpent,
-      totalWins: m.totalWins,
-      currentBudget: 0,
-      seasonsCount: m.seasonsCount
-    }))
+    const overallTeams = Array.from(overallManagerMap.values()).map(m => {
+      const currentTeam = currentTeamByManager.get(m.managerId)
+      return {
+        id: m.managerId,
+        managerId: m.managerId,
+        managerPhotoUrl: m.photoUrl,
+        name: currentTeam?.teamName || m.managerName,
+        managerName: m.managerName,
+        logoUrl: currentTeam?.teamLogo || m.photoUrl || '',
+        totalPlayers: m.totalPlayers,
+        totalSpent: m.totalSpent,
+        totalWins: m.totalWins,
+        currentBudget: 0,
+        seasonsCount: m.seasonsCount
+      }
+    })
 
-    // --- 2. Fetch bulk season-specific statistics ---
+    // ── 4. Season-specific stats ───────────────────────────────────
     const [
       allSeasonPlayerCounts,
       allSeasonSpentData,
@@ -221,10 +246,9 @@ async function getTeamsData() {
     for (const season of seasons) {
       const seasonTeamData = allSeasonTeams.filter(st => st.seasonId === season.id)
 
-      // Group by SEASON-SPECIFIC manager name from season_teams
-      // Each manager should appear separately per season
+      // Group by MANAGER (using managers table as primary key)
       const managerSeasonMap = new Map<string, {
-        managerId: string | null
+        managerId: string
         managerPhotoUrl: string | null
         managerName: string
         teamName: string
@@ -236,32 +260,27 @@ async function getTeamsData() {
       }>()
 
       for (const st of seasonTeamData) {
-        // Use the SEASON-SPECIFIC manager name — this is the source of truth
         const mgrName = st.managerName || st.team.managerName
         if (!mgrName) continue
 
-        // Resolve managerId and photo from the managers table
-        const mgrRecord = allManagers.find(m => m.name.toLowerCase() === mgrName.toLowerCase())
-        const teamData = allTeams.find(t => t.id === st.teamId)
-        const managerLink = teamData?.managerLinks?.find(l => l.managerId === mgrRecord?.id) || teamData?.managerLinks?.[0]
-
-        const mapKey = mgrName.toLowerCase()
-        const existing = managerSeasonMap.get(mapKey)
+        const mgrId = managerNameToId.get(mgrName.toLowerCase()) || mgrName
+        const existing = managerSeasonMap.get(mgrId)
 
         const players = seasonCountMap.get(`${season.id}-${st.teamId}`) || 0
         const spent = seasonSpentMap.get(`${season.id}-${st.teamId}`) || 0
         const wins = (seasonHomeWinsMap.get(st.id) || 0) + (seasonAwayWinsMap.get(st.id) || 0)
 
         if (existing) {
-          // Same manager name had multiple teams in this season
+          // Same manager had multiple teams in this season — combine
           existing.seasonPlayers += players
           existing.seasonSpent += spent
           existing.seasonWins += wins
           existing.seasonBudget += st.currentBudget
         } else {
-          managerSeasonMap.set(mapKey, {
-            managerId: mgrRecord?.id || null,
-            managerPhotoUrl: managerLink?.manager?.photoUrl || mgrRecord?.photoUrl || null,
+          const mgrRecord = allManagers.find(m => m.id === (managerNameToId.get(mgrName.toLowerCase()) || ''))
+          managerSeasonMap.set(mgrId, {
+            managerId: mgrRecord?.id || mgrName,
+            managerPhotoUrl: mgrRecord?.photoUrl || null,
             managerName: mgrName,
             teamName: st.team.name,
             teamLogo: st.team.logoUrl,
@@ -274,7 +293,7 @@ async function getTeamsData() {
       }
 
       const teamsWithStats = Array.from(managerSeasonMap.values()).map(m => ({
-        id: m.managerId || m.managerName,
+        id: m.managerId,
         managerId: m.managerId,
         managerPhotoUrl: m.managerPhotoUrl,
         name: m.teamName,

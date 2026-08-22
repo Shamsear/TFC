@@ -48,6 +48,11 @@ async function getTeamData(teamId: string) {
         orderBy: {
           createdAt: 'desc'
         }
+      },
+      managerLinks: {
+        where: { isCurrent: true },
+        include: { manager: true },
+        take: 1
       }
     }
   })
@@ -55,6 +60,9 @@ async function getTeamData(teamId: string) {
   if (!team) {
     return null
   }
+
+  // Resolve current manager name from managers table
+  team.managerName = team.managerLinks[0]?.manager?.name || team.managerName
 
   // Calculate stats
   const totalSeasons = team.seasonTeams.length

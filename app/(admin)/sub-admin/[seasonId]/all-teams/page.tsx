@@ -126,6 +126,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
     const allTimeTrophies = allTimeTrophiesByTeam.get(st.team.id) || 0
     return {
       ...st,
+      resolvedManagerName,
       playerCount: countMap.get(st.team.id) || 0,
       totalSpent: spentMap.get(st.team.id) || 0,
       playersByPosition: positionMapByTeam.get(st.team.id) || {},
@@ -264,7 +265,7 @@ export default async function AllTeamsPage({ params }: AllTeamsPageProps) {
                           {teamDetail.team.name}
                         </h3>
                         <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-0.5">
-                          Manager: {teamsWithDetails.find(t => t.team.id === teamDetail.team.id)?.resolvedManagerName || teamDetail.team.managerName}
+                          Manager: {teamDetail.resolvedManagerName}
                         </p>
                       </div>
 

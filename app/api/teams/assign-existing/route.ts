@@ -134,6 +134,22 @@ export async function POST(request: NextRequest) {
         })
       }
 
+      // Deactivate any previous isCurrent links for this manager, then link to new team
+      await tx.manager_teams.updateMany({
+        where: { managerId: managerRecord.id, isCurrent: true },
+        data: { isCurrent: false }
+      })
+      await tx.manager_teams.upsert({
+        where: {
+          managerId_teamId: {
+            managerId: managerRecord.id,
+            teamId,
+          },
+        },
+        update: { isCurrent: true },
+        create: { managerId: managerRecord.id, teamId, isCurrent: true },
+      })
+
       if (existingUser) {
         throw new Error(`MANAGER_EXISTS:${existingUser.name}:${existingUser.teamId || 'none'}`)
       }

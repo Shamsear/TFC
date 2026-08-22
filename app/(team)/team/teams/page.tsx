@@ -59,6 +59,7 @@ export default async function TeamTeamsPage() {
           id: true,
           currentBudget: true,
           trophiesWon: true,
+          managerName: true,
           team: {
             select: {
               id: true,

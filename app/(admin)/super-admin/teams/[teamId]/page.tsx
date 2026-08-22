@@ -26,30 +26,13 @@ const TrophyIcon = () => (
 )
 
 async function getTeamData(teamId: string) {
+  // First, resolve the manager name for this team
+  const mgrMap = await resolveTeamManagerNames([teamId])
+
+  // Get team basic info
   const team = await prisma.teams.findUnique({
     where: { id: teamId },
     include: {
-      seasonTeams: {
-        include: {
-          season: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      },
-      transferHistory: {
-        include: {
-          basePlayer: {
-            include: {
-              seasonalPlayerStats: true
-            }
-          },
-          season: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      },
       managerLinks: {
         where: { isCurrent: true },
         include: { manager: true },
@@ -62,18 +45,61 @@ async function getTeamData(teamId: string) {
     return null
   }
 
-  // Resolve current manager name
-  const mgrMap = await resolveTeamManagerNames([team.id])
-  team.managerName = mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
+  const resolvedManagerName = mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
+  team.managerName = resolvedManagerName
 
-  // Calculate stats
-  const totalSeasons = team.seasonTeams.length
-  const totalTransfers = team.transferHistory.length
-  const totalSpent = team.transferHistory.reduce((sum, t) => sum + t.soldPrice, 0)
-  const totalTrophies = team.seasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0)
+  // Get ALL seasons for this MANAGER (not just this team)
+  // This ensures when Shadow moves from Al Hilal to Schalke, all seasons show together
+  const allSeasonTeams = await prisma.season_teams.findMany({
+    where: {
+      managerName: { equals: resolvedManagerName, mode: 'insensitive' }
+    },
+    include: {
+      season: true,
+      team: {
+        select: { id: true, name: true, logoUrl: true }
+      }
+    },
+    orderBy: {
+      season: { createdAt: 'desc' }
+    }
+  })
+
+  // Get all transfers for this manager's teams and seasons
+  const seasonPairs = allSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }))
+  const allTransfers = seasonPairs.length > 0
+    ? await prisma.transfer_history.findMany({
+        where: {
+          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId, status: 'ACTIVE' }))
+        },
+        include: {
+          basePlayer: {
+            include: {
+              seasonalPlayerStats: true
+            }
+          },
+          season: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+    : []
+
+  // Calculate stats across ALL seasons for this manager
+  const totalSeasons = allSeasonTeams.length
+  const totalTransfers = allTransfers.length
+  const totalSpent = allTransfers.reduce((sum, t) => sum + t.soldPrice, 0)
+  const totalTrophies = allSeasonTeams.reduce((sum, st) => sum + st.trophiesWon, 0)
+
+  // Use the team in the latest season for header display
+  const headerTeam = allSeasonTeams[0]?.team || team
 
   return {
-    team,
+    team: headerTeam,
+    seasonManagerName: resolvedManagerName,
+    allSeasonTeams,
+    allTransfers,
     stats: {
       totalSeasons,
       totalTransfers,
@@ -97,7 +123,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     notFound()
   }
 
-  const { team, stats } = teamData
+  const { team, seasonManagerName, allSeasonTeams, allTransfers, stats } = teamData
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
@@ -148,7 +174,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                 {team.name}
               </h1>
               <p className="text-[#D4CCBB] text-lg mb-4">
-                Manager: {team.managerName}
+                Manager: {seasonManagerName}
               </p>
 
               {/* Edit Button */}
@@ -214,13 +240,13 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8 mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-3xl font-black text-white mb-6">Season History</h2>
           
-          {team.seasonTeams.length === 0 ? (
+          {allSeasonTeams.length === 0 ? (
             <div className="text-center py-8 text-[#7A7367]">
               No season participation yet
             </div>
           ) : (
             <div className="space-y-4">
-              {team.seasonTeams.map((st) => (
+              {allSeasonTeams.map((st) => (
                 <div
                   key={st.id}
                   className="rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6 hover:border-[#E8A800]/30 transition-all"
@@ -231,7 +257,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                         {st.season.name}
                       </h3>
                       <div className="text-sm text-[#7A7367]">
-                        Starting Purse: {formatCurrency(st.season.startingPurse)}
+                        {st.team.name} • Starting Purse: {formatCurrency(st.season.startingPurse)}
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
@@ -265,13 +291,13 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8">
           <h2 className="text-2xl sm:text-3xl font-black text-white mb-6">Transfer History</h2>
           
-          {team.transferHistory.length === 0 ? (
+          {allTransfers.length === 0 ? (
             <div className="text-center py-8 text-[#7A7367]">
               No transfers yet
             </div>
           ) : (
             <div className="space-y-3">
-              {team.transferHistory.map((transfer) => {
+              {allTransfers.map((transfer) => {
                 let playerStats = transfer.basePlayer.seasonalPlayerStats.find(
                   s => s.seasonId === transfer.seasonId
                 )

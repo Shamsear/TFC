@@ -454,38 +454,45 @@ export default function RetentionRequestsAdminClient({
                     </span>
                   )}
 
-                  {/* Copy All Requests */}
-                  <button
-                    onClick={e => { e.stopPropagation(); copyTeamRequests(group) }}
-                    className="p-1.5 rounded hover:bg-white/10 transition-colors flex-shrink-0"
-                    title="Copy all requests"
-                  >
-                    {copiedTeamId === group.teamId ? (
-                      <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    ) : (
-                      <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                    )}
-                  </button>
+                  {/* Spacer */}
+                  <div className="flex-1" />
 
-                  {/* Revert All Approved for this team */}
-                  {group.requests.some(r => r.status === 'approved') && (
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Copy All Requests */}
                     <button
-                      onClick={e => { e.stopPropagation(); revertTeamApprovals(group) }}
-                      disabled={revertingTeam === group.teamId}
-                      className="p-1.5 rounded hover:bg-red-500/10 transition-colors flex-shrink-0 disabled:opacity-50"
-                      title="Revert all approved retentions"
+                      onClick={e => { e.stopPropagation(); copyTeamRequests(group) }}
+                      className="p-1.5 rounded hover:bg-white/10 transition-colors"
+                      title="Copy all requests"
                     >
-                      {revertingTeam === group.teamId ? (
-                        <svg className="w-3.5 h-3.5 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      {copiedTeamId === group.teamId ? (
+                        <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                       ) : (
-                        <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4" /></svg>
+                        <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                       )}
                     </button>
-                  )}
 
-                  <svg className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
+                    {/* Revert All Approved */}
+                    {group.requests.some(r => r.status === 'approved') && (
+                      <button
+                        onClick={e => { e.stopPropagation(); revertTeamApprovals(group) }}
+                        disabled={revertingTeam === group.teamId}
+                        className="p-1.5 rounded hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                        title="Revert all approved retentions"
+                      >
+                        {revertingTeam === group.teamId ? (
+                          <svg className="w-3.5 h-3.5 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4" /></svg>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Expand Arrow */}
+                    <svg className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
 
                 {/* Player Cards (expanded) */}

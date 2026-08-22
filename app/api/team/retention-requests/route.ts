@@ -108,11 +108,15 @@ export async function POST(request: NextRequest) {
     // Create retention requests
     const requests = await Promise.all(
       retentions.map(async (retention: any) => {
-        // 1. Get current team manager
-        const currentTeam = await prisma.teams.findUnique({
-          where: { id: teamId }
+        // 1. Get current manager from season_teams (not teams table which has stale creator name)
+        const currentSeasonTeam = await prisma.season_teams.findFirst({
+          where: { seasonId, teamId }
         })
-        const managerName = currentTeam?.managerName
+        const managerName = currentSeasonTeam?.managerName
+
+        if (!managerName) {
+          throw new Error(`No manager found for this team in the current season`)
+        }
 
         // 2. Verify manager participated in previous season
         const previousSeasonTeam = await prisma.season_teams.findFirst({

@@ -47,9 +47,25 @@ export default async function TeamsRegistryPage() {
     }
   })
 
-  // Resolve current manager for each team via season_teams fallback
+  // Resolve current manager for each team
+  // Prefer manager_teams.isCurrent (authoritative) over season_teams fallback
   const allTeamIds = teamsRaw.map(t => t.id)
   const mgrMap = await resolveTeamManagerNames(allTeamIds)
+
+  // For teams WITHOUT a manager_teams.isCurrent link, try to get from
+  // the active season's season_teams — not the latest ever, to avoid stale data
+  const activeSeason = await prisma.seasons.findFirst({ where: { isActive: true }, select: { id: true } })
+  const teamsNeedingFallback = teamsRaw.filter(t => !mgrMap.has(t.id))
+  if (teamsNeedingFallback.length > 0 && activeSeason) {
+    const fallbackTeamIds = teamsNeedingFallback.map(t => t.id)
+    const fallbackEntries = await prisma.season_teams.findMany({
+      where: { teamId: { in: fallbackTeamIds }, seasonId: activeSeason.id, managerName: { not: null } },
+      select: { teamId: true, managerName: true }
+    })
+    for (const entry of fallbackEntries) {
+      if (entry.managerName) mgrMap.set(entry.teamId, entry.managerName)
+    }
+  }
 
   // Get unique manager names to batch-query their career stats
   const uniqueMgrNames = [...new Set(
@@ -64,18 +80,14 @@ export default async function TeamsRegistryPage() {
       })
     : []
 
-  // Build season+team pairs for transfer lookup
-  const seasonPairs = allMgrSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }))
-  const allMgrTransfers = seasonPairs.length > 0
-    ? await prisma.transfer_history.findMany({
-        where: {
-          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId, status: 'ACTIVE' }))
-        },
-        select: { seasonId: true, teamId: true }
-      })
-    : []
+  // Build a lookup: seasonId+teamId → managerName (lowercase)
+  const teamSeasonToManager = new Map<string, string>()
+  for (const st of allMgrSeasonTeams) {
+    const key = `${st.seasonId}:${st.teamId}`
+    teamSeasonToManager.set(key, st.managerName?.toLowerCase() || '')
+  }
 
-  // Group stats by manager name (case-insensitive)
+  // Count seasons per manager
   const statsByName = new Map<string, { seasons: number; transfers: number }>()
   for (const st of allMgrSeasonTeams) {
     const key = st.managerName?.toLowerCase() || ''
@@ -84,14 +96,26 @@ export default async function TeamsRegistryPage() {
     s.seasons++
     statsByName.set(key, s)
   }
-  for (const t of allMgrTransfers) {
-    // We need to find the managerName for this transfer's season+team pair
-    const matchingSt = allMgrSeasonTeams.find(s => s.seasonId === t.seasonId && s.teamId === t.teamId)
-    const key = matchingSt?.managerName?.toLowerCase() || ''
-    if (!key) continue
-    const s = statsByName.get(key) || { seasons: 0, transfers: 0 }
-    s.transfers++
-    statsByName.set(key, s)
+
+  // Count transfers per manager using groupBy on the season+team pairs
+  const seasonPairs = allMgrSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }))
+  const transferCounts = seasonPairs.length > 0
+    ? await prisma.transfer_history.groupBy({
+        by: ['seasonId', 'teamId'],
+        where: {
+          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId }))
+        },
+        _count: { _all: true }
+      })
+    : []
+
+  for (const tc of transferCounts) {
+    const key = `${tc.seasonId}:${tc.teamId}`
+    const mgrName = teamSeasonToManager.get(key) || ''
+    if (!mgrName) continue
+    const s = statsByName.get(mgrName) || { seasons: 0, transfers: 0 }
+    s.transfers += tc._count._all
+    statsByName.set(mgrName, s)
   }
 
   const teams = teamsRaw.map(team => {

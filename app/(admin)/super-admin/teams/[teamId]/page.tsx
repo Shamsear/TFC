@@ -70,7 +70,7 @@ async function getTeamData(teamId: string) {
   const allTransfers = seasonPairs.length > 0
     ? await prisma.transfer_history.findMany({
         where: {
-          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId, status: 'ACTIVE' }))
+          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId }))
         },
         include: {
           basePlayer: {

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getActiveSeasonId } from "@/lib/get-active-season";
 import AdminNavigationClient from "./AdminNavigation";
 
 export default async function AdminNavigation() {
@@ -9,12 +9,7 @@ export default async function AdminNavigation() {
   // Fetch active season for sub-admin navigation
   let activeSeasonId: string | null = null;
   if (!isSuperAdmin) {
-    const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true },
-      select: { id: true },
-      orderBy: { seasonNumber: 'desc' }
-    });
-    activeSeasonId = activeSeason?.id || null;
+    activeSeasonId = await getActiveSeasonId();
   }
 
   return (

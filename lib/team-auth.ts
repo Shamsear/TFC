@@ -1,5 +1,6 @@
 import { auth } from './auth'
 import { prisma } from './prisma'
+import { getActiveSeason } from './get-active-season'
 
 /**
  * Get the current team manager's session with team info
@@ -221,11 +222,8 @@ export async function checkTeamSeasonParticipation() {
     return { isParticipating: false, activeSeason: null, seasonTeam: null, team: null }
   }
 
-  // Get active season (order by seasonNumber to get latest, not just first)
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // Get active season reliably using ID-based sorting
+  const activeSeason = await getActiveSeason()
 
   if (!activeSeason) {
     return { isParticipating: false, activeSeason: null, seasonTeam: null, team }

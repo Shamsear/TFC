@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import AuctionDashboardClient from "@/components/team-auction/AuctionDashboardClient"
+import { getActiveSeason } from "@/lib/get-active-season"
 
 export const dynamic = "force-dynamic"
 
@@ -33,16 +34,8 @@ export default async function TeamAuctionPage() {
     redirect("/auth/signin")
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      seasonNumber: true
-    }
-  })
+  // Get active season (reliable: uses TFCS-N ID sorting)
+  const activeSeason = await getActiveSeason()
 
   if (!activeSeason) {
     return (

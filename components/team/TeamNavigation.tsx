@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { getActiveSeason } from "@/lib/get-active-season"
 import TeamNavigationClient from "./TeamNavigationClient"
 
 export default async function TeamNavigation() {
@@ -23,15 +24,8 @@ export default async function TeamNavigation() {
     return null
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    select: {
-      id: true,
-      name: true,
-    },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // Get active season reliably using ID-based sorting
+  const activeSeason = await getActiveSeason()
 
   // Check if team is in active season
   const isInActiveSeason = activeSeason

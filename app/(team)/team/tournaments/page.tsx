@@ -2,16 +2,14 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { getActiveSeason } from '@/lib/get-active-season'
 
 export const dynamic = 'force-dynamic'
 
 async function getTournamentsData(teamId: string) {
   try {
-    // Get active season
-    const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true },
-      orderBy: { seasonNumber: 'desc' }
-    })
+    // Get active season (reliable: uses TFCS-N ID sorting)
+    const activeSeason = await getActiveSeason()
 
     if (!activeSeason) {
       return { tournaments: [], seasonName: null, stats: { totalTournaments: 0, totalMatches: 0, completedMatches: 0 } }

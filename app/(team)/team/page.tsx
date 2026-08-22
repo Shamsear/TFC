@@ -6,6 +6,7 @@ import Image from "next/image"
 import TeamDashboardTabs from "@/components/team/TeamDashboardTabs"
 import TeamLogo from "@/components/team/TeamLogo"
 import TiebreakerSection from "@/components/team/TiebreakerSection"
+import { getActiveSeason } from "@/lib/get-active-season"
 
 export const metadata = {
   title: "Team Dashboard | Turf Cats",
@@ -41,11 +42,8 @@ export default async function TeamDashboardPage() {
     managerName: teamRaw.managerLinks[0]?.manager?.name || teamRaw.managerName
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // Get active season (reliable: uses TFCS-N ID sorting)
+  const activeSeason = await getActiveSeason()
 
   // Check if team is participating in active season
   const currentSeasonTeam = activeSeason

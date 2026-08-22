@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import RetentionRequestClient from '@/components/team/RetentionRequestClient'
+import { getActiveSeason } from '@/lib/get-active-season'
 
 export const metadata = {
   title: 'Player Retention',
@@ -13,12 +14,8 @@ export default async function RetentionRequestPage() {
     redirect('/login')
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    select: { id: true, name: true, seasonNumber: true },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // Get active season (reliable: uses TFCS-N ID sorting)
+  const activeSeason = await getActiveSeason()
 
   if (!activeSeason) {
     return (

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import TeamLogo from "@/components/team/TeamLogo"
+import { getActiveSeason } from "@/lib/get-active-season"
 
 export const metadata = {
   title: "Not in Active Season | Turf Cats",
@@ -47,11 +48,8 @@ export default async function NotInSeasonPage() {
     managerName: teamRaw.managerLinks[0]?.manager?.name || teamRaw.managerName
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // Get active season (reliable: uses TFCS-N ID sorting)
+  const activeSeason = await getActiveSeason()
 
   // Get team's past seasons
   const pastSeasons = team.seasonTeams.filter(st => !st.season.isActive)

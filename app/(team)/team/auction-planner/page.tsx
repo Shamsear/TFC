@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import AuctionPlannerClient from "@/components/team/AuctionPlannerClient"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { getActiveSeason } from "@/lib/get-active-season"
 
 export const metadata = {
   title: "Auction Planner | Turf Cats",
@@ -16,11 +17,8 @@ export default async function AuctionPlannerPage() {
     redirect("/auth/signin")
   }
 
-  // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  // Get active season (reliable: uses TFCS-N ID sorting)
+  const activeSeason = await getActiveSeason()
 
   if (!activeSeason) {
     redirect("/team/not-in-season")

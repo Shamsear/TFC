@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { canEditTeam, checkTeamSeasonParticipation } from "@/lib/team-auth"
 import { resolveTeamManagerNames } from "@/lib/resolve-manager"
+import { getActiveSeason } from "@/lib/get-active-season"
 import Image from "next/image"
 import Link from "next/link"
 import TeamLogo from "@/components/team/TeamLogo"
@@ -72,10 +73,7 @@ export default async function TeamProfilePage() {
   const canEdit = await canEditTeam(team.id)
 
   // Get active season
-  const activeSeason = await prisma.seasons.findFirst({
-    where: { isActive: true },
-    orderBy: { seasonNumber: 'desc' }
-  })
+  const activeSeason = await getActiveSeason()
 
   // Get current season team data
   const currentSeasonTeam = activeSeason

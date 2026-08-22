@@ -51,7 +51,7 @@ export default async function TeamsRegistryPage() {
   // 1. Use manager_teams.isCurrent (authoritative, already in query)
   // 2. Fallback: active season's season_teams.managerName only
   // Do NOT use resolveTeamManagerNames — it falls back to LATEST season_teams ever, which is stale
-  const activeSeason = await prisma.seasons.findFirst({ where: { isActive: true }, select: { id: true } })
+  const activeSeason = await prisma.seasons.findFirst({ where: { isActive: true }, select: { id: true }, orderBy: { seasonNumber: 'desc' } })
 
   // Build manager map from isCurrent links first
   const mgrMap = new Map<string, string>()

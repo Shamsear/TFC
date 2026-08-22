@@ -96,14 +96,14 @@ export async function POST(
           throw new Error(`Counterpart transfer data not found for ${counterpart.playerName}`)
         }
         
-        // Create new transfer with counterpart's value
+        // Create new transfer with original value (player keeps their price)
         await tx.transfer_history.create({
           data: {
             id: `swap-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             seasonId: swapRequest.seasonId,
             teamId: swapPlayer.toTeamId,
             basePlayerId: swapPlayer.playerId,
-            soldPrice: counterpartTransfer.soldPrice, // Takes counterpart's value
+            soldPrice: oldTransfer.soldPrice, // Player keeps their own value
             roundId: oldTransfer.roundId,
             status: 'ACTIVE',
             createdAt: new Date(),

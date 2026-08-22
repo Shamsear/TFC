@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { randomUUID } from 'crypto'
+import { sendPushNotificationRaw, getTeamManagerId } from '@/lib/notifications-server'
 
 /**
  * POST /api/admin/retention-requests/batch
@@ -167,6 +168,40 @@ export async function POST(request: NextRequest) {
     const approved = results.filter(r => r.status === 'approved').length
     const rejected = results.filter(r => r.status === 'rejected').length
     const errors = results.filter(r => r.status === 'error')
+
+    // Send push notifications to affected team managers
+    try {
+      const affectedTeamIds = [...new Set(requests.map(r => r.teamId))]
+      for (const teamId of affectedTeamIds) {
+        const managerId = await getTeamManagerId(teamId)
+        if (!managerId) continue
+
+        const teamRequests = requests.filter(r => r.teamId === teamId)
+        const teamApproved = teamRequests.filter(r => results.find(res => res.id === r.id && res.status === 'approved'))
+        const teamRejected = teamRequests.filter(r => results.find(res => res.id === r.id && res.status === 'rejected'))
+        const teamName = teamRequests[0]?.team?.name || 'Your team'
+
+        if (teamApproved.length > 0) {
+          const names = teamApproved.map(r => r.playerName).join(', ')
+          await sendPushNotificationRaw(managerId, {
+            title: '✅ Retention Approved',
+            body: `${names} ${teamApproved.length > 1 ? 'have' : 'has'} been retained for ${teamName}.`,
+            url: '/team/retention-request'
+          }, 'trades').catch(() => {})
+        }
+
+        if (teamRejected.length > 0) {
+          const names = teamRejected.map(r => r.playerName).join(', ')
+          await sendPushNotificationRaw(managerId, {
+            title: '❌ Retention Rejected',
+            body: `Your retention request${teamRejected.length > 1 ? 's for' : ' for'} ${names} ${teamRejected.length > 1 ? 'were' : 'was'} rejected.`,
+            url: '/team/retention-request'
+          }, 'trades').catch(() => {})
+        }
+      }
+    } catch (notifErr) {
+      console.warn('[Push] Batch retention notification failed (non-fatal):', notifErr)
+    }
 
     return NextResponse.json({
       success: true,

@@ -10,9 +10,32 @@ export const metadata = {
 
 export default async function RetentionRequestPage() {
   const session = await auth()
-  if (!session?.user?.teamId) {
+  if (!session?.user?.teamId || !session?.user?.id) {
     redirect('/login')
   }
+
+  // Resolve the manager's CURRENT team from manager_teams.isCurrent (not stale session.teamId)
+  let teamId = session.user.teamId!
+  try {
+    // Path 1: via users.managerId
+    const mgrLink = await prisma.manager_teams.findFirst({
+      where: { manager: { user: { id: session.user.id! } }, isCurrent: true },
+      select: { teamId: true }
+    })
+    if (mgrLink) {
+      teamId = mgrLink.teamId
+    } else {
+      // Path 2: via users.name
+      const user = await prisma.users.findUnique({ where: { id: session.user.id! }, select: { name: true } })
+      if (user?.name) {
+        const mgr = await prisma.managers.findFirst({ where: { name: { equals: user.name, mode: 'insensitive' } }, select: { id: true } })
+        if (mgr) {
+          const link = await prisma.manager_teams.findFirst({ where: { managerId: mgr.id, isCurrent: true }, select: { teamId: true } })
+          if (link) teamId = link.teamId
+        }
+      }
+    }
+  } catch {}
 
   // Get active season (reliable: uses TFCS-N ID sorting)
   const activeSeason = await getActiveSeason()
@@ -29,9 +52,9 @@ export default async function RetentionRequestPage() {
     )
   }
 
-  // Get team info
+  // Get team info using the resolved teamId
   const team = await prisma.teams.findUnique({
-    where: { id: session.user.teamId },
+    where: { id: teamId },
     select: { id: true, name: true },
   })
 
@@ -39,18 +62,29 @@ export default async function RetentionRequestPage() {
     redirect('/login')
   }
 
+  // Find the MANAGER's previous season (what team were they managing before?)
+  const user = await prisma.users.findUnique({ where: { id: session.user.id! }, select: { name: true } })
+  const managerName = user?.name || ''
+  const mgrHistory = managerName
+    ? await prisma.season_teams.findMany({
+        where: { managerName: { equals: managerName, mode: 'insensitive' }, seasonId: { not: activeSeason.id } },
+        include: { season: { select: { id: true, name: true, seasonNumber: true } }, team: { select: { id: true, name: true } } },
+      })
+    : []
+  const prevEntry = mgrHistory
+    .filter(st => st.season.seasonNumber < activeSeason.seasonNumber)
+    .sort((a, b) => b.season.seasonNumber - a.season.seasonNumber)[0]
+  const previousSeason = prevEntry?.season || null
+  const previousTeamId = prevEntry?.teamId || team.id
+
   // PARALLELIZE: These queries are independent
-  const [seasonTeam, activeWindow, previousSeason] = await Promise.all([
+  const [seasonTeam, activeWindow] = await Promise.all([
     prisma.season_teams.findUnique({
       where: { seasonId_teamId: { seasonId: activeSeason.id, teamId: team.id } },
       select: { currentBudget: true },
     }),
     prisma.retention_windows.findFirst({
       where: { seasonId: activeSeason.id, status: 'ACTIVE' },
-    }),
-    prisma.seasons.findFirst({
-      where: { seasonNumber: activeSeason.seasonNumber - 1 },
-      select: { id: true, name: true, seasonNumber: true },
     }),
   ])
 
@@ -73,10 +107,10 @@ export default async function RetentionRequestPage() {
   let approvedCount = 0
 
   const [prevSeasonPlayers, currentSeasonPlayerIds, pendingRequests, existingReqs, reqCount, apprCount] = await Promise.all([
-    // Previous season players
+    // Previous season players (from the MANAGER's previous team, not the current team)
     previousSeason
       ? prisma.transfer_history.findMany({
-          where: { seasonId: previousSeason.id, teamId: team.id, status: 'ACTIVE' },
+          where: { seasonId: previousSeason.id, teamId: previousTeamId, status: 'ACTIVE' },
           include: {
             basePlayer: {
               select: {

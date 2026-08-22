@@ -209,15 +209,48 @@ export default function RetentionRequestsAdminClient({
   }
 
   const copyTeamRequests = (group: TeamGroup) => {
+    const approved = group.requests.filter(r => r.status === 'approved')
+    const pending = group.requests.filter(r => r.status === 'pending')
+    const rejected = group.requests.filter(r => r.status === 'rejected')
+
     const lines = [
-      `${group.teamName} — ${group.requests.length} request(s)`,
-      '─'.repeat(40),
-      ...group.requests.map(r =>
-        `${r.playerName} | ${formatCurrency(r.oldSquadValue)} | ${r.status.toUpperCase()} | From ${r.previousSeason.name}`
-      ),
-      '─'.repeat(40),
-      `Pending: ${group.pendingCount} | Value: ${formatCurrency(group.totalValue)}`
+      `🔥 *OFFICIAL RETENTION UPDATE* 🔥`,
+      `🏆 *${seasonName.toUpperCase()}*`,
+      ``,
+      `🔴⚪ *CLUB: ${group.teamName.toUpperCase()}*`,
+      `━━━━━━━━━━━━━━━━━━━━━`,
     ]
+
+    if (approved.length > 0) {
+      lines.push(`🔒 *RETAINED PLAYERS*`)
+      for (const r of approved) {
+        lines.push(``) 
+        lines.push(`👤 *${r.playerName}* ➔ ${formatCurrency(r.oldSquadValue)}`)
+      }
+      lines.push(``)
+    }
+
+    if (rejected.length > 0) {
+      lines.push(`❌ *RELEASED PLAYERS*`)
+      for (const r of rejected) {
+        lines.push(``) 
+        lines.push(`👤 *${r.playerName}* ➔ ${formatCurrency(r.oldSquadValue)}`)
+      }
+      lines.push(``)
+    }
+
+    if (pending.length > 0) {
+      lines.push(`⏳ *PENDING APPROVAL*`)
+      for (const r of pending) {
+        lines.push(``) 
+        lines.push(`👤 *${r.playerName}* ➔ ${formatCurrency(r.oldSquadValue)}`)
+      }
+      lines.push(``)
+    }
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`)
+    lines.push(`*Roster Locked & Ready for Battle!* ⚽🔥`)
+
     navigator.clipboard.writeText(lines.join('\n'))
     setCopiedTeamId(group.teamId)
     setTimeout(() => setCopiedTeamId(null), 1500)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { getActiveSeason } from "@/lib/get-active-season"
 
 export const dynamic = "force-dynamic"
 
@@ -34,10 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get active season
-    const activeSeason = await prisma.seasons.findFirst({
-      where: { isActive: true },
-      orderBy: { seasonNumber: 'desc' },
-    })
+    const activeSeason = await getActiveSeason()
 
     // Get all unlocked badges for this team
     const badges = await prisma.team_badges.findMany({

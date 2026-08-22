@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { logError, extractRequestContext } from "@/lib/logger"
 import { Prisma } from "@prisma/client"
+import { getActiveSeason } from "@/lib/get-active-season"
 import { createAuditLog } from "@/lib/audit"
 import { generateUserId, generateSeasonTeamId, generateFinancialId, generateManagerId } from "@/lib/id-generator"
 import { generateUniqueEmail, generatePasswordFromTeamName } from "@/lib/password-generator"
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid season ID" }, { status: 400 })
       }
     } else {
-      season = await prisma.seasons.findFirst({ where: { isActive: true }, orderBy: { seasonNumber: 'desc' } })
+      season = await getActiveSeason()
     }
 
     // Generate credentials based on manager name

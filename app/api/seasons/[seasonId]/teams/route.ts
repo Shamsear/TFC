@@ -266,6 +266,31 @@ async function handleManagerAssignments(
           where: { name: { equals: managerName, mode: 'insensitive' }, role: 'TEAM_MANAGER' },
           data: { teamId }
         })
+        // Update manager_teams.isCurrent for the new manager
+        const newMgr = await tx.managers.findFirst({ where: { name: { equals: managerName, mode: 'insensitive' } } })
+        if (newMgr) {
+          // Deactivate old isCurrent links for this manager
+          await tx.manager_teams.updateMany({
+            where: { managerId: newMgr.id, isCurrent: true },
+            data: { isCurrent: false }
+          })
+          // Link manager to new team with isCurrent
+          await tx.manager_teams.upsert({
+            where: { managerId_teamId: { managerId: newMgr.id, teamId } },
+            update: { isCurrent: true },
+            create: { managerId: newMgr.id, teamId, isCurrent: true },
+          })
+        }
+        // Deactivate old manager's isCurrent for this team
+        const oldLink = await tx.manager_teams.findFirst({
+          where: { teamId, isCurrent: true }
+        })
+        if (oldLink && (!newMgr || oldLink.managerId !== newMgr.id)) {
+          await tx.manager_teams.update({
+            where: { managerId_teamId: { managerId: oldLink.managerId, teamId } },
+            data: { isCurrent: false }
+          })
+        }
       }
 
       await tx.seasons.update({

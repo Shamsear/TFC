@@ -36,6 +36,22 @@ export default async function ManagersRegistryPage() {
     redirect("/")
   }
 
+  // DEBUG: Log all seasons to verify data
+  const allSeasons = await prisma.seasons.findMany({ select: { id: true, name: true, seasonNumber: true, isActive: true, createdAt: true }, orderBy: { createdAt: 'asc' } })
+  console.log('=== DEBUG: ALL SEASONS ===')
+  for (const s of allSeasons) {
+    console.log(`  ${s.id} | name=${s.name} | seasonNumber=${s.seasonNumber} | isActive=${s.isActive} | createdAt=${s.createdAt}`)
+  }
+
+  // DEBUG: Log all manager_teams links
+  const allMgrLinks = await prisma.manager_teams.findMany({
+    select: { managerId: true, teamId: true, isCurrent: true, manager: { select: { name: true } }, team: { select: { name: true } } }
+  })
+  console.log('=== DEBUG: ALL MANAGER_TEAMS LINKS ===')
+  for (const link of allMgrLinks) {
+    console.log(`  ${link.manager.name} → ${link.team.name} | isCurrent=${link.isCurrent}`)
+  }
+
   // Get all managers as primary entities
   const allManagers = await prisma.managers.findMany({
     select: {
@@ -76,6 +92,7 @@ export default async function ManagersRegistryPage() {
 
   // Resolve current team for each manager
   const currentTeamByManager = new Map<string, { teamId: string; teamName: string; teamLogo: string | null }>()
+  const debugResolutions: string[] = []
   for (const mgr of allManagers) {
     const currentLink = mgr.teamLinks.find(l => l.isCurrent)
     if (currentLink) {
@@ -84,9 +101,10 @@ export default async function ManagersRegistryPage() {
         teamName: currentLink.team.name,
         teamLogo: currentLink.team.logoUrl
       })
+      debugResolutions.push(`  ${mgr.name}: isCurrent → ${currentLink.team.name}`)
       continue
     }
-    // Fallback: latest season_teams entry by season number
+    // Fallback: latest season_teams entry by season_teams ordering
     const latestSeasonTeam = allSeasonTeams.find(
       st => st.managerName && st.managerName.toLowerCase() === mgr.name.toLowerCase()
     )
@@ -96,8 +114,13 @@ export default async function ManagersRegistryPage() {
         teamName: latestSeasonTeam.team.name,
         teamLogo: latestSeasonTeam.team.logoUrl
       })
+      debugResolutions.push(`  ${mgr.name}: FALLBACK season_teams → ${latestSeasonTeam.team.name} (${latestSeasonTeam.seasonId})`)
+    } else {
+      debugResolutions.push(`  ${mgr.name}: NO TEAM FOUND`)
     }
   }
+  console.log('=== DEBUG: MANAGER → TEAM RESOLUTION ===')
+  for (const line of debugResolutions) console.log(line)
 
   // Count seasons per manager (using season_teams entries)
   const seasonCountByManager = new Map<string, Set<string>>()

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import PlayerDetailContent from '@/components/player/PlayerDetailContent'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import { getActiveSeason } from '@/lib/get-active-season'
 
 interface PlayerDetailPageProps {
   params: Promise<{

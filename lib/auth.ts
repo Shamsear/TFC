@@ -27,14 +27,24 @@ export const authConfig: NextAuthConfig = {
         if (token.role) {
           session.user.role = token.role as any
         }
-        // Always fetch current teamId from DB to reflect team reassignments
+        // Always resolve current teamId to reflect team reassignments
         if (token.role === "TEAM_MANAGER" && token.id) {
           try {
-            const user = await prisma.users.findUnique({
-              where: { id: token.id as string },
+            // First check manager_teams.isCurrent (authoritative)
+            const mgrLink = await prisma.manager_teams.findFirst({
+              where: { manager: { users: { some: { id: token.id as string } } }, isCurrent: true },
               select: { teamId: true }
             })
-            session.user.teamId = user?.teamId || (token.teamId as string) || undefined
+            if (mgrLink) {
+              session.user.teamId = mgrLink.teamId
+            } else {
+              // Fallback: DB users.teamId
+              const user = await prisma.users.findUnique({
+                where: { id: token.id as string },
+                select: { teamId: true }
+              })
+              session.user.teamId = user?.teamId || (token.teamId as string) || undefined
+            }
           } catch {
             session.user.teamId = token.teamId as string
           }

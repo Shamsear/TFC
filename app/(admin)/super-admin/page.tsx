@@ -380,9 +380,29 @@ export default async function SuperAdminDashboard() {
               </div>
             </Link>
 
-            <Link
-              href="/super-admin/notifications"
-              className="group flex items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all shadow-md"
+          <Link
+            href="/super-admin/team-emails"
+            className="group flex items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all shadow-md"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800]">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm sm:text-base font-bold text-white mb-0.5">Team Emails</div>
+                <div className="text-xs text-gray-500 font-medium">Get team emails by season</div>
+              </div>
+            </div>
+            <div className="text-[#E8A800] opacity-0 group-hover:opacity-100 transition-opacity">
+              <ArrowRightIcon />
+            </div>
+          </Link>
+
+          <Link
+            href="/super-admin/notifications"
+            className="group flex items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all shadow-md"
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/20 flex items-center justify-center text-[#E8A800]">

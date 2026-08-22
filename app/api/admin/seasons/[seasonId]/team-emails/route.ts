@@ -62,7 +62,7 @@ export async function GET(
     })
 
     const emailByName = new Map(
-      managers.map((m) => [m.name.toLowerCase(), m.email])
+      managers.filter((m) => m.name).map((m) => [m.name!.toLowerCase(), m.email])
     )
 
     const result = seasonTeams.map((st, index) => {

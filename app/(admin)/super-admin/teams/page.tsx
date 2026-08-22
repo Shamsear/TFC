@@ -39,12 +39,6 @@ export default async function TeamsRegistryPage() {
   const teamsRaw = await prisma.teams.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      seasonTeams: {
-        include: {
-          season: true
-        }
-      },
-      transferHistory: true,
       managerLinks: {
         where: { isCurrent: true },
         include: { manager: true },
@@ -56,10 +50,60 @@ export default async function TeamsRegistryPage() {
   // Resolve current manager for each team via season_teams fallback
   const allTeamIds = teamsRaw.map(t => t.id)
   const mgrMap = await resolveTeamManagerNames(allTeamIds)
-  const teams = teamsRaw.map(team => ({
-    ...team,
-    managerName: mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
-  }))
+
+  // Get unique manager names to batch-query their career stats
+  const uniqueMgrNames = [...new Set(
+    teamsRaw.map(t => mgrMap.get(t.id) || t.managerLinks[0]?.manager?.name || t.managerName).filter(Boolean)
+  )]
+
+  // Query ALL season_teams by managerName for career stats
+  const allMgrSeasonTeams = uniqueMgrNames.length > 0
+    ? await prisma.season_teams.findMany({
+        where: { managerName: { in: uniqueMgrNames, mode: 'insensitive' } },
+        select: { managerName: true, teamId: true, seasonId: true }
+      })
+    : []
+
+  // Build season+team pairs for transfer lookup
+  const seasonPairs = allMgrSeasonTeams.map(st => ({ seasonId: st.seasonId, teamId: st.teamId }))
+  const allMgrTransfers = seasonPairs.length > 0
+    ? await prisma.transfer_history.findMany({
+        where: {
+          OR: seasonPairs.map(p => ({ seasonId: p.seasonId, teamId: p.teamId, status: 'ACTIVE' }))
+        },
+        select: { seasonId: true, teamId: true }
+      })
+    : []
+
+  // Group stats by manager name (case-insensitive)
+  const statsByName = new Map<string, { seasons: number; transfers: number }>()
+  for (const st of allMgrSeasonTeams) {
+    const key = st.managerName?.toLowerCase() || ''
+    if (!key) continue
+    const s = statsByName.get(key) || { seasons: 0, transfers: 0 }
+    s.seasons++
+    statsByName.set(key, s)
+  }
+  for (const t of allMgrTransfers) {
+    // We need to find the managerName for this transfer's season+team pair
+    const matchingSt = allMgrSeasonTeams.find(s => s.seasonId === t.seasonId && s.teamId === t.teamId)
+    const key = matchingSt?.managerName?.toLowerCase() || ''
+    if (!key) continue
+    const s = statsByName.get(key) || { seasons: 0, transfers: 0 }
+    s.transfers++
+    statsByName.set(key, s)
+  }
+
+  const teams = teamsRaw.map(team => {
+    const managerName = mgrMap.get(team.id) || team.managerLinks[0]?.manager?.name || team.managerName
+    const mgrStats = statsByName.get(managerName?.toLowerCase() || '') || { seasons: 0, transfers: 0 }
+    return {
+      ...team,
+      managerName,
+      managerSeasons: mgrStats.seasons,
+      managerTransfers: mgrStats.transfers
+    }
+  })
 
   return (
     <div className="text-white px-4 sm:px-6 lg:px-8 pb-8">
@@ -105,9 +149,6 @@ export default async function TeamsRegistryPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {teams.map((team) => {
-              const seasonsParticipated = team.seasonTeams.length
-              const totalTransfers = team.transferHistory.length
-
               return (
                 <div
                   key={team.id}
@@ -147,7 +188,7 @@ export default async function TeamsRegistryPage() {
                           <div className="text-xs text-gray-400">Seasons</div>
                         </div>
                         <div className="text-lg sm:text-2xl font-black text-[#E8A800]">
-                          {seasonsParticipated}
+                          {team.managerSeasons}
                         </div>
                       </div>
                       <div className="rounded-lg sm:rounded-xl bg-[#FFB347]/10 border border-[#FFB347]/20 p-2 sm:p-3">
@@ -156,7 +197,7 @@ export default async function TeamsRegistryPage() {
                           <div className="text-xs text-gray-400">Transfers</div>
                         </div>
                         <div className="text-lg sm:text-2xl font-black text-[#FFB347]">
-                          {totalTransfers}
+                          {team.managerTransfers}
                         </div>
                       </div>
                     </div>

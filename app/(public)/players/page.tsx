@@ -5,16 +5,25 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 export default async function PlayersPage() {
-  // Fetch all-time stats (across all seasons)
+  // Get active season
+  const activeSeason = await prisma.seasons.findFirst({
+    where: { isActive: true }
+  }) || await prisma.seasons.findFirst({
+    orderBy: { seasonNumber: 'desc' }
+  })
+
+  const seasonFilter = activeSeason ? { seasonId: activeSeason.id } : {}
+
   const [soldCount, totalCount, allPositions, allTeams] = await Promise.all([
-    prisma.base_players.count({ where: { transferHistory: { some: { status: 'ACTIVE' } } } }),
-    prisma.base_players.count(),
+    prisma.transfer_history.count({ where: { ...seasonFilter, status: 'ACTIVE' } }),
+    prisma.seasonal_player_stats.count({ where: seasonFilter }),
     prisma.seasonal_player_stats.findMany({
+      where: seasonFilter,
       select: { position: true },
       distinct: ['position']
     }),
     prisma.teams.findMany({
-      where: { transferHistory: { some: { status: 'ACTIVE' } } },
+      where: { transferHistory: { some: { ...seasonFilter, status: 'ACTIVE' } } },
       select: { name: true },
       orderBy: { name: 'asc' }
     })
@@ -59,6 +68,7 @@ export default async function PlayersPage() {
 
           {/* Players List - API-based filtering */}
           <AllPlayersClient
+            seasonId={activeSeason?.id}
             positions={positions}
             teams={teams}
             basePath="/players"

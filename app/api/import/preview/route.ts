@@ -32,8 +32,7 @@ export interface DuplicateInfo {
   allFileInstances?: EFootballPlayer[]; // All instances from the file when duplicateType is 'file-vs-file'
 }
 
-export interface NameDuplicateInfo {
-  player: EFootballPlayer;
+export interface NameDuplicateGroup {
   existingPlayer: {
     id: string;
     playerId: string | null;
@@ -43,6 +42,13 @@ export interface NameDuplicateInfo {
     position: string;
     nationality: string;
   };
+  newCards: EFootballPlayer[];
+}
+
+export interface NewDuplicateGroup {
+  name: string;
+  nationality: string;
+  newCards: EFootballPlayer[];
 }
 
 export interface PreviewResponse {
@@ -52,7 +58,8 @@ export interface PreviewResponse {
   changedPlayers: PlayerChange[];
   unchangedPlayers: EFootballPlayer[];
   duplicates: DuplicateInfo[];
-  nameDuplicates?: NameDuplicateInfo[];
+  nameDuplicates?: NameDuplicateGroup[];
+  newDuplicates?: NewDuplicateGroup[];
   seasonId: string;
   stats: {
     total: number;
@@ -61,6 +68,7 @@ export interface PreviewResponse {
     unchanged: number;
     duplicates: number;
     nameDuplicates?: number;
+    newDuplicates?: number;
   };
 }
 

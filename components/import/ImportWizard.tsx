@@ -383,12 +383,15 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         }
         nameMatchesMap.get(key)!.push(p)
       })
-
       const duplicates: any[] = []
       const newPlayers: any[] = []
       const changedPlayers: any[] = []
       const unchangedPlayers: any[] = []
-      const nameDuplicates: any[] = []
+      
+      // Temporary lists/maps for groupings
+      const singleNewStatsPlayers: any[] = []
+      const dbNameMatchesGroupMap = new Map<string, { existingPlayer: any, newCards: any[] }>()
+      const fileNewGroupsMap = new Map<string, { name: string, nationality: string, newCards: any[] }>()
 
       for (const player of parseResult.players) {
         const existing = existingMap.get(player.playerId)
@@ -451,7 +454,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
               // Skip if key is ignored
               if (isFieldIgnored(key, ignoredFields)) return
 
-              // Check if values are different (treat null/undefined as similar to empty/0 to avoid false positives)
+              // Check if values are different
               if (oldVal !== newVal && !(oldVal === 0 && newVal === null) && !(oldVal === '' && newVal === null)) {
                 changedFields.push(key)
               }
@@ -470,10 +473,8 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             }
           } else {
             // Player exists in database but has no stats for this season
-            newPlayers.push(player)
+            singleNewStatsPlayers.push(player)
           }
-
-          
         } else {
           // Check for database players with same name and nationality but different player ID
           const matches = nameMatchesMap.get(player.playerName.toLowerCase().trim()) || []
@@ -483,26 +484,53 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
           })
 
           if (sameNameNation) {
-            // Flag as a Name-Nation match!
-            const dbStats = sameNameNation.seasonalPlayerStats[0]
-            nameDuplicates.push({
-              player,
-              existingPlayer: {
-                id: sameNameNation.id,
-                playerId: sameNameNation.player_id,
-                name: sameNameNation.name,
-                team: dbStats?.realWorldClub || 'Unknown',
-                rating: dbStats?.overallRating || 0,
-                position: dbStats?.position || 'N/A',
-                nationality: dbStats?.nationality || 'N/A'
-              }
-            })
+            // Group under this existing database player
+            const dbPlayerId = sameNameNation.id
+            if (!dbNameMatchesGroupMap.has(dbPlayerId)) {
+              const dbStats = sameNameNation.seasonalPlayerStats[0]
+              dbNameMatchesGroupMap.set(dbPlayerId, {
+                existingPlayer: {
+                  id: sameNameNation.id,
+                  playerId: sameNameNation.player_id,
+                  name: sameNameNation.name,
+                  team: dbStats?.realWorldClub || 'Unknown',
+                  rating: dbStats?.overallRating || 0,
+                  position: dbStats?.position || 'N/A',
+                  nationality: dbStats?.nationality || 'N/A'
+                },
+                newCards: []
+              })
+            }
+            dbNameMatchesGroupMap.get(dbPlayerId)!.newCards.push(player)
           } else {
-            // Regular new player
-            newPlayers.push(player)
+            // Brand-new player: group by name + nationality to check for multiple copies in the file
+            const key = `${player.playerName.toLowerCase().trim()}|${(player.nationality || '').toLowerCase().trim()}`
+            if (!fileNewGroupsMap.has(key)) {
+              fileNewGroupsMap.set(key, {
+                name: player.playerName,
+                nationality: player.nationality || '',
+                newCards: []
+              })
+            }
+            fileNewGroupsMap.get(key)!.newCards.push(player)
           }
         }
       }
+
+      // Convert groupings to final preview arrays
+      const newDuplicates: any[] = []
+      for (const [key, group] of fileNewGroupsMap.entries()) {
+        if (group.newCards.length > 1) {
+          newDuplicates.push(group)
+        } else {
+          newPlayers.push(group.newCards[0])
+        }
+      }
+
+      // Add single new stats players to newPlayers
+      singleNewStatsPlayers.forEach(p => newPlayers.push(p))
+
+      const nameDuplicates = Array.from(dbNameMatchesGroupMap.values())
 
       const previewData: PreviewResponse = {
         mode,
@@ -513,13 +541,15 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         unchangedPlayers,
         duplicates,
         nameDuplicates,
+        newDuplicates,
         stats: {
           total: parseResult.players.length,
           new: newPlayers.length,
           changed: changedPlayers.length,
           unchanged: unchangedPlayers.length,
           duplicates: duplicates.length,
-          nameDuplicates: nameDuplicates.length
+          nameDuplicates: nameDuplicates.length,
+          newDuplicates: newDuplicates.length
         }
       }
 

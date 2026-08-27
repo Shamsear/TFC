@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { PreviewResponse, NameDuplicateInfo } from '@/app/api/import/preview/route'
+import { PreviewResponse } from '@/app/api/import/preview/route'
 import PlayerCard from './PlayerCard'
 import ChangeComparisonCard from './ChangeComparisonCard'
 import DuplicateResolver from './DuplicateResolver'
-import NameDuplicateCard from './NameDuplicateCard'
+import NameDuplicateGroupCard from './NameDuplicateGroupCard'
+import NewDuplicateGroupCard from './NewDuplicateGroupCard'
 import { normalizeForSearch } from '@/lib/search-utils'
 import SearchableSelect from '@/components/ui/SearchableSelect'
 
@@ -22,7 +23,7 @@ interface PlayerPreviewListProps {
   onBack: () => void
 }
 
-type Tab = 'new' | 'changed' | 'unchanged' | 'duplicates' | 'name-duplicates' | 'all'
+type Tab = 'new' | 'changed' | 'unchanged' | 'duplicates' | 'name-duplicates' | 'new-duplicates' | 'all'
 type DuplicateSubTab = 'all' | 'same-player-same-pos' | 'same-player-diff-pos' | 'different-players' | 'multi-instance' | 'db-duplicates'
 
 export default function PlayerPreviewList({
@@ -197,13 +198,14 @@ export default function PlayerPreviewList({
     
     return {
       total: preview.stats.total,
-      totalUnique: totalUniquePlayers + (preview.nameDuplicates?.length || 0),
+      totalUnique: totalUniquePlayers + (preview.nameDuplicates?.length || 0) + (preview.newDuplicates?.length || 0),
       new: actualNewPlayers.length,
       changed: preview.stats.changed,
       unchanged: preview.stats.unchanged,
       duplicates: totalDuplicates,
       duplicateInstances: totalDuplicateInstances,
-      nameDuplicates: preview.nameDuplicates?.length || 0
+      nameDuplicates: preview.nameDuplicates?.length || 0,
+      newDuplicates: preview.newDuplicates?.length || 0
     }
   }
   
@@ -332,7 +334,9 @@ export default function PlayerPreviewList({
         case 'unchanged':
           return preview.unchangedPlayers
         case 'name-duplicates':
-          return (preview.nameDuplicates || []).map(d => d.player)
+          return (preview.nameDuplicates || []).map(g => g.newCards[0]).filter(Boolean)
+        case 'new-duplicates':
+          return (preview.newDuplicates || []).map(g => g.newCards[0]).filter(Boolean)
         case 'duplicates':
           // Filter duplicates based on sub-tab
           let duplicatesToShow = preview.duplicates
@@ -382,7 +386,25 @@ export default function PlayerPreviewList({
     return preview.duplicates.find(d => d.playerId === playerId)
   }
 
-  const isPageAllSelected = paginatedPlayers.length > 0 && paginatedPlayers.every(p => selectedPlayers.has(p.playerId))
+  // Get all card IDs belonging to currently paginated groups
+  const getPaginatedCardIds = () => {
+    if (activeTab === 'name-duplicates' && preview.nameDuplicates) {
+      const visibleGroupReps = new Set(paginatedPlayers.map(p => p.playerId))
+      return preview.nameDuplicates
+        .filter(g => g.newCards[0] && visibleGroupReps.has(g.newCards[0].playerId))
+        .flatMap(g => g.newCards.map(c => c.playerId))
+    }
+    if (activeTab === 'new-duplicates' && preview.newDuplicates) {
+      const visibleGroupReps = new Set(paginatedPlayers.map(p => p.playerId))
+      return preview.newDuplicates
+        .filter(g => g.newCards[0] && visibleGroupReps.has(g.newCards[0].playerId))
+        .flatMap(g => g.newCards.map(c => c.playerId))
+    }
+    return paginatedPlayers.map(p => p.playerId)
+  }
+
+  const paginatedCardIds = getPaginatedCardIds()
+  const isPageAllSelected = paginatedCardIds.length > 0 && paginatedCardIds.every(id => selectedPlayers.has(id))
 
   return (
     <div className="space-y-6">
@@ -399,7 +421,7 @@ export default function PlayerPreviewList({
             <button
               onClick={() => {
                 if (onTogglePage) {
-                  onTogglePage(paginatedPlayers.map(p => p.playerId), !isPageAllSelected)
+                  onTogglePage(paginatedCardIds, !isPageAllSelected)
                 }
               }}
               className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-all font-bold text-sm"
@@ -605,6 +627,18 @@ export default function PlayerPreviewList({
             Name Matches ({dynamicStats.nameDuplicates})
           </button>
         )}
+        {dynamicStats.newDuplicates > 0 && (
+          <button
+            onClick={() => { setActiveTab('new-duplicates'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-all ${
+              activeTab === 'new-duplicates'
+                ? 'bg-cyan-600 text-white'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+          >
+            New Duplicates ({dynamicStats.newDuplicates})
+          </button>
+        )}
       </div>
 
       {/* Duplicate Sub-Tabs */}
@@ -727,14 +761,28 @@ export default function PlayerPreviewList({
             const duplicateInfo = getDuplicateInfo(player.playerId)
 
             if (activeTab === 'name-duplicates') {
-              const nameDupInfo = (preview.nameDuplicates || []).find(d => d.player.playerId === player.playerId)
-              if (nameDupInfo) {
+              const nameDupGroup = (preview.nameDuplicates || []).find(g => g.newCards[0]?.playerId === player.playerId)
+              if (nameDupGroup) {
                 return (
-                  <NameDuplicateCard
+                  <NameDuplicateGroupCard
                     key={player.playerId}
-                    duplicate={nameDupInfo}
-                    isSelected={selectedPlayers.has(player.playerId)}
-                    onToggle={() => onTogglePlayer(player.playerId)}
+                    group={nameDupGroup}
+                    selectedPlayers={selectedPlayers}
+                    onTogglePlayer={onTogglePlayer}
+                  />
+                )
+              }
+            }
+
+            if (activeTab === 'new-duplicates') {
+              const newDupGroup = (preview.newDuplicates || []).find(g => g.newCards[0]?.playerId === player.playerId)
+              if (newDupGroup) {
+                return (
+                  <NewDuplicateGroupCard
+                    key={player.playerId}
+                    group={newDupGroup}
+                    selectedPlayers={selectedPlayers}
+                    onTogglePlayer={onTogglePlayer}
                   />
                 )
               }

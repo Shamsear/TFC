@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     }
 
-    const { players: dbPlayers, seasonId, mode } = body as {
-      players: EFootballPlayer[];
+    const { playerIds, seasonId, mode } = body as {
+      playerIds: string[];
       seasonId: string;
       mode: 'import' | 'update';
     };
 
-    if (!dbPlayers || !seasonId || !mode) {
+    if (!playerIds || !seasonId || !mode) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -62,105 +62,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Season not found' }, { status: 404 });
     }
 
-    // Get existing players
+    // Get existing players from the database in a single query
     const existingPlayers = await prisma.base_players.findMany({
+      where: {
+        player_id: { in: playerIds }
+      },
       select: {
         id: true,
-        name: true,
         player_id: true,
-        normalized_name: true,
-        photoUrl: true,
-        seasonalPlayerStats: {
-          where: { seasonId },
-          take: 1,
-          select: {
-            seasonId: true,
-            position: true,
-            overallRating: true,
-            realWorldClub: true
-          }
-        }
+        name: true
       }
     });
 
-    // Create lookup maps
-    const existingByName = new Map(
-      existingPlayers.map(p => [p.name.toLowerCase(), p])
-    );
-
-    const duplicates: DuplicateInfo[] = [];
-    const newPlayers: EFootballPlayer[] = [];
-    const changedPlayers: PlayerChange[] = [];
-    const unchangedPlayers: EFootballPlayer[] = [];
-
-    // First, detect duplicates WITHIN the uploaded file
-    // NOTE: We no longer treat file-vs-file as duplicates - user can select all
-    // Only flag file-vs-db duplicates (players already in database with same player_id)
-    const filePlayersByNamePos = new Map<string, EFootballPlayer[]>();
-    for (const player of dbPlayers) {
-      const key = `${player.playerName.toLowerCase()}|${player.position}`;
-      if (!filePlayersByNamePos.has(key)) {
-        filePlayersByNamePos.set(key, []);
-      }
-      filePlayersByNamePos.get(key)!.push(player);
-    }
-
-    // No longer mark file-vs-file as duplicates - all can be selected
-    const duplicatePlayerIds = new Set<string>();
-    const processedFileDuplicates = new Set<string>();
-
-    // Analyze each player from database
-    for (const dbPlayer of dbPlayers) {
-      // Check if player already exists in database by player_id
-      const existingByPlayerId = await prisma.base_players.findUnique({
-        where: { player_id: dbPlayer.playerId }
-      });
-
-      if (existingByPlayerId) {
-        // Player with this player_id already exists in database - flag as duplicate
-        duplicatePlayerIds.add(dbPlayer.playerId);
-        duplicates.push({
-          playerId: dbPlayer.playerId,
-          playerName: dbPlayer.playerName,
-          position: dbPlayer.position,
-          existingCount: 1,
-          existingPlayers: [{
-            id: existingByPlayerId.id,
-            name: existingByPlayerId.name,
-            team: 'Existing',
-            rating: 0,
-            position: dbPlayer.position
-          }],
-          reason: `Player already exists in database (player_id: ${dbPlayer.playerId})`,
-          duplicateType: 'file-vs-db'
-        });
-        continue; // Skip this player from new/changed/unchanged lists
-      }
-
-      // Player doesn't exist in database - add to new players
-      newPlayers.push(dbPlayer);
-    }
-
-    const totalRawPlayers = dbPlayers.length;
-
-    const response: PreviewResponse = {
-      mode,
-      seasonId,
-      players: dbPlayers,
-      newPlayers,
-      changedPlayers,
-      unchangedPlayers,
-      duplicates,
-      stats: {
-        total: totalRawPlayers,
-        new: newPlayers.length,
-        changed: changedPlayers.length,
-        unchanged: unchangedPlayers.length,
-        duplicates: duplicates.length
-      }
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json({
+      existingPlayers
+    });
 
   } catch (error) {
     console.error('Preview error:', error);

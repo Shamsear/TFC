@@ -252,36 +252,20 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
 
       console.log(`Parsed ${parseResult.players.length} players from database`)
 
-      // Compress the data before sending
-      const jsonString = JSON.stringify({
-        players: parseResult.players,
-        seasonId,
-        mode
-      })
-      
-      console.log(`JSON size: ${(jsonString.length / 1024 / 1024).toFixed(2)} MB`)
-      
-      // Use gzip compression
-      const encoder = new TextEncoder()
-      const encodedData = encoder.encode(jsonString)
-      
-      // Create a compressed stream
-      const compressionStream = new CompressionStream('gzip')
-      const writer = compressionStream.writable.getWriter()
-      writer.write(encodedData)
-      writer.close()
-      
-      const compressedData = await new Response(compressionStream.readable).blob()
-      console.log(`Compressed size: ${(compressedData.size / 1024 / 1024).toFixed(2)} MB`)
+      // Extract only player IDs to check against database
+      const playerIds = parseResult.players.map(p => p.playerId)
 
-      // Send compressed data to server
+      // Send IDs to server
       const response = await fetch('/api/import/preview-parsed', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Content-Encoding': 'gzip',
         },
-        body: compressedData
+        body: JSON.stringify({
+          playerIds,
+          seasonId,
+          mode
+        })
       })
 
       // Check content type before parsing
@@ -297,7 +281,55 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         throw new Error(errorData.error || 'Failed to preview')
       }
 
-      const previewData: PreviewResponse = await response.json()
+      const { existingPlayers } = await response.json() as {
+        existingPlayers: Array<{ id: string; player_id: string; name: string }>
+      }
+
+      // Reconstruct preview data client-side to avoid large payloads
+      const existingMap = new Map(existingPlayers.map(p => [p.player_id, p]))
+      const duplicates: any[] = []
+      const newPlayers: any[] = []
+
+      for (const player of parseResult.players) {
+        const existing = existingMap.get(player.playerId)
+        if (existing) {
+          duplicates.push({
+            playerId: player.playerId,
+            playerName: player.playerName,
+            position: player.position,
+            existingCount: 1,
+            existingPlayers: [{
+              id: existing.id,
+              name: existing.name,
+              team: 'Existing',
+              rating: 0,
+              position: player.position
+            }],
+            reason: `Player already exists in database (player_id: ${player.playerId})`,
+            duplicateType: 'file-vs-db'
+          })
+        } else {
+          newPlayers.push(player)
+        }
+      }
+
+      const previewData: PreviewResponse = {
+        mode,
+        seasonId,
+        players: parseResult.players,
+        newPlayers,
+        changedPlayers: [],
+        unchangedPlayers: [],
+        duplicates,
+        stats: {
+          total: parseResult.players.length,
+          new: newPlayers.length,
+          changed: 0,
+          unchanged: 0,
+          duplicates: duplicates.length
+        }
+      }
+
       setPreview(previewData)
       
       // Auto-select all new and changed players
@@ -383,99 +415,137 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         updatedPlayers: []
       })
 
-      // Use EventSource for real-time updates
-      const response = await fetch('/api/import/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          seasonId,
-          mode,
-          selectedPlayers: selected,
-          duplicateResolutions
+      const BATCH_SIZE = 150
+      let totalImported = 0
+      let totalUpdated = 0
+      let totalSkipped = 0
+      const allErrors: any[] = []
+      const allImportedPlayers: string[] = []
+      const allUpdatedPlayers: string[] = []
+
+      for (let batchStart = 0; batchStart < selected.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, selected.length)
+        const batch = selected.slice(batchStart, batchEnd)
+        
+        console.log(`Importing batch ${Math.floor(batchStart / BATCH_SIZE) + 1}/${Math.ceil(selected.length / BATCH_SIZE)} (${batch.length} players)`)
+
+        // Use EventSource for real-time updates
+        const response = await fetch('/api/import/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seasonId,
+            mode,
+            selectedPlayers: batch,
+            duplicateResolutions
+          })
         })
-      })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Import stream failed:', errorText)
-        throw new Error(`Failed to start import: ${response.status} ${errorText}`)
-      }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-
-      if (!reader) {
-        throw new Error('No response body')
-      }
-
-      let buffer = ''
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) {
-          console.log('Stream completed')
-          break
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Import stream failed:', errorText)
+          throw new Error(`Failed to start import: ${response.status} ${errorText}`)
         }
 
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+
+        if (!reader) {
+          throw new Error('No response body')
+        }
+
+        let buffer = ''
         
-        // Keep the last incomplete line in the buffer
-        buffer = lines.pop() || ''
+        let batchImported = 0
+        let batchUpdated = 0
+        let batchSkipped = 0
+        let batchErrors: any[] = []
+        let batchImportedPlayers: string[] = []
+        let batchUpdatedPlayers: string[] = []
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6))
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) {
+            console.log('Batch stream completed')
+            break
+          }
 
-              if (data.type === 'progress') {
-                setProgress({
-                  total: data.total,
-                  processed: data.processed,
-                  imported: data.imported,
-                  updated: data.updated,
-                  skipped: data.skipped,
-                  errors: data.errors,
-                  currentPlayer: data.currentPlayer,
-                  importedPlayers: data.importedPlayers || [],
-                  updatedPlayers: data.updatedPlayers || []
-                })
-              } else if (data.type === 'current') {
-                setProgress(prev => ({
-                  ...prev,
-                  currentPlayer: data.currentPlayer
-                }))
-              } else if (data.type === 'complete') {
-                console.log('Import complete:', data)
-                setResult({
-                  success: true,
-                  imported: data.imported,
-                  updated: data.updated,
-                  skipped: data.skipped,
-                  total: data.total,
-                  errors: data.errors
-                })
-                setProgress({
-                  total: data.total,
-                  processed: data.total,
-                  imported: data.imported,
-                  updated: data.updated,
-                  skipped: data.skipped,
-                  errors: data.errors,
-                  importedPlayers: data.importedPlayers || [],
-                  updatedPlayers: data.updatedPlayers || []
-                })
-                setStep('complete')
-              } else if (data.type === 'error') {
-                console.error('Stream error:', data.error)
-                throw new Error(data.error)
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          
+          // Keep the last incomplete line in the buffer
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+
+                if (data.type === 'progress') {
+                  setProgress({
+                    total: selected.length,
+                    processed: batchStart + data.processed,
+                    imported: totalImported + data.imported,
+                    updated: totalUpdated + data.updated,
+                    skipped: totalSkipped + data.skipped,
+                    errors: [...allErrors, ...data.errors],
+                    currentPlayer: data.currentPlayer,
+                    importedPlayers: [...allImportedPlayers, ...(data.importedPlayers || [])].slice(-50),
+                    updatedPlayers: [...allUpdatedPlayers, ...(data.updatedPlayers || [])].slice(-50)
+                  })
+                } else if (data.type === 'current') {
+                  setProgress(prev => ({
+                    ...prev,
+                    currentPlayer: data.currentPlayer
+                  }))
+                } else if (data.type === 'complete') {
+                  console.log('Batch complete:', data)
+                  batchImported = data.imported
+                  batchUpdated = data.updated
+                  batchSkipped = data.skipped
+                  batchErrors = data.errors
+                  batchImportedPlayers = data.importedPlayers || []
+                  batchUpdatedPlayers = data.updatedPlayers || []
+                } else if (data.type === 'error') {
+                  console.error('Stream error:', data.error)
+                  throw new Error(data.error)
+                }
+              } catch (parseError) {
+                console.error('Failed to parse SSE data:', line, parseError)
               }
-            } catch (parseError) {
-              console.error('Failed to parse SSE data:', line, parseError)
             }
           }
         }
+
+        // Accumulate batch results
+        totalImported += batchImported
+        totalUpdated += batchUpdated
+        totalSkipped += batchSkipped
+        allErrors.push(...batchErrors)
+        allImportedPlayers.push(...batchImportedPlayers)
+        allUpdatedPlayers.push(...batchUpdatedPlayers)
       }
+
+      // All batches complete
+      setResult({
+        success: true,
+        imported: totalImported,
+        updated: totalUpdated,
+        skipped: totalSkipped,
+        total: selected.length,
+        errors: allErrors
+      })
+      setProgress({
+        total: selected.length,
+        processed: selected.length,
+        imported: totalImported,
+        updated: totalUpdated,
+        skipped: totalSkipped,
+        errors: allErrors,
+        importedPlayers: allImportedPlayers,
+        updatedPlayers: allUpdatedPlayers
+      })
+      setStep('complete')
     } catch (err) {
       console.error('Import error:', err)
       setError(err instanceof Error ? err.message : 'Failed to import players')

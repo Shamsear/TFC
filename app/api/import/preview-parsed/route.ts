@@ -70,7 +70,16 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         player_id: true,
-        name: true
+        name: true,
+        seasonalPlayerStats: {
+          where: { seasonId },
+          take: 1,
+          select: {
+            position: true,
+            overallRating: true,
+            realWorldClub: true
+          }
+        }
       }
     });
 

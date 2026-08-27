@@ -282,17 +282,57 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
       }
 
       const { existingPlayers } = await response.json() as {
-        existingPlayers: Array<{ id: string; player_id: string; name: string }>
+        existingPlayers: Array<{
+          id: string
+          player_id: string
+          name: string
+          seasonalPlayerStats: Array<{
+            position: string
+            overallRating: number
+            realWorldClub: string
+          }>
+        }>
       }
 
       // Reconstruct preview data client-side to avoid large payloads
       const existingMap = new Map(existingPlayers.map(p => [p.player_id, p]))
       const duplicates: any[] = []
       const newPlayers: any[] = []
+      const changedPlayers: any[] = []
+      const unchangedPlayers: any[] = []
 
       for (const player of parseResult.players) {
         const existing = existingMap.get(player.playerId)
         if (existing) {
+          const existingStats = existing.seasonalPlayerStats[0]
+          
+          if (existingStats) {
+            // Compare stats to see if changed
+            const changedFields: string[] = []
+            if (existingStats.position !== player.position) changedFields.push('position')
+            if (existingStats.overallRating !== player.overallRating) changedFields.push('overallRating')
+            if (existingStats.realWorldClub !== player.teamName) changedFields.push('realWorldClub')
+            
+            if (changedFields.length > 0) {
+              changedPlayers.push({
+                playerId: player.playerId,
+                playerName: player.playerName,
+                oldStats: {
+                  position: existingStats.position,
+                  overallRating: existingStats.overallRating,
+                  realWorldClub: existingStats.realWorldClub
+                },
+                newStats: player,
+                changedFields
+              })
+            } else {
+              unchangedPlayers.push(player)
+            }
+          } else {
+            // Player exists in database but has no stats for this season
+            newPlayers.push(player)
+          }
+
           duplicates.push({
             playerId: player.playerId,
             playerName: player.playerName,
@@ -301,9 +341,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             existingPlayers: [{
               id: existing.id,
               name: existing.name,
-              team: 'Existing',
-              rating: 0,
-              position: player.position
+              team: existingStats?.realWorldClub || 'Existing',
+              rating: existingStats?.overallRating || 0,
+              position: existingStats?.position || player.position
             }],
             reason: `Player already exists in database (player_id: ${player.playerId})`,
             duplicateType: 'file-vs-db'
@@ -318,24 +358,26 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         seasonId,
         players: parseResult.players,
         newPlayers,
-        changedPlayers: [],
-        unchangedPlayers: [],
+        changedPlayers,
+        unchangedPlayers,
         duplicates,
         stats: {
           total: parseResult.players.length,
           new: newPlayers.length,
-          changed: 0,
-          unchanged: 0,
+          changed: changedPlayers.length,
+          unchanged: unchangedPlayers.length,
           duplicates: duplicates.length
         }
       }
 
       setPreview(previewData)
       
-      // Auto-select all new and changed players
+      // Auto-select all new and changed players (only if mode is NOT 'update')
       const autoSelected = new Set<string>()
-      previewData.newPlayers.forEach(p => autoSelected.add(p.playerId))
-      previewData.changedPlayers.forEach(p => autoSelected.add(p.playerId))
+      if (mode !== 'update') {
+        previewData.newPlayers.forEach(p => autoSelected.add(p.playerId))
+        previewData.changedPlayers.forEach(p => autoSelected.add(p.playerId))
+      }
       setSelectedPlayers(autoSelected)
       
       // Initialize duplicate resolutions

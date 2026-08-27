@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic'
 export default async function PlayersPage() {
   // Fetch all-time stats (across all seasons)
   const [soldCount, totalCount, allPositions, allTeams] = await Promise.all([
-    prisma.transfer_history.count({ where: { status: 'ACTIVE' } }),
-    prisma.seasonal_player_stats.count(),
+    prisma.base_players.count({ where: { transferHistory: { some: { status: 'ACTIVE' } } } }),
+    prisma.base_players.count(),
     prisma.seasonal_player_stats.findMany({
       select: { position: true },
       distinct: ['position']

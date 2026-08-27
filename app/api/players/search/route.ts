@@ -105,6 +105,17 @@ export async function GET(request: NextRequest) {
     // Build the stats-level where (position filter goes directly here)
     const statsWhere: any = { ...(seasonId ? { seasonId } : {}) }
 
+    if (!seasonId) {
+      const latestStatsRows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT DISTINCT ON (s."basePlayerId") s.id
+        FROM "seasonal_player_stats" s
+        JOIN "seasons" se ON s."seasonId" = se.id
+        ORDER BY s."basePlayerId", se.season_number DESC
+      `;
+      const latestStatsIds = latestStatsRows.map(r => r.id);
+      statsWhere.id = { in: latestStatsIds };
+    }
+
     if (q) {
       statsWhere.OR = [
         { realWorldClub: { contains: q, mode: 'insensitive' as const } },
@@ -214,6 +225,18 @@ export async function GET(request: NextRequest) {
     const transferWhere: any = { 
       ...(seasonId ? { seasonId } : {}),
       status: 'ACTIVE'  // Only show active transfers
+    }
+
+    if (!seasonId) {
+      const latestTransferRows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT DISTINCT ON (t."basePlayerId") t.id
+        FROM "transfer_history" t
+        JOIN "seasons" se ON t."seasonId" = se.id
+        WHERE t.status = 'ACTIVE'
+        ORDER BY t."basePlayerId", se.season_number DESC
+      `;
+      const latestTransferIds = latestTransferRows.map(r => r.id);
+      transferWhere.id = { in: latestTransferIds };
     }
     if (q) {
       transferWhere.OR = [

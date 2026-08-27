@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { PreviewResponse } from '@/app/api/import/preview/route'
+import { PreviewResponse, NameDuplicateInfo } from '@/app/api/import/preview/route'
 import PlayerCard from './PlayerCard'
 import ChangeComparisonCard from './ChangeComparisonCard'
 import DuplicateResolver from './DuplicateResolver'
+import NameDuplicateCard from './NameDuplicateCard'
 import { normalizeForSearch } from '@/lib/search-utils'
 import SearchableSelect from '@/components/ui/SearchableSelect'
 
@@ -21,7 +22,7 @@ interface PlayerPreviewListProps {
   onBack: () => void
 }
 
-type Tab = 'new' | 'changed' | 'unchanged' | 'duplicates' | 'all'
+type Tab = 'new' | 'changed' | 'unchanged' | 'duplicates' | 'name-duplicates' | 'all'
 type DuplicateSubTab = 'all' | 'same-player-same-pos' | 'same-player-diff-pos' | 'different-players' | 'multi-instance' | 'db-duplicates'
 
 export default function PlayerPreviewList({
@@ -195,13 +196,14 @@ export default function PlayerPreviewList({
                               preview.unchangedPlayers.length + totalDuplicates
     
     return {
-      total: preview.stats.total, // Raw count from file (all instances)
-      totalUnique: totalUniquePlayers, // Unique players (excluding duplicate instances)
+      total: preview.stats.total,
+      totalUnique: totalUniquePlayers + (preview.nameDuplicates?.length || 0),
       new: actualNewPlayers.length,
       changed: preview.stats.changed,
       unchanged: preview.stats.unchanged,
-      duplicates: totalDuplicates, // Number of duplicate groups
-      duplicateInstances: totalDuplicateInstances // Total duplicate instances
+      duplicates: totalDuplicates,
+      duplicateInstances: totalDuplicateInstances,
+      nameDuplicates: preview.nameDuplicates?.length || 0
     }
   }
   
@@ -329,6 +331,8 @@ export default function PlayerPreviewList({
           return preview.changedPlayers.map(c => c.newStats)
         case 'unchanged':
           return preview.unchangedPlayers
+        case 'name-duplicates':
+          return (preview.nameDuplicates || []).map(d => d.player)
         case 'duplicates':
           // Filter duplicates based on sub-tab
           let duplicatesToShow = preview.duplicates
@@ -589,6 +593,18 @@ export default function PlayerPreviewList({
             Duplicates ({dynamicStats.duplicates})
           </button>
         )}
+        {dynamicStats.nameDuplicates > 0 && (
+          <button
+            onClick={() => { setActiveTab('name-duplicates'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-all ${
+              activeTab === 'name-duplicates'
+                ? 'bg-amber-500 text-white'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+          >
+            Name Matches ({dynamicStats.nameDuplicates})
+          </button>
+        )}
       </div>
 
       {/* Duplicate Sub-Tabs */}
@@ -709,6 +725,20 @@ export default function PlayerPreviewList({
           paginatedPlayers.map((player) => {
             const changeInfo = getChangeInfo(player.playerId)
             const duplicateInfo = getDuplicateInfo(player.playerId)
+
+            if (activeTab === 'name-duplicates') {
+              const nameDupInfo = (preview.nameDuplicates || []).find(d => d.player.playerId === player.playerId)
+              if (nameDupInfo) {
+                return (
+                  <NameDuplicateCard
+                    key={player.playerId}
+                    duplicate={nameDupInfo}
+                    isSelected={selectedPlayers.has(player.playerId)}
+                    onToggle={() => onTogglePlayer(player.playerId)}
+                  />
+                )
+              }
+            }
 
             if (activeTab === 'changed' && changeInfo) {
               return (

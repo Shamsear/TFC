@@ -277,10 +277,11 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
 
       console.log(`Parsed ${parseResult.players.length} players from database`)
 
-      // Extract only player IDs to check against database
+      // Extract player IDs and names to check against database
       const playerIds = parseResult.players.map(p => p.playerId)
+      const playerNames = parseResult.players.map(p => p.playerName)
 
-      // Send IDs to server
+      // Send IDs and names to server
       const response = await fetch('/api/import/preview-parsed', {
         method: 'POST',
         headers: {
@@ -288,6 +289,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         },
         body: JSON.stringify({
           playerIds,
+          playerNames,
           seasonId,
           mode
         })
@@ -306,7 +308,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         throw new Error(errorData.error || 'Failed to preview')
       }
 
-      const { existingPlayers } = await response.json() as {
+      const { existingPlayers, nameMatches = [] } = await response.json() as {
         existingPlayers: Array<{
           id: string
           player_id: string
@@ -358,14 +360,35 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             gk_reach?: number | null
           }>
         }>
+        nameMatches?: Array<{
+          id: string
+          player_id: string | null
+          name: string
+          seasonalPlayerStats: Array<{
+            position: string
+            realWorldClub: string
+            overallRating: number
+            nationality?: string | null
+          }>
+        }>
       }
 
       // Reconstruct preview data client-side to avoid large payloads
       const existingMap = new Map(existingPlayers.map(p => [p.player_id, p]))
+      const nameMatchesMap = new Map<string, any[]>()
+      nameMatches.forEach(p => {
+        const key = p.name.toLowerCase().trim()
+        if (!nameMatchesMap.has(key)) {
+          nameMatchesMap.set(key, [])
+        }
+        nameMatchesMap.get(key)!.push(p)
+      })
+
       const duplicates: any[] = []
       const newPlayers: any[] = []
       const changedPlayers: any[] = []
       const unchangedPlayers: any[] = []
+      const nameDuplicates: any[] = []
 
       for (const player of parseResult.players) {
         const existing = existingMap.get(player.playerId)
@@ -450,23 +473,34 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             newPlayers.push(player)
           }
 
-          duplicates.push({
-            playerId: player.playerId,
-            playerName: player.playerName,
-            position: player.position,
-            existingCount: 1,
-            existingPlayers: [{
-              id: existing.id,
-              name: existing.name,
-              team: existingStats?.realWorldClub || 'Existing',
-              rating: existingStats?.overallRating || 0,
-              position: existingStats?.position || player.position
-            }],
-            reason: `Player already exists in database (player_id: ${player.playerId})`,
-            duplicateType: 'file-vs-db'
-          })
+          
         } else {
-          newPlayers.push(player)
+          // Check for database players with same name and nationality but different player ID
+          const matches = nameMatchesMap.get(player.playerName.toLowerCase().trim()) || []
+          const sameNameNation = matches.find(m => {
+            const dbStats = m.seasonalPlayerStats[0]
+            return dbStats && dbStats.nationality?.toLowerCase().trim() === player.nationality?.toLowerCase().trim()
+          })
+
+          if (sameNameNation) {
+            // Flag as a Name-Nation match!
+            const dbStats = sameNameNation.seasonalPlayerStats[0]
+            nameDuplicates.push({
+              player,
+              existingPlayer: {
+                id: sameNameNation.id,
+                playerId: sameNameNation.player_id,
+                name: sameNameNation.name,
+                team: dbStats?.realWorldClub || 'Unknown',
+                rating: dbStats?.overallRating || 0,
+                position: dbStats?.position || 'N/A',
+                nationality: dbStats?.nationality || 'N/A'
+              }
+            })
+          } else {
+            // Regular new player
+            newPlayers.push(player)
+          }
         }
       }
 
@@ -478,12 +512,14 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         changedPlayers,
         unchangedPlayers,
         duplicates,
+        nameDuplicates,
         stats: {
           total: parseResult.players.length,
           new: newPlayers.length,
           changed: changedPlayers.length,
           unchanged: unchangedPlayers.length,
-          duplicates: duplicates.length
+          duplicates: duplicates.length,
+          nameDuplicates: nameDuplicates.length
         }
       }
 

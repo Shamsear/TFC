@@ -40,8 +40,9 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     }
 
-    const { playerIds, seasonId, mode } = body as {
+    const { playerIds, playerNames = [], seasonId, mode } = body as {
       playerIds: string[];
+      playerNames?: string[];
       seasonId: string;
       mode: 'import' | 'update';
     };
@@ -124,8 +125,33 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Also fetch name matches (for same name and nationality duplicate detection)
+    const nameMatches = playerNames.length > 0
+      ? await prisma.base_players.findMany({
+          where: {
+            name: { in: playerNames }
+          },
+          select: {
+            id: true,
+            player_id: true,
+            name: true,
+            seasonalPlayerStats: {
+              where: { seasonId },
+              take: 1,
+              select: {
+                position: true,
+                realWorldClub: true,
+                overallRating: true,
+                nationality: true
+              }
+            }
+          }
+        })
+      : [];
+
     return NextResponse.json({
-      existingPlayers
+      existingPlayers,
+      nameMatches
     });
 
   } catch (error) {

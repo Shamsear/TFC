@@ -91,7 +91,6 @@ export async function POST(request: NextRequest) {
             basePlayerId: { in: chunk },
             seasonId
           },
-          take: 1,
           select: {
             basePlayerId: true,
             position: true,
@@ -177,7 +176,6 @@ export async function POST(request: NextRequest) {
               basePlayerId: { in: chunk },
               seasonId
             },
-            take: 1,
             select: {
               basePlayerId: true,
               position: true,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { EFootballPlayer } from '@/lib/sqlite-parser'
 import { PreviewResponse } from '@/app/api/import/preview/route'
@@ -53,9 +53,18 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('upload')
   const [mode, setMode] = useState<'import' | 'update' | 'bulk'>('import')
-  const [ignoredFields, setIgnoredFields] = useState<string[]>([])
+  const [tabIgnoredFields, setTabIgnoredFields] = useState<Record<string, string[]>>({
+    new: [],
+    changed: [],
+    unchanged: [],
+    duplicates: [],
+    'name-duplicates': [],
+    'new-duplicates': [],
+    all: []
+  })
+  const [rawDbData, setRawDbData] = useState<{ existingPlayers: any[], nameMatches: any[] } | null>(null)
+  const [parsedPlayers, setParsedPlayers] = useState<any[] | null>(null)
   const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<PreviewResponse | null>(null)
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set())
   const [duplicateResolutions, setDuplicateResolutions] = useState<Record<string, 'skip' | 'replace' | 'add' | string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -252,6 +261,257 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     }
   }
 
+  // Memoized preview calculation
+  const preview = useMemo(() => {
+    if (!rawDbData || !parsedPlayers) return null
+
+    const { existingPlayers, nameMatches } = rawDbData
+
+    const existingMap = new Map(existingPlayers.map(p => [p.player_id, p]))
+    const nameMatchesMap = new Map<string, any[]>()
+    nameMatches.forEach(p => {
+      const key = p.name.toLowerCase().trim()
+      if (!nameMatchesMap.has(key)) {
+        nameMatchesMap.set(key, [])
+      }
+      nameMatchesMap.get(key)!.push(p)
+    })
+
+    const duplicates: any[] = []
+    const newPlayers: any[] = []
+    const changedPlayers: any[] = []
+    const unchangedPlayers: any[] = []
+
+    // Identify file-vs-file duplicates (based on player_id)
+    const fileDuplicateGroups = new Map<string, any[]>()
+    const seenPlayerIds = new Set<string>()
+    const fileDuplicateIds = new Set<string>()
+    for (const player of parsedPlayers) {
+      if (!fileDuplicateGroups.has(player.playerId)) {
+        fileDuplicateGroups.set(player.playerId, [])
+      }
+      fileDuplicateGroups.get(player.playerId)!.push(player)
+      
+      if (seenPlayerIds.has(player.playerId)) {
+        fileDuplicateIds.add(player.playerId)
+      }
+      seenPlayerIds.add(player.playerId)
+    }
+
+    const processedDuplicates = new Set<string>()
+
+    // Temporary lists/maps for groupings
+    const singleNewStatsPlayers: any[] = []
+    const dbNameMatchesGroupMap = new Map<string, { existingPlayer: any, newCards: any[] }>()
+    const fileNewGroupsMap = new Map<string, { name: string, nationality: string, newCards: any[] }>()
+
+    for (const player of parsedPlayers) {
+      // Process file-vs-file duplicates
+      if (fileDuplicateIds.has(player.playerId)) {
+        if (!processedDuplicates.has(player.playerId)) {
+          processedDuplicates.add(player.playerId)
+          const instances = fileDuplicateGroups.get(player.playerId) || []
+          duplicates.push({
+            playerId: player.playerId,
+            playerName: player.playerName,
+            position: player.position,
+            existingCount: instances.length - 1,
+            existingPlayers: [],
+            reason: `Found ${instances.length} entries for this player in the uploaded file (same player_id)`,
+            duplicateType: 'file-vs-file',
+            allFileInstances: instances
+          })
+        }
+        continue
+      }
+
+      const existing = existingMap.get(player.playerId)
+      if (existing) {
+        const existingStats = existing.seasonalPlayerStats[0]
+        
+        if (existingStats) {
+          const oldStats = {
+            position: existingStats.position,
+            overallRating: existingStats.overallRating,
+            playingStyle: existingStats.playing_style || '',
+            teamName: existingStats.realWorldClub,
+            nationality: existingStats.nationality || '',
+            height: existingStats.height || 0,
+            weight: existingStats.weight || 0,
+            age: existingStats.age || 0,
+            foot: existingStats.foot || '',
+            featured: existingStats.featured || '',
+            weakFootUsage: existingStats.weak_foot_usage || '',
+            weakFootAccuracy: existingStats.weak_foot_accuracy || '',
+            form: existingStats.form || '',
+            injuryResistance: existingStats.injury_resistance || '',
+            condition: existingStats.condition || '',
+            maxLevel: existingStats.max_level || 0,
+            overallAtMaxLevel: existingStats.overall_at_max_level || 0,
+            offensiveAwareness: existingStats.offensive_awareness || 0,
+            ballControl: existingStats.ball_control || 0,
+            dribbling: existingStats.dribbling || 0,
+            tightPossession: existingStats.tight_possession || 0,
+            lowPass: existingStats.low_pass || 0,
+            loftedPass: existingStats.lofted_pass || 0,
+            finishing: existingStats.finishing || 0,
+            heading: existingStats.heading || 0,
+            setPieceTaking: existingStats.set_piece_taking || 0,
+            curl: existingStats.curl || 0,
+            speed: existingStats.speed || 0,
+            acceleration: existingStats.acceleration || 0,
+            kickingPower: existingStats.kicking_power || 0,
+            jumping: existingStats.jumping || 0,
+            physicalContact: existingStats.physical_contact || 0,
+            balance: existingStats.balance || 0,
+            stamina: existingStats.stamina || 0,
+            defensiveAwareness: existingStats.defensive_awareness || 0,
+            tackling: existingStats.tackling || 0,
+            aggression: existingStats.aggression || 0,
+            defensiveEngagement: existingStats.defensive_engagement || 0,
+            gkAwareness: existingStats.gk_awareness || 0,
+            gkCatching: existingStats.gk_catching || 0,
+            gkParrying: existingStats.gk_parrying || 0,
+            gkReflexes: existingStats.gk_reflexes || 0,
+            gkReach: existingStats.gk_reach || 0
+          }
+
+          // Compare stats to see if changed, using tabIgnoredFields['changed']
+          const changedFields: string[] = []
+          Object.keys(oldStats).forEach((key) => {
+            const oldVal = (oldStats as any)[key]
+            const newVal = (player as any)[key]
+            
+            // Skip if key is ignored for the 'changed' tab
+            if (isFieldIgnored(key, tabIgnoredFields['changed'] || [])) return
+
+            // Check if values are different
+            if (oldVal !== newVal && !(oldVal === 0 && newVal === null) && !(oldVal === '' && newVal === null)) {
+              changedFields.push(key)
+            }
+          })
+          
+          if (changedFields.length > 0) {
+            changedPlayers.push({
+              playerId: player.playerId,
+              playerName: player.playerName,
+              oldStats,
+              newStats: player,
+              changedFields
+            })
+          } else {
+            unchangedPlayers.push(player)
+          }
+        } else {
+          // Player exists in database but has no stats for this season
+          singleNewStatsPlayers.push(player)
+        }
+      } else {
+        // Check for database players with same name and nationality but different player ID
+        const matches = nameMatchesMap.get(player.playerName.toLowerCase().trim()) || []
+        const sameNameNation = matches.find(m => {
+          const dbStats = m.seasonalPlayerStats[0]
+          return dbStats && dbStats.nationality?.toLowerCase().trim() === player.nationality?.toLowerCase().trim()
+        })
+
+        if (sameNameNation) {
+          // Group under this existing database player
+          const dbPlayerId = sameNameNation.id
+          if (!dbNameMatchesGroupMap.has(dbPlayerId)) {
+            const dbStats = sameNameNation.seasonalPlayerStats[0]
+            dbNameMatchesGroupMap.set(dbPlayerId, {
+              existingPlayer: {
+                id: sameNameNation.id,
+                playerId: sameNameNation.player_id,
+                name: sameNameNation.name,
+                team: dbStats?.realWorldClub || 'Unknown',
+                rating: dbStats?.overallRating || 0,
+                position: dbStats?.position || 'N/A',
+                nationality: dbStats?.nationality || 'N/A',
+                featured: dbStats?.featured || 'N/A'
+              },
+              newCards: []
+            })
+          }
+          dbNameMatchesGroupMap.get(dbPlayerId)!.newCards.push(player)
+        } else {
+          // Brand-new player: group by name + nationality to check for multiple copies in the file
+          const key = `${player.playerName.toLowerCase().trim()}|${(player.nationality || '').toLowerCase().trim()}`
+          if (!fileNewGroupsMap.has(key)) {
+            fileNewGroupsMap.set(key, {
+              name: player.playerName,
+              nationality: player.nationality || '',
+              newCards: []
+            })
+          }
+          fileNewGroupsMap.get(key)!.newCards.push(player)
+        }
+      }
+    }
+
+    // Convert groupings to final preview arrays
+    const newDuplicates: any[] = []
+    for (const [key, group] of fileNewGroupsMap.entries()) {
+      if (group.newCards.length > 1) {
+        newDuplicates.push(group)
+      } else {
+        newPlayers.push(group.newCards[0])
+      }
+    }
+
+    // Add single new stats players to newPlayers
+    singleNewStatsPlayers.forEach(p => newPlayers.push(p))
+
+    const nameDuplicates = Array.from(dbNameMatchesGroupMap.values())
+
+    const previewData: PreviewResponse = {
+      mode: mode === 'bulk' ? 'import' : mode,
+      seasonId,
+      players: parsedPlayers,
+      newPlayers,
+      changedPlayers,
+      unchangedPlayers,
+      duplicates,
+      nameDuplicates,
+      newDuplicates,
+      stats: {
+        total: parsedPlayers.length,
+        new: newPlayers.length,
+        changed: changedPlayers.length,
+        unchanged: unchangedPlayers.length,
+        duplicates: duplicates.length,
+        nameDuplicates: nameDuplicates.length,
+        newDuplicates: newDuplicates.length
+      }
+    }
+
+    return previewData
+  }, [rawDbData, parsedPlayers, tabIgnoredFields, mode, seasonId])
+
+  // Initialize selection and resolutions when raw database data changes
+  useEffect(() => {
+    if (!preview) return
+
+    // Auto-select all new and changed players (only if mode is NOT 'update')
+    const autoSelected = new Set<string>()
+    if (mode !== 'update') {
+      preview.newPlayers.forEach(p => autoSelected.add(p.playerId))
+      preview.changedPlayers.forEach(p => autoSelected.add(p.playerId))
+    }
+    setSelectedPlayers(autoSelected)
+
+    // Initialize duplicate resolutions
+    const resolutions: Record<string, 'skip' | 'replace' | 'add' | string> = {}
+    preview.duplicates.forEach(d => {
+      if (d.duplicateType === 'file-vs-file' && d.allFileInstances) {
+        resolutions[d.playerId] = d.allFileInstances[0].playerId
+      } else {
+        resolutions[d.playerId] = 'skip'
+      }
+    })
+    setDuplicateResolutions(resolutions)
+  }, [rawDbData])
+
   const handlePreview = async () => {
     if (!file) return
 
@@ -309,275 +569,12 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
       }
 
       const { existingPlayers, nameMatches = [] } = await response.json() as {
-        existingPlayers: Array<{
-          id: string
-          player_id: string
-          name: string
-          seasonalPlayerStats: Array<{
-            position: string
-            realWorldClub: string
-            overallRating: number
-            star_rating?: number | null
-            nationality?: string | null
-            playing_style?: string | null
-            height?: number | null
-            weight?: number | null
-            age?: number | null
-            foot?: string | null
-            featured?: string | null
-            weak_foot_usage?: string | null
-            weak_foot_accuracy?: string | null
-            form?: string | null
-            injury_resistance?: string | null
-            condition?: string | null
-            max_level?: number | null
-            overall_at_max_level?: number | null
-            offensive_awareness?: number | null
-            ball_control?: number | null
-            dribbling?: number | null
-            tight_possession?: number | null
-            low_pass?: number | null
-            lofted_pass?: number | null
-            finishing?: number | null
-            heading?: number | null
-            set_piece_taking?: number | null
-            curl?: number | null
-            speed?: number | null
-            acceleration?: number | null
-            kicking_power?: number | null
-            jumping?: number | null
-            physical_contact?: number | null
-            balance?: number | null
-            stamina?: number | null
-            defensive_awareness?: number | null
-            tackling?: number | null
-            aggression?: number | null
-            defensive_engagement?: number | null
-            gk_awareness?: number | null
-            gk_catching?: number | null
-            gk_parrying?: number | null
-            gk_reflexes?: number | null
-            gk_reach?: number | null
-          }>
-        }>
-        nameMatches?: Array<{
-          id: string
-          player_id: string | null
-          name: string
-          seasonalPlayerStats: Array<{
-            position: string
-            realWorldClub: string
-            overallRating: number
-            nationality?: string | null
-            featured?: string | null
-          }>
-        }>
+        existingPlayers: any[]
+        nameMatches: any[]
       }
 
-      // Reconstruct preview data client-side to avoid large payloads
-      const existingMap = new Map(existingPlayers.map(p => [p.player_id, p]))
-      const nameMatchesMap = new Map<string, any[]>()
-      nameMatches.forEach(p => {
-        const key = p.name.toLowerCase().trim()
-        if (!nameMatchesMap.has(key)) {
-          nameMatchesMap.set(key, [])
-        }
-        nameMatchesMap.get(key)!.push(p)
-      })
-      const duplicates: any[] = []
-      const newPlayers: any[] = []
-      const changedPlayers: any[] = []
-      const unchangedPlayers: any[] = []
-      
-      // Temporary lists/maps for groupings
-      const singleNewStatsPlayers: any[] = []
-      const dbNameMatchesGroupMap = new Map<string, { existingPlayer: any, newCards: any[] }>()
-      const fileNewGroupsMap = new Map<string, { name: string, nationality: string, newCards: any[] }>()
-
-      for (const player of parseResult.players) {
-        const existing = existingMap.get(player.playerId)
-        if (existing) {
-          const existingStats = existing.seasonalPlayerStats[0]
-          
-          if (existingStats) {
-            const oldStats = {
-              position: existingStats.position,
-              overallRating: existingStats.overallRating,
-              playingStyle: existingStats.playing_style || '',
-              teamName: existingStats.realWorldClub,
-              nationality: existingStats.nationality || '',
-              height: existingStats.height || 0,
-              weight: existingStats.weight || 0,
-              age: existingStats.age || 0,
-              foot: existingStats.foot || '',
-              featured: existingStats.featured || '',
-              weakFootUsage: existingStats.weak_foot_usage || '',
-              weakFootAccuracy: existingStats.weak_foot_accuracy || '',
-              form: existingStats.form || '',
-              injuryResistance: existingStats.injury_resistance || '',
-              condition: existingStats.condition || '',
-              maxLevel: existingStats.max_level || 0,
-              overallAtMaxLevel: existingStats.overall_at_max_level || 0,
-              offensiveAwareness: existingStats.offensive_awareness || 0,
-              ballControl: existingStats.ball_control || 0,
-              dribbling: existingStats.dribbling || 0,
-              tightPossession: existingStats.tight_possession || 0,
-              lowPass: existingStats.low_pass || 0,
-              loftedPass: existingStats.lofted_pass || 0,
-              finishing: existingStats.finishing || 0,
-              heading: existingStats.heading || 0,
-              setPieceTaking: existingStats.set_piece_taking || 0,
-              curl: existingStats.curl || 0,
-              speed: existingStats.speed || 0,
-              acceleration: existingStats.acceleration || 0,
-              kickingPower: existingStats.kicking_power || 0,
-              jumping: existingStats.jumping || 0,
-              physicalContact: existingStats.physical_contact || 0,
-              balance: existingStats.balance || 0,
-              stamina: existingStats.stamina || 0,
-              defensiveAwareness: existingStats.defensive_awareness || 0,
-              tackling: existingStats.tackling || 0,
-              aggression: existingStats.aggression || 0,
-              defensiveEngagement: existingStats.defensive_engagement || 0,
-              gkAwareness: existingStats.gk_awareness || 0,
-              gkCatching: existingStats.gk_catching || 0,
-              gkParrying: existingStats.gk_parrying || 0,
-              gkReflexes: existingStats.gk_reflexes || 0,
-              gkReach: existingStats.gk_reach || 0
-            }
-
-            // Compare stats to see if changed
-            const changedFields: string[] = []
-            Object.keys(oldStats).forEach((key) => {
-              const oldVal = (oldStats as any)[key]
-              const newVal = (player as any)[key]
-              
-              // Skip if key is ignored
-              if (isFieldIgnored(key, ignoredFields)) return
-
-              // Check if values are different
-              if (oldVal !== newVal && !(oldVal === 0 && newVal === null) && !(oldVal === '' && newVal === null)) {
-                changedFields.push(key)
-              }
-            })
-            
-            if (changedFields.length > 0) {
-              changedPlayers.push({
-                playerId: player.playerId,
-                playerName: player.playerName,
-                oldStats,
-                newStats: player,
-                changedFields
-              })
-            } else {
-              unchangedPlayers.push(player)
-            }
-          } else {
-            // Player exists in database but has no stats for this season
-            singleNewStatsPlayers.push(player)
-          }
-        } else {
-          // Check for database players with same name and nationality but different player ID
-          const matches = nameMatchesMap.get(player.playerName.toLowerCase().trim()) || []
-          const sameNameNation = matches.find(m => {
-            const dbStats = m.seasonalPlayerStats[0]
-            return dbStats && dbStats.nationality?.toLowerCase().trim() === player.nationality?.toLowerCase().trim()
-          })
-
-          if (sameNameNation) {
-            // Group under this existing database player
-            const dbPlayerId = sameNameNation.id
-            if (!dbNameMatchesGroupMap.has(dbPlayerId)) {
-              const dbStats = sameNameNation.seasonalPlayerStats[0]
-              dbNameMatchesGroupMap.set(dbPlayerId, {
-                existingPlayer: {
-                  id: sameNameNation.id,
-                  playerId: sameNameNation.player_id,
-                  name: sameNameNation.name,
-                  team: dbStats?.realWorldClub || 'Unknown',
-                  rating: dbStats?.overallRating || 0,
-                  position: dbStats?.position || 'N/A',
-                  nationality: dbStats?.nationality || 'N/A',
-                  featured: dbStats?.featured || 'N/A'
-                },
-                newCards: []
-              })
-            }
-            dbNameMatchesGroupMap.get(dbPlayerId)!.newCards.push(player)
-          } else {
-            // Brand-new player: group by name + nationality to check for multiple copies in the file
-            const key = `${player.playerName.toLowerCase().trim()}|${(player.nationality || '').toLowerCase().trim()}`
-            if (!fileNewGroupsMap.has(key)) {
-              fileNewGroupsMap.set(key, {
-                name: player.playerName,
-                nationality: player.nationality || '',
-                newCards: []
-              })
-            }
-            fileNewGroupsMap.get(key)!.newCards.push(player)
-          }
-        }
-      }
-
-      // Convert groupings to final preview arrays
-      const newDuplicates: any[] = []
-      for (const [key, group] of fileNewGroupsMap.entries()) {
-        if (group.newCards.length > 1) {
-          newDuplicates.push(group)
-        } else {
-          newPlayers.push(group.newCards[0])
-        }
-      }
-
-      // Add single new stats players to newPlayers
-      singleNewStatsPlayers.forEach(p => newPlayers.push(p))
-
-      const nameDuplicates = Array.from(dbNameMatchesGroupMap.values())
-
-      const previewData: PreviewResponse = {
-        mode,
-        seasonId,
-        players: parseResult.players,
-        newPlayers,
-        changedPlayers,
-        unchangedPlayers,
-        duplicates,
-        nameDuplicates,
-        newDuplicates,
-        stats: {
-          total: parseResult.players.length,
-          new: newPlayers.length,
-          changed: changedPlayers.length,
-          unchanged: unchangedPlayers.length,
-          duplicates: duplicates.length,
-          nameDuplicates: nameDuplicates.length,
-          newDuplicates: newDuplicates.length
-        }
-      }
-
-      setPreview(previewData)
-      
-      // Auto-select all new and changed players (only if mode is NOT 'update')
-      const autoSelected = new Set<string>()
-      if (mode !== 'update') {
-        previewData.newPlayers.forEach(p => autoSelected.add(p.playerId))
-        previewData.changedPlayers.forEach(p => autoSelected.add(p.playerId))
-      }
-      setSelectedPlayers(autoSelected)
-      
-      // Initialize duplicate resolutions
-      const resolutions: Record<string, 'skip' | 'replace' | 'add' | string> = {}
-      previewData.duplicates.forEach(d => {
-        if (d.duplicateType === 'file-vs-file' && d.allFileInstances) {
-          // For file-vs-file, default to first instance
-          resolutions[d.playerId] = d.allFileInstances[0].playerId
-        } else {
-          // For file-vs-db, default to skip
-          resolutions[d.playerId] = 'skip'
-        }
-      })
-      setDuplicateResolutions(resolutions)
-      
+      setRawDbData({ existingPlayers, nameMatches })
+      setParsedPlayers(parseResult.players)
       setStep('preview')
     } catch (err) {
       console.error('Preview error:', err)
@@ -656,6 +653,22 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         
         console.log(`Importing batch ${Math.floor(batchStart / BATCH_SIZE) + 1}/${Math.ceil(selected.length / BATCH_SIZE)} (${batch.length} players)`)
 
+        // Map each player to their tab-specific ignored fields
+        const playerIgnoredFields: Record<string, string[]> = {}
+        batch.forEach(player => {
+          if (preview.newPlayers.some(p => p.playerId === player.playerId)) {
+            playerIgnoredFields[player.playerId] = tabIgnoredFields['new'] || []
+          } else if (preview.changedPlayers.some(c => c.playerId === player.playerId)) {
+            playerIgnoredFields[player.playerId] = tabIgnoredFields['changed'] || []
+          } else if (preview.unchangedPlayers.some(p => p.playerId === player.playerId)) {
+            playerIgnoredFields[player.playerId] = tabIgnoredFields['changed'] || []
+          } else if (preview.nameDuplicates?.some(g => g.newCards.some(c => c.playerId === player.playerId))) {
+            playerIgnoredFields[player.playerId] = tabIgnoredFields['name-duplicates'] || []
+          } else if (preview.newDuplicates?.some(g => g.newCards.some(c => c.playerId === player.playerId))) {
+            playerIgnoredFields[player.playerId] = tabIgnoredFields['new-duplicates'] || []
+          }
+        })
+
         // Use EventSource for real-time updates
         const response = await fetch('/api/import/stream', {
           method: 'POST',
@@ -665,7 +678,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             mode,
             selectedPlayers: batch,
             duplicateResolutions,
-            ignoredFields
+            playerIgnoredFields
           })
         })
 
@@ -912,46 +925,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             </div>
           </div>
 
-          {/* Ignore Fields Selection (Only for Update Mode) */}
-          {mode === 'update' && (
-            <div className="mb-6 bg-black/25 border border-white/5 rounded-2xl p-4 sm:p-5">
-              <label className="block text-sm font-bold text-white mb-1">Ignore Fields on Update</label>
-              <p className="text-xs text-[#7A7367] mb-4">
-                Select fields that you do NOT want to compare or update in the database for any players:
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {[
-                  { id: 'teamName', label: 'Team' },
-                  { id: 'overallRating', label: 'Rating' },
-                  { id: 'position', label: 'Position' },
-                  { id: 'playingStyle', label: 'Playing Style' },
-                  { id: 'featured', label: 'Featured' },
-                  { id: 'nationality', label: 'Nationality' },
-                  { id: 'stats', label: 'All Stats' },
-                  { id: 'skills', label: 'All Skills' }
-                ].map((field) => (
-                  <button
-                    key={field.id}
-                    type="button"
-                    onClick={() => {
-                      setIgnoredFields(prev => 
-                        prev.includes(field.id)
-                          ? prev.filter(f => f !== field.id)
-                          : [...prev, field.id]
-                      )
-                    }}
-                    className={`p-3 rounded-xl border text-center font-bold text-xs transition-all ${
-                      ignoredFields.includes(field.id)
-                        ? 'bg-[#E8A800]/20 border-[#E8A800] text-[#E8A800]'
-                        : 'bg-black/35 border-white/5 text-[#7A7367] hover:border-white/10 hover:text-[#D4CCBB]'
-                    }`}
-                  >
-                    {field.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* File Upload */}
           <div className="mb-4 sm:mb-6">
@@ -1001,6 +975,16 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
           preview={preview}
           selectedPlayers={selectedPlayers}
           duplicateResolutions={duplicateResolutions}
+          tabIgnoredFields={tabIgnoredFields}
+          onToggleTabIgnoredField={(tab, fieldId) => {
+            setTabIgnoredFields(prev => {
+              const current = prev[tab] || []
+              const updated = current.includes(fieldId)
+                ? current.filter(f => f !== fieldId)
+                : [...current, fieldId]
+              return { ...prev, [tab]: updated }
+            })
+          }}
           onTogglePlayer={togglePlayer}
           onToggleAll={toggleAll}
           onTogglePage={togglePage}

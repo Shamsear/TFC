@@ -15,6 +15,7 @@ interface ImportRequest {
   selectedPlayers: EFootballPlayer[];
   duplicateResolutions: Record<string, 'skip' | 'replace' | 'add' | 'add-all' | string>;
   ignoredFields?: string[];
+  playerIgnoredFields?: Record<string, string[]>;
 }
 
 const SKILL_FIELDS = [
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body: ImportRequest = await request.json();
-  const { seasonId, mode, selectedPlayers, duplicateResolutions, ignoredFields = [] } = body;
+  const { seasonId, mode, selectedPlayers, duplicateResolutions, ignoredFields = [], playerIgnoredFields = {} } = body;
 
   console.log(`Import request: ${selectedPlayers?.length || 0} players for season ${seasonId}`);
 
@@ -189,7 +190,8 @@ export async function POST(request: NextRequest) {
         const player = selectedPlayers[i];
 
         try {
-          console.log(`Processing player ${i + 1}/${selectedPlayers.length}: ${player.playerName}`);
+          const currentPlayerIgnoredFields = playerIgnoredFields[player.playerId] || ignoredFields || [];
+          console.log(`Processing player ${i + 1}/${selectedPlayers.length}: ${player.playerName} (ignored: ${currentPlayerIgnoredFields.join(',')})`);
           
           // Send current player update
           controller.enqueue(
@@ -470,9 +472,9 @@ export async function POST(request: NextRequest) {
           if (existingStats) {
             // Exclude ignored fields from the update query
             const updateData = { ...statsData } as any;
-            if (ignoredFields.length > 0) {
+            if (currentPlayerIgnoredFields.length > 0) {
               const ignoredDbColumns = new Set<string>();
-              ignoredFields.forEach((field: string) => {
+              currentPlayerIgnoredFields.forEach((field: string) => {
                 if (field === 'stats') {
                   STAT_FIELDS.forEach(f => ignoredDbColumns.add(FIELD_MAPPING[f] || f));
                 } else if (field === 'skills') {

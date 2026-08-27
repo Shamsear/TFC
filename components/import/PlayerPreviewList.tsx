@@ -14,6 +14,8 @@ interface PlayerPreviewListProps {
   preview: PreviewResponse
   selectedPlayers: Set<string>
   duplicateResolutions: Record<string, 'skip' | 'replace' | 'add' | string>
+  tabIgnoredFields: Record<string, string[]>
+  onToggleTabIgnoredField: (tab: string, fieldId: string) => void
   onTogglePlayer: (playerId: string) => void
   onToggleAll: () => void
   onTogglePage?: (playerIds: string[], select: boolean) => void
@@ -30,6 +32,8 @@ export default function PlayerPreviewList({
   preview,
   selectedPlayers,
   duplicateResolutions,
+  tabIgnoredFields,
+  onToggleTabIgnoredField,
   onTogglePlayer,
   onToggleAll,
   onTogglePage,
@@ -749,6 +753,49 @@ export default function PlayerPreviewList({
             {selectedPlayers.size === preview.players.length ? 'Deselect All' : 'Select All'}
           </button>
         </div>
+
+        {/* Ignore Fields for the Current Tab */}
+        {(activeTab === 'new' || activeTab === 'changed' || activeTab === 'name-duplicates' || activeTab === 'new-duplicates') && (
+          <div className="pt-3 border-t border-white/5 space-y-2.5">
+            <div>
+              <label className="block text-xs font-bold text-white uppercase tracking-wider mb-1">
+                Ignore Fields on Update ({activeTab === 'changed' ? 'Changed' : activeTab === 'new' ? 'New' : activeTab === 'name-duplicates' ? 'Name Matches' : 'New Duplicates'})
+              </label>
+              <p className="text-[11px] text-[#7A7367]">
+                Select fields that you do NOT want to compare or update in the database for players in this tab:
+              </p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { id: 'teamName', label: 'Team' },
+                { id: 'overallRating', label: 'Rating' },
+                { id: 'position', label: 'Position' },
+                { id: 'playingStyle', label: 'Playing Style' },
+                { id: 'featured', label: 'Featured' },
+                { id: 'nationality', label: 'Nationality' },
+                { id: 'stats', label: 'All Stats' },
+                { id: 'skills', label: 'All Skills' }
+              ].map((field) => {
+                const currentIgnored = tabIgnoredFields[activeTab] || []
+                const isIgnored = currentIgnored.includes(field.id)
+                return (
+                  <button
+                    key={field.id}
+                    type="button"
+                    onClick={() => onToggleTabIgnoredField(activeTab, field.id)}
+                    className={`p-2 rounded-lg border text-center font-bold text-xs transition-all ${
+                      isIgnored
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                        : 'bg-black/30 border-white/10 text-gray-400 hover:border-white/20'
+                    }`}
+                  >
+                    {field.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Player List */}

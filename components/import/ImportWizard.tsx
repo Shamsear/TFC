@@ -369,6 +369,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             realWorldClub: string
             overallRating: number
             nationality?: string | null
+            featured?: string | null
           }>
         }>
       }
@@ -496,7 +497,8 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
                   team: dbStats?.realWorldClub || 'Unknown',
                   rating: dbStats?.overallRating || 0,
                   position: dbStats?.position || 'N/A',
-                  nationality: dbStats?.nationality || 'N/A'
+                  nationality: dbStats?.nationality || 'N/A',
+                  featured: dbStats?.featured || 'N/A'
                 },
                 newCards: []
               })

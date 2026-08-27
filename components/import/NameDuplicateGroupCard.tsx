@@ -66,6 +66,13 @@ export default function NameDuplicateGroupCard({
             <span className="text-gray-500 mr-1.5">Nationality:</span>
             <span>{group.existingPlayer.nationality}</span>
           </div>
+          <span>•</span>
+          <div>
+            <span className="text-gray-500 mr-1.5">Card Type:</span>
+            <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-500/20 border border-amber-500/30 text-amber-400 uppercase">
+              {group.existingPlayer.featured || 'Standard'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -104,6 +111,11 @@ export default function NameDuplicateGroupCard({
                       {card.position}
                     </span>
                     <span className="text-sm text-gray-400">Rating: <strong className="text-white">{card.overallRating}</strong></span>
+                    {card.featured && (
+                      <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-purple-500/20 border border-purple-500/30 text-purple-400 uppercase">
+                        {card.featured}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500 italic truncate">{card.playingStyle}</span>
                   </div>
                 </div>

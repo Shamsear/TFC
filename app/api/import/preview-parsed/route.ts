@@ -142,7 +142,8 @@ export async function POST(request: NextRequest) {
                 position: true,
                 realWorldClub: true,
                 overallRating: true,
-                nationality: true
+                nationality: true,
+                featured: true
               }
             }
           }

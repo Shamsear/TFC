@@ -417,24 +417,6 @@ export default function PlayerPreviewList({
               Review and select players to import. {actualSelectedCount} of {dynamicStats.total} selected
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                if (onTogglePage) {
-                  onTogglePage(paginatedCardIds, !isPageAllSelected)
-                }
-              }}
-              className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-all font-bold text-sm"
-            >
-              {isPageAllSelected ? 'Deselect Page' : 'Select Page'}
-            </button>
-            <button
-              onClick={onToggleAll}
-              className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all font-bold text-sm"
-            >
-              {selectedPlayers.size === preview.players.length ? 'Deselect All' : 'Select All'}
-            </button>
-          </div>
         </div>
 
         {/* Bulk Actions for Duplicates */}
@@ -708,7 +690,7 @@ export default function PlayerPreviewList({
       )}
 
       {/* Filters */}
-      <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+      <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div>
@@ -746,6 +728,26 @@ export default function PlayerPreviewList({
             onChange={(value) => { setPositionFilter(value); setCurrentPage(1); }}
             enableSearch={true}
           />
+        </div>
+
+        {/* Selection Buttons below Search/Filters */}
+        <div className="flex items-center gap-3 pt-3 border-t border-white/5">
+          <button
+            onClick={() => {
+              if (onTogglePage) {
+                onTogglePage(paginatedCardIds, !isPageAllSelected)
+              }
+            }}
+            className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-all font-bold text-sm"
+          >
+            {isPageAllSelected ? 'Deselect Page' : 'Select Page'}
+          </button>
+          <button
+            onClick={onToggleAll}
+            className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all font-bold text-sm"
+          >
+            {selectedPlayers.size === preview.players.length ? 'Deselect All' : 'Select All'}
+          </button>
         </div>
       </div>
 

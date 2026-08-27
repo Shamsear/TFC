@@ -82,6 +82,11 @@ export default function NewDuplicateGroupCard({
                       {card.position}
                     </span>
                     <span className="text-sm text-gray-400">Rating: <strong className="text-white">{card.overallRating}</strong></span>
+                    {card.featured && (
+                      <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-purple-500/20 border border-purple-500/30 text-purple-400 uppercase">
+                        {card.featured}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500 italic truncate">{card.playingStyle}</span>
                   </div>
                 </div>

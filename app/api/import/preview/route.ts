@@ -41,6 +41,7 @@ export interface NameDuplicateGroup {
     rating: number;
     position: string;
     nationality: string;
+    featured: string;
   };
   newCards: EFootballPlayer[];
 }

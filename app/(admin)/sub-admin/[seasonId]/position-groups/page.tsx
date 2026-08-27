@@ -68,7 +68,7 @@ export default function PositionGroupsPage() {
     
     try {
       setIsLoading(true)
-      const url = `/api/seasons/${seasonId}/position-groups`
+      const url = `/api/seasons/${seasonId}/position-groups?t=${Date.now()}`
       console.log('[Fetch] Fetching from:', url)
       
       const response = await fetch(url)

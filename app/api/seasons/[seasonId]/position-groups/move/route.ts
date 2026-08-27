@@ -12,7 +12,7 @@ export async function POST(
   const { seasonId } = await params;
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'SUB_ADMIN') {
+    if (!session?.user || (session.user.role !== 'SUB_ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

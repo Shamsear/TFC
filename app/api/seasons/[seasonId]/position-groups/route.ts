@@ -90,6 +90,10 @@ export async function GET(
       grouped,
       stats,
       positions: GROUPED_POSITIONS
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0, must-revalidate'
+      }
     });
 
   } catch (error) {

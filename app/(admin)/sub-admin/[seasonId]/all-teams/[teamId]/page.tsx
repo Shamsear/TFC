@@ -12,6 +12,8 @@ import {
   getRankDetails 
 } from '@/lib/achievements-math'
 
+export const dynamic = 'force-dynamic'
+
 interface TeamDetailPageProps {
   params: Promise<{
     seasonId: string

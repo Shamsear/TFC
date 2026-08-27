@@ -6,6 +6,8 @@ import Image from 'next/image'
 import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 import { resolveManagerId } from '@/lib/manager-resolve'
 
+export const dynamic = 'force-dynamic'
+
 interface AllTeamsPageProps {
   params: Promise<{
     seasonId: string

@@ -640,7 +640,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         updatedPlayers: []
       })
 
-      const BATCH_SIZE = 150
+      const BATCH_SIZE = 1500
       let totalImported = 0
       let totalUpdated = 0
       let totalSkipped = 0

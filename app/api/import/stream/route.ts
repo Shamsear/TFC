@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { EFootballPlayer } from '@/lib/sqlite-parser';
-import { generatePlayerId, generatePlayerStatsId } from '@/lib/id-generator';
+import { generatePlayerId, generatePlayerStatsId, generateIds, ID_PREFIXES } from '@/lib/id-generator';
 import { normalizeString } from '@/lib/search-utils';
 
 export const runtime = 'nodejs';
@@ -185,168 +185,31 @@ export async function POST(request: NextRequest) {
           )
         );
 
-      // Process each player
-      for (let i = 0; i < selectedPlayers.length; i++) {
-        const player = selectedPlayers[i];
+        // 1. Fetch all existing base players in one query
+        const playerIds = selectedPlayers.map(p => p.playerId);
+        const existingBasePlayers = await prisma.base_players.findMany({
+          where: { player_id: { in: playerIds } }
+        });
+        const basePlayerMap = new Map(existingBasePlayers.map(bp => [bp.player_id, bp]));
 
-        try {
-          const currentPlayerIgnoredFields = playerIgnoredFields[player.playerId] || ignoredFields || [];
-          console.log(`Processing player ${i + 1}/${selectedPlayers.length}: ${player.playerName} (ignored: ${currentPlayerIgnoredFields.join(',')})`);
-          
-          // Send current player update
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: 'current',
-                currentPlayer: player.playerName
-              })}\n\n`
-            )
-          );
-
-          // Check duplicate resolution
-          const resolution = duplicateResolutions[player.playerId];
-
-          if (resolution && resolution !== 'skip' && resolution !== 'replace' && resolution !== 'add' && resolution !== 'add-all') {
-            if (resolution !== player.playerId) {
-              skipped++;
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: 'progress',
-                    total: selectedPlayers.length,
-                    processed: i + 1,
-                    imported,
-                    updated,
-                    skipped,
-                    currentPlayer: player.playerName,
-                    errors,
-                    importedPlayers,
-                    updatedPlayers
-                  })}\n\n`
-                )
-              );
-              continue;
-            }
-          } else if (resolution === 'skip') {
-            skipped++;
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: 'progress',
-                  total: selectedPlayers.length,
-                  processed: i + 1,
-                  imported,
-                  updated,
-                  skipped,
-                  currentPlayer: player.playerName,
-                  errors,
-                  importedPlayers,
-                  updatedPlayers
-                })}\n\n`
-              )
-            );
-            continue;
+        // 2. Fetch all existing seasonal stats in one query
+        const basePlayerUuids = existingBasePlayers.map(bp => bp.id);
+        const existingStats = await prisma.seasonal_player_stats.findMany({
+          where: {
+            basePlayerId: { in: basePlayerUuids },
+            seasonId: seasonId
           }
+        });
+        const statsMap = new Map(existingStats.map(s => [s.basePlayerId, s]));
 
-          let basePlayer;
-          let isNewPlayer = false;
-
-          if (mode === 'update') {
-            // UPDATE MODE: Use player_id to find existing player
-            basePlayer = await prisma.base_players.findUnique({
-              where: { player_id: player.playerId }
-            });
-
-            if (basePlayer) {
-              // Update existing player's photo URL
-              basePlayer = await prisma.base_players.update({
-                where: { id: basePlayer.id },
-                data: {
-                  photoUrl: `/players/${player.playerId}.webp`,
-                  updatedAt: new Date()
-                }
-              });
-            } else {
-              // Player doesn't exist, create new one
-              const newPlayerId = await generatePlayerId();
-              basePlayer = await prisma.base_players.create({
-                data: {
-                  id: newPlayerId,
-                  player_id: player.playerId,
-                  name: player.playerName,
-                  normalized_name: normalizeString(player.playerName),
-                  photoUrl: `/players/${player.playerId}.webp`,
-                  updatedAt: new Date()
-                }
-              });
-              isNewPlayer = true;
-              imported++;
-              importedPlayers.push(player.playerName);
-            }
-          } else {
-            // IMPORT MODE: Check if player with this player_id already exists
-            basePlayer = await prisma.base_players.findUnique({
-              where: { player_id: player.playerId }
-            });
-
-            if (basePlayer) {
-              // Player already exists, skip it
-              console.log(`Skipping existing player: ${player.playerName} (player_id: ${player.playerId})`);
-              skipped++;
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: 'progress',
-                    total: selectedPlayers.length,
-                    processed: i + 1,
-                    imported,
-                    updated,
-                    skipped,
-                    currentPlayer: `${player.playerName} (skipped - already exists)`,
-                    errors,
-                    importedPlayers,
-                    updatedPlayers
-                  })}\n\n`
-                )
-              );
-              continue; // Skip to next player
-            }
-
-            // Create new player
-            const newPlayerId = await generatePlayerId();
-            basePlayer = await prisma.base_players.create({
-              data: {
-                id: newPlayerId,
-                player_id: player.playerId,
-                name: player.playerName,
-                normalized_name: normalizeString(player.playerName),
-                photoUrl: `/players/${player.playerId}.webp`,
-                updatedAt: new Date()
-              }
-            });
-            isNewPlayer = true;
-            imported++;
-            importedPlayers.push(player.playerName);
-          }
-
-          // Check if seasonal stats exist for this season
-          const existingStats = await prisma.seasonal_player_stats.findUnique({
-            where: {
-              basePlayerId_seasonId: {
-                basePlayerId: basePlayer.id,
-                seasonId: seasonId
-              }
-            }
-          });
-
-          const statsData = {
+        const buildStatsData = (player: EFootballPlayer) => {
+          return {
             position: player.position,
             realWorldClub: player.teamName,
             overallRating: player.overallRating,
             star_rating: player.starRating || null,
             nationality: player.nationality || null,
             playing_style: player.playingStyle || null,
-            // Player Info
             height: player.height || null,
             weight: player.weight || null,
             age: player.age || null,
@@ -359,7 +222,6 @@ export async function POST(request: NextRequest) {
             condition: player.condition || null,
             max_level: player.maxLevel || null,
             overall_at_max_level: player.overallAtMaxLevel || null,
-            // Offensive Stats
             offensive_awareness: player.offensiveAwareness || null,
             ball_control: player.ballControl || null,
             dribbling: player.dribbling || null,
@@ -370,7 +232,6 @@ export async function POST(request: NextRequest) {
             heading: player.heading || null,
             set_piece_taking: player.setPieceTaking || null,
             curl: player.curl || null,
-            // Physical Stats
             speed: player.speed || null,
             acceleration: player.acceleration || null,
             kicking_power: player.kickingPower || null,
@@ -378,18 +239,15 @@ export async function POST(request: NextRequest) {
             physical_contact: player.physicalContact || null,
             balance: player.balance || null,
             stamina: player.stamina || null,
-            // Defensive Stats
             defensive_awareness: player.defensiveAwareness || null,
             tackling: player.tackling || null,
             aggression: player.aggression || null,
             defensive_engagement: player.defensiveEngagement || null,
-            // Goalkeeper Stats
             gk_awareness: player.gkAwareness || null,
             gk_catching: player.gkCatching || null,
             gk_parrying: player.gkParrying || null,
             gk_reflexes: player.gkReflexes || null,
             gk_reach: player.gkReach || null,
-            // Dribbling Skills
             scissors_feint: player.scissorsFeint || null,
             double_touch: player.doubleTouch || null,
             flip_flap: player.flipFlap || null,
@@ -402,10 +260,8 @@ export async function POST(request: NextRequest) {
             momentum_dribbling: player.momentumDribbling || null,
             acceleration_burst: player.accelerationBurst || null,
             magnetic_feet: player.magneticFeet || null,
-            // Heading Skills
             heading_skill: player.headingSkill || null,
             bullet_header: player.bulletHeader || null,
-            // Shooting Skills
             long_range_curler: player.longRangeCurler || null,
             blitz_curler: player.blitzCurler || null,
             chip_shot_control: player.chipShotControl || null,
@@ -419,7 +275,6 @@ export async function POST(request: NextRequest) {
             first_time_shot: player.firstTimeShot || null,
             phenomenal_finishing: player.phenomenalFinishing || null,
             willpower: player.willpower || null,
-            // Passing Skills
             one_touch_pass: player.oneTouchPass || null,
             through_passing: player.throughPassing || null,
             weighted_pass: player.weightedPass || null,
@@ -432,7 +287,6 @@ export async function POST(request: NextRequest) {
             visionary_pass: player.visionaryPass || null,
             phenomenal_pass: player.phenomenalPass || null,
             low_lofted_pass: player.lowLoftedPass || null,
-            // Goalkeeper Skills
             gk_low_punt: player.gkLowPunt || null,
             gk_high_punt: player.gkHighPunt || null,
             long_throw: player.longThrow || null,
@@ -441,7 +295,6 @@ export async function POST(request: NextRequest) {
             gk_penalty_saver: player.gkPenaltySaver || null,
             gk_directing_defence: player.gkDirectingDefence || null,
             gk_spirit_roar: player.gkSpiritRoar || null,
-            // Defensive Skills
             gamesmanship: player.gamesmanship || null,
             man_marking: player.manMarking || null,
             track_back: player.trackBack || null,
@@ -453,7 +306,6 @@ export async function POST(request: NextRequest) {
             fortress: player.fortress || null,
             acrobatic_clearance: player.acrobaticClearance || null,
             aerial_fort: player.aerialFort || null,
-            // Special Skills
             captaincy: player.captaincy || null,
             attack_trigger: player.attackTrigger || null,
             super_sub: player.superSub || null,
@@ -465,85 +317,229 @@ export async function POST(request: NextRequest) {
             long_ball_expert: player.longBallExpert || null,
             early_cross: player.earlyCross || null,
             long_ranger: player.longRanger || null,
-            updatedAt: new Date()
           };
+        };
 
-          // Create or update seasonal stats
-          if (existingStats) {
-            // Exclude ignored fields from the update query
-            const updateData = { ...statsData } as any;
-            if (currentPlayerIgnoredFields.length > 0) {
-              const ignoredDbColumns = new Set<string>();
-              currentPlayerIgnoredFields.forEach((field: string) => {
-                if (field === 'stats') {
-                  STAT_FIELDS.forEach(f => ignoredDbColumns.add(FIELD_MAPPING[f] || f));
-                } else if (field === 'skills') {
-                  SKILL_FIELDS.forEach(f => ignoredDbColumns.add(FIELD_MAPPING[f] || f));
-                } else if (field === 'teamName') {
-                  ignoredDbColumns.add('realWorldClub');
-                } else {
-                  ignoredDbColumns.add(FIELD_MAPPING[field] || field);
-                }
-              });
+        // Classify actions for each player
+        const toSkip: EFootballPlayer[] = [];
+        const toCreatePlayer: EFootballPlayer[] = [];
+        const toUpdatePlayer: { player: EFootballPlayer, id: string }[] = [];
+        const toCreateStats: { player: EFootballPlayer, basePlayerId: string }[] = [];
+        const toUpdateStats: { player: EFootballPlayer, statsId: string, basePlayerId: string }[] = [];
 
-              ignoredDbColumns.forEach(column => {
-                delete updateData[column];
-              });
+        for (let i = 0; i < selectedPlayers.length; i++) {
+          const player = selectedPlayers[i];
+          const resolution = duplicateResolutions[player.playerId];
+
+          // Skip conditions
+          if (resolution && resolution !== 'skip' && resolution !== 'replace' && resolution !== 'add' && resolution !== 'add-all') {
+            if (resolution !== player.playerId) {
+              toSkip.push(player);
+              continue;
             }
+          } else if (resolution === 'skip') {
+            toSkip.push(player);
+            continue;
+          }
 
-            // Update existing seasonal stats
-            await prisma.seasonal_player_stats.update({
-              where: { id: existingStats.id },
-              data: updateData
-            });
-            if (!isNewPlayer) {
-              updated++;
-              updatedPlayers.push(player.playerName);
+          let basePlayer = basePlayerMap.get(player.playerId);
+
+          if (mode === 'update') {
+            if (basePlayer) {
+              toUpdatePlayer.push({ player, id: basePlayer.id });
+            } else {
+              toCreatePlayer.push(player);
             }
           } else {
-            // Create new seasonal stats
-            const statsId = await generatePlayerStatsId();
+            if (basePlayer) {
+              toSkip.push(player);
+              continue;
+            }
+            toCreatePlayer.push(player);
+          }
+
+          if (basePlayer) {
+            const stats = statsMap.get(basePlayer.id);
+            if (stats) {
+              toUpdateStats.push({ player, statsId: stats.id, basePlayerId: basePlayer.id });
+            } else {
+              toCreateStats.push({ player, basePlayerId: basePlayer.id });
+            }
+          } else {
+            toCreateStats.push({ player, basePlayerId: '' }); // basePlayerId will be populated after ID generation
+          }
+        }
+
+        // Generate IDs in bulk
+        const newPlayerIds = await generateIds(ID_PREFIXES.PLAYER, toCreatePlayer.length);
+        const newStatsIds = await generateIds(ID_PREFIXES.PLAYER_STATS, toCreateStats.length);
+
+        const createdPlayerIdMap = new Map<string, string>();
+        toCreatePlayer.forEach((player, idx) => {
+          createdPlayerIdMap.set(player.playerId, newPlayerIds[idx]);
+        });
+
+        // Link basePlayerId for new player stats
+        toCreateStats.forEach((item) => {
+          if (!item.basePlayerId) {
+            item.basePlayerId = createdPlayerIdMap.get(item.player.playerId)!;
+          }
+        });
+
+        // Set up write actions
+        const allWrites: (() => Promise<void>)[] = [];
+
+        // 1. Create Base Players
+        toCreatePlayer.forEach((player) => {
+          const generatedId = createdPlayerIdMap.get(player.playerId)!;
+          allWrites.push(async () => {
+            await prisma.base_players.create({
+              data: {
+                id: generatedId,
+                player_id: player.playerId,
+                name: player.playerName,
+                normalized_name: normalizeString(player.playerName),
+                photoUrl: `/players/${player.playerId}.webp`,
+                updatedAt: new Date()
+              }
+            });
+            imported++;
+            importedPlayers.push(player.playerName);
+          });
+        });
+
+        // 2. Update Base Players
+        toUpdatePlayer.forEach(({ player, id }) => {
+          allWrites.push(async () => {
+            await prisma.base_players.update({
+              where: { id },
+              data: {
+                photoUrl: `/players/${player.playerId}.webp`,
+                updatedAt: new Date()
+              }
+            });
+          });
+        });
+
+        // 3. Create Stats
+        toCreateStats.forEach(({ player, basePlayerId }, idx) => {
+          const statsId = newStatsIds[idx];
+          const statsData = buildStatsData(player);
+          allWrites.push(async () => {
             await prisma.seasonal_player_stats.create({
               data: {
                 id: statsId,
-                basePlayerId: basePlayer.id,
-                seasonId: seasonId,
-                ...statsData
+                basePlayerId,
+                seasonId,
+                ...statsData,
+                updatedAt: new Date()
               }
             });
-            // Already counted as imported if new player
-          }
-        } catch (error) {
-          console.error(`Error processing player ${player.playerName}:`, error);
-          errors.push({
-            player: player.playerName,
-            error: error instanceof Error ? error.message : 'Unknown error'
           });
+        });
+
+        // 4. Update Stats
+        toUpdateStats.forEach(({ player, statsId }) => {
+          const statsData = buildStatsData(player);
+          const currentPlayerIgnoredFields = playerIgnoredFields[player.playerId] || ignoredFields || [];
+          const updateData = { ...statsData, updatedAt: new Date() };
+
+          if (currentPlayerIgnoredFields.length > 0) {
+            const ignoredDbColumns = new Set<string>();
+            currentPlayerIgnoredFields.forEach(field => {
+              if (field === 'stats') {
+                STAT_FIELDS.forEach(f => ignoredDbColumns.add(FIELD_MAPPING[f] || f));
+              } else if (field === 'skills') {
+                SKILL_FIELDS.forEach(f => ignoredDbColumns.add(FIELD_MAPPING[f] || f));
+              } else if (field === 'teamName') {
+                ignoredDbColumns.add('realWorldClub');
+              } else {
+                ignoredDbColumns.add(FIELD_MAPPING[field] || field);
+              }
+            });
+            ignoredDbColumns.forEach(column => {
+              delete (updateData as any)[column];
+            });
+          }
+
+          allWrites.push(async () => {
+            await prisma.seasonal_player_stats.update({
+              where: { id: statsId },
+              data: updateData
+            });
+            const isNew = toCreatePlayer.some(cp => cp.playerId === player.playerId);
+            if (!isNew) {
+              updated++;
+              updatedPlayers.push(player.playerName);
+            }
+          });
+        });
+
+        // Execute writes in parallel chunks to keep connection pool stable but extremely fast
+        const chunkSize = 40;
+        const writeChunks: (() => Promise<void>)[][] = [];
+        for (let i = 0; i < allWrites.length; i += chunkSize) {
+          writeChunks.push(allWrites.slice(i, i + chunkSize));
         }
 
-        // Send progress update
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: 'progress',
-              total: selectedPlayers.length,
-              processed: i + 1,
-              imported,
-              updated,
-              skipped,
-              currentPlayer: player.playerName,
-              errors,
-              importedPlayers,
-              updatedPlayers
-            })}\n\n`
-          )
-        );
+        let processedCount = 0;
+        skipped = toSkip.length;
+        processedCount += toSkip.length;
 
-        // Small delay to prevent overwhelming the database
-        if (i < selectedPlayers.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 10));
+        if (toSkip.length > 0) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: 'progress',
+                total: selectedPlayers.length,
+                processed: processedCount,
+                imported,
+                updated,
+                skipped,
+                currentPlayer: `Skipped ${toSkip.length} existing/ignored players`,
+                errors,
+                importedPlayers,
+                updatedPlayers
+              })}\n\n`
+            )
+          );
         }
-      }
+
+        for (let i = 0; i < writeChunks.length; i++) {
+          const currentChunk = writeChunks[i];
+          
+          await Promise.all(
+            currentChunk.map(writeFn => 
+              writeFn().catch(err => {
+                console.error('Error in write execution:', err);
+                errors.push({
+                  player: 'Database Write',
+                  error: err instanceof Error ? err.message : 'Database write error'
+                });
+              })
+            )
+          );
+
+          processedCount += currentChunk.length;
+
+          // Send chunk progress updates
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: 'progress',
+                total: selectedPlayers.length,
+                processed: processedCount,
+                imported,
+                updated,
+                skipped,
+                currentPlayer: `Processed ${processedCount}/${selectedPlayers.length} players`,
+                errors,
+                importedPlayers,
+                updatedPlayers
+              })}\n\n`
+            )
+          );
+        }
 
       // Send completion
       controller.enqueue(

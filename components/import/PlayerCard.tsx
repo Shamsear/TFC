@@ -51,11 +51,13 @@ export default function PlayerCard({
   }
 
   return (
-    <div className={`rounded-2xl border-2 transition-all ${
+    <div className={`rounded-2xl border-2 transition-all cursor-pointer ${
       isSelected
         ? 'bg-cyan-500/10 border-cyan-500'
         : 'bg-white/5 border-white/10 hover:border-white/20'
-    }`}>
+    }`}
+    onClick={onToggle}
+    >
       <div className="p-4">
         <div className="flex items-start gap-4">
           {/* Checkbox */}
@@ -64,6 +66,7 @@ export default function PlayerCard({
               type="checkbox"
               checked={isSelected}
               onChange={onToggle}
+              onClick={(e) => e.stopPropagation()}
               className="w-5 h-5 rounded border-2 border-white/20 bg-black/50 checked:bg-cyan-500 checked:border-cyan-500 cursor-pointer"
             />
           </div>
@@ -167,7 +170,10 @@ export default function PlayerCard({
 
             {/* Toggle Details Button */}
             <button
-              onClick={() => setShowDetails(!showDetails)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowDetails(!showDetails)
+              }}
               className="text-sm text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
             >
               {showDetails ? '▼ Hide Details' : '▶ Show All Stats'}
@@ -177,7 +183,10 @@ export default function PlayerCard({
 
         {/* Detailed Stats */}
         {showDetails && (
-          <div className="mt-4 pt-4 border-t border-white/10">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="mt-4 pt-4 border-t border-white/10"
+          >
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {/* Offensive Stats */}
               <div>

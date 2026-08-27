@@ -735,6 +735,18 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     }
   }
 
+  const togglePage = (playerIds: string[], select: boolean) => {
+    const newSelected = new Set(selectedPlayers)
+    playerIds.forEach(id => {
+      if (select) {
+        newSelected.add(id)
+      } else {
+        newSelected.delete(id)
+      }
+    })
+    setSelectedPlayers(newSelected)
+  }
+
   const batchResolveDuplicates = (resolutions: Record<string, 'skip' | 'replace' | 'add' | string>) => {
     setDuplicateResolutions(prev => ({ ...prev, ...resolutions }))
   }
@@ -923,6 +935,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
           duplicateResolutions={duplicateResolutions}
           onTogglePlayer={togglePlayer}
           onToggleAll={toggleAll}
+          onTogglePage={togglePage}
           onResolveDuplicate={(playerId, resolution) => {
             setDuplicateResolutions({ ...duplicateResolutions, [playerId]: resolution })
           }}

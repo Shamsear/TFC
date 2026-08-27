@@ -82,11 +82,13 @@ export default function ChangeComparisonCard({
   }
 
   return (
-    <div className={`rounded-2xl border-2 transition-all ${
+    <div className={`rounded-2xl border-2 transition-all cursor-pointer ${
       isSelected
         ? 'bg-orange-500/10 border-orange-500'
         : 'bg-white/5 border-white/10 hover:border-white/20'
-    }`}>
+    }`}
+    onClick={onToggle}
+    >
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start gap-4 mb-4">
@@ -95,6 +97,7 @@ export default function ChangeComparisonCard({
               type="checkbox"
               checked={isSelected}
               onChange={onToggle}
+              onClick={(e) => e.stopPropagation()}
               className="w-5 h-5 rounded border-2 border-white/20 bg-black/50 checked:bg-orange-500 checked:border-orange-500 cursor-pointer"
             />
           </div>
@@ -141,7 +144,10 @@ export default function ChangeComparisonCard({
 
         {/* Toggle Details */}
         <button
-          onClick={() => setShowDetails(!showDetails)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowDetails(!showDetails)
+          }}
           className="text-sm text-orange-400 hover:text-orange-300 font-medium transition-colors"
         >
           {showDetails ? '▼ Hide Detailed Comparison' : '▶ Show Detailed Comparison'}
@@ -149,7 +155,10 @@ export default function ChangeComparisonCard({
 
         {/* Detailed Comparison */}
         {showDetails && (
-          <div className="mt-4 pt-4 border-t border-white/10">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="mt-4 pt-4 border-t border-white/10"
+          >
             {/* Other/Additional Changes */}
             {otherChangedFields.length > 0 && (
               <div className="border-b border-white/10 pb-4 mb-4">

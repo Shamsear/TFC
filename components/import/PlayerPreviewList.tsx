@@ -14,6 +14,7 @@ interface PlayerPreviewListProps {
   duplicateResolutions: Record<string, 'skip' | 'replace' | 'add' | string>
   onTogglePlayer: (playerId: string) => void
   onToggleAll: () => void
+  onTogglePage?: (playerIds: string[], select: boolean) => void
   onResolveDuplicate: (playerId: string, resolution: 'skip' | 'replace' | 'add' | string) => void
   onBatchResolveDuplicates?: (resolutions: Record<string, 'skip' | 'replace' | 'add' | string>) => void
   onNext: () => void
@@ -29,6 +30,7 @@ export default function PlayerPreviewList({
   duplicateResolutions,
   onTogglePlayer,
   onToggleAll,
+  onTogglePage,
   onResolveDuplicate,
   onBatchResolveDuplicates,
   onNext,
@@ -376,6 +378,8 @@ export default function PlayerPreviewList({
     return preview.duplicates.find(d => d.playerId === playerId)
   }
 
+  const isPageAllSelected = paginatedPlayers.length > 0 && paginatedPlayers.every(p => selectedPlayers.has(p.playerId))
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -388,6 +392,16 @@ export default function PlayerPreviewList({
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (onTogglePage) {
+                  onTogglePage(paginatedPlayers.map(p => p.playerId), !isPageAllSelected)
+                }
+              }}
+              className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-all font-bold text-sm"
+            >
+              {isPageAllSelected ? 'Deselect Page' : 'Select Page'}
+            </button>
             <button
               onClick={onToggleAll}
               className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all font-bold text-sm"

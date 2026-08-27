@@ -69,7 +69,7 @@ export default function DatabaseImportPage() {
       )}
 
       {/* Season Selection */}
-      <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-md">
+      <div className="relative z-20 rounded-2xl bg-white/[0.01] border border-white/5 p-6 mb-8 backdrop-blur-xl shadow-md">
         <label htmlFor="season" className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-3">
           Select Season <span className="text-red-400">*</span>
         </label>

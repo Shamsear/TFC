@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { EFootballPlayer } from '@/lib/sqlite-parser'
+import { getPhotoUrlFromDb, getPlayerCardById } from '@/lib/image-cdn'
 
 interface PlayerCardProps {
   player: EFootballPlayer
@@ -68,6 +69,18 @@ export default function PlayerCard({
               onChange={onToggle}
               onClick={(e) => e.stopPropagation()}
               className="w-5 h-5 rounded border-2 border-white/20 bg-black/50 checked:bg-cyan-500 checked:border-cyan-500 cursor-pointer"
+            />
+          </div>
+
+          {/* Player Photo Avatar */}
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-black/40 border border-white/10 overflow-hidden relative">
+            <img
+              src={getPhotoUrlFromDb(player.playerId)}
+              alt={player.playerName}
+              onError={(e) => {
+                e.currentTarget.src = '/default-player.png'
+              }}
+              className="w-full h-full object-cover object-center"
             />
           </div>
 
@@ -187,7 +200,8 @@ export default function PlayerCard({
             onClick={(e) => e.stopPropagation()}
             className="mt-4 pt-4 border-t border-white/10"
           >
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start">
+              <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
               {/* Offensive Stats */}
               <div>
                 <div className="text-xs font-bold text-cyan-400 mb-2">OFFENSIVE</div>
@@ -329,7 +343,21 @@ export default function PlayerCard({
                 </div>
               )}
             </div>
+
+            {/* Player Card Image on Right */}
+            <div className="flex-shrink-0 w-32 sm:w-36 flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/40 border border-white/5">
+              <img
+                src={getPlayerCardById(player.playerId)}
+                alt="Player Card"
+                onError={(e) => {
+                  e.currentTarget.src = '/default-player-card.png'
+                }}
+                className="w-full aspect-[3/4] object-contain rounded-lg shadow-lg"
+              />
+              <span className="text-[9px] text-gray-500 font-mono">Card ID: {player.playerId}</span>
+            </div>
           </div>
+        </div>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { PlayerChange } from '@/app/api/import/preview/route'
+import { getPhotoUrlFromDb, getPlayerCardById } from '@/lib/image-cdn'
 
 interface ChangeComparisonCardProps {
   change: PlayerChange
@@ -102,6 +103,18 @@ export default function ChangeComparisonCard({
             />
           </div>
 
+          {/* Player Photo Avatar */}
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-black/40 border border-white/10 overflow-hidden relative">
+            <img
+              src={getPhotoUrlFromDb(change.playerId)}
+              alt={change.newStats.playerName}
+              onError={(e) => {
+                e.currentTarget.src = '/default-player.png'
+              }}
+              className="w-full h-full object-cover object-center"
+            />
+          </div>
+
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-lg font-black text-white">{change.newStats.playerName}</h3>
@@ -159,7 +172,9 @@ export default function ChangeComparisonCard({
             onClick={(e) => e.stopPropagation()}
             className="mt-4 pt-4 border-t border-white/10"
           >
-            {/* Other/Additional Changes */}
+            <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start">
+              <div className="flex-1 space-y-4 w-full">
+                {/* Other/Additional Changes */}
             {otherChangedFields.length > 0 && (
               <div className="border-b border-white/10 pb-4 mb-4">
                 <div className="text-xs font-bold text-orange-400 mb-2">ADDITIONAL DETAIL CHANGES</div>
@@ -254,6 +269,21 @@ export default function ChangeComparisonCard({
               )}
             </div>
           </div>
+
+          {/* Player Card Image on Right */}
+          <div className="flex-shrink-0 w-32 sm:w-36 flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/40 border border-white/5">
+            <img
+              src={getPlayerCardById(change.playerId)}
+              alt="Player Card"
+              onError={(e) => {
+                e.currentTarget.src = '/default-player-card.png'
+              }}
+              className="w-full aspect-[3/4] object-contain rounded-lg shadow-lg"
+            />
+            <span className="text-[9px] text-gray-500 font-mono">Card ID: {change.playerId}</span>
+          </div>
+        </div>
+      </div>
         )}
       </div>
     </div>

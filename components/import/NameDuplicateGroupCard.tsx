@@ -1,6 +1,7 @@
 'use client'
 
 import { NameDuplicateGroup } from '@/app/api/import/preview/route'
+import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 
 interface NameDuplicateGroupCardProps {
   group: NameDuplicateGroup
@@ -35,16 +36,29 @@ export default function NameDuplicateGroupCard({
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
       {/* Existing Database Player Header */}
-      <div className="p-4 bg-amber-500/10 border-b border-white/5">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-black text-white">{group.existingPlayer.name}</h3>
-            <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase">
-              Same Name & Nation Match
-            </span>
-          </div>
-          <span className="text-xs text-gray-400 font-mono">Existing ID: {group.existingPlayer.playerId || 'None'}</span>
+      <div className="p-4 bg-amber-500/10 border-b border-white/5 flex items-center gap-4">
+        {/* Database Player Photo Avatar */}
+        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-black/40 border border-white/10 overflow-hidden relative">
+          <img
+            src={getPhotoUrlFromDb(group.existingPlayer.playerId)}
+            alt={group.existingPlayer.name}
+            onError={(e) => {
+              e.currentTarget.src = '/default-player.png'
+            }}
+            className="w-full h-full object-cover object-center"
+          />
         </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-white">{group.existingPlayer.name}</h3>
+              <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase">
+                Same Name & Nation Match
+              </span>
+            </div>
+            <span className="text-xs text-gray-400 font-mono">Existing ID: {group.existingPlayer.playerId || 'None'}</span>
+          </div>
         
         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-300">
           <div>
@@ -75,6 +89,7 @@ export default function NameDuplicateGroupCard({
           </div>
         </div>
       </div>
+    </div>
 
       {/* New Cards List */}
       <div className="p-4 space-y-3 bg-black/20">
@@ -101,6 +116,19 @@ export default function NameDuplicateGroupCard({
                   onClick={(e) => e.stopPropagation()}
                   className="w-5 h-5 rounded border-2 border-white/20 bg-black/50 checked:bg-amber-500 checked:border-amber-500 cursor-pointer flex-shrink-0"
                 />
+
+                {/* Sub-card Photo Avatar */}
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-black/40 border border-white/10 overflow-hidden relative">
+                  <img
+                    src={getPhotoUrlFromDb(card.playerId)}
+                    alt={card.playerName}
+                    onError={(e) => {
+                      e.currentTarget.src = '/default-player.png'
+                    }}
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-white font-bold truncate">{card.teamName}</span>

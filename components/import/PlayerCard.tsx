@@ -4,12 +4,24 @@ import { useState } from 'react'
 import { EFootballPlayer } from '@/lib/sqlite-parser'
 import { getPlayerCardById } from '@/lib/image-cdn'
 
+type PlayerCategory = 'new' | 'changed' | 'unchanged' | 'duplicate' | 'name-duplicate' | 'new-duplicate'
+
 interface PlayerCardProps {
   player: EFootballPlayer
   isSelected: boolean
   onToggle: () => void
   isDuplicate?: boolean
   isChanged?: boolean
+  category?: PlayerCategory
+}
+
+const CATEGORY_BADGES: Record<PlayerCategory, { label: string; className: string }> = {
+  new: { label: 'NEW', className: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' },
+  changed: { label: 'CHANGED', className: 'bg-orange-500/20 border-orange-500/30 text-orange-400' },
+  unchanged: { label: 'UNCHANGED', className: 'bg-gray-500/20 border-gray-500/30 text-gray-400' },
+  duplicate: { label: 'DUPLICATE', className: 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400' },
+  'name-duplicate': { label: 'NAME MATCH', className: 'bg-amber-500/20 border-amber-500/30 text-amber-400' },
+  'new-duplicate': { label: 'NEW DUPLICATE', className: 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400' },
 }
 
 export default function PlayerCard({
@@ -17,7 +29,8 @@ export default function PlayerCard({
   isSelected,
   onToggle,
   isDuplicate,
-  isChanged
+  isChanged,
+  category
 }: PlayerCardProps) {
   const [showDetails, setShowDetails] = useState(false)
 
@@ -92,12 +105,17 @@ export default function PlayerCard({
                   <h3 className="text-lg font-black text-white truncate">
                     {player.playerName}
                   </h3>
-                  {isDuplicate && (
+                  {category && CATEGORY_BADGES[category] && (
+                    <span className={`px-2 py-0.5 rounded border text-xs font-bold ${CATEGORY_BADGES[category].className}`}>
+                      {CATEGORY_BADGES[category].label}
+                    </span>
+                  )}
+                  {!category && isDuplicate && (
                     <span className="px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-bold">
                       DUPLICATE
                     </span>
                   )}
-                  {isChanged && (
+                  {!category && isChanged && (
                     <span className="px-2 py-0.5 rounded bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-bold">
                       CHANGED
                     </span>

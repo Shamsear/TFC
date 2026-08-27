@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { EFootballPlayer } from '@/lib/sqlite-parser'
+import { normalizeString } from '@/lib/search-utils'
 import { PreviewResponse } from '@/app/api/import/preview/route'
 import PlayerPreviewList from './PlayerPreviewList'
 import ImportSummary from './ImportSummary'
@@ -270,7 +271,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     const existingMap = new Map(existingPlayers.map(p => [p.player_id, p]))
     const nameMatchesMap = new Map<string, any[]>()
     nameMatches.forEach(p => {
-      const key = p.name.toLowerCase().trim()
+      const key = normalizeString(p.name)
       if (!nameMatchesMap.has(key)) {
         nameMatchesMap.set(key, [])
       }
@@ -408,7 +409,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         }
       } else {
         // Check for database players with same name and nationality but different player ID
-        const matches = nameMatchesMap.get(player.playerName.toLowerCase().trim()) || []
+        const matches = nameMatchesMap.get(normalizeString(player.playerName)) || []
         const sameNameNation = matches.find(m => {
           const dbStats = m.seasonalPlayerStats[0]
           return dbStats && dbStats.nationality?.toLowerCase().trim() === player.nationality?.toLowerCase().trim()
@@ -806,13 +807,28 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     setSelectedPlayers(newSelected)
   }
 
-  const toggleAll = () => {
+  const toggleAll = (playerIds?: string[]) => {
     if (!preview) return
     
-    if (selectedPlayers.size === preview.players.length) {
-      setSelectedPlayers(new Set())
+    if (playerIds && playerIds.length > 0) {
+      // Tab-specific toggle: toggle only the provided player IDs
+      const allSelected = playerIds.every(id => selectedPlayers.has(id))
+      const newSelected = new Set(selectedPlayers)
+      if (allSelected) {
+        // Deselect all in this tab
+        playerIds.forEach(id => newSelected.delete(id))
+      } else {
+        // Select all in this tab
+        playerIds.forEach(id => newSelected.add(id))
+      }
+      setSelectedPlayers(newSelected)
     } else {
-      setSelectedPlayers(new Set(preview.players.map(p => p.playerId)))
+      // Fallback: toggle all players globally
+      if (selectedPlayers.size === preview.players.length) {
+        setSelectedPlayers(new Set())
+      } else {
+        setSelectedPlayers(new Set(preview.players.map(p => p.playerId)))
+      }
     }
   }
 

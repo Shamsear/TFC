@@ -126,10 +126,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Also fetch name matches (for same name and nationality duplicate detection)
+    // Use case-insensitive matching so e.g. "KUBO Takefusa" matches "Kubo Takefusa"
     const nameMatches = playerNames.length > 0
       ? await prisma.base_players.findMany({
           where: {
-            name: { in: playerNames }
+            OR: playerNames.map(name => ({
+              name: { equals: name, mode: 'insensitive' as const }
+            }))
           },
           select: {
             id: true,

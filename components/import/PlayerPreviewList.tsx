@@ -17,7 +17,7 @@ interface PlayerPreviewListProps {
   tabIgnoredFields: Record<string, string[]>
   onToggleTabIgnoredField: (tab: string, fieldId: string) => void
   onTogglePlayer: (playerId: string) => void
-  onToggleAll: () => void
+  onToggleAll: (playerIds?: string[]) => void
   onTogglePage?: (playerIds: string[], select: boolean) => void
   onResolveDuplicate: (playerId: string, resolution: 'skip' | 'replace' | 'add' | string) => void
   onBatchResolveDuplicates?: (resolutions: Record<string, 'skip' | 'replace' | 'add' | string>) => void
@@ -25,7 +25,7 @@ interface PlayerPreviewListProps {
   onBack: () => void
 }
 
-type Tab = 'new' | 'changed' | 'unchanged' | 'duplicates' | 'name-duplicates' | 'new-duplicates' | 'all'
+type Tab = 'new' | 'changed' | 'unchanged' | 'duplicates' | 'name-duplicates' | 'new-duplicates' | 'all' | 'selected'
 type DuplicateSubTab = 'all' | 'same-player-same-pos' | 'same-player-diff-pos' | 'different-players' | 'multi-instance' | 'db-duplicates'
 
 export default function PlayerPreviewList({
@@ -361,6 +361,32 @@ export default function PlayerPreviewList({
           return duplicatesToShow.map(d => 
             preview.players.find(p => p.playerId === d.playerId)!
           ).filter(Boolean)
+        case 'selected': {
+          // Return all players from all categories that are selected
+          const selected: any[] = []
+          preview.newPlayers.forEach(p => {
+            if (selectedPlayers.has(p.playerId)) selected.push(p)
+          })
+          preview.changedPlayers.forEach(c => {
+            if (selectedPlayers.has(c.playerId)) selected.push(c.newStats)
+          })
+          preview.unchangedPlayers.forEach(p => {
+            if (selectedPlayers.has(p.playerId)) selected.push(p)
+          })
+          // Name duplicate cards (individual cards, not groups)
+          preview.nameDuplicates?.forEach(g => {
+            g.newCards.forEach(c => {
+              if (selectedPlayers.has(c.playerId)) selected.push(c)
+            })
+          })
+          // New duplicate cards (individual cards, not groups)
+          preview.newDuplicates?.forEach(g => {
+            g.newCards.forEach(c => {
+              if (selectedPlayers.has(c.playerId)) selected.push(c)
+            })
+          })
+          return selected
+        }
         case 'all':
         default:
           return preview.players
@@ -409,6 +435,34 @@ export default function PlayerPreviewList({
 
   const paginatedCardIds = getPaginatedCardIds()
   const isPageAllSelected = paginatedCardIds.length > 0 && paginatedCardIds.every(id => selectedPlayers.has(id))
+
+  // Get ALL card IDs in the current tab (not just current page)
+  const getAllTabCardIds = () => {
+    const allFilteredPlayers = getTabPlayers().filter(player => {
+      const matchesSearch = normalizeForSearch(player.playerName).includes(normalizeForSearch(searchQuery)) ||
+                           normalizeForSearch(player.teamName).includes(normalizeForSearch(searchQuery))
+      const matchesPosition = positionFilter === 'all' || player.position === positionFilter
+      return matchesSearch && matchesPosition
+    })
+
+    if (activeTab === 'name-duplicates' && preview.nameDuplicates) {
+      const allGroupReps = new Set(allFilteredPlayers.map(p => p.playerId))
+      return preview.nameDuplicates
+        .filter(g => g.newCards[0] && allGroupReps.has(g.newCards[0].playerId))
+        .flatMap(g => g.newCards.map(c => c.playerId))
+    }
+    if (activeTab === 'new-duplicates' && preview.newDuplicates) {
+      const allGroupReps = new Set(allFilteredPlayers.map(p => p.playerId))
+      return preview.newDuplicates
+        .filter(g => g.newCards[0] && allGroupReps.has(g.newCards[0].playerId))
+        .flatMap(g => g.newCards.map(c => c.playerId))
+    }
+    // For 'selected' tab, return all currently selected player IDs shown in this tab
+    return allFilteredPlayers.map(p => p.playerId)
+  }
+
+  const allTabCardIds = getAllTabCardIds()
+  const isTabAllSelected = allTabCardIds.length > 0 && allTabCardIds.every(id => selectedPlayers.has(id))
 
   return (
     <div className="space-y-6">
@@ -625,6 +679,16 @@ export default function PlayerPreviewList({
             New Duplicates ({dynamicStats.newDuplicates})
           </button>
         )}
+        <button
+          onClick={() => { setActiveTab('selected'); setCurrentPage(1); }}
+          className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-all ${
+            activeTab === 'selected'
+              ? 'bg-fuchsia-500 text-white'
+              : 'bg-white/5 text-gray-400 hover:bg-white/10'
+          }`}
+        >
+          ✓ Selected ({selectedPlayers.size})
+        </button>
       </div>
 
       {/* Duplicate Sub-Tabs */}
@@ -747,10 +811,10 @@ export default function PlayerPreviewList({
             {isPageAllSelected ? 'Deselect Page' : 'Select Page'}
           </button>
           <button
-            onClick={onToggleAll}
+            onClick={() => onToggleAll(allTabCardIds)}
             className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all font-bold text-sm"
           >
-            {selectedPlayers.size === preview.players.length ? 'Deselect All' : 'Select All'}
+            {isTabAllSelected ? 'Deselect All' : 'Select All'}
           </button>
         </div>
 
@@ -860,6 +924,24 @@ export default function PlayerPreviewList({
               )
             }
 
+            // Determine category badge for the "All" and "Selected" tabs
+            let category: 'new' | 'changed' | 'unchanged' | 'duplicate' | 'name-duplicate' | 'new-duplicate' | undefined
+            if (activeTab === 'all' || activeTab === 'selected') {
+              if (preview.newPlayers.some(p => p.playerId === player.playerId)) {
+                category = 'new'
+              } else if (preview.changedPlayers.some(c => c.playerId === player.playerId)) {
+                category = 'changed'
+              } else if (preview.unchangedPlayers.some(p => p.playerId === player.playerId)) {
+                category = 'unchanged'
+              } else if (preview.nameDuplicates?.some(g => g.newCards.some(c => c.playerId === player.playerId))) {
+                category = 'name-duplicate'
+              } else if (preview.newDuplicates?.some(g => g.newCards.some(c => c.playerId === player.playerId))) {
+                category = 'new-duplicate'
+              } else if (duplicateInfo) {
+                category = 'duplicate'
+              }
+            }
+
             return (
               <PlayerCard
                 key={player.playerId}
@@ -868,6 +950,7 @@ export default function PlayerPreviewList({
                 onToggle={() => onTogglePlayer(player.playerId)}
                 isDuplicate={!!duplicateInfo}
                 isChanged={!!changeInfo}
+                category={category}
               />
             )
           })

@@ -412,7 +412,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         const matches = nameMatchesMap.get(normalizeString(player.playerName)) || []
         const sameNameNation = matches.find(m => {
           const dbStats = m.seasonalPlayerStats[0]
-          return dbStats && dbStats.nationality?.toLowerCase().trim() === player.nationality?.toLowerCase().trim()
+          return dbStats && normalizeString(dbStats.nationality || '') === normalizeString(player.nationality || '')
         })
 
         if (sameNameNation) {

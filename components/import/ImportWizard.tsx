@@ -13,6 +13,30 @@ interface ImportWizardProps {
 
 type Step = 'upload' | 'preview' | 'confirm' | 'progress' | 'complete'
 
+const SKILL_FIELDS = [
+  'scissorsFeint', 'doubleTouch', 'flipFlap', 'marseilleTurn', 'sombrero', 'chopTurn', 'cutBehindTurn', 'scotchMove', 'soleControl', 'momentumDribbling', 'accelerationBurst', 'magneticFeet',
+  'headingSkill', 'bulletHeader',
+  'longRangeCurler', 'blitzCurler', 'chipShotControl', 'knuckleShot', 'dippingShot', 'risingShot', 'longRangeShooting', 'lowScreamer', 'acrobaticFinishing', 'heelTrick', 'firstTimeShot', 'phenomenalFinishing', 'willpower',
+  'oneTouchPass', 'throughPassing', 'weightedPass', 'pinpointCrossing', 'edgedCrossing', 'outsideCurler', 'rabona', 'noLookPass', 'gameChangingPass', 'visionaryPass', 'phenomenalPass', 'lowLoftedPass',
+  'gkLowPunt', 'gkHighPunt', 'longThrow', 'gkLongThrow', 'penaltySpecialist', 'gkPenaltySaver', 'gkDirectingDefence', 'gkSpiritRoar',
+  'gamesmanship', 'manMarking', 'trackBack', 'interception', 'blocker', 'aerialSuperiority', 'slidingTackle', 'longReachTackle', 'fortress', 'acrobaticClearance', 'aerialFort',
+  'captaincy', 'attackTrigger', 'superSub', 'fightingSpirit', 'trickster', 'mazingRun', 'speedingBullet', 'incisiveRun', 'longBallExpert', 'earlyCross', 'longRanger'
+]
+
+const STAT_FIELDS = [
+  'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'setPieceTaking', 'curl',
+  'speed', 'acceleration', 'kickingPower', 'jumping', 'physicalContact', 'balance', 'stamina',
+  'defensiveAwareness', 'tackling', 'aggression', 'defensiveEngagement',
+  'gkAwareness', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
+]
+
+const isFieldIgnored = (field: string, ignored: string[]) => {
+  if (ignored.includes(field)) return true
+  if (ignored.includes('stats') && STAT_FIELDS.includes(field)) return true
+  if (ignored.includes('skills') && SKILL_FIELDS.includes(field)) return true
+  return false
+}
+
 interface ImportProgress {
   total: number
   processed: number
@@ -29,6 +53,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('upload')
   const [mode, setMode] = useState<'import' | 'update' | 'bulk'>('import')
+  const [ignoredFields, setIgnoredFields] = useState<string[]>([])
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<PreviewResponse | null>(null)
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set())
@@ -399,6 +424,10 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             Object.keys(oldStats).forEach((key) => {
               const oldVal = (oldStats as any)[key]
               const newVal = (player as any)[key]
+              
+              // Skip if key is ignored
+              if (isFieldIgnored(key, ignoredFields)) return
+
               // Check if values are different (treat null/undefined as similar to empty/0 to avoid false positives)
               if (oldVal !== newVal && !(oldVal === 0 && newVal === null) && !(oldVal === '' && newVal === null)) {
                 changedFields.push(key)
@@ -567,7 +596,8 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
             seasonId,
             mode,
             selectedPlayers: batch,
-            duplicateResolutions
+            duplicateResolutions,
+            ignoredFields
           })
         })
 
@@ -801,6 +831,47 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
               </button>
             </div>
           </div>
+
+          {/* Ignore Fields Selection (Only for Update Mode) */}
+          {mode === 'update' && (
+            <div className="mb-6 bg-black/25 border border-white/5 rounded-2xl p-4 sm:p-5">
+              <label className="block text-sm font-bold text-white mb-1">Ignore Fields on Update</label>
+              <p className="text-xs text-[#7A7367] mb-4">
+                Select fields that you do NOT want to compare or update in the database for any players:
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { id: 'teamName', label: 'Team' },
+                  { id: 'overallRating', label: 'Rating' },
+                  { id: 'position', label: 'Position' },
+                  { id: 'playingStyle', label: 'Playing Style' },
+                  { id: 'featured', label: 'Featured' },
+                  { id: 'nationality', label: 'Nationality' },
+                  { id: 'stats', label: 'All Stats' },
+                  { id: 'skills', label: 'All Skills' }
+                ].map((field) => (
+                  <button
+                    key={field.id}
+                    type="button"
+                    onClick={() => {
+                      setIgnoredFields(prev => 
+                        prev.includes(field.id)
+                          ? prev.filter(f => f !== field.id)
+                          : [...prev, field.id]
+                      )
+                    }}
+                    className={`p-3 rounded-xl border text-center font-bold text-xs transition-all ${
+                      ignoredFields.includes(field.id)
+                        ? 'bg-[#E8A800]/20 border-[#E8A800] text-[#E8A800]'
+                        : 'bg-black/35 border-white/5 text-[#7A7367] hover:border-white/10 hover:text-[#D4CCBB]'
+                    }`}
+                  >
+                    {field.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* File Upload */}
           <div className="mb-4 sm:mb-6">

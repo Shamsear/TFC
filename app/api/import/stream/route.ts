@@ -14,7 +14,113 @@ interface ImportRequest {
   mode: 'import' | 'update';
   selectedPlayers: EFootballPlayer[];
   duplicateResolutions: Record<string, 'skip' | 'replace' | 'add' | 'add-all' | string>;
+  ignoredFields?: string[];
 }
+
+const SKILL_FIELDS = [
+  'scissorsFeint', 'doubleTouch', 'flipFlap', 'marseilleTurn', 'sombrero', 'chopTurn', 'cutBehindTurn', 'scotchMove', 'soleControl', 'momentumDribbling', 'accelerationBurst', 'magneticFeet',
+  'headingSkill', 'bulletHeader',
+  'longRangeCurler', 'blitzCurler', 'chipShotControl', 'knuckleShot', 'dippingShot', 'risingShot', 'longRangeShooting', 'lowScreamer', 'acrobaticFinishing', 'heelTrick', 'firstTimeShot', 'phenomenalFinishing', 'willpower',
+  'oneTouchPass', 'throughPassing', 'weightedPass', 'pinpointCrossing', 'edgedCrossing', 'outsideCurler', 'rabona', 'noLookPass', 'gameChangingPass', 'visionaryPass', 'phenomenalPass', 'lowLoftedPass',
+  'gkLowPunt', 'gkHighPunt', 'longThrow', 'gkLongThrow', 'penaltySpecialist', 'gkPenaltySaver', 'gkDirectingDefence', 'gkSpiritRoar',
+  'gamesmanship', 'manMarking', 'trackBack', 'interception', 'blocker', 'aerialSuperiority', 'slidingTackle', 'longReachTackle', 'fortress', 'acrobaticClearance', 'aerialFort',
+  'captaincy', 'attackTrigger', 'superSub', 'fightingSpirit', 'trickster', 'mazingRun', 'speedingBullet', 'incisiveRun', 'longBallExpert', 'earlyCross', 'longRanger'
+]
+
+const STAT_FIELDS = [
+  'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'setPieceTaking', 'curl',
+  'speed', 'acceleration', 'kickingPower', 'jumping', 'physicalContact', 'balance', 'stamina',
+  'defensiveAwareness', 'tackling', 'aggression', 'defensiveEngagement',
+  'gkAwareness', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
+]
+
+const FIELD_MAPPING: Record<string, string> = {
+  playingStyle: 'playing_style',
+  teamName: 'realWorldClub',
+  starRating: 'star_rating',
+  weakFootUsage: 'weak_foot_usage',
+  weakFootAccuracy: 'weak_foot_accuracy',
+  injuryResistance: 'injury_resistance',
+  maxLevel: 'max_level',
+  overallAtMaxLevel: 'overall_at_max_level',
+  offensiveAwareness: 'offensive_awareness',
+  ballControl: 'ball_control',
+  tightPossession: 'tight_possession',
+  lowPass: 'low_pass',
+  loftedPass: 'lofted_pass',
+  finishing: 'finishing',
+  heading: 'heading',
+  setPieceTaking: 'set_piece_taking',
+  kickingPower: 'kicking_power',
+  physicalContact: 'physical_contact',
+  defensiveAwareness: 'defensive_awareness',
+  defensiveEngagement: 'defensive_engagement',
+  gkAwareness: 'gk_awareness',
+  gkCatching: 'gk_catching',
+  gkParrying: 'gk_parrying',
+  gkReflexes: 'gk_reflexes',
+  gkReach: 'gk_reach',
+  // Skills mapping
+  scissorsFeint: 'scissors_feint',
+  doubleTouch: 'double_touch',
+  flipFlap: 'flip_flap',
+  marseilleTurn: 'marseille_turn',
+  chopTurn: 'chop_turn',
+  cutBehindTurn: 'cut_behind_turn',
+  scotchMove: 'scotch_move',
+  soleControl: 'sole_control',
+  momentumDribbling: 'momentum_dribbling',
+  accelerationBurst: 'acceleration_burst',
+  magneticFeet: 'magnetic_feet',
+  headingSkill: 'heading_skill',
+  bulletHeader: 'bullet_header',
+  longRangeCurler: 'long_range_curler',
+  blitzCurler: 'blitz_curler',
+  chipShotControl: 'chip_shot_control',
+  knuckleShot: 'knuckle_shot',
+  dippingShot: 'dipping_shot',
+  risingShot: 'rising_shot',
+  longRangeShooting: 'long_range_shooting',
+  lowScreamer: 'low_screamer',
+  acrobaticFinishing: 'acrobatic_finishing',
+  heelTrick: 'heel_trick',
+  firstTimeShot: 'first_time_shot',
+  phenomenalFinishing: 'phenomenal_finishing',
+  oneTouchPass: 'one_touch_pass',
+  throughPassing: 'through_passing',
+  weightedPass: 'weighted_pass',
+  pinpointCrossing: 'pinpoint_crossing',
+  edgedCrossing: 'edged_crossing',
+  outsideCurler: 'outside_curler',
+  noLookPass: 'no_look_pass',
+  gameChangingPass: 'game_changing_pass',
+  visionaryPass: 'visionary_pass',
+  phenomenalPass: 'phenomenal_pass',
+  lowLoftedPass: 'low_lofted_pass',
+  gkLowPunt: 'gk_low_punt',
+  gkHighPunt: 'gk_high_punt',
+  gkLongThrow: 'gk_long_throw',
+  penaltySpecialist: 'penalty_specialist',
+  gkPenaltySaver: 'gk_penalty_saver',
+  gkDirectingDefence: 'gk_directing_defence',
+  gkSpiritRoar: 'gk_spirit_roar',
+  manMarking: 'man_marking',
+  trackBack: 'track_back',
+  aerialSuperiority: 'aerial_superiority',
+  slidingTackle: 'sliding_tackle',
+  longReachTackle: 'long_reach_tackle',
+  acrobaticClearance: 'acrobatic_clearance',
+  aerialFort: 'aerial_fort',
+  attackTrigger: 'attack_trigger',
+  superSub: 'super_sub',
+  fightingSpirit: 'fighting_spirit',
+  mazingRun: 'mazing_run',
+  speedingBullet: 'speeding_bullet',
+  incisiveRun: 'incisive_run',
+  longBallExpert: 'long_ball_expert',
+  earlyCross: 'early_cross',
+  longRanger: 'long_ranger'
+};
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -23,7 +129,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body: ImportRequest = await request.json();
-  const { seasonId, mode, selectedPlayers, duplicateResolutions } = body;
+  const { seasonId, mode, selectedPlayers, duplicateResolutions, ignoredFields = [] } = body;
 
   console.log(`Import request: ${selectedPlayers?.length || 0} players for season ${seasonId}`);
 
@@ -362,10 +468,31 @@ export async function POST(request: NextRequest) {
 
           // Create or update seasonal stats
           if (existingStats) {
+            // Exclude ignored fields from the update query
+            const updateData = { ...statsData } as any;
+            if (ignoredFields.length > 0) {
+              const ignoredDbColumns = new Set<string>();
+              ignoredFields.forEach((field: string) => {
+                if (field === 'stats') {
+                  STAT_FIELDS.forEach(f => ignoredDbColumns.add(FIELD_MAPPING[f] || f));
+                } else if (field === 'skills') {
+                  SKILL_FIELDS.forEach(f => ignoredDbColumns.add(FIELD_MAPPING[f] || f));
+                } else if (field === 'teamName') {
+                  ignoredDbColumns.add('realWorldClub');
+                } else {
+                  ignoredDbColumns.add(FIELD_MAPPING[field] || field);
+                }
+              });
+
+              ignoredDbColumns.forEach(column => {
+                delete updateData[column];
+              });
+            }
+
             // Update existing seasonal stats
             await prisma.seasonal_player_stats.update({
               where: { id: existingStats.id },
-              data: statsData
+              data: updateData
             });
             if (!isNewPlayer) {
               updated++;

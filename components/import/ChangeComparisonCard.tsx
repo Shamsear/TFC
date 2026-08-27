@@ -106,54 +106,37 @@ export default function ChangeComparisonCard({
                 {change.changedFields.length} CHANGES
               </span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
               <span>{change.newStats.teamName}</span>
               <span>•</span>
               <span>{change.newStats.nationality}</span>
+              <span>•</span>
+              <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${getPositionColor(change.newStats.position)}`}>
+                {change.newStats.position} {change.newStats.overallRating}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Quick Comparison */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          {/* Old Stats */}
-          <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4">
-            <div className="text-xs font-bold text-red-400 mb-2">CURRENT</div>
-            <div className="flex items-center justify-between mb-2">
-              <span className={`px-2 py-1 rounded-lg border font-bold text-xs ${getPositionColor(change.oldStats.position)}`}>
-                {change.oldStats.position}
-              </span>
-              <div className="text-2xl font-black text-gray-400">{change.oldStats.overallRating}</div>
-            </div>
-            <div className="text-xs text-gray-500">{change.oldStats.playingStyle}</div>
-          </div>
-
-          {/* New Stats */}
-          <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4">
-            <div className="text-xs font-bold text-emerald-400 mb-2">NEW</div>
-            <div className="flex items-center justify-between mb-2">
-              <span className={`px-2 py-1 rounded-lg border font-bold text-xs ${getPositionColor(change.newStats.position)}`}>
-                {change.newStats.position}
-              </span>
-              <div className="text-2xl font-black text-emerald-400">{change.newStats.overallRating}</div>
-            </div>
-            <div className="text-xs text-emerald-400">{change.newStats.playingStyle}</div>
-          </div>
-        </div>
-
-        {/* Changed Fields Summary */}
-        <div className="mb-4">
-          <div className="text-xs font-bold text-orange-400 mb-2">CHANGED FIELDS</div>
-          <div className="flex flex-wrap gap-2">
-            {change.changedFields.map(field => (
-              <span
-                key={field}
-                className="px-2 py-1 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-medium"
-              >
+        {/* Dynamic Before/After Comparison of Changed Fields */}
+        <div className="mb-4 bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-2.5">
+          <div className="text-xs font-bold text-orange-400 mb-1">CHANGED ATTRIBUTES</div>
+          {change.changedFields.map(field => (
+            <div key={field} className="flex justify-between items-center py-1.5 border-b border-white/5 last:border-0 font-mono text-xs">
+              <span className="text-gray-400 uppercase font-black tracking-wider">
                 {field.replace(/([A-Z])/g, ' $1').trim()}
               </span>
-            ))}
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="text-red-400 line-through font-bold">
+                  {formatValue((change.oldStats as any)[field])}
+                </span>
+                <span className="text-gray-500">→</span>
+                <span className="text-emerald-400 font-bold">
+                  {formatValue((change.newStats as any)[field])}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Toggle Details */}

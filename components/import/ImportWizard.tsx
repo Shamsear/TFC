@@ -288,8 +288,49 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
           name: string
           seasonalPlayerStats: Array<{
             position: string
-            overallRating: number
             realWorldClub: string
+            overallRating: number
+            star_rating?: number | null
+            nationality?: string | null
+            playing_style?: string | null
+            height?: number | null
+            weight?: number | null
+            age?: number | null
+            foot?: string | null
+            featured?: string | null
+            weak_foot_usage?: string | null
+            weak_foot_accuracy?: string | null
+            form?: string | null
+            injury_resistance?: string | null
+            condition?: string | null
+            max_level?: number | null
+            overall_at_max_level?: number | null
+            offensive_awareness?: number | null
+            ball_control?: number | null
+            dribbling?: number | null
+            tight_possession?: number | null
+            low_pass?: number | null
+            lofted_pass?: number | null
+            finishing?: number | null
+            heading?: number | null
+            set_piece_taking?: number | null
+            curl?: number | null
+            speed?: number | null
+            acceleration?: number | null
+            kicking_power?: number | null
+            jumping?: number | null
+            physical_contact?: number | null
+            balance?: number | null
+            stamina?: number | null
+            defensive_awareness?: number | null
+            tackling?: number | null
+            aggression?: number | null
+            defensive_engagement?: number | null
+            gk_awareness?: number | null
+            gk_catching?: number | null
+            gk_parrying?: number | null
+            gk_reflexes?: number | null
+            gk_reach?: number | null
           }>
         }>
       }
@@ -307,21 +348,68 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
           const existingStats = existing.seasonalPlayerStats[0]
           
           if (existingStats) {
+            const oldStats = {
+              position: existingStats.position,
+              overallRating: existingStats.overallRating,
+              playingStyle: existingStats.playing_style || '',
+              teamName: existingStats.realWorldClub,
+              nationality: existingStats.nationality || '',
+              height: existingStats.height || 0,
+              weight: existingStats.weight || 0,
+              age: existingStats.age || 0,
+              foot: existingStats.foot || '',
+              featured: existingStats.featured || '',
+              weakFootUsage: existingStats.weak_foot_usage || '',
+              weakFootAccuracy: existingStats.weak_foot_accuracy || '',
+              form: existingStats.form || '',
+              injuryResistance: existingStats.injury_resistance || '',
+              condition: existingStats.condition || '',
+              maxLevel: existingStats.max_level || 0,
+              overallAtMaxLevel: existingStats.overall_at_max_level || 0,
+              offensiveAwareness: existingStats.offensive_awareness || 0,
+              ballControl: existingStats.ball_control || 0,
+              dribbling: existingStats.dribbling || 0,
+              tightPossession: existingStats.tight_possession || 0,
+              lowPass: existingStats.low_pass || 0,
+              loftedPass: existingStats.lofted_pass || 0,
+              finishing: existingStats.finishing || 0,
+              heading: existingStats.heading || 0,
+              setPieceTaking: existingStats.set_piece_taking || 0,
+              curl: existingStats.curl || 0,
+              speed: existingStats.speed || 0,
+              acceleration: existingStats.acceleration || 0,
+              kickingPower: existingStats.kicking_power || 0,
+              jumping: existingStats.jumping || 0,
+              physicalContact: existingStats.physical_contact || 0,
+              balance: existingStats.balance || 0,
+              stamina: existingStats.stamina || 0,
+              defensiveAwareness: existingStats.defensive_awareness || 0,
+              tackling: existingStats.tackling || 0,
+              aggression: existingStats.aggression || 0,
+              defensiveEngagement: existingStats.defensive_engagement || 0,
+              gkAwareness: existingStats.gk_awareness || 0,
+              gkCatching: existingStats.gk_catching || 0,
+              gkParrying: existingStats.gk_parrying || 0,
+              gkReflexes: existingStats.gk_reflexes || 0,
+              gkReach: existingStats.gk_reach || 0
+            }
+
             // Compare stats to see if changed
             const changedFields: string[] = []
-            if (existingStats.position !== player.position) changedFields.push('position')
-            if (existingStats.overallRating !== player.overallRating) changedFields.push('overallRating')
-            if (existingStats.realWorldClub !== player.teamName) changedFields.push('realWorldClub')
+            Object.keys(oldStats).forEach((key) => {
+              const oldVal = (oldStats as any)[key]
+              const newVal = (player as any)[key]
+              // Check if values are different (treat null/undefined as similar to empty/0 to avoid false positives)
+              if (oldVal !== newVal && !(oldVal === 0 && newVal === null) && !(oldVal === '' && newVal === null)) {
+                changedFields.push(key)
+              }
+            })
             
             if (changedFields.length > 0) {
               changedPlayers.push({
                 playerId: player.playerId,
                 playerName: player.playerName,
-                oldStats: {
-                  position: existingStats.position,
-                  overallRating: existingStats.overallRating,
-                  realWorldClub: existingStats.realWorldClub
-                },
+                oldStats,
                 newStats: player,
                 changedFields
               })

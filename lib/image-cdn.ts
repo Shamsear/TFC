@@ -96,5 +96,6 @@ export function getPhotoUrlFromDb(photoUrl: string | null | undefined): string {
 export function getPlayerCardById(playerId: string | null | undefined): string {
   if (!playerId) return '/default-player-card.png';
   
-  return getPlayerCardUrl(`${playerId}.png`);
+  const cleanId = String(playerId).split('/').pop()?.replace('.png', '').replace('.webp', '') || playerId;
+  return `https://pesdb.net/assets/img/card/f${cleanId}.png`;
 }

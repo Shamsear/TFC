@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { EFootballPlayer } from '@/lib/sqlite-parser'
-import { getPhotoUrlFromDb, getPlayerCardById } from '@/lib/image-cdn'
+import { getPlayerCardById } from '@/lib/image-cdn'
 
 interface PlayerCardProps {
   player: EFootballPlayer
@@ -72,15 +72,15 @@ export default function PlayerCard({
             />
           </div>
 
-          {/* Player Photo Avatar */}
-          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-black/40 border border-white/10 overflow-hidden relative">
+          {/* Player Card Avatar */}
+          <div className="flex-shrink-0 w-12 h-16 rounded bg-black/40 border border-white/10 overflow-hidden relative">
             <img
-              src={getPhotoUrlFromDb(player.playerId)}
+              src={getPlayerCardById(player.playerId)}
               alt={player.playerName}
               onError={(e) => {
-                e.currentTarget.src = '/default-player.png'
+                e.currentTarget.src = '/default-player-card.png'
               }}
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-contain"
             />
           </div>
 

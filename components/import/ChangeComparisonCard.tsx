@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { PlayerChange } from '@/app/api/import/preview/route'
-import { getPhotoUrlFromDb, getPlayerCardById } from '@/lib/image-cdn'
+import { getPlayerCardById } from '@/lib/image-cdn'
 
 interface ChangeComparisonCardProps {
   change: PlayerChange
@@ -103,15 +103,15 @@ export default function ChangeComparisonCard({
             />
           </div>
 
-          {/* Player Photo Avatar */}
-          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-black/40 border border-white/10 overflow-hidden relative">
+          {/* Player Card Avatar */}
+          <div className="flex-shrink-0 w-12 h-16 rounded bg-black/40 border border-white/10 overflow-hidden relative">
             <img
-              src={getPhotoUrlFromDb(change.playerId)}
+              src={getPlayerCardById(change.playerId)}
               alt={change.newStats.playerName}
               onError={(e) => {
-                e.currentTarget.src = '/default-player.png'
+                e.currentTarget.src = '/default-player-card.png'
               }}
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-contain"
             />
           </div>
 

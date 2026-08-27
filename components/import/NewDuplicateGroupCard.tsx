@@ -1,7 +1,7 @@
 'use client'
 
 import { NewDuplicateGroup } from '@/app/api/import/preview/route'
-import { getPhotoUrlFromDb } from '@/lib/image-cdn'
+import { getPlayerCardById } from '@/lib/image-cdn'
 
 interface NewDuplicateGroupCardProps {
   group: NewDuplicateGroup
@@ -74,15 +74,15 @@ export default function NewDuplicateGroupCard({
                   className="w-5 h-5 rounded border-2 border-white/20 bg-black/50 checked:bg-cyan-500 checked:border-cyan-500 cursor-pointer flex-shrink-0"
                 />
 
-                {/* Sub-card Photo Avatar */}
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-black/40 border border-white/10 overflow-hidden relative">
+                {/* Sub-card Card Avatar */}
+                <div className="flex-shrink-0 w-10 h-14 rounded bg-black/40 border border-white/10 overflow-hidden relative">
                   <img
-                    src={getPhotoUrlFromDb(card.playerId)}
+                    src={getPlayerCardById(card.playerId)}
                     alt={card.playerName}
                     onError={(e) => {
-                      e.currentTarget.src = '/default-player.png'
+                      e.currentTarget.src = '/default-player-card.png'
                     }}
-                    className="w-full h-full object-cover object-center"
+                    className="w-full h-full object-contain"
                   />
                 </div>
 

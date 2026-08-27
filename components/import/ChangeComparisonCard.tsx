@@ -16,6 +16,17 @@ export default function ChangeComparisonCard({
 }: ChangeComparisonCardProps) {
   const [showDetails, setShowDetails] = useState(false)
 
+  const renderedFields = new Set([
+    'overallRating', 'position', 'playingStyle', 'teamName', 'nationality',
+    'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'finishing', 'heading',
+    'lowPass', 'loftedPass', 'setPieceTaking', 'curl',
+    'speed', 'acceleration', 'kickingPower', 'jumping', 'physicalContact', 'balance', 'stamina',
+    'defensiveAwareness', 'tackling', 'aggression', 'defensiveEngagement',
+    'gkAwareness', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
+  ])
+
+  const otherChangedFields = change.changedFields.filter(field => !renderedFields.has(field))
+
   const getPositionColor = (position: string) => {
     switch (position) {
       case 'GK': return 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400'
@@ -42,6 +53,11 @@ export default function ChangeComparisonCard({
     return change.changedFields.includes(field as string)
   }
 
+  const formatValue = (val: any) => {
+    if (val === null || val === undefined || val === '') return 'None'
+    return String(val)
+  }
+
   const StatRow = ({ label, oldValue, newValue, field }: { 
     label: string
     oldValue: any
@@ -54,11 +70,11 @@ export default function ChangeComparisonCard({
         <span className="text-gray-400 text-sm">{label}</span>
         <div className="flex items-center gap-2">
           <span className={`text-sm font-bold ${changed ? 'text-red-400 line-through' : 'text-gray-500'}`}>
-            {oldValue}
+            {formatValue(oldValue)}
           </span>
           <span className="text-gray-600">→</span>
           <span className={`text-sm font-bold ${changed ? 'text-emerald-400' : 'text-white'}`}>
-            {newValue}
+            {formatValue(newValue)}
           </span>
         </div>
       </div>
@@ -151,6 +167,24 @@ export default function ChangeComparisonCard({
         {/* Detailed Comparison */}
         {showDetails && (
           <div className="mt-4 pt-4 border-t border-white/10">
+            {/* Other/Additional Changes */}
+            {otherChangedFields.length > 0 && (
+              <div className="border-b border-white/10 pb-4 mb-4">
+                <div className="text-xs font-bold text-orange-400 mb-2">ADDITIONAL DETAIL CHANGES</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {otherChangedFields.map(field => (
+                    <StatRow
+                      key={field}
+                      label={field.replace(/([A-Z])/g, ' $1').trim()}
+                      oldValue={(change.oldStats as any)[field]}
+                      newValue={(change.newStats as any)[field]}
+                      field={field}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Basic Info */}
               <div>

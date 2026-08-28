@@ -25,40 +25,78 @@ export async function GET(request: NextRequest) {
     const repoOwner = 'Shamsear'
     const repoName = 'TFC-Images'
 
-    // 1. Fetch entire file tree recursively from GitHub repository
-    const treeUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/main?recursive=1`
-    const treeRes = await fetch(treeUrl, {
+    // 1. Fetch root tree (non-recursive)
+    const rootRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/main`, {
       headers: {
         'Authorization': `Bearer ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json',
         'User-Agent': 'TFC-Admin-Portal'
-      },
-      next: { revalidate: 60 } // cache file tree for 60 seconds to avoid hitting rate limits too fast
+      }
     })
+    if (!rootRes.ok) throw new Error(`Root tree fetch failed: status ${rootRes.status}`)
+    const rootData = await rootRes.json()
+    const publicNode = rootData.tree?.find((n: any) => n.path === 'public')
+    if (!publicNode) throw new Error('No "public" directory found in repository.')
 
-    if (!treeRes.ok) {
-      throw new Error(`GitHub Git Trees API returned status ${treeRes.status}`)
+    // 2. Fetch public directory tree (non-recursive)
+    const publicRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${publicNode.sha}`, {
+      headers: {
+        'Authorization': `Bearer ${githubToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'TFC-Admin-Portal'
+      }
+    })
+    if (!publicRes.ok) throw new Error(`Public folder fetch failed: status ${publicRes.status}`)
+    const publicData = await publicRes.json()
+
+    const photosNode = publicData.tree?.find((n: any) => n.path === 'player_photos')
+    const cardsNode = publicData.tree?.find((n: any) => n.path === 'player_cards')
+
+    if (!photosNode || !cardsNode) {
+      throw new Error('Missing player_photos or player_cards directories in public/')
     }
 
-    const treeData = await treeRes.json()
-    const files = treeData.tree || []
+    // 3. Fetch both folders in parallel by SHA (bypasses recursive limits/500 errors)
+    const [photosRes, cardsRes] = await Promise.all([
+      fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${photosNode.sha}`, {
+        headers: {
+          'Authorization': `Bearer ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'TFC-Admin-Portal'
+        }
+      }),
+      fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${cardsNode.sha}`, {
+        headers: {
+          'Authorization': `Bearer ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'TFC-Admin-Portal'
+        }
+      })
+    ])
+
+    if (!photosRes.ok) throw new Error(`Photos folder fetch failed: status ${photosRes.status}`)
+    if (!cardsRes.ok) throw new Error(`Cards folder fetch failed: status ${cardsRes.status}`)
+
+    const photosData = await photosRes.json()
+    const cardsData = await cardsRes.json()
 
     const photosSet = new Set<string>()
     const cardsSet = new Set<string>()
 
-    for (const file of files) {
+    // Populate sets with extracted filenames (player IDs)
+    for (const file of photosData.tree || []) {
       if (file.type !== 'blob') continue
-      
-      if (file.path.startsWith('public/player_photos/')) {
-        const id = file.path.split('/').pop()?.split('.')[0]
-        if (id) photosSet.add(id)
-      } else if (file.path.startsWith('public/player_cards/')) {
-        const id = file.path.split('/').pop()?.split('.')[0]
-        if (id) cardsSet.add(id)
-      }
+      const id = file.path.split('.')[0]
+      if (id) photosSet.add(id)
     }
 
-    // 2. Fetch all players from database
+    for (const file of cardsData.tree || []) {
+      if (file.type !== 'blob') continue
+      const id = file.path.split('.')[0]
+      if (id) cardsSet.add(id)
+    }
+
+    // 4. Fetch all players from database
     const allPlayers = await prisma.base_players.findMany({
       select: {
         id: true,
@@ -67,7 +105,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 3. Filter missing
+    // 5. Filter missing
     let missing = allPlayers.filter(p => {
       const id = p.player_id || p.id
       return type === 'photo' ? !photosSet.has(id) : !cardsSet.has(id)

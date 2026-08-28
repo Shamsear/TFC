@@ -32,6 +32,24 @@ export default function CheckImagesClient() {
   const [successIds, setSuccessIds] = useState<Set<string>>(new Set())
   const [errorMessages, setErrorMessages] = useState<Record<string, string>>({})
 
+  // Crop from card state variables
+  const [cropPlayer, setCropPlayer] = useState<Player | null>(null)
+  const [cropX, setCropX] = useState(50) // center X (%)
+  const [cropY, setCropY] = useState(25) // center Y (%)
+  const [cropSize, setCropSize] = useState(22) // width/height size (%)
+  const [isCropping, setIsCropping] = useState(false)
+  const [cropError, setCropError] = useState<string | null>(null)
+
+  // Reset crop values when changing crop player
+  useEffect(() => {
+    if (cropPlayer) {
+      setCropX(50)
+      setCropY(25)
+      setCropSize(22)
+      setCropError(null)
+    }
+  }, [cropPlayer])
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -72,7 +90,6 @@ export default function CheckImagesClient() {
       return next
     })
 
-    // Clear any previous error
     setErrorMessages(prev => {
       const next = { ...prev }
       delete next[playerId]
@@ -92,14 +109,12 @@ export default function CheckImagesClient() {
         throw new Error(data.error || 'Failed to fetch and upload card.')
       }
 
-      // Mark success
       setSuccessIds(prev => {
         const next = new Set(prev)
         next.add(playerId)
         return next
       })
 
-      // Update local statistics counts
       setStats(prev => {
         if (!prev) return null
         return {
@@ -109,7 +124,6 @@ export default function CheckImagesClient() {
         }
       })
 
-      // Automatically remove from listing after 1.5 seconds
       setTimeout(() => {
         setPlayers(prev => prev.filter(p => (p.player_id || p.id) !== playerId))
         setSuccessIds(prev => {
@@ -132,7 +146,99 @@ export default function CheckImagesClient() {
         return next
       })
     }
-  };
+  }
+
+  const handleCropAndUpload = async () => {
+    if (!cropPlayer) return
+    setIsCropping(true)
+    setCropError(null)
+
+    const id = cropPlayer.player_id || cropPlayer.id
+    const proxiedUrl = `/api/admin/proxy-image?url=https://pesdb.net/assets/img/card/f${id}.png`
+
+    try {
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.src = proxiedUrl
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = () => reject(new Error('Failed to load card image for cropping. Make sure card exists on PESDB.'))
+      })
+
+      const canvas = document.createElement('canvas')
+      canvas.width = 256
+      canvas.height = 256
+      const ctx = canvas.getContext('2d')
+
+      if (!ctx) {
+        throw new Error('Could not create canvas drawing context.')
+      }
+
+      // Percentage math to natural coordinate translation
+      // naturalWidth / naturalHeight
+      const naturalWidth = img.naturalWidth
+      const naturalHeight = img.naturalHeight
+
+      // Square crop dimensions (using width as baseline)
+      const naturalSize = (cropSize * naturalWidth) / 100
+      const naturalX = ((cropX - cropSize / 2) * naturalWidth) / 100
+      const naturalY = ((cropY - cropSize / 2) * naturalHeight) / 100
+
+      ctx.drawImage(img, naturalX, naturalY, naturalSize, naturalSize, 0, 0, 256, 256)
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setCropError('Failed to generate cropped WebP blob.')
+          setIsCropping(false)
+          return
+        }
+
+        try {
+          const formData = new FormData()
+          formData.append('file', blob, `${id}.webp`)
+          formData.append('playerId', id)
+          formData.append('imageType', 'photo')
+
+          const res = await fetch('/api/admin/upload-player-image', {
+            method: 'POST',
+            body: formData
+          })
+
+          const data = await res.json()
+
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to upload photo to GitHub storage.')
+          }
+
+          // Successfully uploaded! Update local counts
+          setStats(prev => {
+            if (!prev) return null
+            return {
+              ...prev,
+              totalPhotos: prev.totalPhotos + 1,
+              missingPhotos: Math.max(0, prev.missingPhotos - 1)
+            }
+          })
+
+          // Remove cropped player from listing
+          setPlayers(prev => prev.filter(p => (p.player_id || p.id) !== id))
+          setTotalCount(prev => Math.max(0, prev - 1))
+          
+          // Close modal
+          setCropPlayer(null)
+        } catch (err) {
+          setCropError(err instanceof Error ? err.message : 'Photo upload failed.')
+        } finally {
+          setIsCropping(false)
+        }
+      }, 'image/webp', 0.92)
+
+    } catch (err) {
+      setCropError(err instanceof Error ? err.message : 'Cropping failed.')
+      setIsCropping(false)
+    }
+  }
 
   const getPesdbCardUrl = (playerId: string) => {
     return `https://pesdb.net/assets/img/card/f${playerId}.png`
@@ -273,12 +379,18 @@ export default function CheckImagesClient() {
                       unoptimized
                     />
                   ) : (
-                    // Photos can be uploaded manually
-                    <div className="flex flex-col items-center text-center p-2 text-gray-500">
-                      <svg className="w-8 h-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <span className="text-[9px] font-mono leading-tight">No Photo Uploaded</span>
+                    // Photos missing: preview card so we can crop face from it
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={getPesdbCardUrl(id)}
+                        alt={player.name}
+                        fill
+                        className="object-contain opacity-55 hover:opacity-100 transition-opacity"
+                        unoptimized
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="px-2 py-1 rounded bg-black/75 border border-white/10 text-[9px] text-gray-400 font-mono">NO PHOTO</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -294,7 +406,7 @@ export default function CheckImagesClient() {
                 </div>
 
                 {/* Actions */}
-                <div className="mt-auto w-full">
+                <div className="mt-auto w-full space-y-2">
                   {errorMessage && (
                     <div className="text-[9px] text-red-400 text-center font-mono leading-tight mb-2 border border-red-500/10 bg-red-500/5 rounded p-1">
                       {errorMessage}
@@ -338,13 +450,25 @@ export default function CheckImagesClient() {
                       )}
                     </button>
                   ) : (
-                    // Photo uploads are done manually via upload-images page
-                    <Link
-                      href="/sub-admin/upload-images"
-                      className="block w-full text-center py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-white/5 hover:bg-[#FFB347] hover:text-black border border-white/10 text-white transition-all"
-                    >
-                      Upload Photo
-                    </Link>
+                    <div className="flex flex-col gap-1.5 w-full">
+                      {/* Crop face from card */}
+                      <button
+                        onClick={() => setCropPlayer(player)}
+                        className="w-full py-2 text-center rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-white/5 hover:bg-[#E8A800] hover:text-black border border-white/10 text-white transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Crop from Card
+                      </button>
+                      {/* Manual Upload */}
+                      <Link
+                        href="/sub-admin/upload-images"
+                        className="w-full text-center py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-white/5 hover:bg-[#FFB347] hover:text-black border border-white/10 text-white transition-all block"
+                      >
+                        Upload Photo
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -375,6 +499,148 @@ export default function CheckImagesClient() {
           >
             Next
           </button>
+        </div>
+      )}
+
+      {/* Draggable/Slider Cropper Modal */}
+      {cropPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-white/5 pb-4 mb-5">
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-wider">Crop Player Photo</h3>
+                <p className="text-[10px] text-gray-400 font-mono mt-1">
+                  Adjust sliders to frame {cropPlayer.name}'s face from eFootball card
+                </p>
+              </div>
+              <button
+                onClick={() => setCropPlayer(null)}
+                className="text-gray-400 hover:text-white transition-colors p-1"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {cropError && (
+              <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl font-mono text-xs uppercase tracking-wider leading-tight">
+                {cropError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column: Image with interactive Crop Overlay */}
+              <div className="flex flex-col items-center justify-center">
+                <div className="relative w-56 aspect-[3/4] bg-black/50 border border-white/10 rounded-xl overflow-hidden shadow-inner flex items-center justify-center select-none">
+                  {/* Proxied image to allow Canvas drawing */}
+                  <img
+                    src={`/api/admin/proxy-image?url=https://pesdb.net/assets/img/card/f${cropPlayer.player_id || cropPlayer.id}.png`}
+                    alt={cropPlayer.name}
+                    className="w-full h-full object-contain pointer-events-none"
+                  />
+                  {/* Dynamic circular crop overlay */}
+                  <div
+                    className="absolute border-2 border-dashed border-[#E8A800] bg-black/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] rounded-full pointer-events-none"
+                    style={{
+                      left: `${cropX - cropSize / 2}%`,
+                      top: `${cropY - cropSize / 2}%`,
+                      width: `${cropSize}%`,
+                      height: `0`,
+                      paddingBottom: `${cropSize}%`
+                    }}
+                  />
+                </div>
+                <span className="text-[9px] text-gray-500 font-mono tracking-wider mt-2">Crop Area Indicator</span>
+              </div>
+
+              {/* Right Column: Controls */}
+              <div className="flex flex-col justify-between">
+                <div className="space-y-4">
+                  {/* Vertical position Y slider */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                      <span>Vertical Position (Y)</span>
+                      <span>{cropY}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={cropSize / 2}
+                      max={100 - cropSize / 2}
+                      value={cropY}
+                      onChange={(e) => setCropY(Number(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E8A800]"
+                    />
+                  </div>
+
+                  {/* Horizontal position X slider */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                      <span>Horizontal Position (X)</span>
+                      <span>{cropX}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={cropSize / 2}
+                      max={100 - cropSize / 2}
+                      value={cropX}
+                      onChange={(e) => setCropX(Number(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E8A800]"
+                    />
+                  </div>
+
+                  {/* Size slider */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                      <span>Crop Area Size</span>
+                      <span>{cropSize}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="15"
+                      max="40"
+                      value={cropSize}
+                      onChange={(e) => setCropSize(Number(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E8A800]"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-8 flex gap-3">
+                  <button
+                    onClick={() => setCropPlayer(null)}
+                    disabled={isCropping}
+                    className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCropAndUpload}
+                    disabled={isCropping}
+                    className="flex-1 py-2.5 bg-[#E8A800] hover:bg-[#FFC93A] text-black rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isCropping ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Crop & Save</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

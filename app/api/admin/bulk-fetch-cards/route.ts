@@ -103,30 +103,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'GitHub configuration missing on server.' }, { status: 500 })
     }
 
-    const results = await Promise.allSettled(
-      playerIds.map(async (id) => {
+    const successes: string[] = []
+    const failures: Array<{ id: string; error: string }> = []
+
+    for (const id of playerIds) {
+      try {
         if (!/^\d+$/.test(id)) {
           throw new Error('Invalid Player ID format')
         }
         await fetchAndUploadSingleCard(id, githubToken)
-        return id
-      })
-    )
-
-    const successes: string[] = []
-    const failures: Array<{ id: string; error: string }> = []
-
-    results.forEach((res, i) => {
-      const id = playerIds[i]
-      if (res.status === 'fulfilled') {
         successes.push(id)
-      } else {
+        // Add a tiny delay to let GitHub digest the commit and update the branch ref
+        await new Promise(resolve => setTimeout(resolve, 800))
+      } catch (err) {
         failures.push({
           id,
-          error: res.reason instanceof Error ? res.reason.message : String(res.reason)
+          error: err instanceof Error ? err.message : String(err)
         })
       }
-    })
+    }
 
     // Create Audit Log for the bulk action
     try {

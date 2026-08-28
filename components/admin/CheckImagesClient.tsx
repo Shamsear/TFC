@@ -196,8 +196,8 @@ export default function CheckImagesClient() {
       })
 
       const canvas = document.createElement('canvas')
-      canvas.width = 256
-      canvas.height = 256
+      canvas.width = 140
+      canvas.height = 140
       const ctx = canvas.getContext('2d')
 
       if (!ctx) {
@@ -214,7 +214,7 @@ export default function CheckImagesClient() {
       const naturalX = ((cropX - cropSize / 2) * naturalWidth) / 100
       const naturalY = ((cropY - cropSize / 2) * naturalHeight) / 100
 
-      ctx.drawImage(img, naturalX, naturalY, naturalSize, naturalSize, 0, 0, 256, 256)
+      ctx.drawImage(img, naturalX, naturalY, naturalSize, naturalSize, 0, 0, 140, 140)
 
       canvas.toBlob(async (blob) => {
         if (!blob) {

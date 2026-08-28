@@ -69,6 +69,12 @@ const CameraIcon = () => (
   </svg>
 );
 
+const SearchIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
 
 const ArrowRightIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -627,7 +633,7 @@ export default async function SubAdminDashboard() {
         <div className="mb-6">
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Global Utilities</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono">
           <Link
             href="/sub-admin/import"
             className="group relative overflow-hidden rounded-2xl bg-white/[0.01] border border-white/5 p-6 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all flex items-center justify-between shadow-md"
@@ -636,7 +642,7 @@ export default async function SubAdminDashboard() {
               <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center text-[#E8A800]">
                 <UploadIcon />
               </div>
-              <div>
+              <div className="font-sans">
                 <div className="font-extrabold text-sm text-white uppercase tracking-wider mb-0.5">Import Database</div>
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Upload player data</div>
               </div>
@@ -654,12 +660,30 @@ export default async function SubAdminDashboard() {
               <div className="w-10 h-10 rounded-xl bg-[#FFB347]/10 flex items-center justify-center text-[#FFB347]">
                 <CameraIcon />
               </div>
-              <div>
+              <div className="font-sans">
                 <div className="font-extrabold text-sm text-white uppercase tracking-wider mb-0.5">Upload Images</div>
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Upload photos & cards to GitHub</div>
               </div>
             </div>
             <div className="w-5 h-5 opacity-50 group-hover:opacity-100 text-[#FFB347] transition-opacity">
+              <ArrowRightIcon />
+            </div>
+          </Link>
+
+          <Link
+            href="/sub-admin/check-images"
+            className="group relative overflow-hidden rounded-2xl bg-white/[0.01] border border-white/5 p-6 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all flex items-center justify-between shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center text-[#E8A800]">
+                <SearchIcon />
+              </div>
+              <div className="font-sans">
+                <div className="font-extrabold text-sm text-white uppercase tracking-wider mb-0.5">Image Scanner</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Find & fetch missing images</div>
+              </div>
+            </div>
+            <div className="w-5 h-5 opacity-50 group-hover:opacity-100 text-[#E8A800] transition-opacity">
               <ArrowRightIcon />
             </div>
           </Link>

@@ -105,7 +105,15 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 5. Filter missing
+    // 5. Filter missing and calculate correct totals based on DB
+    let missingPhotosCount = 0
+    let missingCardsCount = 0
+    for (const p of allPlayers) {
+      const id = p.player_id || p.id
+      if (!photosSet.has(id)) missingPhotosCount++
+      if (!cardsSet.has(id)) missingCardsCount++
+    }
+
     let missing = allPlayers.filter(p => {
       const id = p.player_id || p.id
       return type === 'photo' ? !photosSet.has(id) : !cardsSet.has(id)
@@ -132,8 +140,8 @@ export async function GET(request: NextRequest) {
         totalPlayers: allPlayers.length,
         totalPhotos: photosSet.size,
         totalCards: cardsSet.size,
-        missingPhotos: allPlayers.length - photosSet.size,
-        missingCards: allPlayers.length - cardsSet.size
+        missingPhotos: missingPhotosCount,
+        missingCards: missingCardsCount
       }
     })
 

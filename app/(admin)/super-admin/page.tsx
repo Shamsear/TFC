@@ -37,6 +37,31 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
+const UploadIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+  </svg>
+);
+
+const CameraIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
 export default async function SuperAdminDashboard() {
   const session = await auth()
 
@@ -213,6 +238,86 @@ export default async function SuperAdminDashboard() {
             <div>
               <div className="font-extrabold text-sm uppercase tracking-wider mb-0.5">Import History</div>
               <div className="text-[10px] font-bold text-white/60 uppercase tracking-wide">Add past season data</div>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Global Utilities */}
+      <div className="mb-8 lg:mb-12">
+        <div className="mb-6">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Global Utilities</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
+          <Link
+            href="/sub-admin/import"
+            className="group relative overflow-hidden rounded-2xl bg-white/[0.01] border border-white/5 p-6 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all flex items-center justify-between shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center text-[#E8A800]">
+                <UploadIcon />
+              </div>
+              <div className="font-sans">
+                <div className="font-extrabold text-sm text-white uppercase tracking-wider mb-0.5">Import Database</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Upload player data</div>
+              </div>
+            </div>
+            <div className="w-5 h-5 opacity-50 group-hover:opacity-100 text-[#E8A800] transition-opacity">
+              <ArrowRightIcon />
+            </div>
+          </Link>
+
+          <Link
+            href="/sub-admin/upload-images"
+            className="group relative overflow-hidden rounded-2xl bg-white/[0.01] border border-white/5 p-6 hover:border-[#FFB347]/25 hover:bg-white/[0.03] transition-all flex items-center justify-between shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#FFB347]/10 flex items-center justify-center text-[#FFB347]">
+                <CameraIcon />
+              </div>
+              <div className="font-sans">
+                <div className="font-extrabold text-sm text-white uppercase tracking-wider mb-0.5">Upload Images</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Upload photos & cards to GitHub</div>
+              </div>
+            </div>
+            <div className="w-5 h-5 opacity-50 group-hover:opacity-100 text-[#FFB347] transition-opacity">
+              <ArrowRightIcon />
+            </div>
+          </Link>
+
+          <Link
+            href="/sub-admin/check-images"
+            className="group relative overflow-hidden rounded-2xl bg-white/[0.01] border border-white/5 p-6 hover:border-[#E8A800]/25 hover:bg-white/[0.03] transition-all flex items-center justify-between shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#E8A800]/10 flex items-center justify-center text-[#E8A800]">
+                <SearchIcon />
+              </div>
+              <div className="font-sans">
+                <div className="font-extrabold text-sm text-white uppercase tracking-wider mb-0.5">Image Scanner</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Find & fetch missing images</div>
+              </div>
+            </div>
+            <div className="w-5 h-5 opacity-50 group-hover:opacity-100 text-[#E8A800] transition-opacity">
+              <ArrowRightIcon />
+            </div>
+          </Link>
+
+          <Link
+            href="/sub-admin/delete-images"
+            className="group relative overflow-hidden rounded-2xl bg-white/[0.01] border border-white/5 p-6 hover:border-red-500/25 hover:bg-white/[0.03] transition-all flex items-center justify-between shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+                <TrashIcon />
+              </div>
+              <div className="font-sans">
+                <div className="font-extrabold text-sm text-white uppercase tracking-wider mb-0.5">Manage Images</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Delete photos & cards</div>
+              </div>
+            </div>
+            <div className="w-5 h-5 opacity-50 group-hover:opacity-100 text-red-500 transition-opacity">
+              <ArrowRightIcon />
             </div>
           </Link>
         </div>

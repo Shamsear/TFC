@@ -195,6 +195,13 @@ export async function PATCH(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ seasonId: string; calendarId: string }> }
+) {
+  return PATCH(request, { params })
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ seasonId: string; calendarId: string }> }

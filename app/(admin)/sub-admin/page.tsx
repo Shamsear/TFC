@@ -218,7 +218,7 @@ export default async function SubAdminDashboard() {
                 {/* Category 1: Squads & Teams */}
                 <div>
                   <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest font-mono mb-4 border-l-2 border-[#E8A800] pl-2">
-                    🛡️ Squads & Registries
+                    Squads & Registries
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link
@@ -298,7 +298,7 @@ export default async function SubAdminDashboard() {
                 {/* Category 2: Auction & Retention */}
                 <div>
                   <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest font-mono mb-4 border-l-2 border-[#FFB347] pl-2">
-                    💸 Auction & Retention
+                    Auction & Retention
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link
@@ -432,7 +432,7 @@ export default async function SubAdminDashboard() {
                 {/* Category 3: Tournaments, Stats & Tools */}
                 <div>
                   <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest font-mono mb-4 border-l-2 border-emerald-500 pl-2">
-                    🏆 Tournaments & Tools
+                    Tournaments & Tools
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link

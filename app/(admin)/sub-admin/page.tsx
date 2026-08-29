@@ -118,6 +118,7 @@ export default async function SubAdminDashboard() {
         where: { id: activeSeasonId },
         include: {
           seasonTeams: {
+            where: { isActive: true },
             include: { team: true }
           }
         }
@@ -129,6 +130,7 @@ export default async function SubAdminDashboard() {
         },
         include: {
           seasonTeams: {
+            where: { isActive: true },
             include: { team: true }
           }
         }
@@ -142,6 +144,7 @@ export default async function SubAdminDashboard() {
     orderBy: { createdAt: "desc" },
     include: {
       seasonTeams: {
+        where: { isActive: true },
         include: { team: true }
       }
     }

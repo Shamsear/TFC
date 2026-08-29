@@ -131,7 +131,12 @@ export default async function SuperAdminDashboard() {
 
   const latestSeason = activeSeasonId ? await prisma.seasons.findUnique({
     where: { id: activeSeasonId },
-    include: { seasonTeams: { include: { team: true } } }
+    include: {
+      seasonTeams: {
+        where: { isActive: true },
+        include: { team: true }
+      }
+    }
   }) : null
 
   // Resolve current manager for each recent team

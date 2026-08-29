@@ -329,19 +329,6 @@ export default function CheckImagesClient() {
         img.onerror = () => reject(new Error('Failed to load card image for cropping. Make sure card exists on PESDB.'))
       })
 
-      const canvas = document.createElement('canvas')
-      canvas.width = 140
-      canvas.height = 140
-      const ctx = canvas.getContext('2d')
-
-      if (!ctx) {
-        throw new Error('Could not create canvas drawing context.')
-      }
-
-      // Enable high-quality image smoothing
-      ctx.imageSmoothingEnabled = true
-      ctx.imageSmoothingQuality = 'high'
-
       // Percentage math to natural coordinate translation
       // naturalWidth / naturalHeight
       const naturalWidth = img.naturalWidth
@@ -352,7 +339,23 @@ export default function CheckImagesClient() {
       const naturalX = ((cropX - cropSize / 2) * naturalWidth) / 100
       const naturalY = ((cropY - cropSize / 2) * naturalHeight) / 100
 
-      ctx.drawImage(img, naturalX, naturalY, naturalSize, naturalSize, 0, 0, 140, 140)
+      // Fixed high-resolution crop output (minimum 400x400 px, or natural size if larger)
+      const targetSize = Math.max(Math.round(naturalSize), 400)
+
+      const canvas = document.createElement('canvas')
+      canvas.width = targetSize
+      canvas.height = targetSize
+      const ctx = canvas.getContext('2d')
+
+      if (!ctx) {
+        throw new Error('Could not create canvas drawing context.')
+      }
+
+      // Enable high-quality image smoothing
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+
+      ctx.drawImage(img, naturalX, naturalY, naturalSize, naturalSize, 0, 0, targetSize, targetSize)
 
       canvas.toBlob(async (blob) => {
         if (!blob) {

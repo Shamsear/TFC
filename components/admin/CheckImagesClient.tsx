@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -40,6 +40,7 @@ export default function CheckImagesClient() {
   const [cropSize, setCropSize] = useState(22) // width/height size (%)
   const [isCropping, setIsCropping] = useState(false)
   const [cropError, setCropError] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // Reset crop values when changing crop player
   useEffect(() => {
@@ -50,6 +51,139 @@ export default function CheckImagesClient() {
       setCropError(null)
     }
   }, [cropPlayer])
+
+  // Draggable and key-controlled crop box movement
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (!containerRef.current) return
+    
+    const rect = containerRef.current.getBoundingClientRect()
+    const startMouseX = e.clientX
+    const startMouseY = e.clientY
+    const startCropX = cropX
+    const startCropY = cropY
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startMouseX
+      const dy = moveEvent.clientY - startMouseY
+      
+      const pctDx = (dx / rect.width) * 100
+      const pctDy = (dy / rect.height) * 100
+      
+      let newX = startCropX + pctDx
+      let newY = startCropY + pctDy
+      
+      const minX = cropSize / 2
+      const maxX = 100 - cropSize / 2
+      const minY = cropSize / 2
+      const maxY = 100 - cropSize / 2
+      
+      newX = Math.max(minX, Math.min(maxX, newX))
+      newY = Math.max(minY, Math.min(maxY, newY))
+      
+      setCropX(Math.round(newX * 10) / 10)
+      setCropY(Math.round(newY * 10) / 10)
+    }
+    
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!containerRef.current || e.touches.length === 0) return
+    
+    const rect = containerRef.current.getBoundingClientRect()
+    const touch = e.touches[0]
+    const startMouseX = touch.clientX
+    const startMouseY = touch.clientY
+    const startCropX = cropX
+    const startCropY = cropY
+    
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.touches.length === 0) return
+      const t = moveEvent.touches[0]
+      const dx = t.clientX - startMouseX
+      const dy = t.clientY - startMouseY
+      
+      const pctDx = (dx / rect.width) * 100
+      const pctDy = (dy / rect.height) * 100
+      
+      let newX = startCropX + pctDx
+      let newY = startCropY + pctDy
+      
+      const minX = cropSize / 2
+      const maxX = 100 - cropSize / 2
+      const minY = cropSize / 2
+      const maxY = 100 - cropSize / 2
+      
+      newX = Math.max(minX, Math.min(maxX, newX))
+      newY = Math.max(minY, Math.min(maxY, newY))
+      
+      setCropX(Math.round(newX * 10) / 10)
+      setCropY(Math.round(newY * 10) / 10)
+    }
+    
+    const handleTouchEnd = () => {
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handleTouchEnd)
+    }
+    
+    window.addEventListener('touchmove', handleTouchMove, { passive: false })
+    window.addEventListener('touchend', handleTouchEnd)
+  }
+
+  useEffect(() => {
+    if (!cropPlayer) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const step = e.shiftKey ? 5 : 1
+      const minX = cropSize / 2
+      const maxX = 100 - cropSize / 2
+      const minY = cropSize / 2
+      const maxY = 100 - cropSize / 2
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault()
+          setCropY(y => Math.max(minY, Math.min(maxY, y - step)))
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          setCropY(y => Math.max(minY, Math.min(maxY, y + step)))
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          setCropX(x => Math.max(minX, Math.min(maxX, x - step)))
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          setCropX(x => Math.max(minX, Math.min(maxX, x + step)))
+          break
+        case '+':
+        case '=':
+          e.preventDefault()
+          setCropSize(size => Math.min(45, size + 1))
+          break
+        case '-':
+        case '_':
+          e.preventDefault()
+          setCropSize(size => Math.max(8, size - 1))
+          break
+        case 'Escape':
+          e.preventDefault()
+          setCropPlayer(null)
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [cropPlayer, cropSize])
 
   // Debounce search query
   useEffect(() => {
@@ -204,6 +338,10 @@ export default function CheckImagesClient() {
         throw new Error('Could not create canvas drawing context.')
       }
 
+      // Enable high-quality image smoothing
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+
       // Percentage math to natural coordinate translation
       // naturalWidth / naturalHeight
       const naturalWidth = img.naturalWidth
@@ -261,7 +399,7 @@ export default function CheckImagesClient() {
         } finally {
           setIsCropping(false)
         }
-      }, 'image/webp', 0.92)
+      }, 'image/webp', 1.0)
 
     } catch (err) {
       setCropError(err instanceof Error ? err.message : 'Cropping failed.')
@@ -588,16 +726,21 @@ export default function CheckImagesClient() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left Column: Image with interactive Crop Overlay */}
               <div className="flex flex-col items-center justify-center">
-                <div className="relative w-56 aspect-[3/4] bg-black/50 border border-white/10 rounded-xl overflow-hidden shadow-inner flex items-center justify-center select-none">
+                <div 
+                  ref={containerRef}
+                  className="relative w-56 aspect-[3/4] bg-black/50 border border-white/10 rounded-xl overflow-hidden shadow-inner flex items-center justify-center select-none"
+                >
                   {/* Proxied image to allow Canvas drawing */}
                   <img
                     src={`/api/admin/proxy-image?url=https://pesdb.net/assets/img/card/f${cropPlayer.player_id || cropPlayer.id}.png`}
                     alt={cropPlayer.name}
                     className="w-full h-full object-contain pointer-events-none"
                   />
-                  {/* Dynamic circular crop overlay */}
+                  {/* Dynamic draggable square crop overlay */}
                   <div
-                    className="absolute border-2 border-dashed border-[#E8A800] bg-black/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] rounded-full pointer-events-none"
+                    onMouseDown={handleMouseDown}
+                    onTouchStart={handleTouchStart}
+                    className="absolute border-2 border-dashed border-[#E8A800] bg-black/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] rounded-lg cursor-move select-none"
                     style={{
                       left: `${cropX - cropSize / 2}%`,
                       top: `${cropY - cropSize / 2}%`,
@@ -607,7 +750,7 @@ export default function CheckImagesClient() {
                     }}
                   />
                 </div>
-                <span className="text-[9px] text-gray-500 font-mono tracking-wider mt-2">Crop Area Indicator</span>
+                <span className="text-[9px] text-gray-500 font-mono tracking-wider mt-2">Drag box or use arrow keys to adjust</span>
               </div>
 
               {/* Right Column: Controls */}
@@ -653,8 +796,8 @@ export default function CheckImagesClient() {
                     </div>
                     <input
                       type="range"
-                      min="15"
-                      max="40"
+                      min="10"
+                      max="55"
                       value={cropSize}
                       onChange={(e) => setCropSize(Number(e.target.value))}
                       className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E8A800]"

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import TeamLogo from "@/components/team/TeamLogo"
+import { getPhotoUrlFromDb } from "@/lib/image-cdn"
 import TiebreakerSection from "@/components/team/TiebreakerSection"
 import { getActiveSeason } from "@/lib/get-active-season"
 import { calculateLevelFromXP } from "@/lib/achievements-math"
@@ -702,7 +703,7 @@ function SquadPreview({ squadPlayers }: { squadPlayers: any[] }) {
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md overflow-hidden bg-white/5 border border-white/[0.08] shrink-0">
               {player.basePlayer.photoUrl ? (
-                <img src={player.basePlayer.photoUrl} alt="" className="w-full h-full object-cover" loading="lazy" width={32} height={32} />
+                <img src={getPhotoUrlFromDb(player.basePlayer.photoUrl)} alt="" className="w-full h-full object-cover" loading="lazy" width={32} height={32} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-[#3A3A3A]">
                   <UserSearch className="w-3.5 h-3.5" aria-hidden="true" />

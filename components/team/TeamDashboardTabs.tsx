@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import { getPlayerPhotoUrl, getPhotoUrlFromDb } from '@/lib/image-cdn'
 import ReadonlySquadFormation from '@/components/team/ReadonlySquadFormation'
 
 interface Bid {
@@ -51,7 +51,7 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers, teamSquad 
   const allPlayers = squadPlayers.map(p => ({
     id: p.basePlayer.id,
     name: p.basePlayer.name,
-    photoUrl: getPlayerPhotoUrl(`${p.basePlayer.player_id || p.basePlayer.id}.webp`),
+    photoUrl: getPhotoUrlFromDb(p.basePlayer.photoUrl),
     position: p.basePlayer.seasonalPlayerStats[0]?.position || 'N/A',
     overallRating: p.basePlayer.seasonalPlayerStats[0]?.overallRating || 0,
     playerId: p.basePlayer.player_id || p.basePlayer.id
@@ -147,7 +147,7 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers, teamSquad 
                         {/* Photo Frame */}
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-white/5 to-white/10 border border-white/10 flex-shrink-0 group-hover:border-amber-500/20 transition-colors shadow-inner">
                           <img
-                            src={getPlayerPhotoUrl(`${bid.basePlayer.player_id || bid.basePlayer.id}.webp`)}
+                            src={getPhotoUrlFromDb(bid.basePlayer.photoUrl)}
                             alt={bid.basePlayer.name}
                             className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-500"
                             onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}
@@ -216,7 +216,7 @@ export default function TeamDashboardTabs({ activeBids, squadPlayers, teamSquad 
                           {/* Photo Frame */}
                           <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-white/5 to-white/10 border border-white/10 flex-shrink-0 group-hover:border-amber-500/20 transition-colors shadow-inner">
                             <img
-                              src={getPlayerPhotoUrl(`${player.basePlayer.player_id || player.basePlayer.id}.webp`)}
+                              src={getPhotoUrlFromDb(player.basePlayer.photoUrl)}
                               alt={player.basePlayer.name}
                               className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-500"
                               onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}

@@ -355,9 +355,11 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
 
       // Group players by position-group combination
       const positionGroupMap = new Map<string, any[]>()
+      const GROUPED_POSITIONS = ['CB', 'DMF', 'CMF', 'AMF', 'CF']
       rawPlayers.forEach((p: any) => {
         const pos = p.position || 'N/A'
-        const group = p.position_group || 'ALL'
+        const isGrouped = GROUPED_POSITIONS.includes(pos)
+        const group = isGrouped ? (p.position_group || 'ALL') : 'ALL'
         const combinedKey = group === 'ALL' ? pos : `${pos}-${group}`
         
         if (!positionGroupMap.has(combinedKey)) {
@@ -370,46 +372,17 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
 
       // Columns configuration
       let columns = [
-        { header: 'Player ID', key: 'id', width: 25 },
         { header: 'Name', key: 'name', width: 30 },
         { header: 'Position', key: 'position', width: 12 },
         { header: 'Overall Rating', key: 'overallRating', width: 15 },
         { header: 'Age', key: 'age', width: 10 },
         { header: 'Nationality', key: 'nationality', width: 18 },
         { header: 'Club', key: 'realWorldClub', width: 25 },
-        { header: 'Current Team Name', key: 'teamName', width: 25 },
-        { header: 'Acquisition Value', key: 'soldPrice', width: 18 },
-        { header: 'Playing Style', key: 'playing_style', width: 20 },
-        { header: 'Ball Control', key: 'ball_control', width: 14 },
-        { header: 'Dribbling', key: 'dribbling', width: 12 },
-        { header: 'Tight Possession', key: 'tight_possession', width: 16 },
-        { header: 'Low Pass', key: 'low_pass', width: 12 },
-        { header: 'Lofted Pass', key: 'lofted_pass', width: 12 },
-        { header: 'Finishing', key: 'finishing', width: 12 },
-        { header: 'Heading', key: 'heading', width: 12 },
-        { header: 'Set Piece Taking', key: 'set_piece_taking', width: 16 },
-        { header: 'Curl', key: 'curl', width: 10 },
-        { header: 'Offensive Awareness', key: 'offensive_awareness', width: 18 },
-        { header: 'Speed', key: 'speed', width: 10 },
-        { header: 'Acceleration', key: 'acceleration', width: 14 },
-        { header: 'Kicking Power', key: 'kicking_power', width: 14 },
-        { header: 'Jumping', key: 'jumping', width: 10 },
-        { header: 'Physical Contact', key: 'physical_contact', width: 16 },
-        { header: 'Balance', key: 'balance', width: 10 },
-        { header: 'Stamina', key: 'stamina', width: 10 },
-        { header: 'Tackling', key: 'tackling', width: 12 },
-        { header: 'Aggression', key: 'aggression', width: 12 },
-        { header: 'Defensive Engagement', key: 'defensive_engagement', width: 20 },
-        { header: 'Defensive Awareness', key: 'defensive_awareness', width: 18 },
-        { header: 'GK Awareness', key: 'gk_awareness', width: 14 },
-        { header: 'GK Catching', key: 'gk_catching', width: 14 },
-        { header: 'GK Parrying', key: 'gk_parrying', width: 14 },
-        { header: 'GK Reflexes', key: 'gk_reflexes', width: 14 },
-        { header: 'GK Reach', key: 'gk_reach', width: 14 }
+        { header: 'Playing Style', key: 'playing_style', width: 20 }
       ]
 
-      if (exportFilter === 'unsold') {
-        columns = columns.filter(col => col.key !== 'teamName' && col.key !== 'soldPrice')
+      if (exportFilter !== 'unsold') {
+        columns.push({ header: 'Team Name', key: 'teamName', width: 25 })
       }
 
       const styleWorksheet = (ws: any) => {
@@ -694,50 +667,17 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
 
       // Columns configuration
       let columns = [
-        { header: 'Player ID', key: 'id', width: 25 },
         { header: 'Name', key: 'name', width: 30 },
         { header: 'Position', key: 'position', width: 12 },
         { header: 'Overall Rating', key: 'overallRating', width: 15 },
         { header: 'Age', key: 'age', width: 10 },
         { header: 'Nationality', key: 'nationality', width: 18 },
         { header: 'Club', key: 'realWorldClub', width: 25 },
-        { header: 'Current Team Name', key: 'teamName', width: 25 },
-        { header: 'Acquisition Value', key: 'soldPrice', width: 18 },
-        { header: 'Playing Style', key: 'playing_style', width: 20 },
-        
-        { header: 'Ball Control', key: 'ball_control', width: 14 },
-        { header: 'Dribbling', key: 'dribbling', width: 12 },
-        { header: 'Tight Possession', key: 'tight_possession', width: 16 },
-        { header: 'Low Pass', key: 'low_pass', width: 12 },
-        { header: 'Lofted Pass', key: 'lofted_pass', width: 12 },
-        { header: 'Finishing', key: 'finishing', width: 12 },
-        { header: 'Heading', key: 'heading', width: 12 },
-        { header: 'Set Piece Taking', key: 'set_piece_taking', width: 16 },
-        { header: 'Curl', key: 'curl', width: 10 },
-        { header: 'Offensive Awareness', key: 'offensive_awareness', width: 18 },
-        
-        { header: 'Speed', key: 'speed', width: 10 },
-        { header: 'Acceleration', key: 'acceleration', width: 14 },
-        { header: 'Kicking Power', key: 'kicking_power', width: 14 },
-        { header: 'Jumping', key: 'jumping', width: 10 },
-        { header: 'Physical Contact', key: 'physical_contact', width: 16 },
-        { header: 'Balance', key: 'balance', width: 10 },
-        { header: 'Stamina', key: 'stamina', width: 10 },
-
-        { header: 'Tackling', key: 'tackling', width: 12 },
-        { header: 'Aggression', key: 'aggression', width: 12 },
-        { header: 'Defensive Engagement', key: 'defensive_engagement', width: 20 },
-        { header: 'Defensive Awareness', key: 'defensive_awareness', width: 18 },
-
-        { header: 'GK Awareness', key: 'gk_awareness', width: 14 },
-        { header: 'GK Catching', key: 'gk_catching', width: 14 },
-        { header: 'GK Parrying', key: 'gk_parrying', width: 14 },
-        { header: 'GK Reflexes', key: 'gk_reflexes', width: 14 },
-        { header: 'GK Reach', key: 'gk_reach', width: 14 }
+        { header: 'Playing Style', key: 'playing_style', width: 20 }
       ]
 
-      if (exportFilter === 'unsold') {
-        columns = columns.filter(col => col.key !== 'teamName' && col.key !== 'soldPrice')
+      if (exportFilter !== 'unsold') {
+        columns.push({ header: 'Team Name', key: 'teamName', width: 25 })
       }
 
       const styleWorksheet = (ws: any) => {
@@ -841,11 +781,13 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
 
       // 3. Position + Group Combination Sheets (e.g., CF-A, CF-B, DMF-A, DMF-B)
       const positionGroupMap = new Map<string, any[]>()
+      const GROUPED_POSITIONS = ['CB', 'DMF', 'CMF', 'AMF', 'CF']
       rawPlayers.forEach((p: any) => {
         const pos = p.position || 'N/A'
-        const group = p.position_group || 'ALL'
+        const isGrouped = GROUPED_POSITIONS.includes(pos)
+        const group = isGrouped ? (p.position_group || 'ALL') : 'ALL'
         
-        // Create combined key like "CF-A", "CF-B", "GK-ALL", etc.
+        // Create combined key like "CF-A", "CF-B", "GK", etc.
         const combinedKey = group === 'ALL' ? pos : `${pos}-${group}`
         
         if (!positionGroupMap.has(combinedKey)) {

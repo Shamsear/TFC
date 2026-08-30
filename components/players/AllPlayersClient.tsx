@@ -26,6 +26,7 @@ interface AllPlayersClientProps {
   teams: string[]
   enableStarring?: boolean  // Enable star functionality for team users
   basePath?: string         // Base path for player links
+  isAdmin?: boolean         // Show admin-only features like Carry Forward button
 }
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
@@ -205,7 +206,7 @@ function CustomSelect({
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function AllPlayersClient({ seasonId, positions, teams, enableStarring = false, basePath }: AllPlayersClientProps) {
+export default function AllPlayersClient({ seasonId, positions, teams, enableStarring = false, basePath, isAdmin = false }: AllPlayersClientProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -1265,15 +1266,17 @@ export default function AllPlayersClient({ seasonId, positions, teams, enableSta
               Clear Filters
             </button>
           )}
-          <button
-            onClick={handleCarryForward}
-            disabled={carryForwardLoading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/25 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 transition-all shadow-[0_0_12px_rgba(168,85,247,0.05)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {carryForwardLoading ? (
-              <><span className="animate-spin inline-block">⏳</span> <span className="truncate max-w-[160px]">{carryForwardStep || 'Processing...'}</span></>
-            ) : '🔄 Carry Forward'}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={handleCarryForward}
+              disabled={carryForwardLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/25 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 transition-all shadow-[0_0_12px_rgba(168,85,247,0.05)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {carryForwardLoading ? (
+                <><span className="animate-spin inline-block">⏳</span> <span className="truncate max-w-[160px]">{carryForwardStep || 'Processing...'}</span></>
+              ) : '🔄 Carry Forward'}
+            </button>
+          )}
           <button
             onClick={() => {
               console.log('🔵 [EXPORT] Export button clicked')

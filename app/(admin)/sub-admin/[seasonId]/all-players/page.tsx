@@ -75,6 +75,7 @@ export default async function AllPlayersPage({ params }: AllPlayersPageProps) {
         seasonId={seasonId}
         positions={positions}
         teams={teams}
+        isAdmin={true}
       />
     </div>
   )

@@ -69,6 +69,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set())
   const [duplicateResolutions, setDuplicateResolutions] = useState<Record<string, 'skip' | 'replace' | 'add' | string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [importSessionId, setImportSessionId] = useState<string | null>(null)
+  const [isStagingCleared, setIsStagingCleared] = useState(false)
+  const [isClearingStaging, setIsClearingStaging] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<any>(null)
   const [progress, setProgress] = useState<ImportProgress>({
@@ -626,7 +629,7 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         }
       }
 
-      console.log(`Starting import of ${selected.length} players`)
+      console.log(`Starting import of ${selected.length} players using staging table...`)
 
       // Initialize progress
       setProgress({
@@ -640,153 +643,75 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         updatedPlayers: []
       })
 
-      const BATCH_SIZE = 1500
-      let totalImported = 0
-      let totalUpdated = 0
-      let totalSkipped = 0
-      const allErrors: any[] = []
-      const allImportedPlayers: string[] = []
-      const allUpdatedPlayers: string[] = []
-
-      for (let batchStart = 0; batchStart < selected.length; batchStart += BATCH_SIZE) {
-        const batchEnd = Math.min(batchStart + BATCH_SIZE, selected.length)
-        const batch = selected.slice(batchStart, batchEnd)
-        
-        console.log(`Importing batch ${Math.floor(batchStart / BATCH_SIZE) + 1}/${Math.ceil(selected.length / BATCH_SIZE)} (${batch.length} players)`)
-
-        // Map each player to their tab-specific ignored fields
-        const playerIgnoredFields: Record<string, string[]> = {}
-        batch.forEach(player => {
-          if (preview.newPlayers.some(p => p.playerId === player.playerId)) {
-            playerIgnoredFields[player.playerId] = tabIgnoredFields['new'] || []
-          } else if (preview.changedPlayers.some(c => c.playerId === player.playerId)) {
-            playerIgnoredFields[player.playerId] = tabIgnoredFields['changed'] || []
-          } else if (preview.unchangedPlayers.some(p => p.playerId === player.playerId)) {
-            playerIgnoredFields[player.playerId] = tabIgnoredFields['changed'] || []
-          } else if (preview.nameDuplicates?.some(g => g.newCards.some(c => c.playerId === player.playerId))) {
-            playerIgnoredFields[player.playerId] = tabIgnoredFields['name-duplicates'] || []
-          } else if (preview.newDuplicates?.some(g => g.newCards.some(c => c.playerId === player.playerId))) {
-            playerIgnoredFields[player.playerId] = tabIgnoredFields['new-duplicates'] || []
-          }
+      // 1. Stage the selected players in database
+      setProgress(prev => ({
+        ...prev,
+        currentPlayer: 'Staging players in database...'
+      }))
+      const stageResponse = await fetch('/api/import/stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seasonId,
+          players: selected
         })
+      })
 
-        // Use EventSource for real-time updates
-        const response = await fetch('/api/import/stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            seasonId,
-            mode,
-            selectedPlayers: batch,
-            duplicateResolutions,
-            playerIgnoredFields
-          })
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('Import stream failed:', errorText)
-          throw new Error(`Failed to start import: ${response.status} ${errorText}`)
-        }
-
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
-
-        if (!reader) {
-          throw new Error('No response body')
-        }
-
-        let buffer = ''
-        
-        let batchImported = 0
-        let batchUpdated = 0
-        let batchSkipped = 0
-        let batchErrors: any[] = []
-        let batchImportedPlayers: string[] = []
-        let batchUpdatedPlayers: string[] = []
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) {
-            console.log('Batch stream completed')
-            break
-          }
-
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          
-          // Keep the last incomplete line in the buffer
-          buffer = lines.pop() || ''
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6))
-
-                if (data.type === 'progress') {
-                  setProgress({
-                    total: selected.length,
-                    processed: batchStart + data.processed,
-                    imported: totalImported + data.imported,
-                    updated: totalUpdated + data.updated,
-                    skipped: totalSkipped + data.skipped,
-                    errors: [...allErrors, ...data.errors],
-                    currentPlayer: data.currentPlayer,
-                    importedPlayers: [...allImportedPlayers, ...(data.importedPlayers || [])].slice(-50),
-                    updatedPlayers: [...allUpdatedPlayers, ...(data.updatedPlayers || [])].slice(-50)
-                  })
-                } else if (data.type === 'current') {
-                  setProgress(prev => ({
-                    ...prev,
-                    currentPlayer: data.currentPlayer
-                  }))
-                } else if (data.type === 'complete') {
-                  console.log('Batch complete:', data)
-                  batchImported = data.imported
-                  batchUpdated = data.updated
-                  batchSkipped = data.skipped
-                  batchErrors = data.errors
-                  batchImportedPlayers = data.importedPlayers || []
-                  batchUpdatedPlayers = data.updatedPlayers || []
-                } else if (data.type === 'error') {
-                  console.error('Stream error:', data.error)
-                  throw new Error(data.error)
-                }
-              } catch (parseError) {
-                console.error('Failed to parse SSE data:', line, parseError)
-              }
-            }
-          }
-        }
-
-        // Accumulate batch results
-        totalImported += batchImported
-        totalUpdated += batchUpdated
-        totalSkipped += batchSkipped
-        allErrors.push(...batchErrors)
-        allImportedPlayers.push(...batchImportedPlayers)
-        allUpdatedPlayers.push(...batchUpdatedPlayers)
+      if (!stageResponse.ok) {
+        const errorText = await stageResponse.text()
+        throw new Error(`Failed to stage players: ${errorText}`)
       }
 
-      // All batches complete
+      const { importSessionId: sessionUuid } = await stageResponse.json()
+      setImportSessionId(sessionUuid)
+      setIsStagingCleared(false)
+
+      // Update progress to show staging completed
+      setProgress(prev => ({
+        ...prev,
+        processed: Math.floor(selected.length / 2),
+        currentPlayer: 'Applying changes from staging table...'
+      }))
+
+      // 2. Commit the staging table to production
+      const confirmResponse = await fetch('/api/import/confirm-staged', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: sessionUuid,
+          seasonId,
+          duplicateResolutions
+        })
+      })
+
+      if (!confirmResponse.ok) {
+        const errorText = await confirmResponse.text()
+        throw new Error(`Failed to apply staged changes: ${errorText}`)
+      }
+
+      const confirmData = await confirmResponse.json()
+
+      // 3. Set the results and complete
       setResult({
         success: true,
-        imported: totalImported,
-        updated: totalUpdated,
-        skipped: totalSkipped,
+        imported: confirmData.imported,
+        updated: confirmData.updated,
+        skipped: confirmData.skipped,
         total: selected.length,
-        errors: allErrors
+        errors: []
       })
+      
       setProgress({
         total: selected.length,
         processed: selected.length,
-        imported: totalImported,
-        updated: totalUpdated,
-        skipped: totalSkipped,
-        errors: allErrors,
-        importedPlayers: allImportedPlayers,
-        updatedPlayers: allUpdatedPlayers
+        imported: confirmData.imported,
+        updated: confirmData.updated,
+        skipped: confirmData.skipped,
+        errors: [],
+        importedPlayers: [],
+        updatedPlayers: []
       })
+      
       setStep('complete')
     } catch (err) {
       console.error('Import error:', err)
@@ -794,6 +719,27 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
       setStep('confirm') // Go back to confirm step on error
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleClearStaging = async () => {
+    if (!importSessionId) return
+    setIsClearingStaging(true)
+    setError('')
+    try {
+      const response = await fetch(`/api/import/stage?sessionId=${importSessionId}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to clear staging: ${errorText}`)
+      }
+      setIsStagingCleared(true)
+    } catch (err) {
+      console.error('Failed to clear staging:', err)
+      setError(err instanceof Error ? err.message : 'Failed to clear staging table')
+    } finally {
+      setIsClearingStaging(false)
     }
   }
 
@@ -1181,12 +1127,40 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
               <div className="text-xs sm:text-sm text-[#7A7367]">Skipped</div>
             </div>
           </div>
-          <button
-            onClick={() => router.push(`/sub-admin/${seasonId}/all-players`)}
-            className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 sm:px-8 py-3 rounded-xl font-bold transition-all text-sm sm:text-base"
-          >
-            View Players
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6">
+            <button
+              onClick={() => router.push(`/sub-admin/${seasonId}/all-players`)}
+              className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 sm:px-8 py-3 rounded-xl font-bold transition-all text-sm sm:text-base"
+            >
+              View Players
+            </button>
+            {importSessionId && (
+              isStagingCleared ? (
+                <div className="text-xs font-mono font-bold text-gray-500 uppercase tracking-wider py-3">
+                  ✓ Temporary staging database cleared
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isClearingStaging}
+                  onClick={handleClearStaging}
+                  className="w-full sm:w-auto bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 px-6 sm:px-8 py-3 rounded-xl font-bold transition-all text-sm sm:text-base flex items-center justify-center gap-2"
+                >
+                  {isClearingStaging ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Clearing Staging...
+                    </>
+                  ) : (
+                    'Delete Temporary Staging Table'
+                  )}
+                </button>
+              )
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1349,3 +1349,149 @@ enum TournamentQualificationStatus {
   PARTIAL
   COMPLETE
 }
+
+model import_staging_players {
+  id                   String   @id @default(uuid())
+  importSessionId      String   @map("import_session_id")
+  seasonId             String   @map("season_id")
+  player_id            String?  @map("player_id")
+  name                 String
+  normalized_name      String?  @map("normalized_name")
+  photoUrl             String?  @map("photo_url")
+  position             String
+  realWorldClub        String   @map("real_world_club")
+  overallRating        Int      @map("overall_rating")
+  star_rating          Int?     @map("star_rating")
+  
+  // Player info
+  nationality          String?
+  playing_style        String?  @map("playing_style")
+  height               Int?
+  weight               Int?
+  age                  Int?
+  foot                 String?
+  featured             String?
+  weak_foot_usage      String?  @map("weak_foot_usage")
+  weak_foot_accuracy   String?  @map("weak_foot_accuracy")
+  form                 String?
+  injury_resistance    String?  @map("injury_resistance")
+  condition            String?
+  max_level            Int?     @map("max_level")
+  overall_at_max_level Int?     @map("overall_at_max_level")
+
+  // Offensive stats
+  offensive_awareness  Int?     @map("offensive_awareness")
+  ball_control         Int?     @map("ball_control")
+  dribbling            Int?
+  tight_possession     Int?     @map("tight_possession")
+  low_pass             Int?     @map("low_pass")
+  lofted_pass          Int?     @map("lofted_pass")
+  finishing            Int?
+  heading              Int?
+  set_piece_taking     Int?     @map("set_piece_taking")
+  curl                 Int?
+
+  // Physical stats
+  speed                Int?
+  acceleration         Int?
+  kicking_power        Int?     @map("kicking_power")
+  jumping              Int?
+  physical_contact     Int?     @map("physical_contact")
+  balance              Int?
+  stamina              Int?
+
+  // Defensive stats
+  defensive_awareness  Int?     @map("defensive_awareness")
+  tackling             Int?
+  aggression           Int?
+  defensive_engagement Int?     @map("defensive_engagement")
+
+  // Goalkeeper stats
+  gk_awareness         Int?     @map("gk_awareness")
+  gk_catching          Int?     @map("gk_catching")
+  gk_parrying          Int?     @map("gk_parrying")
+  gk_reflexes          Int?     @map("gk_reflexes")
+  gk_reach             Int?     @map("gk_reach")
+
+  // Skills
+  scissors_feint       String?  @map("scissors_feint")
+  double_touch         String?  @map("double_touch")
+  flip_flap            String?  @map("flip_flap")
+  marseille_turn       String?  @map("marseille_turn")
+  sombrero             String?
+  chop_turn            String?  @map("chop_turn")
+  cut_behind_turn      String?  @map("cut_behind_turn")
+  scotch_move          String?  @map("scotch_move")
+  sole_control         String?  @map("sole_control")
+  momentum_dribbling   String?  @map("momentum_dribbling")
+  acceleration_burst   String?  @map("acceleration_burst")
+  magnetic_feet        String?  @map("magnetic_feet")
+  heading_skill        String?  @map("heading_skill")
+  bullet_header        String?  @map("bullet_header")
+  long_range_curler    String?  @map("long_range_curler")
+  blitz_curler         String?  @map("blitz_curler")
+  chip_shot_control    String?  @map("chip_shot_control")
+  knuckle_shot         String?  @map("knuckle_shot")
+  dipping_shot         String?  @map("dipping_shot")
+  rising_shot          String?  @map("rising_shot")
+  long_range_shooting  String?  @map("long_range_shooting")
+  low_screamer         String?  @map("low_screamer")
+  acrobatic_finishing  String?  @map("acrobatic_finishing")
+  heel_trick           String?  @map("heel_trick")
+  first_time_shot      String?  @map("first_time_shot")
+  phenomenal_finishing String?  @map("phenomenal_finishing")
+  willpower            String?
+  one_touch_pass       String?  @map("one_touch_pass")
+  through_passing      String?  @map("through_passing")
+  weighted_pass        String?  @map("weighted_pass")
+  pinpoint_crossing    String?  @map("pinpoint_crossing")
+  edged_crossing       String?  @map("edged_crossing")
+  outside_curler       String?  @map("outside_curler")
+  rabona               String?
+  no_look_pass         String?  @map("no_look_pass")
+  game_changing_pass   String?  @map("game_changing_pass")
+  visionary_pass       String?  @map("visionary_pass")
+  phenomenal_pass      String?  @map("phenomenal_pass")
+  low_lofted_pass      String?  @map("low_lofted_pass")
+  gk_low_punt          String?  @map("gk_low_punt")
+  gk_high_punt         String?  @map("gk_high_punt")
+  long_throw           String?  @map("long_throw")
+  gk_long_throw        String?  @map("gk_long_throw")
+  penalty_specialist   String?  @map("penalty_specialist")
+  gk_penalty_saver     String?  @map("gk_penalty_saver")
+  gk_directing_defence String?  @map("gk_directing_defence")
+  gk_spirit_roar       String?  @map("gk_spirit_roar")
+  gamesmanship         String?
+  man_marking          String?  @map("man_marking")
+  track_back           String?  @map("track_back")
+  interception         String?
+  blocker              String?
+  aerial_superiority   String?  @map("aerial_superiority")
+  sliding_tackle       String?  @map("sliding_tackle")
+  long_reach_tackle    String?  @map("long_reach_tackle")
+  fortress             String?
+  acrobatic_clearance  String?  @map("acrobatic_clearance")
+  aerial_fort          String?  @map("aerial_fort")
+  captaincy            String?
+  attack_trigger       String?  @map("attack_trigger")
+  super_sub            String?  @map("super_sub")
+  fighting_spirit      String?  @map("fighting_spirit")
+  trickster            String?
+  mazing_run           String?  @map("mazing_run")
+  speeding_bullet      String?  @map("speeding_bullet")
+  incisive_run         String?  @map("incisive_run")
+  long_ball_expert     String?  @map("long_ball_expert")
+  early_cross          String?  @map("early_cross")
+  long_ranger          String?  @map("long_ranger")
+  position_group       String?  @map("position_group")
+  
+  importStatus         String   @default("pending") @map("import_status")
+  importError          String?  @map("import_error")
+  resolution           String?  @map("resolution")
+
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@index([importSessionId], map: "idx_staging_session")
+  @@index([player_id], map: "idx_staging_player_id")
+  @@index([name], map: "idx_staging_name")
+}

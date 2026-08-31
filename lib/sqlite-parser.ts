@@ -148,6 +148,7 @@ export interface EFootballPlayer {
   longBallExpert?: string;
   earlyCross?: string;
   longRanger?: string;
+  positionGroup?: string;
 }
 
 export interface ParseResult {

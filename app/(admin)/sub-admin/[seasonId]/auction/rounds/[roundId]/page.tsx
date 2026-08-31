@@ -162,8 +162,9 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
       // Fetch and decrypt team bids for completed rounds
       const { decryptBids } = await import('@/lib/auction/encryption')
       
-      // Collect all bids and unique player IDs
+       // Collect all bids and unique player IDs
       const allDecryptedBids = new Map<string, any[]>()
+      const skippedTeams = new Map<string, boolean>()
       const allBidPlayerIds = new Set<string>()
 
       for (const teamBid of teamBidsRaw) {
@@ -172,6 +173,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           const parsed = JSON.parse(decrypted)
           const bids = parsed.bids || []
           allDecryptedBids.set(teamBid.teamId, bids)
+          skippedTeams.set(teamBid.teamId, parsed.skipped || false)
           
           bids.forEach((bid: any) => {
             const playerId = bid.base_player_id || bid.playerId
@@ -182,6 +184,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         } catch (error) {
           console.error(`Failed to decrypt bids for team ${teamBid.teamId}:`, error)
           allDecryptedBids.set(teamBid.teamId, [])
+          skippedTeams.set(teamBid.teamId, false)
         }
       }
 
@@ -207,11 +210,11 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         wonTransferMap.set(`${r.teamId}_${r.basePlayerId}`, r)
       })
 
-      // Construct the final details synchronously
       teamBidsWithDetails = seasonTeams.map((st) => {
         const team = st.team
         const bids = allDecryptedBids.get(team.id) || []
         const teamBid = teamBidsRaw.find(tb => tb.teamId === team.id)
+        const skipped = skippedTeams.get(team.id) || (teamBid?.submitted && teamBid?.bidCount === 0) || false
         const teamBidPlayerIds = new Set(bids.map((b: any) => b.base_player_id || b.playerId))
         
         const bidsWithPlayers = bids.map((bid: any) => {
@@ -273,6 +276,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           teamName: team.name,
           teamLogo: team.logoUrl,
           submitted: teamBid?.submitted || false,
+          skipped: skipped,
           bidCount: teamBid?.bidCount || 0,
           bids: [...bidsWithPlayers, ...autoAllocatedPlayers].sort((a, b) => b.amount - a.amount),
           totalSpent: bidsWithPlayers.reduce((sum: number, b: any) => b.won ? sum + b.amount : sum, 0) +

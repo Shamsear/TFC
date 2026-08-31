@@ -26,10 +26,10 @@ export async function POST(
 
     const { id: roundId } = await params;
     const body = await request.json();
-    const { bids, submitted = false } = body;
+    const { bids, submitted = false, skipped = false } = body;
 
-    // Validate bids array
-    if (!Array.isArray(bids)) {
+    // Validate bids array (only if not skipping)
+    if (!skipped && !Array.isArray(bids)) {
       return NextResponse.json(
         { error: 'Bids must be an array' },
         { status: 400 }
@@ -45,7 +45,9 @@ export async function POST(
         roundType: true,
         maxBidsPerTeam: true,
         basePrice: true,
-        endTime: true
+        endTime: true,
+        position: true,
+        position_group: true
       }
     });
 
@@ -126,35 +128,65 @@ export async function POST(
       }
     });
 
-    // Validate bids
-    // For edits, skip balance/reserve validation since balance may have changed due to parallel rounds
-    const validation = await validateBids(bids as BidData[], {
-      roundId,
-      teamId,
-      seasonId: round.seasonId,
-      maxBidsPerTeam: round.maxBidsPerTeam || undefined,
-      basePrice: round.basePrice || undefined,
-      currentBudget: seasonTeam.currentBudget,
-      skipBalanceCheck: isEdit // Skip balance validation for edits
-    });
+    // Validate bids if not skipping
+    if (skipped) {
+      // 1. Verify team is allowed to skip (has retained player in this round's position group)
+      const retainedPlayer = await prisma.transfer_history.findFirst({
+        where: {
+          seasonId: round.seasonId,
+          teamId,
+          status: 'ACTIVE',
+          acquisitionType: 'retention',
+          basePlayer: {
+            seasonalPlayerStats: {
+              some: {
+                seasonId: round.seasonId,
+                position: round.position || undefined,
+                position_group: (round.position_group && round.position_group !== 'ALL') ? round.position_group : undefined
+              }
+            }
+          }
+        }
+      });
 
-    if (!validation.valid) {
-      return NextResponse.json(
-        { error: 'Validation failed', errors: validation.errors },
-        { status: 400 }
-      );
+      if (!retainedPlayer) {
+        return NextResponse.json(
+          { error: 'You cannot skip this round because you do not have a retained player in this position-group.' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Validate bids
+      // For edits, skip balance/reserve validation since balance may have changed due to parallel rounds
+      const validation = await validateBids(bids as BidData[], {
+        roundId,
+        teamId,
+        seasonId: round.seasonId,
+        maxBidsPerTeam: round.maxBidsPerTeam || undefined,
+        basePrice: round.basePrice || undefined,
+        currentBudget: seasonTeam.currentBudget,
+        skipBalanceCheck: isEdit // Skip balance validation for edits
+      });
+
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: 'Validation failed', errors: validation.errors },
+          { status: 400 }
+        );
+      }
     }
 
     // Prepare bid data for encryption
     const bidData = {
-      bids: bids.map((bid: BidData) => ({
+      bids: skipped ? [] : bids.map((bid: BidData) => ({
         base_player_id: bid.base_player_id,
         player_name: bid.player_name,
         amount: bid.amount,
         timestamp: new Date().toISOString()
       })),
       version: 1,
-      last_modified: new Date().toISOString()
+      last_modified: new Date().toISOString(),
+      skipped: skipped
     };
 
     // Encrypt bids
@@ -185,14 +217,14 @@ export async function POST(
           teamId,
           encryptedBids,
           submitted,
-          bidCount: bids.length,
+          bidCount: skipped ? 0 : bids.length,
           lastUpdated: new Date(),
           submittedAt: submitted ? new Date() : null
         },
         update: {
           encryptedBids,
           submitted,
-          bidCount: bids.length,
+          bidCount: skipped ? 0 : bids.length,
           lastUpdated: new Date(),
           submittedAt: submitted ? new Date() : null
         }
@@ -219,10 +251,10 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      bidCount: bids.length,
+      bidCount: skipped ? 0 : bids.length,
       submitted,
       lastUpdated: teamRoundBid.lastUpdated,
-      message: submitted ? 'Bids submitted successfully' : 'Bids saved as draft'
+      message: submitted ? (skipped ? 'Round skipped successfully' : 'Bids submitted successfully') : 'Bids saved as draft'
     });
   } catch (error) {
     console.error('Place bids error:', error);

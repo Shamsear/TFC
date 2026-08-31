@@ -116,11 +116,13 @@ export default async function RoundBidsPage({
         const parsed = JSON.parse(decrypted)
         const bids = parsed.bids || []
         const playerIds = bids.map((b: any) => b.base_player_id)
+        const skipped = parsed.skipped || (data.submitted && data.bidCount === 0) || false
         
         return {
           teamId: data.teamId,
           playerIds,
           submitted: data.submitted,
+          skipped,
           submittedAt: data.submittedAt,
           bidCount: data.bidCount || 0
         }
@@ -130,6 +132,7 @@ export default async function RoundBidsPage({
           teamId: data.teamId,
           playerIds: [],
           submitted: data.submitted,
+          skipped: data.submitted && data.bidCount === 0,
           submittedAt: data.submittedAt,
           bidCount: 0
         }

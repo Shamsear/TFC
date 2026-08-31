@@ -37,6 +37,7 @@ interface ExistingBids {
   submitted: boolean
   bidCount: number
   lastUpdated: Date
+  skipped?: boolean
 }
 
 interface NormalRoundBiddingClientProps {
@@ -47,6 +48,7 @@ interface NormalRoundBiddingClientProps {
   existingBids: ExistingBids | null
   teamId: string
   teamName?: string
+  retainedPlayerName?: string | null
 }
 
 export default function NormalRoundBiddingClient({
@@ -56,7 +58,8 @@ export default function NormalRoundBiddingClient({
   squadSize,
   existingBids,
   teamId,
-  teamName
+  teamName,
+  retainedPlayerName
 }: NormalRoundBiddingClientProps) {
   const router = useRouter()
   const [bids, setBids] = useState<Record<string, number>>({})
@@ -71,6 +74,7 @@ export default function NormalRoundBiddingClient({
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [isSubmitted, setIsSubmitted] = useState(existingBids?.submitted || false)
+  const [isSkipped, setIsSkipped] = useState(existingBids?.skipped || false)
   const [unlocking, setUnlocking] = useState(false)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
   const [starredPlayerIds, setStarredPlayerIds] = useState<Set<string>>(new Set())
@@ -536,6 +540,7 @@ export default function NormalRoundBiddingClient({
       }
 
       setIsSubmitted(false)
+      setIsSkipped(false)
       setMessage({ type: 'success', text: 'Bids unlocked. You can now edit them.' })
       
       if (bidArray.length === 0) {
@@ -547,6 +552,38 @@ export default function NormalRoundBiddingClient({
       setMessage({ type: 'error', text: error.message })
     } finally {
       setUnlocking(false)
+    }
+  }
+
+  const handleSkipRound = async () => {
+    if (!confirm(`Are you sure you want to skip this round?\n\nSince you already have retained ${retainedPlayerName} in this position group, skipping means you will not acquire any additional players from this round.`)) {
+      return
+    }
+
+    setSubmitting(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch(`/api/auction/rounds/${round.id}/bids`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bids: [], submitted: true, skipped: true })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to skip round')
+      }
+
+      setIsSubmitted(true)
+      setIsSkipped(true)
+      setBids({})
+      setMessage({ type: 'success', text: 'Round skipped successfully!' })
+      router.refresh()
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -760,8 +797,8 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
             </div>
             <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 flex flex-col justify-center">
               <div className="text-[10px] text-gray-500 uppercase tracking-widest font-extrabold mb-1">Submission Status</div>
-              <div className={`text-lg font-black uppercase tracking-wider text-xs ${isSubmitted ? 'text-emerald-400' : 'text-amber-400 animate-pulse'}`}>
-                {isSubmitted ? 'Submitted' : 'Draft'}
+               <div className={`text-lg font-black uppercase tracking-wider text-xs ${isSubmitted ? (isSkipped ? 'text-gray-400' : 'text-emerald-400') : 'text-amber-400 animate-pulse'}`}>
+                {isSubmitted ? (isSkipped ? 'Skipped' : 'Submitted') : 'Draft'}
               </div>
             </div>
           </div>
@@ -855,6 +892,32 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
               : 'bg-red-500/5 border-red-500/20 text-red-400'
           }`}>
             {message.text}
+          </div>
+        )}
+
+        {retainedPlayerName && (
+          <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 backdrop-blur-xl relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-black text-blue-400 mb-1.5 uppercase tracking-wider font-mono">
+                  ℹ️ Position Already Retained
+                </h3>
+                <p className="text-xs text-gray-300 font-medium leading-relaxed">
+                  You have already retained <strong className="text-white">{retainedPlayerName}</strong> in this position-group ({round.position}{round.position_group && round.position_group !== 'ALL' ? ` - Group ${round.position_group}` : ''}). 
+                  You can choose to participate in the auction normally, or skip this round entirely.
+                </p>
+                {isSkipped && (
+                  <p className="text-xs text-emerald-400 font-bold font-mono mt-3">
+                    ✓ You have chosen to skip this round.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -1060,21 +1123,32 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
         {/* Global Action Bar */}
         {!isSubmitted && round.status === 'active' && (
           <div className="bg-neutral-900/40 border border-white/10 rounded-2xl p-4.5 backdrop-blur-xl mb-6 space-y-3.5">
-            <div className="flex gap-4">
-              <button
-                onClick={handleSaveDraft}
-                disabled={saving}
-                className="flex-1 px-5 py-3 rounded-xl bg-white/[0.02] border border-white/15 hover:border-white/30 text-white hover:bg-white/[0.06] transition-all disabled:opacity-40 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-lg"
-              >
-                {saving ? 'Saving Draft...' : 'Save Draft'}
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || bidCount === 0 || !hasMaxBidsRequired}
-                className="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-[0_0_25px_rgba(232,168,0,0.15)] hover:scale-[1.01]"
-              >
-                {submitting ? 'Transmitting Bids...' : 'Submit Bids'}
-              </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-1 gap-4">
+                <button
+                  onClick={handleSaveDraft}
+                  disabled={saving}
+                  className="flex-1 px-5 py-3 rounded-xl bg-white/[0.02] border border-white/15 hover:border-white/30 text-white hover:bg-white/[0.06] transition-all disabled:opacity-40 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-lg"
+                >
+                  {saving ? 'Saving Draft...' : 'Save Draft'}
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || bidCount === 0 || !hasMaxBidsRequired}
+                  className="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-[0_0_25px_rgba(232,168,0,0.15)] hover:scale-[1.01]"
+                >
+                  {submitting ? 'Transmitting Bids...' : 'Submit Bids'}
+                </button>
+              </div>
+              {retainedPlayerName && (
+                <button
+                  onClick={handleSkipRound}
+                  disabled={submitting}
+                  className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/25 hover:border-red-500/50 text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-40 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-lg"
+                >
+                  {submitting ? 'Skipping...' : 'Skip Round'}
+                </button>
+              )}
             </div>
             {bidCount > 0 && (
               <button
@@ -1095,7 +1169,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
         {isSubmitted && round.status === 'active' && (
           <div className="bg-neutral-900/40 border border-white/10 rounded-2xl p-4.5 backdrop-blur-xl mb-6 space-y-3.5">
             <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider font-mono text-center shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-              ✓ Bids successfully submitted and sealed in the draft vault
+              {isSkipped ? '✓ Round successfully skipped (Retained Position)' : '✓ Bids successfully submitted and sealed in the draft vault'}
             </div>
             <div className="flex gap-4">
               <button
@@ -1211,21 +1285,32 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
         {/* Actions bottom */}
         {!isSubmitted && round.status === 'active' && (
           <div className="bg-neutral-900/40 border border-white/10 rounded-2xl p-4.5 backdrop-blur-xl mb-6 space-y-3.5">
-            <div className="flex gap-4">
-              <button
-                onClick={handleSaveDraft}
-                disabled={saving}
-                className="flex-1 px-5 py-3 rounded-xl bg-white/[0.02] border border-white/15 hover:border-white/30 text-white hover:bg-white/[0.06] transition-all disabled:opacity-40 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-lg"
-              >
-                {saving ? 'Saving Draft...' : 'Save Draft'}
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || bidCount === 0 || !hasMaxBidsRequired}
-                className="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-[0_0_25px_rgba(232,168,0,0.15)] hover:scale-[1.01]"
-              >
-                {submitting ? 'Transmitting Bids...' : 'Submit Bids'}
-              </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-1 gap-4">
+                <button
+                  onClick={handleSaveDraft}
+                  disabled={saving}
+                  className="flex-1 px-5 py-3 rounded-xl bg-white/[0.02] border border-white/15 hover:border-white/30 text-white hover:bg-white/[0.06] transition-all disabled:opacity-40 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-lg"
+                >
+                  {saving ? 'Saving Draft...' : 'Save Draft'}
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || bidCount === 0 || !hasMaxBidsRequired}
+                  className="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-[#E8A800] via-[#FFD066] to-[#FFB347] text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-[0_0_25px_rgba(232,168,0,0.15)] hover:scale-[1.01]"
+                >
+                  {submitting ? 'Transmitting Bids...' : 'Submit Bids'}
+                </button>
+              </div>
+              {retainedPlayerName && (
+                <button
+                  onClick={handleSkipRound}
+                  disabled={submitting}
+                  className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/25 hover:border-red-500/50 text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-40 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-lg"
+                >
+                  {submitting ? 'Skipping...' : 'Skip Round'}
+                </button>
+              )}
             </div>
           </div>
         )}

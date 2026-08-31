@@ -84,6 +84,7 @@ interface TeamBidDetails {
   teamName: string
   teamLogo: string | null
   submitted: boolean
+  skipped?: boolean
   bidCount: number
   totalSpent: number
   bids: Array<{
@@ -2063,6 +2064,11 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                       <div className="flex items-center gap-3">
+                        {teamBid.skipped && (
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-gray-500/25 text-gray-400 border border-gray-500/25 flex-shrink-0">
+                            Skipped
+                          </span>
+                        )}
                         {wonBids.length > 0 && (
                           <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                             ✓ {wonBids.length} Won
@@ -2352,9 +2358,15 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                       <div className="flex items-center gap-3 w-full justify-between sm:justify-end">
                         <span className="text-xs font-bold text-gray-500 font-mono">{teamBid.bidCount} bids</span>
                         {teamBid.submitted ? (
-                          <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
-                            Submitted
-                          </span>
+                          teamBid.skipped || (teamBid.submitted && teamBid.bidCount === 0) ? (
+                            <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-gray-500/25 text-gray-400 border border-gray-500/25 flex-shrink-0">
+                              Skipped
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
+                              Submitted
+                            </span>
+                          )
                         ) : (
                           <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-yellow-500/25 text-yellow-400 border border-yellow-500/25 flex-shrink-0">
                             In Progress

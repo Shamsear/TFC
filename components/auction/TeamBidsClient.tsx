@@ -29,6 +29,7 @@ interface TeamBidData {
   teamId: string
   playerIds: string[]
   submitted: boolean
+  skipped?: boolean
   submittedAt: Date | null
   bidCount: number
   invalidCount: number
@@ -148,6 +149,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
         teamId, 
         playerIds: [], 
         submitted: false, 
+        skipped: false,
         submittedAt: null, 
         bidCount: 0,
         invalidCount: 0,
@@ -337,9 +339,15 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
                 </div>
                 <div className="flex items-center gap-3">
                   {teamBids.submitted ? (
-                    <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25">
-                      ✓ Submitted
-                    </span>
+                    teamBids.skipped || (teamBids.submitted && teamBids.bidCount === 0) ? (
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-gray-500/25 text-gray-400 border border-gray-500/25">
+                        Skipped
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25">
+                        ✓ Submitted
+                      </span>
+                    )
                   ) : (
                     <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20">
                       Not Submitted
@@ -349,7 +357,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
               </div>
 
               {/* Action Buttons */}
-              {teamBids.bidCount > 0 && ['active', 'draft'].includes(round.status) && (
+              {(teamBids.bidCount > 0 || teamBids.skipped || (teamBids.submitted && teamBids.bidCount === 0)) && ['active', 'draft'].includes(round.status) && (
                 <div className="space-y-2 pt-4 border-t border-white/5">
                   {/* Toggle Submission Status */}
                   <button

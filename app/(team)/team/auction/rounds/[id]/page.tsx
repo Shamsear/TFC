@@ -95,8 +95,8 @@ export default async function RoundBiddingPage({
   // If round is finalizing, show loading/wait state
   // (will be handled by client component)
 
-  // PARALLELIZE: seasonTeam + squadSize + ownedPlayerIds + existingBids can all run in parallel
-  const [seasonTeam, squadSize, ownedTransfers, existingBidsRaw] = await Promise.all([
+  // PARALLELIZE: seasonTeam + squadSize + ownedPlayerIds + existingBids + retainedPlayer can all run in parallel
+  const [seasonTeam, squadSize, ownedTransfers, existingBidsRaw, retainedPlayer] = await Promise.all([
     prisma.season_teams.findUnique({
       where: { seasonId_teamId: { seasonId: round.seasonId, teamId } },
       select: { id: true, currentBudget: true, team: { select: { name: true } } }
@@ -109,6 +109,30 @@ export default async function RoundBiddingPage({
       where: { roundId_teamId: { roundId: id, teamId } },
       select: { encryptedBids: true, submitted: true, bidCount: true, lastUpdated: true }
     }),
+    prisma.transfer_history.findFirst({
+      where: {
+        seasonId: round.seasonId,
+        teamId,
+        status: 'ACTIVE',
+        acquisitionType: 'retention',
+        basePlayer: {
+          seasonalPlayerStats: {
+            some: {
+              seasonId: round.seasonId,
+              position: round.position || undefined,
+              position_group: (round.position_group && round.position_group !== 'ALL') ? round.position_group : undefined
+            }
+          }
+        }
+      },
+      include: {
+        basePlayer: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
   ])
   const ownedPlayerIds = ownedTransfers.map(p => p.basePlayerId)
 
@@ -143,7 +167,8 @@ export default async function RoundBiddingPage({
         bids: bidMap,
         submitted: existingBidsRaw.submitted,
         bidCount: existingBidsRaw.bidCount,
-        lastUpdated: existingBidsRaw.lastUpdated
+        lastUpdated: existingBidsRaw.lastUpdated,
+        skipped: parsed.skipped || false
       }
     } catch (error) {
       console.error('Failed to decrypt bids on server:', error)
@@ -152,7 +177,8 @@ export default async function RoundBiddingPage({
         bids: {},
         submitted: false,
         bidCount: 0,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        skipped: false
       }
     }
   }
@@ -175,6 +201,7 @@ export default async function RoundBiddingPage({
       existingBids={existingBids}
       teamId={teamId}
       teamName={seasonTeam.team.name}
+      retainedPlayerName={retainedPlayer?.basePlayer.name || null}
     />
   )
 }

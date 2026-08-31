@@ -176,7 +176,7 @@ export async function PATCH(
           endDate: { from: oldCalendar?.endDate, to: endDate },
           description: { from: oldCalendar?.description, to: description },
           positionSlots: { 
-            from: oldCalendar?.auctionSlots.map(s => ({ position: s.position, group: s.position_group })), 
+            from: oldCalendar?.auctionSlots?.map(s => ({ position: s.position, group: s.position_group })) || [], 
             to: positionSlots 
           }
         }

@@ -51,8 +51,17 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
   const [view, setView] = useState<'month' | 'list'>('month')
 
   const formatICSDate = (dateString: string | Date) => {
+    // Convert to IST (UTC+5:30) for ICS output
     const d = new Date(dateString)
-    return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const istOffset = 5.5 * 60 * 60 * 1000
+    const istDate = new Date(d.getTime() + istOffset)
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    return istDate.getUTCFullYear().toString() +
+      pad(istDate.getUTCMonth() + 1) +
+      pad(istDate.getUTCDate()) + 'T' +
+      pad(istDate.getUTCHours()) +
+      pad(istDate.getUTCMinutes()) +
+      pad(istDate.getUTCSeconds())
   }
 
   const handleExportICal = () => {
@@ -61,7 +70,16 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
       'VERSION:2.0',
       'PRODID:-//Turf Cats//League Calendar//EN',
       'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH'
+      'METHOD:PUBLISH',
+      'BEGIN:VTIMEZONE',
+      'TZID:Asia/Kolkata',
+      'BEGIN:STANDARD',
+      'DTSTART:19700101T000000',
+      'TZOFFSETFROM:+0530',
+      'TZOFFSETTO:+0530',
+      'TZNAME:IST',
+      'END:STANDARD',
+      'END:VTIMEZONE'
     ]
 
     // Export auctions
@@ -79,8 +97,8 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
       icsContent.push(
         'BEGIN:VEVENT',
         `UID:auction-${auction.id}@turfcats.app`,
-        `DTSTART:${start}`,
-        `DTEND:${end}`,
+        `DTSTART;TZID=Asia/Kolkata:${start}`,
+        `DTEND;TZID=Asia/Kolkata:${end}`,
         `SUMMARY:Turf Cats Auction - ${auction.description || 'Round'}`,
         `DESCRIPTION:Auction slots: ${slots}`,
         'END:VEVENT'
@@ -107,8 +125,8 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
       icsContent.push(
         'BEGIN:VEVENT',
         `UID:match-${match.id}@turfcats.app`,
-        `DTSTART:${start}`,
-        `DTEND:${end}`,
+        `DTSTART;TZID=Asia/Kolkata:${start}`,
+        `DTEND;TZID=Asia/Kolkata:${end}`,
         `SUMMARY:${summary}`,
         `DESCRIPTION:Tournament: ${match.tournament.name}\\nRound: ${match.round || 'N/A'}\\nStatus: ${match.status}`,
         'END:VEVENT'
@@ -418,7 +436,7 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                           {auction.description || 'Auction Round'}
                         </div>
                         <div className="text-xs text-[#D4CCBB] font-semibold mb-1 font-mono">
-                          {formatDate(new Date(auction.auctionDate), 'h:mm a')}
+                          {formatDate(new Date(auction.auctionDate), 'h:mm a')} <span className="text-[9px] text-gray-500">(IST)</span>
                         </div>
                         {auction.endDate && (
                           <div className="text-[10px] text-red-400 mb-2 flex items-center gap-1 font-semibold">
@@ -556,7 +574,7 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
                             >
                               <div className="font-extrabold truncate text-[11px] leading-tight tracking-wide">{auction.description || 'Auction'}</div>
                               <div className="text-[9px] opacity-70 truncate font-semibold font-mono mt-0.5">
-                                {formatDate(new Date(auction.auctionDate), 'h:mm a')}
+                                {formatDate(new Date(auction.auctionDate), 'h:mm a')} <span className="opacity-50">(IST)</span>
                               </div>
                             </Link>
                           ))}

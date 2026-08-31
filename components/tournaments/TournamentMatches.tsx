@@ -244,14 +244,14 @@ export default function TournamentMatches({
             <span className="text-base sm:text-lg">📅</span>
             <div>
               <span className="font-bold text-[#7A7367] uppercase tracking-wider text-[9px] block mb-0.5">Round Activated:</span>{' '}
-              <span className="text-gray-300 font-extrabold block sm:inline">{getRoundDates(filteredMatches[0]).startedStr}</span>
+              <span className="text-gray-300 font-extrabold block sm:inline">{getRoundDates(filteredMatches[0]).startedStr} <span className="text-[9px] text-gray-500 font-bold">(IST)</span></span>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
             <span className="text-base sm:text-lg">🚨</span>
             <div>
               <span className="font-black text-[#E8A800] uppercase tracking-wider text-[9px] block mb-0.5">Submission Deadline:</span>{' '}
-              <span className="font-black text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]/40">{getRoundDates(filteredMatches[0]).deadlineStr}</span>
+              <span className="font-black text-[#E8A800] block sm:inline underline decoration-wavy decoration-[#E8A800]/40">{getRoundDates(filteredMatches[0]).deadlineStr} <span className="text-[9px] text-[#E8A800]/60 font-bold">(IST)</span></span>
             </div>
           </div>
         </div>

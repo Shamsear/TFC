@@ -235,7 +235,7 @@ export default function MatchDetailView({ match }: MatchDetailViewProps) {
         </div>
 
         <div className="text-center text-[#D4CCBB] text-xs sm:text-sm">
-          <div>{formatDate(match.matchDate)}</div>
+          <div>{formatDate(match.matchDate)} <span className="text-[9px] text-gray-500 font-bold">(IST)</span></div>
           {match.venue && <div className="mt-1">Venue: {match.venue}</div>}
         </div>
       </div>

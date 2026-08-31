@@ -411,7 +411,7 @@ function MatchCard({
           {match.round && <span>{match.round.toUpperCase()}</span>}
         </div>
         <div className="flex items-center gap-2.5">
-          <span>{formatDate(match.matchDate)} {formatTime(match.matchDate)}</span>
+          <span>{formatDate(match.matchDate)} {formatTime(match.matchDate)} <span className="text-[8px] text-gray-500 font-bold">(IST)</span></span>
           <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${statusStyle(match.status)}`}>
             {match.status === 'IN_PROGRESS' ? 'LIVE' : match.status}
           </span>

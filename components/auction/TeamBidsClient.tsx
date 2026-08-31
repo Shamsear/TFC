@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { normalizeForSearch } from '@/lib/search-utils'
+import { formatIST } from '@/lib/date-ist'
 
 interface Team {
   id: string
@@ -331,7 +332,7 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
                       {teamBids.bidCount} {round.roundType === 'bulk' ? 'players' : 'bids'}
                       {teamBids.submitted && teamBids.submittedAt && (
                         <span className="ml-2 text-gray-400">
-                          • Submitted {new Date(teamBids.submittedAt).toLocaleString()}
+                          • Submitted {formatIST(teamBids.submittedAt)}
                         </span>
                       )}
                     </div>

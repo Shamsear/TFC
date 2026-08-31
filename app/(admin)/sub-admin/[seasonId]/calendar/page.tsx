@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import CalendarCard from '@/components/calendar/CalendarCard'
+import { formatDateIST } from '@/lib/date-ist'
 
 interface CalendarPageProps {
   params: Promise<{
@@ -62,12 +63,7 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
   }
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(new Date(date))
+    return formatDateIST(date)
   }
 
   // Format dates in server component

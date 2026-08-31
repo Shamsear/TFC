@@ -7,6 +7,7 @@ import Image from "next/image"
 import PageLoader from "@/components/ui/PageLoader"
 import { normalizeForSearch } from "@/lib/search-utils"
 import SearchableSelect from '@/components/ui/SearchableSelect'
+import { formatDateIST } from "@/lib/date-ist"
 
 interface CalendarAuctionPageProps {
   params: Promise<{
@@ -231,12 +232,7 @@ export default function CalendarAuctionPage({ params }: CalendarAuctionPageProps
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    return formatDateIST(date)
   }
 
   return (

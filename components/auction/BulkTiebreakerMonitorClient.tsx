@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { formatTimeIST } from '@/lib/date-ist'
 import { getPhotoUrlFromDb } from '@/lib/image-cdn'
 import BulkTiebreakerManualResolve from './BulkTiebreakerManualResolve'
 
@@ -432,7 +433,7 @@ export default function BulkTiebreakerMonitorClient({
                         </div>
                         {participant.submittedAt && (
                           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-2" suppressHydrationWarning>
-                            Submitted: {new Date(participant.submittedAt).toLocaleTimeString()}
+                            Submitted: {formatTimeIST(participant.submittedAt)}
                           </div>
                         )}
                       </div>

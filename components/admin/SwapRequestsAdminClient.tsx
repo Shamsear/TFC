@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { PosterModal } from './SwapReleasePoster'
+import { formatIST, formatDateIST } from '@/lib/date-ist'
 
 interface SwapPlayer {
   id: string
@@ -320,13 +321,7 @@ ${targetAcquires || '_None_'}
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    return formatIST(dateStr)
   }
 
   return (
@@ -434,7 +429,7 @@ ${targetAcquires || '_None_'}
               </span>
             </div>
             <div>
-              <span className="text-gray-400">Duration:</span> {new Date(selectedWindow.startDate).toLocaleDateString()} - {new Date(selectedWindow.endDate).toLocaleDateString()}
+              <span className="text-gray-400">Duration:</span> {formatDateIST(selectedWindow.startDate)} - {formatDateIST(selectedWindow.endDate)}
             </div>
             <div>
               <span className="text-gray-400">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.swapLimit} swaps</span> per team

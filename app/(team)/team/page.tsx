@@ -32,6 +32,7 @@ import {
   Target,
   type LucideIcon,
 } from "lucide-react"
+import { formatDateIST } from "@/lib/date-ist"
 
 export const metadata = {
   title: "Team Dashboard | Turf Cats",
@@ -346,7 +347,7 @@ export default async function TeamDashboardPage() {
                         : `vs ${nextMatch.homeTeam.team.name}`}
                     </div>
                     <div className="dash-caption text-[#5A5660] font-bold tabular-nums">
-                      {new Date(nextMatch.matchDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                      {formatDateIST(nextMatch.matchDate)}
                     </div>
                   </>
                 ) : (
@@ -482,11 +483,8 @@ export default async function TeamDashboardPage() {
                         className="flex items-center gap-2 sm:gap-2.5 md:gap-3 bg-white/[0.02] border border-white/[0.04] rounded-lg p-2.5 sm:p-3 hover:border-violet-500/25 hover:bg-white/[0.03] transition-all touch-min focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08080A]"
                       >
                         <div className="shrink-0 text-center w-9 sm:w-10 md:w-12">
-                          <div className="dash-caption text-[#5A5660] font-bold uppercase">
-                            {new Date(match.matchDate).toLocaleDateString("en-GB", { weekday: "short" })}
-                          </div>
                           <div className="dash-small font-black text-white tabular-nums">
-                            {new Date(match.matchDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                            {formatDateIST(match.matchDate)}
                           </div>
                         </div>
                         <div className="flex-1 min-w-0 text-center">

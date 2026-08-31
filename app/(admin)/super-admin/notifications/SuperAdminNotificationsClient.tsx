@@ -1,18 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatIST, formatDateIST } from '@/lib/date-ist'
 
-// Use a fixed locale so server & client render identical date strings (prevents hydration mismatch)
-const formatDateTime = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  })
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  })
+// Always display in IST so server & client render identical strings
+const formatDateTime = (iso: string) => formatIST(iso)
+const formatDate = (iso: string) => formatDateIST(iso)
 
 interface Subscription {
   id: string
@@ -350,7 +343,7 @@ export default function SuperAdminNotificationsClient({ subscriptions: initialSu
               return (
                 <div key={log.id} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-1.5 border-b border-white/5 last:border-0">
                   <span className="text-gray-500 shrink-0 select-none">
-                    [{new Date(log.sentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}]
+                    [{formatDateTime(log.sentAt)}]
                   </span>
                   <div className="flex-1">
                     <span className="font-bold text-gray-400">[{log.category.toUpperCase()}]</span>{' '}

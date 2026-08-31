@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SearchableSelect from '@/components/ui/SearchableSelect'
+import { formatIST } from '@/lib/date-ist'
 
 interface Round {
   id: string
@@ -887,14 +888,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   // Format date and time
   const formatDateTime = (date: Date | null) => {
     if (!date) return 'Not started'
-    return new Date(date).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    })
+    return formatIST(date)
   }
 
   const formatAcquisitionType = (type: string) => {

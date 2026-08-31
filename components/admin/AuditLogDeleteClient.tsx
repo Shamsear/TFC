@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import SearchableSelect from '@/components/ui/SearchableSelect';
+import { formatIST } from '@/lib/date-ist';
 
 interface Team {
   id: string;
@@ -145,7 +146,7 @@ export default function AuditLogDeleteClient({
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
                     <span className="text-[10px] font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg font-mono">
-                      {new Date(log.createdAt).toLocaleString()}
+                      {formatIST(log.createdAt)}
                     </span>
                     <span className="text-[10px] font-extrabold text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider font-mono">
                       {log.transactionType}

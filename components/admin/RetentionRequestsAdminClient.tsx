@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import Image from 'next/image'
+import { formatIST } from '@/lib/date-ist'
 
 interface RetentionRequest {
   id: string
@@ -193,9 +194,7 @@ export default function RetentionRequestsAdminClient({
     }
   }
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString('en-GB', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-  })
+  const formatDate = (dateStr: string) => formatIST(dateStr)
 
   const [copiedId, setCopiedId] = useState<string | null>(null)
 

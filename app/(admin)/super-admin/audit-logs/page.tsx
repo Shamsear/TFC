@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getAuditLogs } from '@/lib/audit'
 import { prisma } from '@/lib/prisma'
 import AuditLogsFilters from '@/components/admin/AuditLogsFilters'
+import { formatIST } from '@/lib/date-ist'
 
 async function getSubAdmins(): Promise<{ id: string; name: string; email: string }[]> {
   try {
@@ -64,13 +65,7 @@ export default async function AuditLogsPage({
   const seasons = await getSeasons()
 
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return formatIST(date)
   }
 
   const getActionColor = (action: string) => {

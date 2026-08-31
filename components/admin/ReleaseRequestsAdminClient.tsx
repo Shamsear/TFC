@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PosterModal } from './SwapReleasePoster'
+import { formatIST, formatDateIST } from '@/lib/date-ist'
 
 interface Request {
   id: string
@@ -354,13 +355,7 @@ _All releases processed by admin_`
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    return formatIST(dateStr)
   }
 
   return (
@@ -457,9 +452,9 @@ _All releases processed by admin_`
                 {selectedWindow.status}
               </span>
             </div>
-            <div>
-              <span className="text-gray-400">Duration:</span> {new Date(selectedWindow.startDate).toLocaleDateString()} - {new Date(selectedWindow.endDate).toLocaleDateString()}
-            </div>
+             <div>
+               <span className="text-gray-400">Duration:</span> {formatDateIST(selectedWindow.startDate)} - {formatDateIST(selectedWindow.endDate)}
+             </div>
             <div>
               <span className="text-gray-400">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.releaseLimit} releases</span> per team
             </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import SearchableSelect from '@/components/ui/SearchableSelect'
+import { formatIST } from '@/lib/date-ist'
 
 interface AuditLog {
   id: string
@@ -41,14 +42,7 @@ export default function AuditLogViewer({ logs }: AuditLogViewerProps) {
   const uniqueActions = Array.from(new Set(logs.map(l => l.action)))
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
+    return formatIST(date)
   }
 
   const getActionColor = (action: string) => {

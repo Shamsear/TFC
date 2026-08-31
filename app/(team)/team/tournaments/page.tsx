@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getActiveSeason } from '@/lib/get-active-season'
+import { formatDateIST } from '@/lib/date-ist'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,11 +81,7 @@ export default async function TeamTournamentsPage() {
   const data = await getTournamentsData(session.user.id)
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+    return formatDateIST(date)
   }
 
   const getTournamentStatus = (tournament: any) => {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import { formatIST } from "@/lib/date-ist"
 
 interface NotificationItem {
   id: string
@@ -201,7 +202,7 @@ export default function NotificationsInboxPage() {
                         {notification.title}
                       </h3>
                       <span className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest font-mono whitespace-nowrap pt-0.5">
-                        {new Date(notification.createdAt).toLocaleString()}
+                        {formatIST(notification.createdAt)}
                       </span>
                     </div>
                     <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-4">

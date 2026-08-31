@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { formatIST } from '@/lib/date-ist'
 
 interface Player {
   id: string
@@ -289,10 +290,7 @@ export default function CreateRoundClient({
             </div>
             {calculatedEndTime && (
               <div className="text-xs text-[#E8A800] mt-2 font-medium">
-                Ends: {calculatedEndTime.toLocaleString('en-US', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short'
-                })}
+                Ends: {formatIST(calculatedEndTime)}
               </div>
             )}
             {!selectedCalendar && (
@@ -326,10 +324,7 @@ export default function CreateRoundClient({
                   }`}
                 >
                   <div className="font-bold text-white">
-                    {new Date(calendar.auctionDate).toLocaleString('en-US', {
-                      dateStyle: 'full',
-                      timeStyle: 'short'
-                    })}
+                    {formatIST(calendar.auctionDate)}
                   </div>
                   {calendar.description && (
                     <div className="text-xs text-gray-400 mt-1">{calendar.description}</div>

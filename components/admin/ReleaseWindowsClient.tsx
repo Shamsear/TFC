@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { formatIST } from '@/lib/date-ist'
 
 interface ReleaseWindow {
   id: string
@@ -340,8 +341,8 @@ export default function ReleaseWindowsClient({ seasonId, seasonName }: Props) {
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono flex gap-4 flex-wrap">
-                  <div>Starts: <span className="text-gray-300">{new Date(window.startDate).toLocaleString()}</span></div>
-                  <div>Ends: <span className="text-gray-300">{new Date(window.endDate).toLocaleString()}</span></div>
+                  <div>Starts: <span className="text-gray-300">{formatIST(window.startDate)}</span></div>
+                  <div>Ends: <span className="text-gray-300">{formatIST(window.endDate)}</span></div>
                   <div>Limit: <span className="text-white font-medium">{window.releaseLimit || 3}</span></div>
                 </div>
                 <div className="text-xs font-bold uppercase tracking-wider font-mono text-gray-500">

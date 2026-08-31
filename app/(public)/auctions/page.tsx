@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { getActiveSeason } from '@/lib/get-active-season'
+import { formatDateIST } from '@/lib/date-ist'
 
 // Force dynamic rendering to avoid stale cache
 export const dynamic = 'force-dynamic'
@@ -191,7 +192,7 @@ export default async function AuctionsPage() {
 
                     <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-4">
                       <span className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
-                        {round.startTime && `Started: ${new Date(round.startTime).toLocaleDateString()}`}
+                        {round.startTime && `Started: ${formatDateIST(round.startTime)}`}
                       </span>
                       <div className="text-xs font-black uppercase tracking-wider text-[#E8A800] group-hover:text-[#FFB347] transition-colors inline-flex items-center gap-1">
                         View Details

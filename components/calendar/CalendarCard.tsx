@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { formatDateIST, formatTimeIST } from '@/lib/date-ist'
 
 interface CalendarCardProps {
   calendar: {
@@ -22,20 +23,11 @@ interface CalendarCardProps {
 }
 
 const formatTime = (date: Date) => {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }).format(new Date(date))
+  return formatTimeIST(date)
 }
 
 const formatDate = (date: Date) => {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }).format(new Date(date))
+  return formatDateIST(date)
 }
 
 const CalendarIcon = () => (

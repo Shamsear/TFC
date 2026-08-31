@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import TeamLogo from "@/components/team/TeamLogo"
 import { getActiveSeason } from "@/lib/get-active-season"
+import { formatDateIST } from '@/lib/date-ist'
 
 export const metadata = {
   title: "Not in Active Season | Turf Cats",
@@ -175,7 +176,7 @@ export default async function NotInSeasonPage() {
                   <div>
                     <div className="text-white font-bold">{st.season.name}</div>
                     <div className="text-gray-500 text-sm mt-1 font-medium">
-                      Ended: {new Date(st.season.updatedAt).toLocaleDateString()}
+                      Ended: {formatDateIST(st.season.updatedAt)}
                     </div>
                   </div>
                   <div className="flex items-center gap-6">

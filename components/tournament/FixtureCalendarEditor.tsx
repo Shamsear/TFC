@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { formatDateIST, formatISTCustom } from '@/lib/date-ist'
 
 // ── Custom Select Component for Matchdays Pager ──────────────────────────────
 function CustomSelect({ 
@@ -296,8 +297,8 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
       {sortedDates.map((dateKey) => {
         const matchesOnDate = matchesByDate[dateKey]
         const displayDate = new Date(dateKey + 'T00:00:00')
-        const dayName = displayDate.toLocaleDateString('en-US', { weekday: 'long' })
-        const dateStr = displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        const dayName = formatISTCustom(displayDate, { weekday: 'long' })
+        const dateStr = formatDateIST(displayDate)
 
         return (
           <div key={dateKey} className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 sm:p-6 shadow-2xl backdrop-blur-xl">
@@ -373,7 +374,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                         <div>
                           <label className="block text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono mb-2">Computed Deadline</label>
                           <div className="bg-white/[0.01] border border-white/5 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] font-mono uppercase tracking-wider truncate">
-                            {newMatchDate ? new Date(newMatchDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                            {newMatchDate ? formatDateIST(new Date(newMatchDate + 'T00:00:00')) : 'N/A'}
                           </div>
                         </div>
                         <div>

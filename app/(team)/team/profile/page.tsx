@@ -7,6 +7,7 @@ import Image from "next/image"
 import Link from "next/link"
 import TeamLogo from "@/components/team/TeamLogo"
 import PushToggle from "@/components/notifications/PushToggle"
+import { formatDateIST } from '@/lib/date-ist'
 
 export const metadata = {
   title: "Team Profile | Turf Cats",
@@ -193,7 +194,7 @@ export default async function TeamProfilePage() {
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 font-bold text-xs uppercase tracking-wider">Member Since:</span>
                   <span className="text-[#D4CCBB] font-bold">
-                    {new Date(team.createdAt).toLocaleDateString()}
+                    {formatDateIST(team.createdAt)}
                   </span>
                 </div>
               </div>

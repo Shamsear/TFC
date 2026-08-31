@@ -5,6 +5,7 @@ import Link from "next/link"
 import RetentionModule from "@/components/retention/RetentionModule"
 import { resolveTeamManagerNames } from "@/lib/resolve-manager"
 import { getPlayerPhotoUrl } from "@/lib/image-cdn"
+import { formatDateIST } from '@/lib/date-ist'
 
 export default async function RetentionModulePage({
   params,
@@ -258,7 +259,7 @@ export default async function RetentionModulePage({
               <div>
                 <p className="text-sm font-black text-[#E8A800] font-mono">{activeWindow.name}</p>
                 <p className="text-xs text-gray-400 font-mono">
-                  {new Date(activeWindow.startDate).toLocaleDateString()} - {new Date(activeWindow.endDate).toLocaleDateString()}
+                  {formatDateIST(activeWindow.startDate)} - {formatDateIST(activeWindow.endDate)}
                 </p>
               </div>
               <div className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">

@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { checkTeamSeasonParticipation } from '@/lib/team-auth'
+import { formatDateIST, formatTimeIST } from '@/lib/date-ist'
 
 export async function generateMetadata({ params }: { params: Promise<{ tournamentId: string }> }) {
   const { tournamentId } = await params
@@ -112,9 +113,9 @@ export default async function TournamentDetailsPage({
   const upcomingMatches = matches.filter(m => m.status === 'SCHEDULED')
 
   const formatDate = (d: Date) =>
-    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' })
+    formatDateIST(d)
   const formatTime = (d: Date) =>
-    new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+    formatTimeIST(d)
 
   const statusStyle = (s: string) => {
     if (s === 'COMPLETED') return 'bg-[#E8A800]/10 border-[#E8A800]/30 text-[#E8A800]'

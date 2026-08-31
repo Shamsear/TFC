@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import { formatISTCustom } from '@/lib/date-ist'
 
 export async function generateMetadata({ params }: { params: Promise<{ matchId: string }> }) {
   const { matchId } = await params
@@ -78,9 +79,9 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
     const started = match.startDate ? new Date(match.startDate) : new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
     
     const formatFull = (d: Date) => 
-      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' }) + 
+      formatISTCustom(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
       ' at ' + 
-      d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+      formatISTCustom(d, { hour: '2-digit', minute: '2-digit' })
 
     return {
       startedStr: formatFull(started),
@@ -150,20 +151,18 @@ export default async function MatchDetailsPage({ params }: { params: Promise<{ m
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-6 border-b border-white/5 gap-3">
             <div>
               <div className="text-xs sm:text-sm text-gray-400 mb-1 font-bold uppercase tracking-wider">
-                {match.startDate && new Date(match.startDate).toLocaleDateString("en-US", {
+                {match.startDate && formatISTCustom(new Date(match.startDate), {
                   weekday: "long",
                   year: "numeric",
                   month: "long",
                   day: "numeric",
-                  timeZone: "Asia/Kolkata"
                 })}
               </div>
               {match.startDate && (
                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-                  Kickoff Time: {new Date(match.startDate).toLocaleTimeString("en-US", {
+                  Kickoff Time: {formatISTCustom(new Date(match.startDate), {
                     hour: "2-digit",
                     minute: "2-digit",
-                    timeZone: "Asia/Kolkata"
                   })}
                 </div>
               )}

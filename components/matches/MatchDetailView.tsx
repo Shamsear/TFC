@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { formatIST } from '@/lib/date-ist'
 import Image from 'next/image'
 
 interface MatchDetailViewProps {
@@ -39,17 +40,7 @@ interface MatchDetailViewProps {
 }
 
 export default function MatchDetailView({ match }: MatchDetailViewProps) {
-  const formatDate = (date: Date) => {
-    const d = new Date(date)
-    return d.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (date: Date) => formatIST(date)
 
   const getStatusColor = (status: string) => {
     switch (status) {

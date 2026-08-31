@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AuditLogViewer from '@/components/admin/AuditLogViewer'
+import { formatDateIST } from '@/lib/date-ist'
 
 async function getSubAdmin(id: string) {
   try {
@@ -125,7 +126,7 @@ export default async function AuditLogPage({
           </div>
           <div className="rounded-lg sm:rounded-xl bg-white/5 border border-white/10 p-4 sm:p-6 col-span-2 lg:col-span-1">
             <div className="text-2xl sm:text-3xl font-black text-[#FFC93A] mb-1">
-              {logs.length > 0 ? new Date(logs[0].created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+              {logs.length > 0 ? formatDateIST(logs[0].created_at) : 'N/A'}
             </div>
             <div className="text-xs sm:text-sm text-gray-400">Last Activity</div>
           </div>

@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { formatDateIST } from '@/lib/date-ist'
 
 async function getSubAdmins() {
   try {
@@ -43,15 +44,7 @@ export default async function SubAdminsPage() {
 
   const subAdmins = await getSubAdmins()
 
-  const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (date: Date | string) => formatDateIST(date)
 
   return (
     <div className="text-white px-4 sm:px-6 lg:px-8 pb-8">

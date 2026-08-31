@@ -5,6 +5,7 @@ import Link from 'next/link'
 import TournamentTabs from '@/components/tournament/TournamentTabs'
 
 import TournamentStatusSelector from '@/components/tournament/TournamentStatusSelector'
+import { formatDateIST } from '@/lib/date-ist'
 
 interface TournamentDetailPageProps {
   params: Promise<{
@@ -141,13 +142,7 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
     return colors[status] || colors.UPCOMING
   }
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    }).format(new Date(date))
-  }
+  const formatDate = (date: Date) => formatDateIST(date)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">

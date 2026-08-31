@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getPlayerCardById, getPlayerPhotoUrl } from '@/lib/image-cdn'
 import { captureTableAsPng, shareOrDownloadPng } from '@/lib/share-table'
+import { formatDateIST } from '@/lib/date-ist'
 
 /* ────────────────────────── Player Image Wrapper ────────────────────────── */
 
@@ -491,7 +492,7 @@ export function SwapPoster({
           TURFCATS.VERCEL.APP
         </span>
         <span style={{ color: 'rgba(255, 255, 255, 0.2)', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
-          GENERATED ON {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+          GENERATED ON {formatDateIST(new Date()).toUpperCase()}
         </span>
       </div>
     </div>

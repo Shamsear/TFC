@@ -6,6 +6,7 @@ import Image from 'next/image'
 import TournamentMatches from './TournamentMatches'
 import TournamentTable, { StandingRow } from './TournamentTable'
 import TournamentStats, { TeamStatRow } from './TournamentStats'
+import { formatDateIST, formatTimeIST } from '@/lib/date-ist'
 
 interface TournamentViewProps {
   tournament: {
@@ -50,19 +51,9 @@ export default function TournamentView({
     return acc
   }, {})
 
-  const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })
-  }
+  const formatDate = (date: Date | string) => formatDateIST(date)
 
-  const formatTime = (date: Date | string) => {
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatTime = (date: Date | string) => formatTimeIST(date)
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { captureTableAsPng, shareOrDownloadPng } from '@/lib/share-table'
 import type { StandingRow } from '@/components/tournaments/TournamentTable'
+import { formatDateIST } from '@/lib/date-ist'
 
 interface ShareableTournamentTableProps {
   standings: StandingRow[]
@@ -168,7 +169,7 @@ function TableSnapshot({
       {/* Footer watermark */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#5A5347', fontSize: 12, fontWeight: 700, marginTop: 16 }}>
         <div>turfcats.vercel.app</div>
-        <div>Generated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+        <div>Generated on {formatDateIST(new Date())}</div>
       </div>
     </div>
   )

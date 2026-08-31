@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatDateIST } from '@/lib/date-ist'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -231,7 +232,7 @@ export default function PushToggle() {
               <div key={dev.id} className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-xl p-3 sm:p-4 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300">
                 <div>
                   <div className="font-extrabold text-white text-sm">{dev.deviceName} ({dev.deviceType})</div>
-                  <div className="text-[10px] text-gray-500 font-semibold mt-1">Registered: {new Date(dev.lastUsedAt).toLocaleDateString()}</div>
+                  <div className="text-[10px] text-gray-500 font-semibold mt-1">Registered: {formatDateIST(dev.lastUsedAt)}</div>
                 </div>
                 <button
                   onClick={() => handleRevokeDevice(dev.id)}

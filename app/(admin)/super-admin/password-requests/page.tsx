@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/components/ui/ToastProvider";
 import { normalizeForSearch } from "@/lib/search-utils";
+import { formatIST, formatDateIST } from '@/lib/date-ist'
 
 interface User {
   id: string;
@@ -152,7 +153,7 @@ export default function PasswordRequestsPage() {
                     </td>
                     <td className="p-4">
                       <div className="text-sm text-gray-300">
-                        {new Date(req.createdAt).toLocaleString()}
+                        {formatIST(req.createdAt)}
                       </div>
                     </td>
                     <td className="p-4">
@@ -192,7 +193,7 @@ export default function PasswordRequestsPage() {
                         </div>
                       ) : (
                         <span className="text-xs text-gray-400 italic">
-                          Reviewed {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString() : ""}
+                          Reviewed {req.reviewedAt ? formatDateIST(req.reviewedAt) : ""}
                         </span>
                       )}
                     </td>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import TeamLogo from '@/components/team/TeamLogo'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { formatIST } from '@/lib/date-ist'
 
 interface RetentionWindow {
   id: string
@@ -116,17 +117,7 @@ export default function RetentionWindowsClient({
     }
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Kolkata',
-      timeZoneName: 'short',
-    })
-  }
+  const formatDate = (dateStr: string) => formatIST(dateStr)
 
   const getStatusColor = (status: string) => {
     switch (status) {

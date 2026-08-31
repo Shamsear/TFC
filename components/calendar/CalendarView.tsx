@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { formatDateIST, formatTimeIST } from '@/lib/date-ist'
 
 interface Auction {
   id: string
@@ -174,14 +175,8 @@ export default function CalendarView({ auctions, matches, basePath = '' }: Calen
     if (format === 'd') return date.getDate().toString()
     if (format === 'MMM') return months[date.getMonth()]
     if (format === 'MMMM yyyy') return `${monthsFull[date.getMonth()]} ${date.getFullYear()}`
-    if (format === 'h:mm a') {
-      const hours = date.getHours()
-      const minutes = date.getMinutes()
-      const ampm = hours >= 12 ? 'PM' : 'AM'
-      const displayHours = hours % 12 || 12
-      return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
-    }
-    return date.toLocaleDateString()
+    if (format === 'h:mm a') return formatTimeIST(date)
+    return formatDateIST(date)
   }
 
   // Get calendar days

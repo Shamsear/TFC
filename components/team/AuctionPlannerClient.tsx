@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { normalizeForSearch } from "@/lib/search-utils"
 import SearchableSelect from "@/components/ui/SearchableSelect"
+import { formatTimeIST } from '@/lib/date-ist'
 
 interface Player {
   id: string
@@ -420,7 +421,7 @@ export default function AuctionPlannerClient({
             <div className="flex items-center gap-3">
               {lastSaved && (
                 <span className="hidden md:block text-[10px] text-gray-500 font-bold uppercase tracking-widest font-mono">
-                  Saved: {new Date(lastSaved).toLocaleTimeString()}
+                  Saved: {formatTimeIST(lastSaved)}
                 </span>
               )}
               <button

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useRef, useEffect } from 'react'
+import { formatDateIST, formatTimeIST, formatISTCustom } from '@/lib/date-ist'
 
 export interface MatchRow {
   id: string
@@ -152,20 +153,18 @@ export default function TournamentMatches({
     return match.status === (filter === 'scheduled' ? 'SCHEDULED' : filter === 'live' ? 'LIVE' : 'COMPLETED')
   })
 
-  const formatDate = (d: Date) =>
-    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const formatDate = (d: Date) => formatDateIST(d)
   
-  const formatTime = (d: Date) =>
-    new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  const formatTime = (d: Date) => formatTimeIST(d)
 
   const getRoundDates = (match: MatchRow) => {
     const deadline = new Date(match.matchDate)
     const started = match.startDate ? new Date(match.startDate) : new Date(deadline.getTime() - 2 * 24 * 60 * 60 * 1000)
     
     const formatFull = (d: Date) => 
-      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
+      formatISTCustom(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + 
       ' at ' + 
-      d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      formatTimeIST(d)
 
     return {
       startedStr: formatFull(started),

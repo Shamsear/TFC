@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { captureTableAsPng } from '@/lib/share-table'
 import type { TeamStatRow } from './TournamentStats'
+import { formatDateIST } from '@/lib/date-ist'
 
 /* ───────────────────────────── Theme Definitions ────────────────────────── */
 
@@ -581,7 +582,7 @@ function TeamMatchdayPosterSnapshot({
         >
           <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>turfcats.vercel.app</div>
           <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700 }}>
-            Generated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            Generated on {formatDateIST(new Date())}
           </div>
         </div>
       </div>
@@ -998,7 +999,7 @@ function PosterSnapshot({
           <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>turfcats.vercel.app</div>
           <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700 }}>
             Generated on{' '}
-            {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {formatDateIST(new Date())}
           </div>
         </div>
       </div>
@@ -1424,7 +1425,7 @@ function TeamWeeklyPosterSnapshot({
         >
           <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>turfcats.vercel.app</div>
           <div style={{ color: '#3a3630', fontSize: 11, fontWeight: 700 }}>
-            Generated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            Generated on {formatDateIST(new Date())}
           </div>
         </div>
       </div>

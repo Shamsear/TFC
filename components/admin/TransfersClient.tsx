@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import { formatIST } from '@/lib/date-ist'
 
 interface Transfer {
   id: string
@@ -74,15 +75,7 @@ export default function TransfersClient({ transfers, seasonId, seasonName }: Tra
     setCurrentPage(1)
   }
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (date: Date) => formatIST(date)
 
   const formatCurrency = (amount: number) => {
     return `£${amount.toLocaleString()}`

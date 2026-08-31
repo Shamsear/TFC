@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 import { resolveTeamManagerNames } from '@/lib/resolve-manager'
+import { formatDateIST } from '@/lib/date-ist'
 
 interface TeamDetailPageProps {
   params: Promise<{
@@ -360,7 +361,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                           {formatCurrency(transfer.soldPrice)}
                         </div>
                         <div className="text-xs text-[#7A7367]">
-                          {new Date(transfer.createdAt).toLocaleDateString()}
+                          {formatDateIST(transfer.createdAt)}
                         </div>
                       </div>
                     </div>

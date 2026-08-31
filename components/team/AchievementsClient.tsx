@@ -12,6 +12,7 @@ import {
   getRankDetails,
   BadgeDef
 } from '@/lib/achievements-math';
+import { formatDateIST } from '@/lib/date-ist'
 
 interface UnlockedBadge {
   id: string;

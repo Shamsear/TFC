@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { formatIST } from '@/lib/date-ist'
 
 interface AuctionsViewProps {
   auctions: Array<{
@@ -80,16 +81,7 @@ export default function AuctionsView({
     }
   }, [initialAuctionId, initialPosition])
 
-  const formatDate = (date: Date) => {
-    const d = new Date(date)
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (date: Date) => formatIST(date)
 
   const getPositionColor = (pos: string) => {
     const p = pos.toUpperCase()

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { formatDateIST } from '@/lib/date-ist'
 
 export const metadata = {
   title: "Team Managers | Turf Cats Admin",
@@ -174,7 +175,7 @@ export default async function TeamManagersPage() {
                         )}
                       </td>
                       <td className="py-4 px-6 text-gray-400">
-                        {new Date(manager.createdAt).toLocaleDateString()}
+                        {formatDateIST(manager.createdAt)}
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center justify-end gap-2">

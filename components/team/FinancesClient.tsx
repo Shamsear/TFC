@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import { formatDateIST } from '@/lib/date-ist'
 
 interface Transaction {
   id: string
@@ -199,7 +200,7 @@ export default function FinancesClient({ initialData, teamName, seasonName }: Fi
                     {filteredTransactions.map((transaction) => (
                       <tr key={transaction.id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors group/row">
                         <td className="px-6 py-4 text-xs text-[#D4CCBB] font-mono whitespace-nowrap">
-                          {new Date(transaction.createdAt).toLocaleDateString()}
+                          {formatDateIST(transaction.createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span

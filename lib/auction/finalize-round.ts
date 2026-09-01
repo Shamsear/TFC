@@ -57,6 +57,21 @@ interface FinalizationState {
  * Fetch and decrypt all team bids for a round
  */
 async function fetchAllBids(roundId: string): Promise<TeamBids[]> {
+  // Check if any team submitted within the last 10 seconds
+  const recentSubmission = await prisma.team_round_bids.findFirst({
+    where: {
+      roundId,
+      submitted: true,
+      submittedAt: { gte: new Date(Date.now() - 10000) }
+    },
+    select: { id: true }
+  });
+
+  if (recentSubmission) {
+    console.log('⏳ Recent submission detected in last 10s. Brief pause (1.5s) to allow DB transactions to commit...');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+
   const teamBids = await prisma.team_round_bids.findMany({
     where: { roundId },
     select: {

@@ -71,11 +71,12 @@ export async function POST(
       );
     }
 
-    // Check if round has expired
+    // Check if round has expired (Allow 15s grace period ONLY if user explicitly clicked SUBMIT or SKIP)
     if (round.endTime) {
       const now = new Date();
       const endTime = new Date(round.endTime);
-      if (now > endTime) {
+      const gracePeriodMs = (submitted || skipped) ? 15000 : 0;
+      if (now.getTime() > endTime.getTime() + gracePeriodMs) {
         return NextResponse.json(
           { error: 'Round has expired' },
           { status: 400 }

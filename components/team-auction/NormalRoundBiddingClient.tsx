@@ -177,11 +177,14 @@ export default function NormalRoundBiddingClient({
     fetchReserveInfo()
   }, [round.season.id, round.id])
 
-  // Load existing bids
+  // Load existing bids — only on mount or when the round/team changes.
+  // Do NOT include existingBids in deps: every router.refresh() creates a new object
+  // reference which would re-run this effect and reset the user's in-progress edits.
   useEffect(() => {
     setBids(existingBids?.bids || {})
     hasLoadedInitial.current = true
-  }, [round.id, teamId, existingBids])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round.id, teamId])
 
   // Poll live round status
   useEffect(() => {
@@ -398,7 +401,7 @@ export default function NormalRoundBiddingClient({
       return
     }
 
-    if (round.maxBidsPerTeam && bidCount < round.maxBidsPerTeam) {
+    if (round.maxBidsPerTeam && bidCount !== round.maxBidsPerTeam) {
       setErrorModalMessage(
         `You must place exactly ${round.maxBidsPerTeam} bids to submit.\n\nCurrent bids: ${bidCount}\nRequired: ${round.maxBidsPerTeam}`
       )
@@ -547,7 +550,8 @@ export default function NormalRoundBiddingClient({
         setBids({})
         setMessage({ type: 'success', text: 'Ready to place new bids.' })
       }
-      router.refresh()
+      // Do NOT call router.refresh() here — it re-triggers the existingBids useEffect
+      // which resets local bid state from the server, causing bids to disappear.
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -651,7 +655,10 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
   const bidCount = Object.keys(bids).filter(k => bids[k] > 0).length
   const totalBidsInList = Object.keys(bids).filter(k => bids[k] !== undefined).length
   const maxBidsReached = round.maxBidsPerTeam ? bidCount >= round.maxBidsPerTeam : false
-  const hasMaxBidsRequired = round.maxBidsPerTeam ? bidCount === round.maxBidsPerTeam : true
+  // Use >= so the button is enabled when bidCount meets or exceeds the requirement.
+  // The server-side validator enforces the strict cap; using === here permanently
+  // disables submit if a team somehow has more bids than maxBidsPerTeam.
+  const hasMaxBidsRequired = round.maxBidsPerTeam ? bidCount >= round.maxBidsPerTeam : true
 
   const duplicateAmounts = new Set<number>()
   const seenAmounts = new Set<number>()
@@ -1158,9 +1165,9 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
                 Copy Format to WhatsApp
               </button>
             )}
-            {!hasMaxBidsRequired && round.maxBidsPerTeam && (
+            {round.maxBidsPerTeam && bidCount !== round.maxBidsPerTeam && (
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-wider font-mono text-center animate-pulse">
-                ⚠️ Bid requirement: Exactly {round.maxBidsPerTeam} bids required (Currently {bidCount} placed)
+                ⚠️ Bid requirement: Exactly {round.maxBidsPerTeam} bids required (Currently {bidCount} placed{bidCount > round.maxBidsPerTeam ? ' — remove ' + (bidCount - round.maxBidsPerTeam) + ' bid(s)' : ''})
               </div>
             )}
           </div>
@@ -1375,6 +1382,12 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
               </button>
               <button
                 onClick={() => {
+                  const num = parseInt(editBidAmount)
+                  if (!editBidAmount || isNaN(num) || num <= 0) {
+                    setErrorModalMessage('Please enter a valid bid amount greater than 0. To remove this bid, use the delete (✕) button instead.')
+                    setShowErrorModal(true)
+                    return
+                  }
                   handleBidChange(editBidModal.playerId, editBidAmount)
                   handleBidBlur(editBidModal.playerId, editBidAmount)
                   setEditBidModal(null)

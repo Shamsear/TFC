@@ -103,7 +103,7 @@ export default async function RoundBiddingPage({
     }),
     prisma.transfer_history.count({ where: { teamId, seasonId: round.seasonId, status: 'ACTIVE' } }),
     prisma.transfer_history.findMany({
-      where: { seasonId: round.seasonId }, select: { basePlayerId: true }
+      where: { seasonId: round.seasonId, status: 'ACTIVE' }, select: { basePlayerId: true }
     }),
     prisma.team_round_bids.findUnique({
       where: { roundId_teamId: { roundId: id, teamId } },

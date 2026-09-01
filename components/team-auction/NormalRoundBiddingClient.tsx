@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { normalizeForSearch } from '@/lib/search-utils'
 
 interface Player {
@@ -61,7 +60,6 @@ export default function NormalRoundBiddingClient({
   teamName,
   retainedPlayerName
 }: NormalRoundBiddingClientProps) {
-  const router = useRouter()
   const [bids, setBids] = useState<Record<string, number>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [playingStyleFilter, setPlayingStyleFilter] = useState<string>('all')
@@ -180,8 +178,11 @@ export default function NormalRoundBiddingClient({
   // Load existing bids — only on mount or when the round/team changes.
   // Do NOT include existingBids in deps: every router.refresh() creates a new object
   // reference which would re-run this effect and reset the user's in-progress edits.
+  // Also sync isSubmitted / isSkipped here so they stay accurate after round changes.
   useEffect(() => {
     setBids(existingBids?.bids || {})
+    setIsSubmitted(existingBids?.submitted || false)
+    setIsSkipped(existingBids?.skipped || false)
     hasLoadedInitial.current = true
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round.id, teamId])
@@ -251,8 +252,12 @@ export default function NormalRoundBiddingClient({
   }, [localStatus, localEndTime])
 
   const handleBidChange = (playerId: string, amount: string) => {
+    // Do NOT call handleRemoveBid on empty string here — the user may be mid-typing
+    // (e.g. clearing "150" to type "200"). Removing the bid on every intermediate
+    // empty keystroke would delete it before they finish. Removal is handled by
+    // the explicit ✕ button and by handleBidBlur when they leave the field empty.
     if (amount === '') {
-      handleRemoveBid(playerId)
+      // Just let the input show empty visually; the bid stays in state
       return
     }
     const numAmount = parseInt(amount) || 0
@@ -275,7 +280,8 @@ export default function NormalRoundBiddingClient({
     }
     
     if (numAmount === 0) {
-      handleRemoveBid(playerId)
+      // Don't remove on 0 mid-type either — onBlur handles cleanup
+      return
     } else {
       setBids(prev => ({
         ...prev,
@@ -286,23 +292,31 @@ export default function NormalRoundBiddingClient({
 
   const handleBidBlur = (playerId: string, amount: string) => {
     const numAmount = parseInt(amount) || 0
-    if (numAmount > 0) {
-      const minAllowed = round.basePrice || 10
-      if (numAmount < minAllowed) {
-        const player = players.find(p => p.basePlayerId === playerId)
-        setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()}.`)
-        setShowErrorModal(true)
-        return
-      }
 
-      const duplicateAmount = Object.entries(bids).find(
-        ([pid, amt]) => pid !== playerId && amt === numAmount
-      )
-      if (duplicateAmount) {
-        const duplicatePlayer = players.find(p => p.basePlayerId === duplicateAmount[0])
-        setErrorModalMessage(`Amount £${numAmount.toLocaleString()} is already used for ${duplicatePlayer?.basePlayer.name || 'another player'}. Each bid must be unique.`)
-        setShowErrorModal(true)
-      }
+    // If user left the field blank or typed 0, remove the bid cleanly
+    if (numAmount === 0) {
+      handleRemoveBid(playerId)
+      return
+    }
+
+    // If amount is below the minimum, remove the invalid bid and show an error
+    const minAllowed = round.basePrice || 10
+    if (numAmount < minAllowed) {
+      handleRemoveBid(playerId)
+      const player = players.find(p => p.basePlayerId === playerId)
+      setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()}. The bid has been removed — please re-enter a valid amount.`)
+      setShowErrorModal(true)
+      return
+    }
+
+    // Warn on duplicate amounts (keep the value — user may fix the other bid)
+    const duplicateAmount = Object.entries(bids).find(
+      ([pid, amt]) => pid !== playerId && amt === numAmount
+    )
+    if (duplicateAmount) {
+      const duplicatePlayer = players.find(p => p.basePlayerId === duplicateAmount[0])
+      setErrorModalMessage(`Amount £${numAmount.toLocaleString()} is already used for ${duplicatePlayer?.basePlayer.name || 'another player'}. Each bid must be unique.`)
+      setShowErrorModal(true)
     }
   }
 
@@ -583,7 +597,7 @@ export default function NormalRoundBiddingClient({
       setIsSkipped(true)
       setBids({})
       setMessage({ type: 'success', text: 'Round skipped successfully!' })
-      router.refresh()
+      // Do NOT call router.refresh() — same reasoning as handleUnlockBids
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
     } finally {

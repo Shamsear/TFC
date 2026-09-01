@@ -56,8 +56,8 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
     notFound()
   }
 
-  // Fetch season teams and team active squad sizes in parallel
-  const [seasonTeams, teamSquadSizesData] = await Promise.all([
+  // Fetch season teams, squad sizes, and retained players in parallel
+  const [seasonTeams, teamSquadSizesData, retainedTransfers] = await Promise.all([
     prisma.season_teams.findMany({
       where: { seasonId },
       include: {
@@ -77,10 +77,40 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         status: 'ACTIVE'
       },
       _count: { _all: true }
-    })
+    }),
+    // Which teams have a retained player in this round's position group (= eligible to skip)
+    (round.position || round.position_group) && round.roundType === 'normal'
+      ? prisma.transfer_history.findMany({
+          where: {
+            seasonId,
+            status: 'ACTIVE',
+            acquisitionType: 'retention',
+            basePlayer: {
+              seasonalPlayerStats: {
+                some: {
+                  seasonId,
+                  ...(round.position ? { position: round.position.includes(',') ? { in: round.position.split(',').map((p: string) => p.trim()) } : round.position } : {}),
+                  ...((round.position_group && round.position_group !== 'ALL') ? { position_group: round.position_group } : {})
+                }
+              }
+            }
+          },
+          select: {
+            teamId: true,
+            basePlayer: { select: { name: true } }
+          }
+        })
+      : Promise.resolve([])
   ])
   
   const squadSizeMap = new Map(teamSquadSizesData.map(s => [s.teamId, s._count._all]))
+  // Map teamId → retained player name (first retained player found for that team in this position group)
+  const teamRetainedPlayerMap: Record<string, string> = {}
+  for (const r of retainedTransfers) {
+    if (!teamRetainedPlayerMap[r.teamId]) {
+      teamRetainedPlayerMap[r.teamId] = r.basePlayer.name
+    }
+  }
 
   // Fetch auction results (transfer history) and details for completed rounds
   let auctionResults = null
@@ -657,6 +687,7 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
         teamBidsWithDetails={teamBidsWithDetails ?? undefined}
         bulkSelectionsWithDetails={bulkSelectionsWithDetails ?? undefined}
         teamSquadSizes={Object.fromEntries(squadSizeMap)}
+        teamRetainedPlayers={teamRetainedPlayerMap}
       />
     </div>
   )

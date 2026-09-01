@@ -110,9 +110,10 @@ interface RoundDetailClientProps {
   teamBidsWithDetails?: TeamBidDetails[]
   bulkSelectionsWithDetails?: any[]
   teamSquadSizes?: Record<string, number> // Map of teamId to current squad size
+  teamRetainedPlayers?: Record<string, string> // Map of teamId to retained player name (= team can skip)
 }
 
-export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts, teamBidsWithDetails, bulkSelectionsWithDetails, teamSquadSizes }: RoundDetailClientProps) {
+export default function RoundDetailClient({ round, teams, auctionResults, previewAllocations, bulkConflicts, teamBidsWithDetails, bulkSelectionsWithDetails, teamSquadSizes, teamRetainedPlayers }: RoundDetailClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -2337,6 +2338,8 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
               }
 
               const teamBid = liveTeamBids.find((bid: any) => bid.teamId === team.id)
+              const retainedPlayerName = teamRetainedPlayers?.[team.id]
+              const isSkipped = teamBid?.submitted && teamBid?.bidCount === 0
               return (
                 <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 gap-3 shadow-md backdrop-blur-xl">
                   <div className="flex items-center gap-3 w-full sm:w-auto text-left">
@@ -2345,14 +2348,27 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                         <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover rounded" />
                       </div>
                     )}
-                    <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{team.name}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-extrabold text-white truncate uppercase tracking-tight text-sm sm:text-base">{team.name}</span>
+                      {retainedPlayerName && (
+                        <div className="text-[10px] text-amber-400/70 font-bold font-mono mt-0.5 truncate">
+                          Retained: {retainedPlayerName}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto flex-wrap">
+                    {/* "Can Skip" indicator for teams with a retained player that haven't submitted */}
+                    {retainedPlayerName && !teamBid?.submitted && (
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-amber-500/15 text-amber-400 border border-amber-500/25 flex-shrink-0">
+                        Can Skip
+                      </span>
+                    )}
                     {teamBid ? (
-                      <div className="flex items-center gap-3 w-full justify-between sm:justify-end">
+                      <div className="flex items-center gap-3 justify-between sm:justify-end">
                         <span className="text-xs font-bold text-gray-500 font-mono">{teamBid.bidCount} bids</span>
                         {teamBid.submitted ? (
-                          teamBid.skipped || (teamBid.submitted && teamBid.bidCount === 0) ? (
+                          isSkipped ? (
                             <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-gray-500/25 text-gray-400 border border-gray-500/25 flex-shrink-0">
                               Skipped
                             </span>
@@ -2368,7 +2384,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                         )}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-end w-full">
+                      <div className="flex items-center justify-end">
                         <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">
                           Not Started
                         </span>

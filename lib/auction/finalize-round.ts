@@ -931,7 +931,7 @@ export async function applyFinalizationResults(
     throw new Error('Round not found');
   }
 
-  console.log('🔄 Starting database transaction...\n');
+  console.log('🔄 Pre-generating IDs and pre-fetching data outside transaction...\n');
 
   // Pre-fetch all season teams to avoid queries inside transaction
   const teamIds = Array.from(new Set(allocations.map(a => a.teamId)));
@@ -961,79 +961,101 @@ export async function applyFinalizationResults(
     teamPlayerNames.set(alloc.teamId, playerNames);
   }
 
+  // Check for existing transfers in this round to prevent duplicates (before transaction)
+  console.log('🔍 Checking for existing transfers in this round...');
+  const existingTransfers = await prisma.transfer_history.findMany({
+    where: {
+      roundId: roundId,
+      seasonId: round.seasonId
+    },
+    select: {
+      basePlayerId: true,
+      teamId: true
+    }
+  });
+
+  const existingTransferKeys = new Set(
+    existingTransfers.map(t => `${t.basePlayerId}-${t.teamId}`)
+  );
+
+  if (existingTransfers.length > 0) {
+    console.log(`   ⚠️  Found ${existingTransfers.length} existing transfer(s) in this round`);
+  }
+
+  // Validate all basePlayerIds exist before transaction
+  const playerIds = allocations.map(a => a.basePlayerId);
+  const existingPlayers = await prisma.base_players.findMany({
+    where: { id: { in: playerIds } },
+    select: { id: true }
+  });
+  const existingPlayerIds = new Set(existingPlayers.map(p => p.id));
+
+  // Filter out allocations with invalid player IDs or duplicates BEFORE the transaction
+  const validAllocations = allocations.filter(alloc => {
+    const isValidPlayer = existingPlayerIds.has(alloc.basePlayerId);
+    if (!isValidPlayer) {
+      console.error(`   ❌ Invalid basePlayerId: ${alloc.basePlayerId} for player ${alloc.playerName}`);
+      return false;
+    }
+
+    const transferKey = `${alloc.basePlayerId}-${alloc.teamId}`;
+    const isDuplicate = existingTransferKeys.has(transferKey);
+    if (isDuplicate) {
+      console.warn(`   ⚠️  Skipping duplicate transfer: ${alloc.playerName} → Team ${alloc.teamId} (already exists)`);
+      return false;
+    }
+
+    return true;
+  });
+
+  if (validAllocations.length === 0) {
+    throw new Error('No valid allocations found - all basePlayerIds are invalid');
+  }
+
+  if (validAllocations.length < allocations.length) {
+    console.warn(`   ⚠️  Filtered out ${allocations.length - validAllocations.length} invalid allocation(s)`);
+  }
+
+  // Pre-generate ALL transfer IDs and financial ledger IDs BEFORE entering the transaction.
+  console.log(`   Generating ${validAllocations.length} transfer ID(s)...`);
+  const transferIds = await Promise.all(validAllocations.map(() => generateTransferId()));
+
+  const ledgerIds: Map<string, string> = new Map();
+  for (const teamId of teamUpdates.keys()) {
+    const st = seasonTeamMap.get(teamId);
+    if (!st) continue;
+    // Check existing ledger entry outside transaction
+    const existingLedger = await prisma.financial_ledger.findFirst({
+      where: {
+        seasonTeamId: st.id,
+        transactionType: 'PLAYER_PURCHASE',
+        amount: -(teamUpdates.get(teamId) || 0),
+        description: `Round ${roundId} player purchases`
+      }
+    });
+    if (!existingLedger) {
+      ledgerIds.set(teamId, await generateFinancialId());
+    } else {
+      console.warn(`   ⚠️  Ledger entry already exists for team ${teamId} in round ${roundId}, skipping`);
+    }
+  }
+
+  // Build transfer records with pre-generated IDs
+  const transferRecords = validAllocations.map((alloc, idx) => ({
+    id: transferIds[idx],
+    basePlayerId: alloc.basePlayerId,
+    seasonId: round.seasonId,
+    teamId: alloc.teamId,
+    roundId: roundId,
+    soldPrice: alloc.amount,
+    acquisitionType: alloc.acquisitionType,
+    acquisitionNotes: alloc.acquisitionNotes || null,
+    status: 'ACTIVE' as const
+  }));
+
   await prisma.$transaction(async (tx) => {
     // 1. Insert transfer history records
     console.log('📝 Step 1: Creating transfer history records...');
-    
-    // Validate all basePlayerIds exist before creating transfer records
-    const playerIds = allocations.map(a => a.basePlayerId);
-    const existingPlayers = await tx.base_players.findMany({
-      where: { id: { in: playerIds } },
-      select: { id: true }
-    });
-    const existingPlayerIds = new Set(existingPlayers.map(p => p.id));
-    
-    // Check for existing transfers in this round to prevent duplicates
-    console.log('🔍 Checking for existing transfers in this round...');
-    const existingTransfers = await tx.transfer_history.findMany({
-      where: {
-        roundId: roundId,
-        seasonId: round.seasonId
-      },
-      select: {
-        basePlayerId: true,
-        teamId: true
-      }
-    });
-    
-    const existingTransferKeys = new Set(
-      existingTransfers.map(t => `${t.basePlayerId}-${t.teamId}`)
-    );
-    
-    if (existingTransfers.length > 0) {
-      console.log(`   ⚠️  Found ${existingTransfers.length} existing transfer(s) in this round`);
-    }
-    
-    // Filter out allocations with invalid player IDs or duplicates
-    const validAllocations = allocations.filter(alloc => {
-      const isValidPlayer = existingPlayerIds.has(alloc.basePlayerId);
-      if (!isValidPlayer) {
-        console.error(`   ❌ Invalid basePlayerId: ${alloc.basePlayerId} for player ${alloc.playerName}`);
-        return false;
-      }
-      
-      const transferKey = `${alloc.basePlayerId}-${alloc.teamId}`;
-      const isDuplicate = existingTransferKeys.has(transferKey);
-      if (isDuplicate) {
-        console.warn(`   ⚠️  Skipping duplicate transfer: ${alloc.playerName} → Team ${alloc.teamId} (already exists)`);
-        return false;
-      }
-      
-      return true;
-    });
-    
-    if (validAllocations.length === 0) {
-      throw new Error('No valid allocations found - all basePlayerIds are invalid');
-    }
-    
-    if (validAllocations.length < allocations.length) {
-      console.warn(`   ⚠️  Filtered out ${allocations.length - validAllocations.length} invalid allocation(s)`);
-    }
-    
-    // Generate transfer IDs for all valid allocations
-    const transferRecords = await Promise.all(
-      validAllocations.map(async (alloc) => ({
-        id: await generateTransferId(),
-        basePlayerId: alloc.basePlayerId,
-        seasonId: round.seasonId,
-        teamId: alloc.teamId,
-        roundId: roundId,
-        soldPrice: alloc.amount,
-        acquisitionType: alloc.acquisitionType,
-        acquisitionNotes: alloc.acquisitionNotes || null,
-        status: 'ACTIVE' as const
-      }))
-    );
 
     await tx.transfer_history.createMany({
       data: transferRecords
@@ -1065,21 +1087,8 @@ export async function applyFinalizationResults(
 
         console.log(`   ✓ Team ${teamId}: £${seasonTeam.currentBudget.toLocaleString()} → £${newBudget.toLocaleString()} (-£${totalSpent.toLocaleString()})`);
 
-        // 3. Check for existing ledger entry to prevent duplicates
-        const existingLedger = await tx.financial_ledger.findFirst({
-          where: {
-            seasonTeamId: seasonTeam.id,
-            transactionType: 'PLAYER_PURCHASE',
-            amount: -totalSpent,
-            description: `Round ${roundId} player purchases`
-          }
-        });
-        
-        if (existingLedger) {
-          console.warn(`   ⚠️  Ledger entry already exists for team ${teamId} in round ${roundId}, skipping`);
-        } else {
-          // Insert financial ledger entry
-          const ledgerId = await generateFinancialId();
+        const ledgerId = ledgerIds.get(teamId);
+        if (ledgerId) {
           const playerNames = teamPlayerNames.get(teamId) || [];
           await tx.financial_ledger.create({
             data: {
@@ -1099,7 +1108,7 @@ export async function applyFinalizationResults(
     }
     console.log('');
 
-    // 4. Update round status
+    // 3. Update round status
     console.log('🏁 Step 3: Marking round as completed...');
     await tx.rounds.update({
       where: { id: roundId },
@@ -1107,7 +1116,7 @@ export async function applyFinalizationResults(
     });
     console.log('   ✓ Round status updated to completed\n');
   }, {
-    timeout: 30000 // 30 second timeout
+    timeout: 60000 // 60 second timeout (increased from 30s as safety net)
   });
 
   console.log('✅ DATABASE TRANSACTION COMPLETED SUCCESSFULLY');

@@ -271,15 +271,25 @@ export default function NormalRoundBiddingClient({
     const numAmount = parseInt(raw) || 0
     const existingBid = bids[playerId]
 
-    // If blank or 0: revert the input to the last committed bid (don't delete mid-edit)
+    // Empty/0 on blur: revert the input to the last committed bid (user blanked the field)
     if (numAmount === 0) {
-      // If there was a committed bid, restore the display to it — user just clicked away
       if (existingBid) {
+        // Restore the committed bid so they don't lose it by clicking away
         setInputValues(prev => ({ ...prev, [playerId]: existingBid.toString() }))
       } else {
-        // No previous bid either — clean up the empty entry
+        // No committed bid — clean up the empty entry
         setInputValues(prev => { const n = { ...prev }; delete n[playerId]; return n })
       }
+      return
+    }
+
+    // Below minimum: the user is MID-EDITING (e.g. backspaced "20" → "2" on the way
+    // to typing "30"). Do NOT show an error modal or revert here — that would trap them.
+    // Leave inputValues as-is so they can return to the field and continue typing.
+    // Save / submit validation will catch any remaining below-min values.
+    const minAllowed = round.basePrice || 10
+    if (numAmount < minAllowed) {
+      // Don't commit to bids, don't revert, don't pop an error
       return
     }
 
@@ -299,20 +309,6 @@ export default function NormalRoundBiddingClient({
       setErrorModalMessage(`Maximum ${round.maxBidsPerTeam} bids allowed. Remove a bid before adding a new one.`)
       setShowErrorModal(true)
       setInputValues(prev => { const n = { ...prev }; delete n[playerId]; return n })
-      return
-    }
-
-    // Below minimum: show error and revert — do NOT commit an invalid amount
-    const minAllowed = round.basePrice || 10
-    if (numAmount < minAllowed) {
-      const player = players.find(p => p.basePlayerId === playerId)
-      setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()}. Please enter at least £${minAllowed.toLocaleString()}.`)
-      setShowErrorModal(true)
-      // Revert the input to the last committed bid (or clear if there was none)
-      setInputValues(prev => ({ ...prev, [playerId]: existingBid ? existingBid.toString() : '' }))
-      if (!existingBid) {
-        setInputValues(prev => { const n = { ...prev }; delete n[playerId]; return n })
-      }
       return
     }
 

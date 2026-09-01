@@ -58,7 +58,7 @@ export async function POST(
     }
 
     // Early exit if already finalizing or completed
-    if (round.status === 'finalizing') {
+    if (!force && round.status === 'finalizing') {
       console.log('⏸️  Round is already being finalized by another process');
       return NextResponse.json(
         { error: 'Round is already being finalized. Please wait.' },
@@ -176,10 +176,14 @@ export async function POST(
     }
 
     // Acquire lock (allow tiebreaker_pending to be finalized)
+    const allowedStatuses = force
+      ? ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending', 'finalizing']
+      : ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'];
+
     const lockResult = await prisma.rounds.updateMany({
       where: {
         id: roundId,
-        status: { in: ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'] }
+        status: { in: allowedStatuses as any }
       },
       data: {
         status: 'finalizing'

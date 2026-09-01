@@ -909,7 +909,7 @@ async function validateAllocations(
 }
 
 /**
- * Apply finalization results to database
+ * Apply finalization results to database in parallel & bulk
  */
 export async function applyFinalizationResults(
   roundId: string,
@@ -931,192 +931,151 @@ export async function applyFinalizationResults(
     throw new Error('Round not found');
   }
 
-  console.log('🔄 Pre-generating IDs and pre-fetching data outside transaction...\n');
-
-  // Pre-fetch all season teams to avoid queries inside transaction
   const teamIds = Array.from(new Set(allocations.map(a => a.teamId)));
-  const seasonTeams = await prisma.season_teams.findMany({
-    where: {
-      seasonId: round.seasonId,
-      teamId: { in: teamIds }
-    },
-    select: {
-      id: true,
-      teamId: true,
-      currentBudget: true
-    }
-  });
+  const playerIds = allocations.map(a => a.basePlayerId);
 
-  const seasonTeamMap = new Map(seasonTeams.map(st => [st.teamId, st]));
-
-  // Calculate team updates and collect player names
   const teamUpdates = new Map<string, number>();
   const teamPlayerNames = new Map<string, string[]>();
   for (const alloc of allocations) {
-    const current = teamUpdates.get(alloc.teamId) || 0;
-    teamUpdates.set(alloc.teamId, current + alloc.amount);
-    
-    const playerNames = teamPlayerNames.get(alloc.teamId) || [];
-    playerNames.push(alloc.playerName);
-    teamPlayerNames.set(alloc.teamId, playerNames);
+    teamUpdates.set(alloc.teamId, (teamUpdates.get(alloc.teamId) || 0) + alloc.amount);
+    const names = teamPlayerNames.get(alloc.teamId) || [];
+    names.push(alloc.playerName);
+    teamPlayerNames.set(alloc.teamId, names);
   }
 
-  // Check for existing transfers in this round to prevent duplicates (before transaction)
-  console.log('🔍 Checking for existing transfers in this round...');
-  const existingTransfers = await prisma.transfer_history.findMany({
-    where: {
-      roundId: roundId,
-      seasonId: round.seasonId
-    },
-    select: {
-      basePlayerId: true,
-      teamId: true
-    }
-  });
+  // 1. All DB reads in parallel outside transaction
+  console.log('🔄 Pre-fetching data in parallel...');
+  const [seasonTeams, existingTransfers, existingPlayers, existingLedgerResults] =
+    await Promise.all([
+      prisma.season_teams.findMany({
+        where: { seasonId: round.seasonId, teamId: { in: teamIds } },
+        select: { id: true, teamId: true, currentBudget: true }
+      }),
+      prisma.transfer_history.findMany({
+        where: { roundId, seasonId: round.seasonId },
+        select: { basePlayerId: true, teamId: true }
+      }),
+      prisma.base_players.findMany({
+        where: { id: { in: playerIds } },
+        select: { id: true }
+      }),
+      Promise.all(
+        teamIds.map(async teamId => {
+          const st = await prisma.season_teams.findUnique({
+            where: { seasonId_teamId: { seasonId: round.seasonId, teamId } },
+            select: { id: true }
+          });
+          if (!st) return { teamId, exists: false };
+          const spent = teamUpdates.get(teamId) || 0;
+          const entry = await prisma.financial_ledger.findFirst({
+            where: {
+              seasonTeamId: st.id,
+              transactionType: 'PLAYER_PURCHASE',
+              amount: -spent,
+              description: `Round ${roundId} player purchases`
+            },
+            select: { id: true }
+          });
+          return { teamId, exists: !!entry };
+        })
+      )
+    ]);
 
-  const existingTransferKeys = new Set(
-    existingTransfers.map(t => `${t.basePlayerId}-${t.teamId}`)
-  );
+  const seasonTeamMap = new Map(seasonTeams.map(st => [st.teamId, st]));
+  const existingTransferKeys = new Set(existingTransfers.map(t => `${t.basePlayerId}-${t.teamId}`));
+  const existingPlayerIds = new Set(existingPlayers.map(p => p.id));
+  const ledgerExistsMap = new Map(existingLedgerResults.map(r => [r.teamId, r.exists]));
 
   if (existingTransfers.length > 0) {
     console.log(`   ⚠️  Found ${existingTransfers.length} existing transfer(s) in this round`);
   }
 
-  // Validate all basePlayerIds exist before transaction
-  const playerIds = allocations.map(a => a.basePlayerId);
-  const existingPlayers = await prisma.base_players.findMany({
-    where: { id: { in: playerIds } },
-    select: { id: true }
-  });
-  const existingPlayerIds = new Set(existingPlayers.map(p => p.id));
-
-  // Filter out allocations with invalid player IDs or duplicates BEFORE the transaction
+  // Filter valid allocations
   const validAllocations = allocations.filter(alloc => {
-    const isValidPlayer = existingPlayerIds.has(alloc.basePlayerId);
-    if (!isValidPlayer) {
+    if (!existingPlayerIds.has(alloc.basePlayerId)) {
       console.error(`   ❌ Invalid basePlayerId: ${alloc.basePlayerId} for player ${alloc.playerName}`);
       return false;
     }
-
-    const transferKey = `${alloc.basePlayerId}-${alloc.teamId}`;
-    const isDuplicate = existingTransferKeys.has(transferKey);
-    if (isDuplicate) {
-      console.warn(`   ⚠️  Skipping duplicate transfer: ${alloc.playerName} → Team ${alloc.teamId} (already exists)`);
+    if (existingTransferKeys.has(`${alloc.basePlayerId}-${alloc.teamId}`)) {
+      console.warn(`   ⚠️  Skipping duplicate: ${alloc.playerName} → Team ${alloc.teamId}`);
       return false;
     }
-
     return true;
   });
 
   if (validAllocations.length === 0) {
-    throw new Error('No valid allocations found - all basePlayerIds are invalid');
+    throw new Error('No valid allocations found - all basePlayerIds are invalid or duplicates');
   }
 
-  if (validAllocations.length < allocations.length) {
-    console.warn(`   ⚠️  Filtered out ${allocations.length - validAllocations.length} invalid allocation(s)`);
-  }
+  // 2. Generate IDs in parallel outside transaction
+  console.log(`   Generating ${validAllocations.length} transfer ID(s) + ledger ID(s) in parallel...`);
+  const teamsNeedingLedger = teamIds.filter(id => !ledgerExistsMap.get(id));
 
-  // Pre-generate ALL transfer IDs and financial ledger IDs BEFORE entering the transaction.
-  console.log(`   Generating ${validAllocations.length} transfer ID(s)...`);
-  const transferIds = await Promise.all(validAllocations.map(() => generateTransferId()));
+  const [transferIds, ledgerIdList] = await Promise.all([
+    Promise.all(validAllocations.map(() => generateTransferId())),
+    Promise.all(teamsNeedingLedger.map(() => generateFinancialId()))
+  ]);
 
-  const ledgerIds: Map<string, string> = new Map();
-  for (const teamId of teamUpdates.keys()) {
-    const st = seasonTeamMap.get(teamId);
-    if (!st) continue;
-    // Check existing ledger entry outside transaction
-    const existingLedger = await prisma.financial_ledger.findFirst({
-      where: {
-        seasonTeamId: st.id,
-        transactionType: 'PLAYER_PURCHASE',
-        amount: -(teamUpdates.get(teamId) || 0),
-        description: `Round ${roundId} player purchases`
-      }
-    });
-    if (!existingLedger) {
-      ledgerIds.set(teamId, await generateFinancialId());
-    } else {
-      console.warn(`   ⚠️  Ledger entry already exists for team ${teamId} in round ${roundId}, skipping`);
-    }
-  }
+  const ledgerIds = new Map(teamsNeedingLedger.map((teamId, i) => [teamId, ledgerIdList[i]]));
 
-  // Build transfer records with pre-generated IDs
-  const transferRecords = validAllocations.map((alloc, idx) => ({
-    id: transferIds[idx],
+  // Build records
+  const transferRecords = validAllocations.map((alloc, i) => ({
+    id: transferIds[i],
     basePlayerId: alloc.basePlayerId,
     seasonId: round.seasonId,
     teamId: alloc.teamId,
-    roundId: roundId,
+    roundId,
     soldPrice: alloc.amount,
     acquisitionType: alloc.acquisitionType,
     acquisitionNotes: alloc.acquisitionNotes || null,
     status: 'ACTIVE' as const
   }));
 
+  const ledgerRecords = teamsNeedingLedger.flatMap(teamId => {
+    const st = seasonTeamMap.get(teamId);
+    const ledgerId = ledgerIds.get(teamId);
+    if (!st || !ledgerId) return [];
+    const totalSpent = teamUpdates.get(teamId) || 0;
+    const newBudget = st.currentBudget - totalSpent;
+    return [{
+      id: ledgerId,
+      seasonTeamId: st.id,
+      seasonId: round.seasonId,
+      transactionType: 'PLAYER_PURCHASE' as const,
+      amount: -totalSpent,
+      previousBalance: st.currentBudget,
+      newBalance: newBudget,
+      description: `Round ${roundId} player purchases`,
+      playerName: (teamPlayerNames.get(teamId) || []).join(', ')
+    }];
+  });
+
+  const budgetUpdates = teamIds.flatMap(teamId => {
+    const st = seasonTeamMap.get(teamId);
+    if (!st) return [];
+    const totalSpent = teamUpdates.get(teamId) || 0;
+    return [{ teamId, seasonTeamId: st.id, newBudget: st.currentBudget - totalSpent, totalSpent }];
+  });
+
+  // 3. Perform bulk parallel writes in transaction
+  console.log('🔄 Executing transaction (bulk parallel writes)...');
   await prisma.$transaction(async (tx) => {
-    // 1. Insert transfer history records
-    console.log('📝 Step 1: Creating transfer history records...');
-
-    await tx.transfer_history.createMany({
-      data: transferRecords
-    });
-
-    for (const alloc of validAllocations) {
-      console.log(`   ✓ ${alloc.playerName} → Team ${alloc.teamId} (£${alloc.amount.toLocaleString()})`);
-    }
-    console.log('');
-
-    // 2. Update team budgets and create ledger entries
-    console.log('💰 Step 2: Updating team budgets...');
-    
-    for (const [teamId, totalSpent] of teamUpdates.entries()) {
-      const seasonTeam = seasonTeamMap.get(teamId);
-
-      if (seasonTeam) {
-        const newBudget = seasonTeam.currentBudget - totalSpent;
-
-        await tx.season_teams.update({
-          where: {
-            seasonId_teamId: {
-              seasonId: round.seasonId,
-              teamId
-            }
-          },
+    await Promise.all([
+      tx.transfer_history.createMany({ data: transferRecords }),
+      ...budgetUpdates.map(({ teamId, newBudget }) =>
+        tx.season_teams.update({
+          where: { seasonId_teamId: { seasonId: round.seasonId, teamId } },
           data: { currentBudget: newBudget }
-        });
-
-        console.log(`   ✓ Team ${teamId}: £${seasonTeam.currentBudget.toLocaleString()} → £${newBudget.toLocaleString()} (-£${totalSpent.toLocaleString()})`);
-
-        const ledgerId = ledgerIds.get(teamId);
-        if (ledgerId) {
-          const playerNames = teamPlayerNames.get(teamId) || [];
-          await tx.financial_ledger.create({
-            data: {
-              id: ledgerId,
-              seasonTeamId: seasonTeam.id,
-              seasonId: round.seasonId,
-              transactionType: 'PLAYER_PURCHASE',
-              amount: -totalSpent,
-              previousBalance: seasonTeam.currentBudget,
-              newBalance: newBudget,
-              description: `Round ${roundId} player purchases`,
-              playerName: playerNames.join(', ')
-            }
-          });
-        }
-      }
-    }
-    console.log('');
-
-    // 3. Update round status
-    console.log('🏁 Step 3: Marking round as completed...');
-    await tx.rounds.update({
-      where: { id: roundId },
-      data: { status: 'completed' }
-    });
-    console.log('   ✓ Round status updated to completed\n');
+        })
+      ),
+      ...(ledgerRecords.length > 0 ? [tx.financial_ledger.createMany({ data: ledgerRecords })] : []),
+      tx.rounds.update({
+        where: { id: roundId },
+        data: { status: 'completed' }
+      })
+    ]);
   }, {
-    timeout: 60000 // 60 second timeout (increased from 30s as safety net)
+    timeout: 30000
   });
 
   console.log('✅ DATABASE TRANSACTION COMPLETED SUCCESSFULLY');

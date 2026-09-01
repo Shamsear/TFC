@@ -46,15 +46,34 @@ export async function POST(
       try {
         sendLog('🚀 Starting round finalization...', 'info');
         
-        // Fetch round type first
+        // Fetch round details first
         const round = await prisma.rounds.findUnique({
           where: { id: roundId },
-          select: { roundType: true }
+          select: { roundType: true, status: true }
         });
 
         if (!round) {
           throw new Error('Round not found');
         }
+
+        if (!force && round.status === 'finalizing') {
+          throw new Error('Round is already being finalized. Please wait.');
+        }
+
+        // Acquire lock
+        const allowedStatuses = force
+          ? ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending', 'finalizing']
+          : ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'];
+
+        await prisma.rounds.updateMany({
+          where: {
+            id: roundId,
+            status: { in: allowedStatuses as any }
+          },
+          data: {
+            status: 'finalizing'
+          }
+        });
 
         // Import the appropriate finalization logic based on round type
         let finalizationFunction: (id: string) => Promise<any>;
@@ -149,6 +168,15 @@ export async function POST(
         }
       } catch (error: any) {
         sendLog(`💥 Fatal error: ${error.message}`, 'error');
+        // Revert status so round is not stuck in 'finalizing'
+        try {
+          await prisma.rounds.update({
+            where: { id: roundId },
+            data: { status: 'expired_pending_finalization' }
+          });
+        } catch (revertErr) {
+          console.error('Failed to revert status:', revertErr);
+        }
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ type: 'complete', success: false, error: error.message })}\n\n`)
         );

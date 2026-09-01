@@ -61,6 +61,10 @@ export default function NormalRoundBiddingClient({
   retainedPlayerName
 }: NormalRoundBiddingClientProps) {
   const [bids, setBids] = useState<Record<string, number>>({})
+  // inputValues tracks the raw string currently displayed in each player's number input.
+  // It is decoupled from `bids` so that clearing a field mid-type (to retype a value)
+  // does not trigger bid deletion. On blur we commit the validated value to `bids`.
+  const [inputValues, setInputValues] = useState<Record<string, string>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [playingStyleFilter, setPlayingStyleFilter] = useState<string>('all')
   const [showStarredOnly, setShowStarredOnly] = useState(false)
@@ -85,6 +89,7 @@ export default function NormalRoundBiddingClient({
   const [localStatus, setLocalStatus] = useState<string>(round.status)
   const [editBidModal, setEditBidModal] = useState<{ playerId: string; currentAmount: number; player: Player } | null>(null)
   const [editBidAmount, setEditBidAmount] = useState('')
+
 
   // Load starred players
   useEffect(() => {
@@ -180,7 +185,10 @@ export default function NormalRoundBiddingClient({
   // reference which would re-run this effect and reset the user's in-progress edits.
   // Also sync isSubmitted / isSkipped here so they stay accurate after round changes.
   useEffect(() => {
-    setBids(existingBids?.bids || {})
+    const bidMap = existingBids?.bids || {}
+    setBids(bidMap)
+    // Seed inputValues so each input shows the committed bid amount
+    setInputValues(Object.fromEntries(Object.entries(bidMap).map(([k, v]) => [k, v.toString()])))
     setIsSubmitted(existingBids?.submitted || false)
     setIsSkipped(existingBids?.skipped || false)
     hasLoadedInitial.current = true
@@ -252,64 +260,63 @@ export default function NormalRoundBiddingClient({
   }, [localStatus, localEndTime])
 
   const handleBidChange = (playerId: string, amount: string) => {
-    // Do NOT call handleRemoveBid on empty string here — the user may be mid-typing
-    // (e.g. clearing "150" to type "200"). Removing the bid on every intermediate
-    // empty keystroke would delete it before they finish. Removal is handled by
-    // the explicit ✕ button and by handleBidBlur when they leave the field empty.
-    if (amount === '') {
-      // Just let the input show empty visually; the bid stays in state
+    // Only update the display value — do NOT touch bids state while the user is typing.
+    // Committing to bids happens in handleBidBlur when the user leaves the field.
+    setInputValues(prev => ({ ...prev, [playerId]: amount }))
+  }
+
+  const handleBidBlur = (playerId: string) => {
+    // Read the display value the user left behind
+    const raw = inputValues[playerId] ?? ''
+    const numAmount = parseInt(raw) || 0
+    const existingBid = bids[playerId]
+
+    // If blank or 0: revert the input to the last committed bid (don't delete mid-edit)
+    if (numAmount === 0) {
+      // If there was a committed bid, restore the display to it — user just clicked away
+      if (existingBid) {
+        setInputValues(prev => ({ ...prev, [playerId]: existingBid.toString() }))
+      } else {
+        // No previous bid either — clean up the empty entry
+        setInputValues(prev => { const n = { ...prev }; delete n[playerId]; return n })
+      }
       return
     }
-    const numAmount = parseInt(amount) || 0
-    
+
+    // Enforce maxBid reserve cap
     if (reserveInfo && numAmount > reserveInfo.maxBid) {
       setErrorModalMessage(`Bid £${numAmount.toLocaleString()} exceeds your maximum allowed bid of £${reserveInfo.maxBid.toLocaleString()} (required to maintain squad balance/reserve requirements).`)
       setShowErrorModal(true)
+      // Revert input to last committed bid
+      setInputValues(prev => ({ ...prev, [playerId]: existingBid ? existingBid.toString() : '' }))
       return
     }
-    
+
+    // Enforce max bids per team (only for NEW bids, not edits of existing ones)
     const currentBidCount = Object.keys(bids).filter(k => bids[k] > 0).length
-    const isNewBid = !bids[playerId] || bids[playerId] === 0
-    
-    if (isNewBid && numAmount > 0 && round.maxBidsPerTeam) {
-      if (currentBidCount >= round.maxBidsPerTeam) {
-        setErrorModalMessage(`Maximum ${round.maxBidsPerTeam} bids allowed. Remove a bid before adding a new one.`)
-        setShowErrorModal(true)
-        return
-      }
-    }
-    
-    if (numAmount === 0) {
-      // Don't remove on 0 mid-type either — onBlur handles cleanup
-      return
-    } else {
-      setBids(prev => ({
-        ...prev,
-        [playerId]: numAmount
-      }))
-    }
-  }
-
-  const handleBidBlur = (playerId: string, amount: string) => {
-    const numAmount = parseInt(amount) || 0
-
-    // If user left the field blank or typed 0, remove the bid cleanly
-    if (numAmount === 0) {
-      handleRemoveBid(playerId)
+    const isNewBid = !existingBid || existingBid === 0
+    if (isNewBid && round.maxBidsPerTeam && currentBidCount >= round.maxBidsPerTeam) {
+      setErrorModalMessage(`Maximum ${round.maxBidsPerTeam} bids allowed. Remove a bid before adding a new one.`)
+      setShowErrorModal(true)
+      setInputValues(prev => { const n = { ...prev }; delete n[playerId]; return n })
       return
     }
 
-    // If amount is below the minimum, remove the invalid bid and show an error
+    // Below minimum: show error and revert — do NOT commit an invalid amount
     const minAllowed = round.basePrice || 10
     if (numAmount < minAllowed) {
-      handleRemoveBid(playerId)
       const player = players.find(p => p.basePlayerId === playerId)
-      setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()}. The bid has been removed — please re-enter a valid amount.`)
+      setErrorModalMessage(`Bid amount for ${player?.basePlayer.name || 'this player'} is below the minimum allowed bid of £${minAllowed.toLocaleString()}. Please enter at least £${minAllowed.toLocaleString()}.`)
       setShowErrorModal(true)
+      // Revert the input to the last committed bid (or clear if there was none)
+      setInputValues(prev => ({ ...prev, [playerId]: existingBid ? existingBid.toString() : '' }))
+      if (!existingBid) {
+        setInputValues(prev => { const n = { ...prev }; delete n[playerId]; return n })
+      }
       return
     }
 
-    // Warn on duplicate amounts (keep the value — user may fix the other bid)
+    // Warn on duplicate amounts but still commit (user may fix the other bid)
     const duplicateAmount = Object.entries(bids).find(
       ([pid, amt]) => pid !== playerId && amt === numAmount
     )
@@ -318,13 +325,23 @@ export default function NormalRoundBiddingClient({
       setErrorModalMessage(`Amount £${numAmount.toLocaleString()} is already used for ${duplicatePlayer?.basePlayer.name || 'another player'}. Each bid must be unique.`)
       setShowErrorModal(true)
     }
+
+    // ✅ Commit valid value to bids state
+    setBids(prev => ({ ...prev, [playerId]: numAmount }))
+    setInputValues(prev => ({ ...prev, [playerId]: numAmount.toString() }))
   }
+
 
   const handleRemoveBid = (playerId: string) => {
     setBids(prev => {
       const newBids = { ...prev }
       delete newBids[playerId]
       return newBids
+    })
+    setInputValues(prev => {
+      const newVals = { ...prev }
+      delete newVals[playerId]
+      return newVals
     })
   }
 
@@ -1270,9 +1287,9 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
                       <input
                         type="number"
                         placeholder={`Min £${round.basePrice?.toLocaleString() || 0}`}
-                        value={bids[player.basePlayerId] || ''}
+                        value={inputValues[player.basePlayerId] ?? (bids[player.basePlayerId] || '')}
                         onChange={(e) => handleBidChange(player.basePlayerId, e.target.value)}
-                        onBlur={(e) => handleBidBlur(player.basePlayerId, e.target.value)}
+                        onBlur={() => handleBidBlur(player.basePlayerId)}
                         disabled={round.status !== 'active' || isSubmitted || (maxBidsReached && !bids[player.basePlayerId])}
                         className={`w-full pl-6 pr-3 py-2 rounded-xl bg-black/40 text-xs font-mono text-white placeholder-gray-600 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed border ${
                           duplicateAmounts.has(bids[player.basePlayerId])
@@ -1402,8 +1419,15 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
                     setShowErrorModal(true)
                     return
                   }
-                  handleBidChange(editBidModal.playerId, editBidAmount)
-                  handleBidBlur(editBidModal.playerId, editBidAmount)
+                  const minAllowed = round.basePrice || 10
+                  if (num < minAllowed) {
+                    setErrorModalMessage(`Bid amount is below the minimum allowed bid of £${minAllowed.toLocaleString()}.`)
+                    setShowErrorModal(true)
+                    return
+                  }
+                  // Directly commit to bids and sync inputValues
+                  setBids(prev => ({ ...prev, [editBidModal.playerId]: num }))
+                  setInputValues(prev => ({ ...prev, [editBidModal.playerId]: num.toString() }))
                   setEditBidModal(null)
                 }}
                 className="px-4 py-2.5 rounded-xl bg-[#E8A800] text-black font-black hover:opacity-90 transition-all cursor-pointer shadow-[0_0_15px_rgba(232,168,0,0.2)]"

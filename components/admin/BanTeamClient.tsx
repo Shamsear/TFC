@@ -49,7 +49,7 @@ export default function BanTeamClient({ initialSeasonId, seasons }: BanTeamClien
   const fetchSeasonTeams = async (sId: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/seasons/${sId}/teams`)
+      const res = await fetch(`/api/admin/seasons/${sId}/ban-team`)
       const data = await res.json()
       if (res.ok) {
         setTeams(data.teams || [])

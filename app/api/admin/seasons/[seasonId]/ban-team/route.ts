@@ -1,6 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ seasonId: string }> }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { seasonId } = await params
+
+    const season = await prisma.seasons.findUnique({
+      where: { id: seasonId },
+      select: { id: true, name: true, startingPurse: true }
+    })
+
+    if (!season) {
+      return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+    }
+
+    const seasonTeams = await prisma.season_teams.findMany({
+      where: { seasonId, isActive: true },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true,
+            managerName: true
+          }
+        }
+      }
+    })
+
+    const teamIds = seasonTeams.map(st => st.teamId)
+    const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
+
+    // Count active squad players per team
+    const playerCounts = await prisma.transfer_history.groupBy({
+      by: ['teamId'],
+      where: {
+        seasonId,
+        teamId: { in: teamIds },
+        status: 'ACTIVE'
+      },
+      _count: { _all: true }
+    })
+
+    const playerCountMap = new Map<string, number>()
+    playerCounts.forEach(pc => playerCountMap.set(pc.teamId, pc._count._all))
+
+    const teams = seasonTeams.map(st => ({
+      id: st.team.id,
+      name: st.team.name,
+      logoUrl: st.team.logoUrl,
+      managerName: mgrMap.get(st.team.id) || st.managerName || st.team.managerName,
+      currentBudget: st.currentBudget,
+      startingPurse: season.startingPurse,
+      activePlayersCount: playerCountMap.get(st.team.id) || 0
+    })).sort((a, b) => a.name.localeCompare(b.name))
+
+    return NextResponse.json({
+      season: { id: season.id, name: season.name },
+      teams
+    })
+  } catch (error: any) {
+    console.error('Error fetching season teams for ban tool:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  }
+}
 
 export async function POST(
   req: NextRequest,

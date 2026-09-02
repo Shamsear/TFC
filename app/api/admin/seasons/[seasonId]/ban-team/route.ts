@@ -177,9 +177,9 @@ export async function POST(
         })
       }
 
-      // 6. Clean up financial_ledger
+      // 6. Clean up financial_ledger using seasonTeamId
       await tx.financial_ledger.deleteMany({
-        where: { seasonId, teamId }
+        where: { seasonTeamId: seasonTeam.id }
       })
 
       // 7. Clean up requests (release, swap, retention)
@@ -187,7 +187,13 @@ export async function POST(
         where: { seasonId, teamId }
       })
       await tx.swap_requests.deleteMany({
-        where: { seasonId, requestingTeamId: teamId }
+        where: {
+          seasonId,
+          OR: [
+            { requestingTeamId: teamId },
+            { targetTeamId: teamId }
+          ]
+        }
       })
       await tx.retention_requests.deleteMany({
         where: { seasonId, teamId }

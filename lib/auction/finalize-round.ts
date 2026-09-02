@@ -951,6 +951,16 @@ export async function applyFinalizationResults(
     return;
   }
 
+  // Prevent duplicate execution if transfers for this round already exist in database
+  const existingRoundTransfersCount = await prisma.transfer_history.count({
+    where: { roundId }
+  });
+
+  if (existingRoundTransfersCount > 0) {
+    console.log(`⚠️ ${existingRoundTransfersCount} transfer(s) ALREADY exist for round ${roundId}. Aborting applyFinalizationResults to prevent double deductions/assignments.\n`);
+    return;
+  }
+
   const teamIds = Array.from(new Set(allocations.map(a => a.teamId)));
   const playerIds = allocations.map(a => a.basePlayerId);
 

@@ -175,10 +175,8 @@ export async function POST(
       }
     }
 
-    // Acquire lock (allow tiebreaker_pending to be finalized)
-    const allowedStatuses = force
-      ? ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending', 'finalizing']
-      : ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'];
+    // Acquire lock (allow tiebreaker_pending to be finalized, but reject if currently finalizing)
+    const allowedStatuses = ['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'];
 
     const lockResult = await prisma.rounds.updateMany({
       where: {

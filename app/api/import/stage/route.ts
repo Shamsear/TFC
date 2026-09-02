@@ -205,6 +205,53 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN') {
+      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const seasonId = searchParams.get('seasonId');
+
+    const where = seasonId ? { seasonId } : {};
+
+    const count = await prisma.import_staging_players.count({ where });
+
+    let latestSession: { importSessionId: string; seasonId: string } | null = null;
+    if (count > 0) {
+      const sample = await prisma.import_staging_players.findFirst({
+        where,
+        select: { importSessionId: true, seasonId: true }
+      });
+      if (sample) {
+        latestSession = {
+          importSessionId: sample.importSessionId,
+          seasonId: sample.seasonId
+        };
+      }
+    }
+
+    return NextResponse.json({
+      hasStagedData: count > 0,
+      count,
+      sessionId: latestSession?.importSessionId || null,
+      seasonId: latestSession?.seasonId || null
+    });
+  } catch (error) {
+    console.error('Failed to get staged players count:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
@@ -221,7 +268,7 @@ export async function DELETE(request: NextRequest) {
     const clearAll = searchParams.get('all') === 'true';
 
     if (clearAll) {
-      await prisma.import_staging_players.deleteMany({});
+      await prisma.$executeRawUnsafe('TRUNCATE TABLE "import_staging_players";');
       return NextResponse.json({ success: true, message: 'All staged players cleared successfully' });
     }
 

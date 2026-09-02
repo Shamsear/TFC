@@ -72,6 +72,12 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
   const [importSessionId, setImportSessionId] = useState<string | null>(null)
   const [isStagingCleared, setIsStagingCleared] = useState(false)
   const [isClearingStaging, setIsClearingStaging] = useState(false)
+  const [stagedPreviewData, setStagedPreviewData] = useState<PreviewResponse | null>(null)
+  const [stagedInfo, setStagedInfo] = useState<{ count: number; sessionId: string; seasonId: string } | null>(null)
+  const [isCheckingStaged, setIsCheckingStaged] = useState(false)
+  const [isLoadingStagedPreview, setIsLoadingStagedPreview] = useState(false)
+  const [isClearingAllStaging, setIsClearingAllStaging] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<any>(null)
   const [progress, setProgress] = useState<ImportProgress>({
@@ -84,6 +90,107 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     importedPlayers: [],
     updatedPlayers: []
   })
+
+  useEffect(() => {
+    if (seasonId) {
+      checkStagedData(seasonId)
+    }
+  }, [seasonId])
+
+  const checkStagedData = async (sid: string) => {
+    setIsCheckingStaged(true)
+    try {
+      const res = await fetch(`/api/import/stage?seasonId=${sid}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.hasStagedData && data.count > 0) {
+          setStagedInfo({
+            count: data.count,
+            sessionId: data.sessionId,
+            seasonId: data.seasonId || sid
+          })
+        } else {
+          const globalRes = await fetch('/api/import/stage')
+          if (globalRes.ok) {
+            const globalData = await globalRes.json()
+            if (globalData.hasStagedData && globalData.count > 0) {
+              setStagedInfo({
+                count: globalData.count,
+                sessionId: globalData.sessionId,
+                seasonId: globalData.seasonId
+              })
+            } else {
+              setStagedInfo(null)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check staged data:', err)
+    } finally {
+      setIsCheckingStaged(false)
+    }
+  }
+
+  const handleLoadStagedData = async (sessId: string, targetSeasonId: string) => {
+    setIsLoadingStagedPreview(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/import/preview-staged?sessionId=${sessId}&seasonId=${targetSeasonId}`)
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(`Failed to load staged data: ${errText}`)
+      }
+      const data: PreviewResponse = await res.json()
+      setStagedPreviewData(data)
+      setImportSessionId(sessId)
+
+      const autoSelected = new Set<string>()
+      data.players.forEach(p => autoSelected.add(p.playerId))
+      setSelectedPlayers(autoSelected)
+
+      const resolutions: Record<string, 'skip' | 'replace' | 'add' | string> = {}
+      data.duplicates.forEach(d => {
+        if (d.duplicateType === 'file-vs-file' && d.allFileInstances) {
+          resolutions[d.playerId] = d.allFileInstances[0].playerId
+        } else {
+          resolutions[d.playerId] = 'skip'
+        }
+      })
+      setDuplicateResolutions(resolutions)
+
+      setStep('preview')
+    } catch (err) {
+      console.error('Failed to load staged preview:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load staged player data')
+    } finally {
+      setIsLoadingStagedPreview(false)
+    }
+  }
+
+  const handleClearAllStaging = async () => {
+    setIsClearingAllStaging(true)
+    setError('')
+    setSuccessMsg('')
+    try {
+      const res = await fetch('/api/import/stage?all=true', { method: 'DELETE' })
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(`Failed to clear temp table: ${errText}`)
+      }
+      setStagedInfo(null)
+      setStagedPreviewData(null)
+      setImportSessionId(null)
+      setIsStagingCleared(true)
+      setSuccessMsg('Temporary staging table cleared completely (0 records remaining).')
+      setStep('upload')
+    } catch (err) {
+      console.error('Failed to clear temp table:', err)
+      setError(err instanceof Error ? err.message : 'Failed to clear temporary staging table')
+    } finally {
+      setIsClearingAllStaging(false)
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -743,6 +850,8 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
     }
   }
 
+  const activePreview = stagedPreviewData || preview
+
   const togglePlayer = (playerId: string) => {
     const newSelected = new Set(selectedPlayers)
     if (newSelected.has(playerId)) {
@@ -754,26 +863,22 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
   }
 
   const toggleAll = (playerIds?: string[]) => {
-    if (!preview) return
+    if (!activePreview) return
     
     if (playerIds && playerIds.length > 0) {
-      // Tab-specific toggle: toggle only the provided player IDs
       const allSelected = playerIds.every(id => selectedPlayers.has(id))
       const newSelected = new Set(selectedPlayers)
       if (allSelected) {
-        // Deselect all in this tab
         playerIds.forEach(id => newSelected.delete(id))
       } else {
-        // Select all in this tab
         playerIds.forEach(id => newSelected.add(id))
       }
       setSelectedPlayers(newSelected)
     } else {
-      // Fallback: toggle all players globally
-      if (selectedPlayers.size === preview.players.length) {
+      if (selectedPlayers.size === activePreview.players.length) {
         setSelectedPlayers(new Set())
       } else {
-        setSelectedPlayers(new Set(preview.players.map(p => p.playerId)))
+        setSelectedPlayers(new Set(activePreview.players.map(p => p.playerId)))
       }
     }
   }
@@ -842,8 +947,129 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
       {/* Step Content */}
       {step === 'upload' && (
         <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-4 sm:p-6 lg:p-8">
-          <h2 className="text-xl sm:text-2xl font-black text-white mb-4 sm:mb-6">Upload Database</h2>
-          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white">Upload Database</h2>
+              <p className="text-xs text-gray-400 font-mono mt-0.5">
+                {stagedInfo && stagedInfo.count > 0 
+                  ? `Found ${stagedInfo.count.toLocaleString()} staged players. Resume below or upload a new .db file.` 
+                  : 'Select a database file (.db) to begin import'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleClearAllStaging}
+              disabled={isClearingAllStaging}
+              className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 flex-shrink-0"
+              title="Instantly truncates import_staging_players table with 0 DB read/write operation overhead"
+            >
+              {isClearingAllStaging ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5 text-red-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Truncating Table...
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Clear Temp Staging Table
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Staged Data Detected Alert Banner */}
+          {isCheckingStaged ? (
+            <div className="mb-6 bg-blue-500/10 border border-blue-500/20 text-blue-400 p-4 rounded-2xl flex items-center gap-3 font-mono text-xs uppercase tracking-wider">
+              <svg className="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Checking temporary staging table for existing data...</span>
+            </div>
+          ) : stagedInfo && stagedInfo.count > 0 ? (
+            <div className="mb-6 bg-[#E8A800]/10 border-2 border-[#E8A800]/40 p-5 sm:p-6 rounded-2xl shadow-lg backdrop-blur-xl">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-[#E8A800] font-black text-sm uppercase tracking-wider">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Existing Staged Data Detected ({stagedInfo.count.toLocaleString()} Players)
+                  </div>
+                  <p className="text-xs text-gray-300 font-mono">
+                    There are already <strong className="text-white">{stagedInfo.count.toLocaleString()}</strong> players staged in temporary storage. You do not need to re-upload a .db file!
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleLoadStagedData(stagedInfo.sessionId, stagedInfo.seasonId)}
+                    disabled={isLoadingStagedPreview}
+                    className="bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] px-4 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-md"
+                  >
+                    {isLoadingStagedPreview ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-[#0a0a0a]" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading Staged Data...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Resume Staged Players ({stagedInfo.count})
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleClearAllStaging}
+                    disabled={isClearingAllStaging}
+                    className="bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 hover:text-red-300 px-4 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+                  >
+                    {isClearingAllStaging ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Truncating...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Clear Temp Table
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {successMsg && (
+            <div className="mb-4 sm:mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-xl text-sm flex items-center gap-2 font-mono">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>{successMsg}</span>
+            </div>
+          )}
+
           {/* Mode Selection */}
           <div className="mb-4 sm:mb-6">
             <label className="block text-sm font-bold text-white mb-3">Import Mode</label>
@@ -932,9 +1158,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         </div>
       )}
 
-      {step === 'preview' && preview && (
+      {step === 'preview' && activePreview && (
         <PlayerPreviewList
-          preview={preview}
+          preview={activePreview}
           selectedPlayers={selectedPlayers}
           duplicateResolutions={duplicateResolutions}
           tabIgnoredFields={tabIgnoredFields}
@@ -959,9 +1185,9 @@ export default function ImportWizard({ seasonId }: ImportWizardProps) {
         />
       )}
 
-      {step === 'confirm' && preview && (
+      {step === 'confirm' && activePreview && (
         <ImportSummary
-          preview={preview}
+          preview={activePreview}
           selectedCount={selectedPlayers.size}
           onConfirm={handleConfirm}
           onBack={() => setStep('preview')}

@@ -70,6 +70,11 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null)
   const [expandedRoundId, setExpandedRoundId] = useState<string | null>(null)
 
+  // Announcement Modal State
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
+  const [noticeTab, setNoticeTab] = useState<'warning' | 'yellow' | 'red' | 'combined'>('combined')
+  const [copiedType, setCopiedType] = useState<string | null>(null)
+
   useEffect(() => {
     fetchData(seasonId)
   }, [seasonId])
@@ -96,6 +101,128 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
       setSeasonId(newSeasonId)
       router.push(`/sub-admin/${newSeasonId}/tools/missed-bids`)
     }
+  }
+
+  // Notice Generators
+  const warningTeams = data?.teamsWithMissedBids.filter(t => t.missedRoundsCount === 1) || []
+  const yellowTeams = data?.teamsWithMissedBids.filter(t => t.missedRoundsCount === 2) || []
+  const redTeams = data?.teamsWithMissedBids.filter(t => t.missedRoundsCount >= 3) || []
+
+  const generateWarningNotice = () => {
+    if (!data) return ''
+    const seasonName = data.season.name
+    if (warningTeams.length === 0) {
+      return `⚠️ *TFC ${seasonName.toUpperCase()} — OFFICIAL WARNING*\n\nNo teams currently have 1 missed bidding round.`
+    }
+    const teamList = warningTeams.map(t => `• ${t.name} — ${t.managerName}`).join('\n')
+    return `⚠️ *TFC ${seasonName.toUpperCase()} — OFFICIAL WARNING*
+
+Dear Managers,
+
+The following teams have missed *1 bidding round*:
+
+${teamList}
+
+This is an *official warning*. Please make sure to submit your bids within the given time for all upcoming rounds.
+
+⚠️ *Further missed rounds will result in disciplinary action.*
+
+*1 missed round = WARNING*
+*2 missed rounds = YELLOW CARD*
+*3+ missed rounds = RED CARD & BANNED FROM TFC ${seasonName.toUpperCase()}*
+
+Please take this seriously and avoid further missed rounds.
+
+*TFC ${seasonName} Management*`
+  }
+
+  const generateYellowCardNotice = () => {
+    if (!data) return ''
+    const seasonName = data.season.name
+    if (yellowTeams.length === 0) {
+      return `🟨 *TFC ${seasonName.toUpperCase()} — YELLOW CARD*\n\nNo teams currently have 2 missed bidding rounds.`
+    }
+    const teamList = yellowTeams.map(t => `• ${t.name} — ${t.managerName}`).join('\n')
+    return `🟨 *TFC ${seasonName.toUpperCase()} — YELLOW CARD*
+
+Dear Managers,
+
+The following teams have missed *2 bidding rounds*:
+
+${teamList}
+
+🟨 *OFFICIAL YELLOW CARD*
+
+This is a formal disciplinary action for repeatedly missing bidding rounds.
+
+You have been given a clear warning. *Any further missed rounds may result in a RED CARD and a ban from TFC ${seasonName.toUpperCase()}.*
+
+Please ensure that all future bids are submitted within the announced deadline.
+
+*Disciplinary Rules:*
+⚠️ 1 missed round — Warning
+🟨 2 missed rounds — Yellow Card
+🟥 3+ missed rounds — Red Card & Banned for the season
+
+*TFC ${seasonName} Management*`
+  }
+
+  const generateRedCardNotice = () => {
+    if (!data) return ''
+    const seasonName = data.season.name
+    if (redTeams.length === 0) {
+      return `🟥 *TFC ${seasonName.toUpperCase()} — RED CARD & SEASON BAN*\n\nNo teams currently have 3+ missed bidding rounds.`
+    }
+    const teamList = redTeams.map(t => `• ${t.name} — ${t.managerName} (${t.missedRoundsCount} missed rounds)`).join('\n')
+    const teamNames = redTeams.map(t => `${t.name} — ${t.managerName}`).join(', ')
+    return `🟥 *TFC ${seasonName.toUpperCase()} — RED CARD & SEASON BAN*
+
+🚨 *OFFICIAL DISCIPLINARY NOTICE* 🚨
+
+Dear Manager,
+
+${teamList}
+
+As per the tournament disciplinary rules:
+
+🟥 *3+ missed rounds = RED CARD*
+🚫 *RED CARD = BANNED FOR THE SEASON*
+
+Therefore, *${teamNames} is officially BANNED from TFC ${seasonName.toUpperCase()} with immediate effect.*
+
+No further bidding submissions will be accepted from this team for the remainder of the season.
+
+Please take note that this decision has been made in accordance with the tournament rules regarding missed bidding rounds.
+
+🚫 *BANNED FROM TFC ${seasonName.toUpperCase()}*
+
+*TFC ${seasonName} Management*`
+  }
+
+  const generateCombinedNotice = () => {
+    const parts: string[] = []
+    if (warningTeams.length > 0) parts.push(generateWarningNotice())
+    if (yellowTeams.length > 0) parts.push(generateYellowCardNotice())
+    if (redTeams.length > 0) parts.push(generateRedCardNotice())
+
+    if (parts.length === 0) {
+      return `🎉 *TFC ${data?.season.name.toUpperCase()} — DISCIPLINARY AUDIT*\n\nAll teams have 100% participation! No warnings or cards issued.`
+    }
+
+    return parts.join('\n\n━━━━━━━━━━━━━━━━━━━━\n\n')
+  }
+
+  const handleCopyText = (text: string, typeKey: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedType(typeKey)
+    setTimeout(() => setCopiedType(null), 2500)
+  }
+
+  const getActiveNoticeText = () => {
+    if (noticeTab === 'warning') return generateWarningNotice()
+    if (noticeTab === 'yellow') return generateYellowCardNotice()
+    if (noticeTab === 'red') return generateRedCardNotice()
+    return generateCombinedNotice()
   }
 
   // CSV Export
@@ -147,8 +274,8 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
-      {/* Back Link */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Back Link & Action Bar */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
           href={`/sub-admin/${seasonId}/tools`}
           className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E8A800] hover:text-[#FFC93A] transition-colors"
@@ -160,15 +287,27 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
         </Link>
 
         {data && (
-          <button
-            onClick={exportCSV}
-            className="px-4 py-2 rounded-xl bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] hover:bg-[#E8A800]/20 transition-all text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export CSV Report
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowAnnouncementModal(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black shadow-lg transition-all text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+              </svg>
+              Copy Announcement Messages 📢
+            </button>
+
+            <button
+              onClick={exportCSV}
+              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 transition-all text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export CSV
+            </button>
+          </div>
         )}
       </div>
 
@@ -179,7 +318,7 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
             Missed Bids Audit
           </h1>
           <p className="text-xs font-extrabold text-gray-500 uppercase tracking-widest font-mono">
-            Track auction round participation and missed bidding deadlines
+            Track auction round participation and generate disciplinary notices
           </p>
         </div>
 
@@ -272,11 +411,23 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
             <div className="space-y-8">
               {/* SECTION A: TEAMS WITH MISSED BIDS */}
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="w-3 h-3 rounded-full bg-rose-500"></span>
-                  <h2 className="text-lg font-black text-white uppercase tracking-wider">
-                    Teams with Missed Bids ({filteredTeamsWithMissedBids.length})
-                  </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-rose-500"></span>
+                    <h2 className="text-lg font-black text-white uppercase tracking-wider">
+                      Teams with Missed Bids ({filteredTeamsWithMissedBids.length})
+                    </h2>
+                  </div>
+
+                  {data.teamsWithMissedBids.length > 0 && (
+                    <button
+                      onClick={() => setShowAnnouncementModal(true)}
+                      className="text-xs font-bold text-amber-400 hover:text-amber-300 font-mono underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Generate Copyable Messages</span>
+                      <span>→</span>
+                    </button>
+                  )}
                 </div>
 
                 {filteredTeamsWithMissedBids.length === 0 ? (
@@ -287,10 +438,22 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filteredTeamsWithMissedBids.map(team => {
                       const isExpanded = expandedTeamId === team.id
+                      const badgeColor = team.missedRoundsCount >= 3 
+                        ? 'bg-rose-600/20 border-rose-600/40 text-rose-400'
+                        : team.missedRoundsCount === 2
+                        ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300'
+                        : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+
+                      const cardBorder = team.missedRoundsCount >= 3 
+                        ? 'border-rose-500/30 hover:border-rose-500/50'
+                        : team.missedRoundsCount === 2
+                        ? 'border-yellow-500/30 hover:border-yellow-500/50'
+                        : 'border-white/10 hover:border-amber-500/30'
+
                       return (
                         <div
                           key={team.id}
-                          className="bg-white/[0.01] border border-rose-500/20 rounded-2xl p-5 backdrop-blur-xl shadow-md transition-all hover:border-rose-500/40"
+                          className={`bg-white/[0.01] border ${cardBorder} rounded-2xl p-5 backdrop-blur-xl shadow-md transition-all`}
                         >
                           <div className="flex items-start justify-between gap-4 mb-3">
                             <div className="flex items-center gap-3">
@@ -303,13 +466,14 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
                               </div>
                             </div>
 
-                            <span className="px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 font-black text-xs uppercase tracking-wider font-mono">
-                              Missed {team.missedRoundsCount} {team.missedRoundsCount === 1 ? 'Round' : 'Rounds'}
+                            <span className={`px-3 py-1 rounded-full border font-black text-xs uppercase tracking-wider font-mono ${badgeColor}`}>
+                              {team.missedRoundsCount >= 3 ? '🟥 RED CARD' : team.missedRoundsCount === 2 ? '🟨 YELLOW CARD' : '⚠️ WARNING'}
                             </span>
                           </div>
 
-                          <div className="text-xs text-gray-400 font-mono mb-3">
-                            Submitted: <span className="text-emerald-400 font-bold">{team.submittedRoundsCount}</span> / {team.totalRounds} rounds
+                          <div className="text-xs text-gray-400 font-mono mb-3 flex items-center justify-between">
+                            <span>Submitted: <strong className="text-emerald-400">{team.submittedRoundsCount}</strong> / {team.totalRounds} rounds</span>
+                            <span>Missed: <strong className="text-rose-400">{team.missedRoundsCount}</strong> rounds</span>
                           </div>
 
                           {/* Missed Rounds Pills / Dropdown */}
@@ -482,6 +646,124 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
             </div>
           )}
         </>
+      )}
+
+      {/* ANNOUNCEMENT COPY MODAL */}
+      {showAnnouncementModal && data && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-3xl rounded-2xl bg-[#121212] border border-amber-500/30 p-6 sm:p-8 shadow-2xl space-y-6 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl font-bold">
+                  📢
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Copy Disciplinary Messages</h3>
+                  <div className="text-xs font-bold text-gray-400 font-mono">Ready to paste directly into WhatsApp / Discord</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="text-gray-400 hover:text-white font-black text-xl px-2 py-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Notice Tabs */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setNoticeTab('combined')}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  noticeTab === 'combined'
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-md'
+                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                📋 Combined All
+              </button>
+
+              <button
+                onClick={() => setNoticeTab('warning')}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  noticeTab === 'warning'
+                    ? 'bg-amber-500 text-black font-black shadow-md'
+                    : 'bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                }`}
+              >
+                ⚠️ Warning ({warningTeams.length})
+              </button>
+
+              <button
+                onClick={() => setNoticeTab('yellow')}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  noticeTab === 'yellow'
+                    ? 'bg-yellow-400 text-black font-black shadow-md'
+                    : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20'
+                }`}
+              >
+                🟨 Yellow Card ({yellowTeams.length})
+              </button>
+
+              <button
+                onClick={() => setNoticeTab('red')}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  noticeTab === 'red'
+                    ? 'bg-rose-600 text-white font-black shadow-md'
+                    : 'bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                }`}
+              >
+                🟥 Red Card ({redTeams.length})
+              </button>
+            </div>
+
+            {/* Message Preview Text Area */}
+            <div className="flex-1 overflow-y-auto space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono text-gray-400">
+                <span>Formatted Message Text (WhatsApp Markdown):</span>
+                {copiedType === noticeTab && (
+                  <span className="text-emerald-400 font-bold animate-pulse">Copied to Clipboard! ✓</span>
+                )}
+              </div>
+
+              <textarea
+                readOnly
+                value={getActiveNoticeText()}
+                rows={12}
+                className="w-full bg-black/60 border border-white/15 rounded-xl p-4 text-xs text-gray-200 font-mono focus:outline-none focus:border-amber-500 resize-none selection:bg-amber-500 selection:text-black"
+              />
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <div className="text-xs text-gray-500 font-mono">
+                Click copy to copy formatted text with bold & emojis.
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAnnouncementModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(getActiveNoticeText(), noticeTab)}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                  {copiedType === noticeTab ? 'Copied to Clipboard! ✓' : `Copy ${noticeTab.toUpperCase()} Notice`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import SearchableSelect from '@/components/ui/SearchableSelect'
-import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import TeamLogo from '@/components/team/TeamLogo'
 
 interface Season {
   id: string
@@ -196,14 +196,7 @@ export default function BanTeamClient({ initialSeasonId, seasons }: BanTeamClien
             >
               <div>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/5 relative flex-shrink-0 border border-white/10 shadow-md">
-                    <Image
-                      src={getPlayerPhotoUrl(team.logoUrl)}
-                      alt={team.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                  <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="md" />
                   <div className="min-w-0 flex-1">
                     <h3 className="font-extrabold text-white text-lg truncate">{team.name}</h3>
                     <div className="text-xs text-gray-400 font-bold uppercase tracking-wider font-mono">

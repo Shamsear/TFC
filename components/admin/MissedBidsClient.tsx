@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import SearchableSelect from '@/components/ui/SearchableSelect'
-import { getPlayerPhotoUrl } from '@/lib/image-cdn'
+import TeamLogo from '@/components/team/TeamLogo'
 
 interface Season {
   id: string
@@ -295,14 +294,7 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
                         >
                           <div className="flex items-start justify-between gap-4 mb-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/5 relative flex-shrink-0 border border-white/10">
-                                <Image
-                                  src={getPlayerPhotoUrl(team.logoUrl)}
-                                  alt={team.name}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
+                              <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="sm" />
                               <div>
                                 <div className="font-extrabold text-white text-base">{team.name}</div>
                                 <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider font-mono">
@@ -380,14 +372,7 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
                         key={team.id}
                         className="bg-white/[0.01] border border-emerald-500/20 rounded-xl p-3.5 backdrop-blur-xl flex items-center gap-3"
                       >
-                        <div className="w-9 h-9 rounded-lg overflow-hidden bg-white/5 relative flex-shrink-0 border border-white/10">
-                          <Image
-                            src={getPlayerPhotoUrl(team.logoUrl)}
-                            alt={team.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
+                        <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="xs" />
                         <div className="min-w-0 flex-1">
                           <div className="font-bold text-white text-xs truncate">{team.name}</div>
                           <div className="text-[10px] text-gray-400 truncate">{team.managerName}</div>
@@ -458,8 +443,9 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
                               {round.missedTeams.map(t => (
                                 <div
                                   key={t.id}
-                                  className="px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 font-mono text-xs flex items-center gap-2"
+                                  className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 font-mono text-xs flex items-center gap-2"
                                 >
+                                  <TeamLogo logoUrl={t.logoUrl} teamName={t.name} size="xs" />
                                   <span>{t.name}</span>
                                   <span className="text-[10px] opacity-75">({t.managerName})</span>
                                 </div>
@@ -478,8 +464,9 @@ export default function MissedBidsClient({ initialSeasonId }: MissedBidsClientPr
                               {round.submittedTeams.map(t => (
                                 <div
                                   key={t.id}
-                                  className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center gap-2"
+                                  className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center gap-2"
                                 >
+                                  <TeamLogo logoUrl={t.logoUrl} teamName={t.name} size="xs" />
                                   <span>{t.name}</span>
                                   <span className="text-[10px] opacity-75">({t.managerName})</span>
                                 </div>

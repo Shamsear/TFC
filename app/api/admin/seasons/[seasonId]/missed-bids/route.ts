@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 
 export async function GET(
   req: NextRequest,
@@ -45,7 +46,15 @@ export async function GET(
       }
     })
 
-    const teams = seasonTeams.map(st => st.team)
+    const teamIds = seasonTeams.map(st => st.teamId)
+    const mgrMap = await resolveTeamManagerNames(teamIds, seasonId)
+
+    const teams = seasonTeams.map(st => ({
+      id: st.team.id,
+      name: st.team.name,
+      logoUrl: st.team.logoUrl,
+      managerName: mgrMap.get(st.team.id) || st.managerName || st.team.managerName
+    }))
 
     // Fetch all non-draft auction rounds in this season
     const rounds = await prisma.rounds.findMany({

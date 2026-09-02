@@ -83,6 +83,20 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
       textColor: 'text-emerald-400'
     },
     {
+      title: 'Missed Bids Audit',
+      description: 'Audit team participation and view missed auction rounds and 100% perfect teams',
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      ),
+      href: `/sub-admin/${seasonId}/tools/missed-bids`,
+      color: 'from-amber-500 to-yellow-500',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/20',
+      textColor: 'text-amber-400'
+    },
+    {
       title: 'Double Finalisation Fix',
       description: 'Audit & repair duplicate round finalisation runs and sync team budgets',
       icon: (

@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SearchableSelect from '@/components/ui/SearchableSelect'
+import { PosterModal } from './SwapReleasePoster'
 import { formatIST, formatDateIST } from '@/lib/date-ist'
 
 interface Request {

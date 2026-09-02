@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
 import SearchableSelect from '@/components/ui/SearchableSelect'
+import { PosterModal } from './SwapReleasePoster'
 import { formatIST, formatDateIST } from '@/lib/date-ist'
 
 interface SwapPlayer {

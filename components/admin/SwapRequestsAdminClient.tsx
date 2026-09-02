@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { PosterModal } from './SwapReleasePoster'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 import { formatIST, formatDateIST } from '@/lib/date-ist'
 
 interface SwapPlayer {
@@ -378,18 +378,16 @@ ${targetAcquires || '_None_'}
             {swapWindows.length === 0 ? (
               <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">No swap windows created. Click "Manage Swap Windows" above to create one.</div>
             ) : (
-              <select
+              <SearchableSelect
                 value={selectedWindowId}
-                onChange={e => setSelectedWindowId(e.target.value)}
-                className="w-full max-w-md bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white font-medium focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
-              >
-                <option value="ALL">All Windows</option>
-                {swapWindows.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.status})
-                  </option>
-                ))}
-              </select>
+                onChange={val => setSelectedWindowId(val)}
+                options={[
+                  { value: 'ALL', label: 'All Windows' },
+                  ...swapWindows.map(w => ({ value: w.id, label: `${w.name} (${w.status})` }))
+                ]}
+                className="w-full max-w-md font-mono"
+                enableSearch={false}
+              />
             )}
           </div>
 

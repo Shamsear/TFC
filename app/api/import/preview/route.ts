@@ -91,6 +91,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 });
     }
 
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN') {
+      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
     // Parse form data
     let formData;
     try {

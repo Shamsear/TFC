@@ -26,6 +26,10 @@ export async function POST(request: NextRequest) {
     return new Response('Unauthorized', { status: 401 });
   }
 
+  if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN') {
+    return new Response('Forbidden: Admin access required', { status: 403 });
+  }
+
   const body: BulkImportRequest = await request.json();
   const { seasonId, players, batchInfo } = body;
 

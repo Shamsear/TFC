@@ -33,16 +33,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check Super Admin role
-    if (session.user.role !== 'SUPER_ADMIN') {
+    // Check Admin role
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'SUB_ADMIN') {
       logError(
         'Forbidden access attempt to import data',
-        new Error('Non-super-admin attempted data import'),
+        new Error('Non-admin attempted data import'),
         { ...context, userId: session.user.id, userRole: session.user.role }
       );
       
       return NextResponse.json(
-        { error: 'Forbidden: Super Admin access required' },
+        { error: 'Forbidden: Admin access required' },
         { status: 403 }
       );
     }

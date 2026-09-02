@@ -938,12 +938,17 @@ export async function applyFinalizationResults(
 
   const round = await prisma.rounds.findUnique({
     where: { id: roundId },
-    select: { seasonId: true }
+    select: { seasonId: true, status: true }
   });
 
   if (!round) {
     console.log('❌ ERROR: Round not found\n');
     throw new Error('Round not found');
+  }
+
+  if (round.status === 'completed') {
+    console.log('⚠️ Round is ALREADY completed. Aborting applyFinalizationResults to prevent double deductions/assignments.\n');
+    return;
   }
 
   const teamIds = Array.from(new Set(allocations.map(a => a.teamId)));

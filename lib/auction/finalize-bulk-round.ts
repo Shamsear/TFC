@@ -343,11 +343,16 @@ export async function applyBulkFinalizationResults(
   
   const round = await prisma.rounds.findUnique({
     where: { id: roundId },
-    select: { seasonId: true, basePrice: true }
+    select: { seasonId: true, basePrice: true, status: true }
   });
 
   if (!round) {
     throw new Error('Round not found');
+  }
+
+  if (round.status === 'completed') {
+    console.log('⚠️ Bulk round is ALREADY completed. Aborting applyBulkFinalizationResults to prevent double deductions/assignments.\n');
+    return;
   }
 
   console.log(`📋 Pre-generating IDs for ${allocations.length} allocations...`);

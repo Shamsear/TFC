@@ -37,11 +37,22 @@ interface AuctionCalendar {
   auctionSlots: AuctionSlot[]
 }
 
+interface ExistingRound {
+  id: string
+  roundNumber: number
+  position: string | null
+  position_group: string | null
+  roundType: string
+  startTime: Date | string | null
+  endTime: Date | string | null
+}
+
 interface CreateRoundClientProps {
   seasonId: string
   availablePlayers: Player[]
   teams: Team[]
   auctionCalendar: AuctionCalendar[]
+  existingRounds?: ExistingRound[]
   nextRoundNumber: number
   seasonDefaults: {
     maxBidsPerTeam: number
@@ -54,6 +65,7 @@ export default function CreateRoundClient({
   availablePlayers, 
   teams,
   auctionCalendar,
+  existingRounds = [],
   nextRoundNumber,
   seasonDefaults
 }: CreateRoundClientProps) {
@@ -72,19 +84,56 @@ export default function CreateRoundClient({
   const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'SS', 'LWF', 'RWF', 'CF']
   const [checkedPositions, setCheckedPositions] = useState<string[]>([])
 
-  // Auto-select first calendar date & first slot on mount if available
+  // Helper to check if a slot in a calendar entry has already been converted to a round
+  const isSlotUsed = (cal: AuctionCalendar, slot: AuctionSlot): boolean => {
+    if (!existingRounds || existingRounds.length === 0) return false
+
+    const calStartTime = new Date(cal.auctionDate).getTime()
+    const calDateStr = new Date(cal.auctionDate).toDateString()
+
+    return existingRounds.some(r => {
+      const roundPos = (r.position || '').trim()
+      const slotPos = (slot.position || '').trim()
+      const roundGroup = r.position_group || 'ALL'
+      const slotGroup = slot.position_group || 'ALL'
+
+      const posMatch = roundPos === slotPos && roundGroup === slotGroup
+      if (!posMatch) return false
+
+      if (r.startTime) {
+        const roundStartTime = new Date(r.startTime).getTime()
+        const roundDateStr = new Date(r.startTime).toDateString()
+        return roundStartTime === calStartTime || roundDateStr === calDateStr
+      }
+
+      return true
+    })
+  }
+
+  // Filter calendar list so only dates with unused slots are shown
+  const availableCalendar = auctionCalendar
+    .map(cal => ({
+      ...cal,
+      auctionSlots: cal.auctionSlots.filter(slot => !isSlotUsed(cal, slot))
+    }))
+    .filter(cal => cal.auctionSlots.length > 0)
+
+  // Auto-select first available calendar date & first unused slot on mount if available
   useEffect(() => {
-    if (auctionCalendar.length > 0 && !selectedCalendarId) {
-      const firstCal = auctionCalendar[0]
-      setSelectedCalendarId(firstCal.id)
-      if (firstCal.auctionSlots.length > 0) {
-        setSelectedSlotId(firstCal.auctionSlots[0].id)
+    if (availableCalendar.length > 0) {
+      const currentValid = availableCalendar.some(c => c.id === selectedCalendarId)
+      if (!selectedCalendarId || !currentValid) {
+        const firstCal = availableCalendar[0]
+        setSelectedCalendarId(firstCal.id)
+        if (firstCal.auctionSlots.length > 0) {
+          setSelectedSlotId(firstCal.auctionSlots[0].id)
+        }
       }
     }
-  }, [auctionCalendar])
+  }, [availableCalendar])
 
-  // Get selected calendar and slot
-  const selectedCalendar = auctionCalendar.find(c => c.id === selectedCalendarId)
+  // Get selected calendar and slot from available (unused) entries
+  const selectedCalendar = availableCalendar.find(c => c.id === selectedCalendarId)
   const selectedSlot = selectedCalendar?.auctionSlots.find(s => s.id === selectedSlotId)
   const selectedPosition = selectedSlot?.position
   const selectedPositionGroup = selectedSlot?.position_group
@@ -336,19 +385,32 @@ export default function CreateRoundClient({
 
         <div>
           <label className="block text-sm font-bold text-white mb-2">Select Auction Date</label>
-          {auctionCalendar.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 border border-white/10 rounded-lg">
-              No auction dates scheduled. Please create auction calendar first.
+          {availableCalendar.length === 0 ? (
+            <div className="text-center py-8 px-4 text-gray-400 border border-white/10 rounded-xl bg-black/30 font-mono space-y-3">
+              <div className="text-sm font-bold text-gray-300">
+                All scheduled auction calendar dates and position slots have already been converted into rounds!
+              </div>
+              <div className="text-xs text-gray-500">
+                To schedule new bidding rounds, create additional dates in the Auction Calendar.
+              </div>
+              <div className="pt-2">
+                <Link
+                  href={`/sub-admin/${seasonId}/calendar`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800] text-black font-black rounded-lg text-xs uppercase tracking-wider hover:bg-[#FFC93A] transition-all"
+                >
+                  Manage Auction Calendar
+                </Link>
+              </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {auctionCalendar.map(calendar => (
+            <div className="space-y-2 font-mono">
+              {availableCalendar.map(calendar => (
                 <button
                   key={calendar.id}
                   type="button"
                   onClick={() => {
                     setSelectedCalendarId(calendar.id)
-                    setSelectedSlotId('')
+                    setSelectedSlotId(calendar.auctionSlots[0]?.id || '')
                   }}
                   className={`w-full p-4 rounded-lg border transition-all text-left ${
                     selectedCalendarId === calendar.id

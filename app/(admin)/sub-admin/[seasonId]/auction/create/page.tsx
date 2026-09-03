@@ -16,7 +16,7 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
   const { seasonId } = await params
 
   // Run queries in parallel for better performance
-  const [season, auctionCalendar, seasonalStats, seasonTeams, latestRound] = await Promise.all([
+  const [season, auctionCalendar, seasonalStats, seasonTeams, latestRound, existingRounds] = await Promise.all([
     // Fetch season
     prisma.seasons.findUnique({
       where: { id: seasonId },
@@ -95,6 +95,20 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
       where: { seasonId },
       orderBy: { roundNumber: 'desc' },
       select: { roundNumber: true }
+    }),
+
+    // Fetch existing rounds in this season for calendar slot deduplication
+    prisma.rounds.findMany({
+      where: { seasonId },
+      select: {
+        id: true,
+        roundNumber: true,
+        position: true,
+        position_group: true,
+        roundType: true,
+        startTime: true,
+        endTime: true
+      }
     })
   ])
 
@@ -141,6 +155,7 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
         availablePlayers={transformedPlayers}
         teams={seasonTeams.map(st => st.team)}
         auctionCalendar={auctionCalendar}
+        existingRounds={existingRounds}
         nextRoundNumber={nextRoundNumber}
         seasonDefaults={{
           maxBidsPerTeam: season.defaultMaxBidsPerTeam || seasonTeams.length,

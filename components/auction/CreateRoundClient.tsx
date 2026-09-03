@@ -167,7 +167,7 @@ export default function CreateRoundClient({
         setCheckedPositions([])
       }
     }
-  }, [selectedSlotId])
+  }, [selectedSlotId, selectedCalendarId, selectedSlot?.id, selectedSlot?.position])
 
   // Synchronize custom positions or default when round type toggles to bulk (if no positions are checked)
   useEffect(() => {
@@ -410,7 +410,18 @@ export default function CreateRoundClient({
                   type="button"
                   onClick={() => {
                     setSelectedCalendarId(calendar.id)
-                    setSelectedSlotId(calendar.auctionSlots[0]?.id || '')
+                    const firstSlot = calendar.auctionSlots[0]
+                    if (firstSlot) {
+                      setSelectedSlotId(firstSlot.id)
+                      if (firstSlot.roundType === 'bulk' || firstSlot.roundType === 'normal') {
+                        setRoundType(firstSlot.roundType as 'normal' | 'bulk')
+                      }
+                      if (firstSlot.position) {
+                        setCheckedPositions(firstSlot.position.split(',').map(p => p.trim()).filter(Boolean))
+                      }
+                    } else {
+                      setSelectedSlotId('')
+                    }
                   }}
                   className={`w-full p-4 rounded-lg border transition-all text-left ${
                     selectedCalendarId === calendar.id
@@ -457,7 +468,10 @@ export default function CreateRoundClient({
                     onClick={() => {
                       setSelectedSlotId(slot.id)
                       if (slot.roundType === 'bulk' || slot.roundType === 'normal') {
-                        setRoundType(slot.roundType)
+                        setRoundType(slot.roundType as 'normal' | 'bulk')
+                      }
+                      if (slot.position) {
+                        setCheckedPositions(slot.position.split(',').map(p => p.trim()).filter(Boolean))
                       }
                     }}
                     className={`p-3 rounded-lg border transition-all w-full min-w-0 overflow-hidden flex items-center justify-center ${

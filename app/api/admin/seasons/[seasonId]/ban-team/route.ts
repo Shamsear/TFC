@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { resolveTeamManagerNames } from '@/lib/resolve-manager'
+import { createAuditLog } from '@/lib/audit'
 
 export async function GET(
   req: NextRequest,
@@ -208,23 +209,24 @@ export async function POST(
           }
         }
       })
+    }, { timeout: 30000 })
 
-      // 9. Create audit log
-      await tx.audit_logs.create({
-        data: {
-          id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          userId: session.user.id || 'admin',
-          userEmail: session.user.email || 'admin@turfcats.com',
-          userRole: session.user.role || 'ADMIN',
-          action: 'BAN_TEAM_REMOVE_FROM_SEASON',
-          entityType: 'TEAM',
-          entityId: teamId,
-          entityName: seasonTeam.team.name,
-          seasonId,
-          details: `Banned and removed team ${seasonTeam.team.name} from season ${season.name}. Released ${activeTransfers.length} players to Free Agency. Reason: ${reason}`
-        }
+    // 9. Create audit log after transaction completes
+    try {
+      await createAuditLog({
+        userId: session.user.id || 'admin',
+        userEmail: session.user.email || 'admin@turfcats.com',
+        userRole: session.user.role || 'ADMIN',
+        action: 'DELETE_TEAM' as any,
+        entityType: 'TEAM',
+        entityId: teamId,
+        entityName: seasonTeam.team.name,
+        seasonId,
+        details: `Banned and removed team ${seasonTeam.team.name} from season ${season.name}. Released ${activeTransfers.length} players to Free Agency. Reason: ${reason}`
       })
-    })
+    } catch (auditErr) {
+      console.warn('Non-fatal error creating audit log for ban team:', auditErr)
+    }
 
     return NextResponse.json({
       success: true,

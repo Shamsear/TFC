@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PageLoader from "@/components/ui/PageLoader"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import { getISTDateTimeStrings, parseISTDateTime } from '@/lib/date-ist'
 
 interface EditCalendarPageProps {
   params: Promise<{
@@ -65,36 +66,20 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
       fetch(`/api/seasons/${sid}/calendar/${cid}`)
         .then(res => res.json())
         .then(data => {
-          const dateObj = new Date(data.auctionDate)
-          const year = dateObj.getFullYear()
-          const month = String(dateObj.getMonth() + 1).padStart(2, '0')
-          const day = String(dateObj.getDate()).padStart(2, '0')
-          const hours = String(dateObj.getHours()).padStart(2, '0')
-          const minutes = String(dateObj.getMinutes()).padStart(2, '0')
-          
-          setAuctionDate(`${year}-${month}-${day}`)
-          setAuctionTime(`${hours}:${minutes}`)
+          const startRes = getISTDateTimeStrings(data.auctionDate)
+          setAuctionDate(startRes.dateStr)
+          setAuctionTime(startRes.timeStr)
           
           if (data.endDate) {
-            const endDateObj = new Date(data.endDate)
-            const endYear = endDateObj.getFullYear()
-            const endMonth = String(endDateObj.getMonth() + 1).padStart(2, '0')
-            const endDay = String(endDateObj.getDate()).padStart(2, '0')
-            const endHours = String(endDateObj.getHours()).padStart(2, '0')
-            const endMinutes = String(endDateObj.getMinutes()).padStart(2, '0')
-            
-            setEndDate(`${endYear}-${endMonth}-${endDay}`)
-            setEndTime(`${endHours}:${endMinutes}`)
+            const endRes = getISTDateTimeStrings(data.endDate)
+            setEndDate(endRes.dateStr)
+            setEndTime(endRes.timeStr)
           } else {
-            const defaultEndDate = new Date(dateObj.getTime() + 3 * 60 * 60 * 1000)
-            const endYear = defaultEndDate.getFullYear()
-            const endMonth = String(defaultEndDate.getMonth() + 1).padStart(2, '0')
-            const endDay = String(defaultEndDate.getDate()).padStart(2, '0')
-            const endHours = String(defaultEndDate.getHours()).padStart(2, '0')
-            const endMinutes = String(defaultEndDate.getMinutes()).padStart(2, '0')
-            
-            setEndDate(`${endYear}-${endMonth}-${endDay}`)
-            setEndTime(`${endHours}:${endMinutes}`)
+            const startDateObj = parseISTDateTime(startRes.dateStr, startRes.timeStr)
+            const defaultEndDateObj = new Date(startDateObj.getTime() + 3 * 60 * 60 * 1000)
+            const endRes = getISTDateTimeStrings(defaultEndDateObj)
+            setEndDate(endRes.dateStr)
+            setEndTime(endRes.timeStr)
           }
           
           setDescription(data.description || '')
@@ -162,12 +147,12 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
     setSubmitting(true)
 
     try {
-      const localStartDate = new Date(`${auctionDate}T${auctionTime}:00`)
-      let localEndDate
+      const startDateObj = parseISTDateTime(auctionDate, auctionTime)
+      let endDateObj: Date
       if (endDate && endTime) {
-        localEndDate = new Date(`${endDate}T${endTime}:00`)
+        endDateObj = parseISTDateTime(endDate, endTime)
       } else {
-        localEndDate = new Date(localStartDate.getTime() + 3 * 60 * 60 * 1000)
+        endDateObj = new Date(startDateObj.getTime() + 3 * 60 * 60 * 1000)
       }
 
       const response = await fetch(`/api/seasons/${seasonId}/calendar/${calendarId}`, {
@@ -176,8 +161,8 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          auctionDate: localStartDate.toISOString(),
-          endDate: localEndDate.toISOString(),
+          auctionDate: startDateObj.toISOString(),
+          endDate: endDateObj.toISOString(),
           description,
           positionSlots
         })
@@ -295,10 +280,11 @@ export default function EditCalendarPage({ params }: EditCalendarPageProps) {
                   type="button"
                   onClick={() => {
                     if (auctionDate && auctionTime) {
-                      const startDateTime = new Date(`${auctionDate}T${auctionTime}`)
+                      const startDateTime = parseISTDateTime(auctionDate, auctionTime)
                       const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
-                      setEndDate(endDateTime.toISOString().split('T')[0])
-                      setEndTime(endDateTime.toTimeString().slice(0, 5))
+                      const { dateStr, timeStr } = getISTDateTimeStrings(endDateTime)
+                      setEndDate(dateStr)
+                      setEndTime(timeStr)
                     }
                   }}
                   className="px-4 py-2 bg-white/[0.01] border border-white/5 text-white rounded-xl text-xs font-black hover:bg-white/[0.02] hover:border-[#E8A800]/30 transition-all whitespace-nowrap uppercase tracking-wider font-mono cursor-pointer"

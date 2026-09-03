@@ -89,3 +89,35 @@ export function formatShortDateIST(date: string | Date): string {
     month: 'short'
   })
 }
+
+/**
+ * Convert ISO date string or Date to IST date string (YYYY-MM-DD) and time string (HH:mm)
+ */
+export function getISTDateTimeStrings(date: string | Date) {
+  const d = new Date(date)
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: IST_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
+  const parts = formatter.formatToParts(d)
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '00'
+  return {
+    dateStr: `${get('year')}-${get('month')}-${get('day')}`,
+    timeStr: `${get('hour')}:${get('minute')}`
+  }
+}
+
+/**
+ * Convert IST date string (YYYY-MM-DD) and time string (HH:mm) to a UTC Date object
+ */
+export function parseISTDateTime(dateStr: string, timeStr: string): Date {
+  const [h, m] = timeStr.split(':')
+  const paddedH = (h || '00').padStart(2, '0')
+  const paddedM = (m || '00').padStart(2, '0')
+  return new Date(`${dateStr}T${paddedH}:${paddedM}:00+05:30`)
+}

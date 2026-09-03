@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import PageLoader from "@/components/ui/PageLoader"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import { getISTDateTimeStrings, parseISTDateTime } from "@/lib/date-ist"
 
 interface NewCalendarPageProps {
   params: Promise<{
@@ -58,10 +59,11 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     let defaultEndDate = ''
     let defaultEndTime = ''
     if (lastEntry?.auctionDate && lastEntry?.auctionTime) {
-      const startDateTime = new Date(`${lastEntry.auctionDate}T${lastEntry.auctionTime}`)
+      const startDateTime = parseISTDateTime(lastEntry.auctionDate, lastEntry.auctionTime)
       const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
-      defaultEndDate = endDateTime.toISOString().split('T')[0]
-      defaultEndTime = endDateTime.toTimeString().slice(0, 5)
+      const endRes = getISTDateTimeStrings(endDateTime)
+      defaultEndDate = endRes.dateStr
+      defaultEndTime = endRes.timeStr
     }
     
     const newEntry = {
@@ -88,10 +90,11 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
     // Auto-populate endDate/endTime when auctionDate or auctionTime changes (if endDate is empty)
     if ((field === 'auctionDate' || field === 'auctionTime') && updated[index].auctionDate && updated[index].auctionTime) {
       if (!updated[index].endDate || !updated[index].endTime) {
-        const startDateTime = new Date(`${updated[index].auctionDate}T${updated[index].auctionTime}`)
+        const startDateTime = parseISTDateTime(updated[index].auctionDate, updated[index].auctionTime)
         const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
-        updated[index].endDate = endDateTime.toISOString().split('T')[0]
-        updated[index].endTime = endDateTime.toTimeString().slice(0, 5)
+        const endRes = getISTDateTimeStrings(endDateTime)
+        updated[index].endDate = endRes.dateStr
+        updated[index].endTime = endRes.timeStr
       }
     }
     
@@ -169,18 +172,18 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
 
     try {
       const formattedAuctionDates = auctionDates.map(auction => {
-        const localStartDate = new Date(`${auction.auctionDate}T${auction.auctionTime}:00`)
+        const startDateObj = parseISTDateTime(auction.auctionDate, auction.auctionTime)
         
-        let localEndDate
+        let endDateObj: Date
         if (auction.endDate && auction.endTime) {
-          localEndDate = new Date(`${auction.endDate}T${auction.endTime}:00`)
+          endDateObj = parseISTDateTime(auction.endDate, auction.endTime)
         } else {
-          localEndDate = new Date(localStartDate.getTime() + 3 * 60 * 60 * 1000)
+          endDateObj = new Date(startDateObj.getTime() + 3 * 60 * 60 * 1000)
         }
         
         return {
-          auctionDate: localStartDate.toISOString(),
-          endDate: localEndDate.toISOString(),
+          auctionDate: startDateObj.toISOString(),
+          endDate: endDateObj.toISOString(),
           description: auction.description,
           positionSlots: auction.positionSlots
         }
@@ -335,10 +338,11 @@ export default function NewCalendarPage({ params }: NewCalendarPageProps) {
                     type="button"
                     onClick={() => {
                       if (auction.auctionDate && auction.auctionTime) {
-                        const startDateTime = new Date(`${auction.auctionDate}T${auction.auctionTime}`)
+                        const startDateTime = parseISTDateTime(auction.auctionDate, auction.auctionTime)
                         const endDateTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000)
-                        updateAuctionDate(index, 'endDate', endDateTime.toISOString().split('T')[0])
-                        updateAuctionDate(index, 'endTime', endDateTime.toTimeString().slice(0, 5))
+                        const { dateStr, timeStr } = getISTDateTimeStrings(endDateTime)
+                        updateAuctionDate(index, 'endDate', dateStr)
+                        updateAuctionDate(index, 'endTime', timeStr)
                       }
                     }}
                     className="px-4 py-2 bg-white/[0.01] border border-white/5 text-white rounded-xl text-xs font-black hover:bg-white/[0.02] hover:border-[#E8A800]/30 transition-all whitespace-nowrap uppercase tracking-wider font-mono cursor-pointer"

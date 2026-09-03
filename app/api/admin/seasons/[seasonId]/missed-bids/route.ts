@@ -111,8 +111,8 @@ export async function GET(
       }
     })
 
-    // Create lookup map: `${roundId}_${teamId}` -> boolean (submitted valid non-empty bids & not skipped)
-    const validSubmissionMap = new Map<string, boolean>()
+    // Lookup map: `${roundId}_${teamId}` -> 'SUBMITTED' | 'SKIPPED' | 'NO_BID'
+    const teamSubmissionStatusMap = new Map<string, 'SUBMITTED' | 'SKIPPED' | 'NO_BID'>()
 
     normalBids.forEach(b => {
       let isSkipped = false
@@ -121,8 +121,14 @@ export async function GET(
           isSkipped = true
         }
       }
-      if (b.submitted && b.bidCount > 0 && !isSkipped) {
-        validSubmissionMap.set(`${b.roundId}_${b.teamId}`, true)
+      if (b.submitted) {
+        if (isSkipped || b.bidCount === 0) {
+          teamSubmissionStatusMap.set(`${b.roundId}_${b.teamId}`, 'SKIPPED')
+        } else {
+          teamSubmissionStatusMap.set(`${b.roundId}_${b.teamId}`, 'SUBMITTED')
+        }
+      } else {
+        teamSubmissionStatusMap.set(`${b.roundId}_${b.teamId}`, 'NO_BID')
       }
     })
 
@@ -132,11 +138,15 @@ export async function GET(
           const parsed = JSON.parse(s.selectedPlayers)
           const players = Array.isArray(parsed) ? parsed : (parsed?.players || [])
           if (players.length > 0) {
-            validSubmissionMap.set(`${s.roundId}_${s.teamId}`, true)
+            teamSubmissionStatusMap.set(`${s.roundId}_${s.teamId}`, 'SUBMITTED')
+          } else {
+            teamSubmissionStatusMap.set(`${s.roundId}_${s.teamId}`, 'SKIPPED')
           }
         } catch (e) {
-          // Ignore JSON parse errors
+          teamSubmissionStatusMap.set(`${s.roundId}_${s.teamId}`, 'SKIPPED')
         }
+      } else {
+        teamSubmissionStatusMap.set(`${s.roundId}_${s.teamId}`, 'NO_BID')
       }
     })
 
@@ -149,13 +159,14 @@ export async function GET(
         roundType: string
         status: string
         position_group: string | null
+        reason: 'SKIPPED' | 'NO_BID'
       }> = []
 
       let submittedCount = 0
 
       rounds.forEach(round => {
-        const hasSubmitted = validSubmissionMap.get(`${round.id}_${team.id}`) || false
-        if (hasSubmitted) {
+        const subStatus = teamSubmissionStatusMap.get(`${round.id}_${team.id}`) || 'NO_BID'
+        if (subStatus === 'SUBMITTED') {
           submittedCount++
         } else {
           missedRounds.push({
@@ -164,7 +175,8 @@ export async function GET(
             position: round.position,
             roundType: round.roundType,
             status: round.status,
-            position_group: round.position_group
+            position_group: round.position_group,
+            reason: subStatus
           })
         }
       })
@@ -189,14 +201,17 @@ export async function GET(
     // Process Round-by-Round breakdown
     const roundsSummary = rounds.map(round => {
       const submittedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string }> = []
-      const missedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string }> = []
+      const missedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string; reason: 'SKIPPED' | 'NO_BID' }> = []
 
       teams.forEach(team => {
-        const hasSubmitted = validSubmissionMap.get(`${round.id}_${team.id}`) || false
-        if (hasSubmitted) {
+        const subStatus = teamSubmissionStatusMap.get(`${round.id}_${team.id}`) || 'NO_BID'
+        if (subStatus === 'SUBMITTED') {
           submittedTeams.push(team)
         } else {
-          missedTeams.push(team)
+          missedTeams.push({
+            ...team,
+            reason: subStatus
+          })
         }
       })
 

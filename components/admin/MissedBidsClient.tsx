@@ -26,6 +26,7 @@ interface MissedRound {
   roundType: string
   status: string
   position_group: string | null
+  reason?: 'SKIPPED' | 'NO_BID'
 }
 
 interface TeamStats extends Team {
@@ -33,6 +34,10 @@ interface TeamStats extends Team {
   submittedRoundsCount: number
   missedRoundsCount: number
   missedRounds: MissedRound[]
+}
+
+interface MissedTeamWithReason extends Team {
+  reason?: 'SKIPPED' | 'NO_BID'
 }
 
 interface RoundSummary {
@@ -45,7 +50,7 @@ interface RoundSummary {
   submittedCount: number
   missedCount: number
   submittedTeams: Team[]
-  missedTeams: Team[]
+  missedTeams: MissedTeamWithReason[]
 }
 
 interface MissedBidsClientProps {
@@ -498,10 +503,19 @@ Please take note that this decision has been made in accordance with the tournam
                                 {team.missedRounds.map(r => (
                                   <div
                                     key={r.id}
-                                    className="p-2 rounded-lg bg-black/40 border border-rose-500/20 text-[11px] text-gray-300 font-mono"
+                                    className="p-2.5 rounded-lg bg-black/40 border border-rose-500/20 text-[11px] text-gray-300 font-mono flex flex-col justify-between gap-1"
                                   >
-                                    <div className="font-bold text-rose-300">Round {r.roundNumber}</div>
-                                    <div className="text-[10px] text-gray-500 uppercase">
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="font-extrabold text-rose-300">Round {r.roundNumber}</span>
+                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                        r.reason === 'SKIPPED'
+                                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                      }`}>
+                                        {r.reason === 'SKIPPED' ? 'Skipped' : 'No Bid'}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 font-bold uppercase">
                                       {r.position || r.position_group || r.roundType}
                                     </div>
                                   </div>
@@ -612,6 +626,13 @@ Please take note that this decision has been made in accordance with the tournam
                                   <TeamLogo logoUrl={t.logoUrl} teamName={t.name} size="xs" />
                                   <span>{t.name}</span>
                                   <span className="text-[10px] opacity-75">({t.managerName})</span>
+                                  <span className={`px-1 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                    t.reason === 'SKIPPED'
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  }`}>
+                                    {t.reason === 'SKIPPED' ? 'Skipped' : 'No Bid'}
+                                  </span>
                                 </div>
                               ))}
                             </div>

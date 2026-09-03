@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { finalizeRound, applyFinalizationResults } from './finalize-round';
 import { createTiebreakers, hasActiveTiebreakers } from './tiebreaker';
+import { autoStartScheduledRounds } from './auto-start-rounds';
 
 /**
  * Lazy finalization checker
@@ -191,7 +192,7 @@ export async function findExpiredActiveRounds(seasonId?: string): Promise<string
 }
 
 /**
- * Auto-finalize all expired rounds (for cron job)
+ * Auto-finalize all expired rounds and auto-start scheduled draft rounds (for cron/lazy job)
  */
 export async function autoFinalizeExpiredRounds(seasonId?: string): Promise<{
   processed: number;
@@ -199,6 +200,9 @@ export async function autoFinalizeExpiredRounds(seasonId?: string): Promise<{
   failed: number;
   errors: Array<{ roundId: string; error: string }>;
 }> {
+  // First auto-start any draft rounds whose scheduled startTime has arrived
+  await autoStartScheduledRounds(seasonId);
+
   const expiredRoundIds = await findExpiredActiveRounds(seasonId);
   
   let finalized = 0;

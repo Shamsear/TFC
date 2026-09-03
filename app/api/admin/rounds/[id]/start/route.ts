@@ -27,7 +27,9 @@ export async function POST(
         durationSeconds: true,
         seasonId: true,
         roundNumber: true,
-        position: true
+        position: true,
+        startTime: true,
+        endTime: true
       }
     });
 
@@ -44,8 +46,29 @@ export async function POST(
     }
 
     // Calculate start and end times
-    const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + (round.durationSeconds * 1000));
+    const now = new Date();
+    const startTime = now;
+    let endTime: Date;
+    let updatedDurationSeconds = round.durationSeconds;
+
+    // Check if started prematurely (i.e. scheduled startTime or target endTime exists and target endTime > now)
+    const scheduledStartTime = round.startTime ? new Date(round.startTime) : null;
+    const targetEndTime = round.endTime 
+      ? new Date(round.endTime) 
+      : (scheduledStartTime ? new Date(scheduledStartTime.getTime() + (round.durationSeconds * 1000)) : null);
+
+    if (
+      targetEndTime && 
+      targetEndTime > now && 
+      (scheduledStartTime ? now < scheduledStartTime : targetEndTime.getTime() > now.getTime() + (round.durationSeconds * 1000))
+    ) {
+      // Premature start: Keep original scheduled end time and extend duration to end at targetEndTime
+      endTime = targetEndTime;
+      updatedDurationSeconds = Math.max(1, Math.round((targetEndTime.getTime() - now.getTime()) / 1000));
+    } else {
+      // Standard or late start: Calculate end time from now using durationSeconds
+      endTime = new Date(now.getTime() + (round.durationSeconds * 1000));
+    }
 
     // Update round
     const updatedRound = await prisma.rounds.update({
@@ -53,7 +76,8 @@ export async function POST(
       data: {
         status: 'active',
         startTime,
-        endTime
+        endTime,
+        durationSeconds: updatedDurationSeconds
       }
     });
 

@@ -170,6 +170,8 @@ export default function CreateRoundClient({
 
       // Calculate duration in seconds
       const durationSeconds = Math.round(totalDurationHours * 3600)
+      const scheduledStartTime = selectedCalendar?.auctionDate ? new Date(selectedCalendar.auctionDate).toISOString() : null
+      const scheduledEndTime = calculatedEndTime ? calculatedEndTime.toISOString() : (selectedCalendar?.endDate ? new Date(selectedCalendar.endDate).toISOString() : null)
 
       const endpoint = roundType === 'normal' 
         ? '/api/admin/rounds'
@@ -187,7 +189,9 @@ export default function CreateRoundClient({
           roundType: roundType,
           maxBidsPerTeam: seasonDefaults.maxBidsPerTeam,
           basePrice: seasonDefaults.basePrice,
-          finalizationMode: finalizationMode
+          finalizationMode: finalizationMode,
+          startTime: scheduledStartTime,
+          endTime: scheduledEndTime
         })
       })
 

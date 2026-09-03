@@ -23,7 +23,9 @@ export async function POST(request: NextRequest) {
       maxBidsPerTeam,
       basePrice,
       durationSeconds,
-      finalizationMode = 'auto'
+      finalizationMode = 'auto',
+      startTime,
+      endTime
     } = body;
 
     // Validate required fields
@@ -71,10 +73,12 @@ export async function POST(request: NextRequest) {
         roundNumber,
         roundType: 'bulk',
         maxBidsPerTeam,
-        basePrice,
+ basePrice,
         durationSeconds,
         finalizationMode,
-        status: 'draft'
+        status: 'draft',
+        startTime: startTime ? new Date(startTime) : null,
+        endTime: endTime ? new Date(endTime) : null
       }
     });
 

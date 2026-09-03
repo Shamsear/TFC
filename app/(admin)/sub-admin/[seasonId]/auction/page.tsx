@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import AuctionPageWrapper from '@/components/auction/AuctionPageWrapper'
+import { autoStartScheduledRounds } from '@/lib/auction/auto-start-rounds'
 
 interface AuctionV2PageProps {
   params: Promise<{ seasonId: string }>
@@ -14,6 +15,9 @@ export default async function AuctionV2Page({ params }: AuctionV2PageProps) {
   }
 
   const { seasonId } = await params
+
+  // Auto-start any draft rounds whose scheduled startTime has arrived
+  await autoStartScheduledRounds(seasonId)
 
   // Fetch season, rounds, and active bulk tiebreakers in parallel
   const [season, rounds, activeTiebreakers] = await Promise.all([

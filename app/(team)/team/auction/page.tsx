@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import AuctionDashboardClient from "@/components/team-auction/AuctionDashboardClient"
 import { getActiveSeason } from "@/lib/get-active-season"
+import { autoStartScheduledRounds } from "@/lib/auction/auto-start-rounds"
 
 export const dynamic = "force-dynamic"
 
@@ -81,7 +82,12 @@ export default async function TeamAuctionPage() {
         </div>
       </div>
     )
-  }  // PARALLELIZE: All these queries are independent
+  }
+
+  // Auto-start any draft rounds whose scheduled startTime has arrived
+  await autoStartScheduledRounds(activeSeason.id)
+
+  // PARALLELIZE: All these queries are independent
   const [squadSize, rounds, activeTiebreakers, pendingTiebreakers, activeBulkTiebreakers, pendingBulkTiebreakers] = await Promise.all([
     // Squad size
     prisma.transfer_history.count({

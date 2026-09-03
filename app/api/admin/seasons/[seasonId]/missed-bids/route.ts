@@ -74,7 +74,8 @@ export async function GET(
           ...t,
           totalRounds: 0,
           submittedRoundsCount: 0,
-          missedRoundsCount: 0
+          missedRoundsCount: 0,
+          missedRounds: []
         })),
         teamsWithMissedBids: [],
         roundsSummary: []
@@ -83,8 +84,8 @@ export async function GET(
 
     const roundIds = rounds.map(r => r.id)
 
-    // Fetch all team bids for these rounds
-    const bids = await prisma.team_round_bids.findMany({
+    // 1. Fetch normal team bids for these rounds
+    const normalBids = await prisma.team_round_bids.findMany({
       where: {
         roundId: { in: roundIds }
       },
@@ -93,15 +94,49 @@ export async function GET(
         teamId: true,
         submitted: true,
         bidCount: true,
-        submittedAt: true
+        encryptedBids: true
       }
     })
 
-    // Create lookup map: `${roundId}_${teamId}` -> boolean (submitted & bidCount > 0)
-    const bidSubmissionMap = new Map<string, boolean>()
-    bids.forEach(b => {
-      if (b.submitted && b.bidCount > 0) {
-        bidSubmissionMap.set(`${b.roundId}_${b.teamId}`, true)
+    // 2. Fetch bulk round selections for these rounds
+    const bulkSelections = await prisma.bulk_round_selections.findMany({
+      where: {
+        roundId: { in: roundIds }
+      },
+      select: {
+        roundId: true,
+        teamId: true,
+        submitted: true,
+        selectedPlayers: true
+      }
+    })
+
+    // Create lookup map: `${roundId}_${teamId}` -> boolean (submitted valid non-empty bids & not skipped)
+    const validSubmissionMap = new Map<string, boolean>()
+
+    normalBids.forEach(b => {
+      let isSkipped = false
+      if (b.encryptedBids) {
+        if (b.encryptedBids.includes('"skipped":true') || b.encryptedBids.includes('"skipped": true')) {
+          isSkipped = true
+        }
+      }
+      if (b.submitted && b.bidCount > 0 && !isSkipped) {
+        validSubmissionMap.set(`${b.roundId}_${b.teamId}`, true)
+      }
+    })
+
+    bulkSelections.forEach(s => {
+      if (s.submitted) {
+        try {
+          const parsed = JSON.parse(s.selectedPlayers)
+          const players = Array.isArray(parsed) ? parsed : (parsed?.players || [])
+          if (players.length > 0) {
+            validSubmissionMap.set(`${s.roundId}_${s.teamId}`, true)
+          }
+        } catch (e) {
+          // Ignore JSON parse errors
+        }
       }
     })
 
@@ -119,7 +154,7 @@ export async function GET(
       let submittedCount = 0
 
       rounds.forEach(round => {
-        const hasSubmitted = bidSubmissionMap.get(`${round.id}_${team.id}`) || false
+        const hasSubmitted = validSubmissionMap.get(`${round.id}_${team.id}`) || false
         if (hasSubmitted) {
           submittedCount++
         } else {
@@ -157,7 +192,7 @@ export async function GET(
       const missedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string }> = []
 
       teams.forEach(team => {
-        const hasSubmitted = bidSubmissionMap.get(`${round.id}_${team.id}`) || false
+        const hasSubmitted = validSubmissionMap.get(`${round.id}_${team.id}`) || false
         if (hasSubmitted) {
           submittedTeams.push(team)
         } else {

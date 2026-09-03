@@ -34,7 +34,11 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
     // Fetch auction calendar with slots
     prisma.auction_calendar.findMany({
       where: { seasonId },
-      include: {
+      select: {
+        id: true,
+        auctionDate: true,
+        endDate: true,
+        description: true,
         auctionSlots: {
           select: {
             id: true,

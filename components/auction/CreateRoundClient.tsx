@@ -32,6 +32,7 @@ interface AuctionSlot {
 interface AuctionCalendar {
   id: string
   auctionDate: Date
+  endDate?: Date | null
   description: string | null
   auctionSlots: AuctionSlot[]
 }
@@ -71,23 +72,51 @@ export default function CreateRoundClient({
   const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'SS', 'LWF', 'RWF', 'CF']
   const [checkedPositions, setCheckedPositions] = useState<string[]>([])
 
+  // Auto-select first calendar date & first slot on mount if available
+  useEffect(() => {
+    if (auctionCalendar.length > 0 && !selectedCalendarId) {
+      const firstCal = auctionCalendar[0]
+      setSelectedCalendarId(firstCal.id)
+      if (firstCal.auctionSlots.length > 0) {
+        setSelectedSlotId(firstCal.auctionSlots[0].id)
+      }
+    }
+  }, [auctionCalendar])
+
   // Get selected calendar and slot
   const selectedCalendar = auctionCalendar.find(c => c.id === selectedCalendarId)
   const selectedSlot = selectedCalendar?.auctionSlots.find(s => s.id === selectedSlotId)
   const selectedPosition = selectedSlot?.position
   const selectedPositionGroup = selectedSlot?.position_group
 
-  // Synchronize custom positions when calendar slot changes
+  // Auto-calculate duration from calendar start time to end time
+  useEffect(() => {
+    if (selectedCalendar?.auctionDate && selectedCalendar?.endDate) {
+      const start = new Date(selectedCalendar.auctionDate).getTime()
+      const end = new Date(selectedCalendar.endDate).getTime()
+      const diffMs = end - start
+      if (diffMs > 0) {
+        const totalMins = Math.round(diffMs / 60000)
+        const hrs = Math.floor(totalMins / 60)
+        const mins = totalMins % 60
+        setDurationHours(hrs.toString())
+        setDurationMinutes(mins.toString())
+      }
+    }
+  }, [selectedCalendarId])
+
+  // Synchronize positions & roundType when calendar slot changes
   useEffect(() => {
     if (selectedSlot) {
+      if (selectedSlot.roundType === 'bulk' || selectedSlot.roundType === 'normal') {
+        setRoundType(selectedSlot.roundType as 'normal' | 'bulk')
+      }
       if (selectedSlot.position) {
         const parsedPositions = selectedSlot.position.split(',').map(p => p.trim()).filter(Boolean)
         setCheckedPositions(parsedPositions)
       } else {
         setCheckedPositions([])
       }
-    } else {
-      setCheckedPositions([])
     }
   }, [selectedSlotId])
 

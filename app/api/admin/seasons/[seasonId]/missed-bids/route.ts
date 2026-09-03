@@ -74,8 +74,10 @@ export async function GET(
           ...t,
           totalRounds: 0,
           submittedRoundsCount: 0,
+          skippedRoundsCount: 0,
           missedRoundsCount: 0,
-          missedRounds: []
+          missedRounds: [],
+          skippedRounds: []
         })),
         teamsWithMissedBids: [],
         roundsSummary: []
@@ -159,24 +161,43 @@ export async function GET(
         roundType: string
         status: string
         position_group: string | null
-        reason: 'SKIPPED' | 'NO_BID'
+      }> = []
+
+      const skippedRounds: Array<{
+        id: string
+        roundNumber: number
+        position: string | null
+        roundType: string
+        status: string
+        position_group: string | null
       }> = []
 
       let submittedCount = 0
+      let skippedCount = 0
 
       rounds.forEach(round => {
         const subStatus = teamSubmissionStatusMap.get(`${round.id}_${team.id}`) || 'NO_BID'
         if (subStatus === 'SUBMITTED') {
           submittedCount++
+        } else if (subStatus === 'SKIPPED') {
+          skippedCount++
+          skippedRounds.push({
+            id: round.id,
+            roundNumber: round.roundNumber,
+            position: round.position,
+            roundType: round.roundType,
+            status: round.status,
+            position_group: round.position_group
+          })
         } else {
+          // NO_BID -> This is a MISSED round!
           missedRounds.push({
             id: round.id,
             roundNumber: round.roundNumber,
             position: round.position,
             roundType: round.roundType,
             status: round.status,
-            position_group: round.position_group,
-            reason: subStatus
+            position_group: round.position_group
           })
         }
       })
@@ -185,15 +206,19 @@ export async function GET(
         ...team,
         totalRounds: rounds.length,
         submittedRoundsCount: submittedCount,
+        skippedRoundsCount: skippedCount,
         missedRoundsCount: missedRounds.length,
-        missedRounds
+        missedRounds,
+        skippedRounds
       }
     })
 
+    // Teams with 0 missed rounds (NO_BID count === 0)
     const teamsPerfect = teamStats
       .filter(t => t.missedRoundsCount === 0)
       .sort((a, b) => a.name.localeCompare(b.name))
 
+    // Teams with 1+ missed rounds (NO_BID count > 0)
     const teamsWithMissedBids = teamStats
       .filter(t => t.missedRoundsCount > 0)
       .sort((a, b) => b.missedRoundsCount - a.missedRoundsCount || a.name.localeCompare(b.name))
@@ -201,17 +226,17 @@ export async function GET(
     // Process Round-by-Round breakdown
     const roundsSummary = rounds.map(round => {
       const submittedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string }> = []
-      const missedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string; reason: 'SKIPPED' | 'NO_BID' }> = []
+      const skippedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string }> = []
+      const missedTeams: Array<{ id: string; name: string; logoUrl: string; managerName: string }> = []
 
       teams.forEach(team => {
         const subStatus = teamSubmissionStatusMap.get(`${round.id}_${team.id}`) || 'NO_BID'
         if (subStatus === 'SUBMITTED') {
           submittedTeams.push(team)
+        } else if (subStatus === 'SKIPPED') {
+          skippedTeams.push(team)
         } else {
-          missedTeams.push({
-            ...team,
-            reason: subStatus
-          })
+          missedTeams.push(team)
         }
       })
 
@@ -223,8 +248,10 @@ export async function GET(
         status: round.status,
         position_group: round.position_group,
         submittedCount: submittedTeams.length,
+        skippedCount: skippedTeams.length,
         missedCount: missedTeams.length,
         submittedTeams,
+        skippedTeams,
         missedTeams
       }
     })

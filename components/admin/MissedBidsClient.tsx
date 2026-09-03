@@ -26,18 +26,15 @@ interface MissedRound {
   roundType: string
   status: string
   position_group: string | null
-  reason?: 'SKIPPED' | 'NO_BID'
 }
 
 interface TeamStats extends Team {
   totalRounds: number
   submittedRoundsCount: number
+  skippedRoundsCount: number
   missedRoundsCount: number
   missedRounds: MissedRound[]
-}
-
-interface MissedTeamWithReason extends Team {
-  reason?: 'SKIPPED' | 'NO_BID'
+  skippedRounds: MissedRound[]
 }
 
 interface RoundSummary {
@@ -48,9 +45,11 @@ interface RoundSummary {
   status: string
   position_group: string | null
   submittedCount: number
+  skippedCount: number
   missedCount: number
   submittedTeams: Team[]
-  missedTeams: MissedTeamWithReason[]
+  skippedTeams: Team[]
+  missedTeams: Team[]
 }
 
 interface MissedBidsClientProps {
@@ -476,9 +475,10 @@ Please take note that this decision has been made in accordance with the tournam
                             </span>
                           </div>
 
-                          <div className="text-xs text-gray-400 font-mono mb-3 flex items-center justify-between">
-                            <span>Submitted: <strong className="text-emerald-400">{team.submittedRoundsCount}</strong> / {team.totalRounds} rounds</span>
-                            <span>Missed: <strong className="text-rose-400">{team.missedRoundsCount}</strong> rounds</span>
+                          <div className="text-xs text-gray-400 font-mono mb-3 flex items-center justify-between flex-wrap gap-2">
+                            <span>Bids Placed: <strong className="text-emerald-400">{team.submittedRoundsCount}</strong></span>
+                            {team.skippedRoundsCount > 0 && <span>Skipped: <strong className="text-amber-400">{team.skippedRoundsCount}</strong></span>}
+                            <span>Missed: <strong className="text-rose-400">{team.missedRoundsCount}</strong> / {team.totalRounds}</span>
                           </div>
 
                           {/* Missed Rounds Pills / Dropdown */}
@@ -487,7 +487,7 @@ Please take note that this decision has been made in accordance with the tournam
                               onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
                               className="w-full flex items-center justify-between text-xs font-bold text-gray-400 hover:text-white transition-colors cursor-pointer"
                             >
-                              <span>View Missed Rounds ({team.missedRounds.length})</span>
+                              <span>View Details (Missed: {team.missedRounds.length}{team.skippedRoundsCount > 0 ? `, Skipped: ${team.skippedRoundsCount}` : ''})</span>
                               <svg
                                 className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                                 fill="none"
@@ -499,27 +499,54 @@ Please take note that this decision has been made in accordance with the tournam
                             </button>
 
                             {isExpanded && (
-                              <div className="mt-3 grid grid-cols-2 gap-2">
-                                {team.missedRounds.map(r => (
-                                  <div
-                                    key={r.id}
-                                    className="p-2.5 rounded-lg bg-black/40 border border-rose-500/20 text-[11px] text-gray-300 font-mono flex flex-col justify-between gap-1"
-                                  >
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="font-extrabold text-rose-300">Round {r.roundNumber}</span>
-                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                                        r.reason === 'SKIPPED'
-                                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                      }`}>
-                                        {r.reason === 'SKIPPED' ? 'Skipped' : 'No Bid'}
-                                      </span>
+                              <div className="mt-3 space-y-3">
+                                {team.missedRounds.length > 0 && (
+                                  <div>
+                                    <div className="text-[10px] font-extrabold text-rose-400 uppercase tracking-wider mb-1.5 font-mono">
+                                      ❌ Missed Rounds (No Bid Submitted)
                                     </div>
-                                    <div className="text-[10px] text-gray-400 font-bold uppercase">
-                                      {r.position || r.position_group || r.roundType}
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {team.missedRounds.map(r => (
+                                        <div
+                                          key={r.id}
+                                          className="p-2 rounded-lg bg-black/40 border border-rose-500/20 text-[11px] text-gray-300 font-mono flex flex-col justify-between"
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className="font-extrabold text-rose-300">Round {r.roundNumber}</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30">No Bid</span>
+                                          </div>
+                                          <div className="text-[10px] text-gray-400 font-bold uppercase mt-1">
+                                            {r.position || r.position_group || r.roundType}
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
                                   </div>
-                                ))}
+                                )}
+
+                                {team.skippedRounds && team.skippedRounds.length > 0 && (
+                                  <div>
+                                    <div className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider mb-1.5 font-mono">
+                                      ⏭️ Skipped Rounds (Manager Action)
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {team.skippedRounds.map(r => (
+                                        <div
+                                          key={r.id}
+                                          className="p-2 rounded-lg bg-black/40 border border-amber-500/20 text-[11px] text-gray-300 font-mono flex flex-col justify-between"
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className="font-extrabold text-amber-300">Round {r.roundNumber}</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">Skipped</span>
+                                          </div>
+                                          <div className="text-[10px] text-gray-400 font-bold uppercase mt-1">
+                                            {r.position || r.position_group || r.roundType}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -597,7 +624,9 @@ Please take note that this decision has been made in accordance with the tournam
 
                       <div className="flex items-center gap-4">
                         <div className="text-xs font-mono text-gray-400">
-                          Submitted: <span className="text-emerald-400 font-bold">{round.submittedCount}</span> | Missed: <span className="text-rose-400 font-bold">{round.missedCount}</span>
+                          Bids Placed: <span className="text-emerald-400 font-bold">{round.submittedCount}</span>
+                          {round.skippedCount > 0 && <span className="ml-2">| Skipped: <span className="text-amber-400 font-bold">{round.skippedCount}</span></span>}
+                          <span className="ml-2">| Missed: <span className="text-rose-400 font-bold">{round.missedCount}</span></span>
                         </div>
 
                         <button
@@ -611,11 +640,11 @@ Please take note that this decision has been made in accordance with the tournam
 
                     {isExpanded && (
                       <div className="mt-5 border-t border-white/5 pt-4 space-y-4">
-                        {/* Missed Teams */}
+                        {/* Missed Teams (No Bid) */}
                         {round.missedTeams.length > 0 && (
                           <div>
                             <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2 font-mono">
-                              ❌ Teams That Missed Bidding ({round.missedTeams.length})
+                              ❌ Teams That Missed Bidding (No Bid: {round.missedTeams.length})
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {round.missedTeams.map(t => (
@@ -626,13 +655,27 @@ Please take note that this decision has been made in accordance with the tournam
                                   <TeamLogo logoUrl={t.logoUrl} teamName={t.name} size="xs" />
                                   <span>{t.name}</span>
                                   <span className="text-[10px] opacity-75">({t.managerName})</span>
-                                  <span className={`px-1 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                                    t.reason === 'SKIPPED'
-                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                  }`}>
-                                    {t.reason === 'SKIPPED' ? 'Skipped' : 'No Bid'}
-                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Skipped Teams */}
+                        {round.skippedTeams && round.skippedTeams.length > 0 && (
+                          <div>
+                            <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2 font-mono">
+                              ⏭️ Teams That Skipped Round ({round.skippedTeams.length})
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {round.skippedTeams.map(t => (
+                                <div
+                                  key={t.id}
+                                  className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs flex items-center gap-2"
+                                >
+                                  <TeamLogo logoUrl={t.logoUrl} teamName={t.name} size="xs" />
+                                  <span>{t.name}</span>
+                                  <span className="text-[10px] opacity-75">({t.managerName})</span>
                                 </div>
                               ))}
                             </div>

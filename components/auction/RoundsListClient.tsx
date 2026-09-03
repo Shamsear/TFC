@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { formatIST } from '@/lib/date-ist'
 
 interface Round {
   id: string
@@ -55,15 +56,10 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
     setRounds(initialRounds)
   }, [initialRounds])
 
-  // Format date consistently for SSR/CSR
+  // Format date consistently in IST (Asia/Kolkata, 12-hour AM/PM)
   const formatDate = (date: Date | string) => {
-    const d = new Date(date)
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    const hours = String(d.getHours()).padStart(2, '0')
-    const minutes = String(d.getMinutes()).padStart(2, '0')
-    return `${month}/${day}/${year}, ${hours}:${minutes}`
+    if (!date) return ''
+    return formatIST(date)
   }
 
   // Format number consistently for SSR/CSR

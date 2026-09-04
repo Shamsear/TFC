@@ -77,6 +77,7 @@ export default function NormalRoundBiddingClient({
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [isSubmitted, setIsSubmitted] = useState(existingBids?.submitted || false)
   const [isSkipped, setIsSkipped] = useState(existingBids?.skipped || false)
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(existingBids?.lastUpdated ? new Date(existingBids.lastUpdated) : null)
   const [unlocking, setUnlocking] = useState(false)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
   const [starredPlayerIds, setStarredPlayerIds] = useState<Set<string>>(new Set())
@@ -191,6 +192,7 @@ export default function NormalRoundBiddingClient({
     setInputValues(Object.fromEntries(Object.entries(bidMap).map(([k, v]) => [k, v.toString()])))
     setIsSubmitted(existingBids?.submitted || false)
     setIsSkipped(existingBids?.skipped || false)
+    setSubmittedAt(existingBids?.lastUpdated ? new Date(existingBids.lastUpdated) : null)
     hasLoadedInitial.current = true
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round.id, teamId])
@@ -527,6 +529,7 @@ export default function NormalRoundBiddingClient({
       }
 
       setIsSubmitted(true)
+      setSubmittedAt(new Date())
       setMessage({ type: 'success', text: 'Bids submitted successfully!' })
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
@@ -608,6 +611,7 @@ export default function NormalRoundBiddingClient({
 
       setIsSubmitted(true)
       setIsSkipped(true)
+      setSubmittedAt(new Date())
       setBids({})
       setMessage({ type: 'success', text: 'Round skipped successfully!' })
       // Do NOT call router.refresh() — same reasoning as handleUnlockBids
@@ -627,7 +631,7 @@ export default function NormalRoundBiddingClient({
       })
       .sort((a, b) => b.amount - a.amount)
 
-    if (bidEntries.length === 0) {
+    if (bidEntries.length === 0 && !isSkipped) {
       alert('No bids to copy')
       return
     }
@@ -636,15 +640,43 @@ export default function NormalRoundBiddingClient({
       ? `${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}`
       : 'All Positions'
 
+    const statusText = isSkipped
+      ? 'Skipped ⏭️'
+      : isSubmitted
+        ? 'Submitted ✅'
+        : 'Not Submitted ❌'
+
+    const formatTimestamp = (date: Date) => {
+      return new Date(date).toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    }
+
+    const submissionTimeText = (isSubmitted || isSkipped) && submittedAt
+      ? `\n*Submitted At:* ${formatTimestamp(submittedAt)}`
+      : ''
+
+    const bidsSection = isSkipped
+      ? 'Round Skipped (No Bids Placed)'
+      : bidEntries.length > 0
+        ? bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocaleString()}`).join('\n')
+        : 'No Bids Placed'
+
     const messageText = `*${round.season.name}*
 
 *Round ${round.roundNumber} Bids*
 
 *Position:* ${positionText}
 *Team:* ${teamName || 'Your Team'}
+*Status:* ${statusText}${submissionTimeText}
 
 *Bids:*
-${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocaleString()}`).join('\n')}`
+${bidsSection}`
 
     navigator.clipboard.writeText(messageText).then(() => {
       setShowSuccessModal(true)
@@ -1215,7 +1247,7 @@ ${bidEntries.map((bid, idx) => `${idx + 1}. ${bid.name} - £${bid.amount.toLocal
               </button>
               <button
                 onClick={handleCopyToWhatsApp}
-                disabled={bidCount === 0}
+                disabled={bidCount === 0 && !isSkipped}
                 className="flex-1 px-5 py-3 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/20 transition-all disabled:opacity-40 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_20px_rgba(37,211,102,0.05)]"
               >
                 Copy Format to WhatsApp

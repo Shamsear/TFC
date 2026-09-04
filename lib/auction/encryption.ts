@@ -15,7 +15,7 @@ const KEY_LENGTH = 32; // 256 bits
  * Falls back to a default key for development (NOT FOR PRODUCTION!)
  */
 function getEncryptionKey(): Buffer {
-  const keyHex = process.env.AUCTION_ENCRYPTION_KEY;
+  const keyHex = process.env.AUCTION_ENCRYPTION_KEY || process.env.ENCRYPTION_SECRET;
   
   if (!keyHex) {
     if (process.env.NODE_ENV === 'production') {

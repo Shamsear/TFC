@@ -85,7 +85,7 @@ export async function POST(
       );
     }
 
-    if (!force && !['active', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'].includes(round.status)) {
+    if (!force && !['active', 'finalizing', 'expired_pending_finalization', 'pending_finalization', 'tiebreaker_pending'].includes(round.status)) {
       return NextResponse.json(
         { error: `Cannot finalize round with status: ${round.status}` },
         { status: 400 }

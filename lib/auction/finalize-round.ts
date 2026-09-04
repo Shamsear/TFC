@@ -257,22 +257,22 @@ async function handleNonSubmittedTeams(
     select: { teamId: true }
   });
 
-  // Get teams that submitted bids
-  const submittedTeamIds = new Set(teamBids.filter(tb => tb.submitted).map(tb => tb.teamId));
+  // Get teams that already received an allocation (won a bid or completed tiebreaker)
+  const allocatedTeamIds = new Set(submittedAllocations.map(a => a.teamId));
 
-  // Find teams that didn't submit
-  const nonSubmittedTeamIds = allSeasonTeams
+  // Find teams that are currently unallocated (either didn't submit or submitted but were outbid on all bids)
+  const unallocatedTeamIds = allSeasonTeams
     .map(st => st.teamId)
-    .filter(teamId => !submittedTeamIds.has(teamId));
+    .filter(teamId => !allocatedTeamIds.has(teamId));
   
-  if (nonSubmittedTeamIds.length === 0) {
-    console.log('   ℹ️  No non-submitted teams to process');
+  if (unallocatedTeamIds.length === 0) {
+    console.log('   ℹ️  No unallocated teams to process');
     return allocations;
   }
 
-  console.log(`   🎲 Processing ${nonSubmittedTeamIds.length} non-submitted team(s)...\n`);
+  console.log(`   🎲 Processing ${unallocatedTeamIds.length} unallocated team(s)...\n`);
 
-  for (const teamId of nonSubmittedTeamIds) {
+  for (const teamId of unallocatedTeamIds) {
     console.log(`   Team ${teamId}:`);
     
     // Get team budget

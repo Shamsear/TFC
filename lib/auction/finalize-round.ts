@@ -957,7 +957,11 @@ export async function applyFinalizationResults(
   });
 
   if (existingRoundTransfersCount > 0) {
-    console.log(`⚠️ ${existingRoundTransfersCount} transfer(s) ALREADY exist for round ${roundId}. Aborting applyFinalizationResults to prevent double deductions/assignments.\n`);
+    console.log(`⚠️ ${existingRoundTransfersCount} transfer(s) ALREADY exist for round ${roundId}. Marking status as completed and aborting to prevent double deductions/assignments.\n`);
+    await prisma.rounds.update({
+      where: { id: roundId },
+      data: { status: 'completed' }
+    });
     return;
   }
 

@@ -414,15 +414,18 @@ export async function POST(
       console.error('Error stack:', error.stack);
     }
 
-    // Try to revert status
+    // Try to recover status safely
     try {
+      const existingTransfersCount = await prisma.transfer_history.count({ where: { roundId } });
+      const targetStatus = existingTransfersCount > 0 ? 'completed' : 'expired_pending_finalization';
+
       await prisma.rounds.update({
         where: { id: roundId },
-        data: { status: 'active' }
+        data: { status: targetStatus }
       });
-      console.log('Successfully reverted round status to active');
+      console.log(`Updated round status to ${targetStatus} after finalization error`);
     } catch (revertError) {
-      console.error('Failed to revert status:', revertError);
+      console.error('Failed to update status:', revertError);
     }
 
     // Return detailed error message

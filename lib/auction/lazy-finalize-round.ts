@@ -121,10 +121,19 @@ export async function checkAndFinalizeExpiredRound(
       return { finalized: true };
     }
 
-    // 12. Finalization failed
+    // 12. Finalization failed - check if transfers were created before updating status
+    const existingTransfers = await prisma.transfer_history.count({ where: { roundId } });
+    if (existingTransfers > 0) {
+      await prisma.rounds.update({
+        where: { id: roundId },
+        data: { status: 'completed' }
+      });
+      return { finalized: true };
+    }
+
     await prisma.rounds.update({
       where: { id: roundId },
-      data: { status: 'active' } // Revert to active
+      data: { status: 'expired_pending_finalization' }
     });
 
     return {
@@ -134,14 +143,18 @@ export async function checkAndFinalizeExpiredRound(
   } catch (error) {
     console.error('Lazy finalization error:', error);
     
-    // Revert status on error
+    // Safely recover status on error: if transfers already exist, mark as completed to prevent double finalization loops
     try {
+      const existingTransfersCount = await prisma.transfer_history.count({ where: { roundId } });
+      const targetStatus = existingTransfersCount > 0 ? 'completed' : 'expired_pending_finalization';
+      
       await prisma.rounds.update({
         where: { id: roundId },
-        data: { status: 'active' }
+        data: { status: targetStatus }
       });
+      console.log(`Updated round ${roundId} status to ${targetStatus} after lazy finalization error`);
     } catch (revertError) {
-      console.error('Failed to revert status:', revertError);
+      console.error('Failed to update status on error:', revertError);
     }
 
     return {

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { generateTransferId, generateFinancialId } from '@/lib/id-generator';
+import { generateIds, ID_PREFIXES } from '@/lib/id-generator';
 import { decryptBids } from './encryption';
 import { calculateReserve, validateBidAgainstReserve } from './reserve-calculator-v2';
 import { Prisma } from '@prisma/client';
@@ -1046,8 +1046,8 @@ export async function applyFinalizationResults(
   const teamsNeedingLedger = teamIds.filter(id => !ledgerExistsMap.get(id));
 
   const [transferIds, ledgerIdList] = await Promise.all([
-    Promise.all(validAllocations.map(() => generateTransferId())),
-    Promise.all(teamsNeedingLedger.map(() => generateFinancialId()))
+    generateIds(ID_PREFIXES.TRANSFER, validAllocations.length),
+    generateIds(ID_PREFIXES.FINANCIAL, teamsNeedingLedger.length)
   ]);
 
   const ledgerIds = new Map(teamsNeedingLedger.map((teamId, i) => [teamId, ledgerIdList[i]]));

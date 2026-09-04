@@ -953,7 +953,7 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
   const openSubmitBidModal = (tiebreaker: any, teamBid: any, team: any) => {
     setSelectedTiebreaker(tiebreaker)
     setSelectedTeamForBid(team)
-    setAdminBidAmount(tiebreaker.originalAmount + 1)
+    setAdminBidAmount(teamBid?.newBidAmount || tiebreaker.originalAmount + 1)
     setShowSubmitBidModal(true)
   }
 
@@ -1601,10 +1601,23 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                               <span className="text-xs font-bold text-gray-500 font-mono">
                                 Old: £{bid.oldBidAmount.toLocaleString()}
                               </span>
-                              {bid.submitted ? (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
-                                  ✓ Submitted
+                              {bid.newBidAmount !== null && bid.newBidAmount !== undefined && (
+                                <span className="text-xs font-extrabold text-[#E8A800] font-mono bg-[#E8A800]/10 px-2 py-0.5 rounded border border-[#E8A800]/20">
+                                  New: £{bid.newBidAmount.toLocaleString()}
                                 </span>
+                              )}
+                              {bid.submitted ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
+                                    ✓ Submitted
+                                  </span>
+                                  <button
+                                    onClick={() => openSubmitBidModal(tiebreaker, bid, team)}
+                                    className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-extrabold uppercase tracking-widest transition-all font-mono cursor-pointer border border-white/10"
+                                  >
+                                    Edit Bid
+                                  </button>
+                                </div>
                               ) : (
                                 <div className="flex items-center gap-2">
                                   <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-widest font-mono bg-white/10 text-white border border-white/20 flex-shrink-0">

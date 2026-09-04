@@ -56,13 +56,25 @@ export async function GET(
       managerName: mgrMap.get(st.team.id) || st.managerName || st.team.managerName
     }))
 
-    // Fetch all non-draft auction rounds in this season
-    const rounds = await prisma.rounds.findMany({
+    // Fetch all candidate non-draft auction rounds in this season
+    const allCandidateRounds = await prisma.rounds.findMany({
       where: {
         seasonId,
-        status: { in: ['active', 'finalizing', 'finalized', 'completed'] }
+        status: { in: ['active', 'finalizing', 'finalized', 'completed', 'preview_finalized', 'tiebreaker_pending', 'expired_pending_finalization'] }
       },
       orderBy: { roundNumber: 'asc' }
+    })
+
+    const now = new Date()
+    // Only include rounds whose bidding window has concluded (completed/finalized OR expired endTime)
+    const rounds = allCandidateRounds.filter(r => {
+      if (['completed', 'finalized', 'preview_finalized', 'tiebreaker_pending'].includes(r.status)) {
+        return true
+      }
+      if (r.endTime && new Date(r.endTime) <= now) {
+        return true
+      }
+      return false
     })
 
     if (rounds.length === 0) {

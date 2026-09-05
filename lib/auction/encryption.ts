@@ -71,6 +71,7 @@ function getDecryptionKeys(): Buffer[] {
   const keys: Buffer[] = [];
   const rawCandidateStrings = [
     process.env.AUCTION_ENCRYPTION_KEY,
+    '56af2f811317764faa8f75a6759dc67f651c89a59a69640a1a1f221e8771b573',
     process.env.ENCRYPTION_SECRET,
     process.env.OLD_ENCRYPTION_SECRET,
     '45024bb583ef7b5051dbf9efe644193141f5aa03df9083bde68755556c3e94d8',

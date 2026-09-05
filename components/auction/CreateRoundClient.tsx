@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { formatIST } from '@/lib/date-ist'
+import { formatIST, formatDateIST, formatTimeIST } from '@/lib/date-ist'
 
 interface Player {
   id: string
@@ -152,7 +152,7 @@ export default function CreateRoundClient({
         setDurationMinutes(mins.toString())
       }
     }
-  }, [selectedCalendarId])
+  }, [selectedCalendarId, selectedCalendar?.id, selectedCalendar?.auctionDate, selectedCalendar?.endDate])
 
   // Synchronize positions & roundType when calendar slot changes
   useEffect(() => {
@@ -371,8 +371,8 @@ export default function CreateRoundClient({
               </div>
             </div>
             {calculatedEndTime && (
-              <div className="text-xs text-[#E8A800] mt-2 font-medium">
-                Ends: {formatIST(calculatedEndTime)}
+              <div className="text-xs text-[#E8A800] mt-2 font-mono font-bold">
+                Ends: {formatDateIST(calculatedEndTime)}, {formatTimeIST(calculatedEndTime)} (IST)
               </div>
             )}
             {!selectedCalendar && (
@@ -429,8 +429,13 @@ export default function CreateRoundClient({
                       : 'border-white/10 bg-black/20 hover:border-white/20'
                   }`}
                 >
-                  <div className="font-bold text-white">
-                    {formatIST(calendar.auctionDate)}
+                  <div className="font-bold text-white flex items-center justify-between">
+                    <span>{formatDateIST(calendar.auctionDate)} at {formatTimeIST(calendar.auctionDate)} (IST)</span>
+                    {calendar.endDate && (
+                      <span className="text-xs text-[#E8A800]">
+                        Deadline: {formatTimeIST(calendar.endDate)} (IST)
+                      </span>
+                    )}
                   </div>
                   {calendar.description && (
                     <div className="text-xs text-gray-400 mt-1">{calendar.description}</div>

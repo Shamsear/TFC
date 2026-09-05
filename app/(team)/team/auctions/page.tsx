@@ -5,6 +5,8 @@ import { checkTeamSeasonParticipation } from "@/lib/team-auth"
 import AuctionsView from '@/components/auctions/AuctionsView'
 import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: "Auctions | Team Dashboard",
   description: "View auction calendar and results",

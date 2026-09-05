@@ -154,11 +154,12 @@ export default function AuctionDashboardClient({
     squadSize
   })
 
-  // Live polling - refresh data every 5 seconds
+  // Live polling - refresh data every 15 seconds when visible
   useEffect(() => {
     if (!isPolling) return
 
     const fetchLiveData = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return
       try {
         router.refresh()
       } catch (error) {
@@ -166,8 +167,23 @@ export default function AuctionDashboardClient({
       }
     }
 
-    const interval = setInterval(fetchLiveData, 5000)
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchLiveData, 15000)
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchLiveData()
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+
+    return () => {
+      clearInterval(interval)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
   }, [isPolling, router])
 
   // Update live data when props change (from router.refresh)

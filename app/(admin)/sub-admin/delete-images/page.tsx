@@ -2,6 +2,8 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import DeleteImagesClient from '@/components/admin/DeleteImagesClient'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Delete Player Images - Sub Admin',
   description: 'Manage and delete player photos and cards from GitHub storage repository.'

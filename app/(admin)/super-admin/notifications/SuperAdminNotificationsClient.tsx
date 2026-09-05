@@ -69,11 +69,29 @@ export default function SuperAdminNotificationsClient({ subscriptions: initialSu
       }
     };
 
+    const pollData = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchData();
+    };
+
     fetchData(); // Initial load
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(pollData, 30000);
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchData();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
     return () => {
       active = false;
       clearInterval(interval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
     };
   }, []);
 

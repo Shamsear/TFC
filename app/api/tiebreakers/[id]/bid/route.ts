@@ -169,59 +169,58 @@ export async function POST(
     console.log(`\n📊 [TIEBREAKER DEBUG] tiebreakerId=${tiebreakerId} | allSubmitted=${allSubmitted}`);
 
     if (allSubmitted) {
-      console.log(`🎯 [TIEBREAKER DEBUG] All teams submitted - triggering async auto-resolve...`);
-      
-      // Trigger async resolution without waiting
-      // This allows the last team to get an immediate response
-      (async () => {
-        try {
-          // Resolve tiebreaker
-          const resolveResult = await resolveTiebreaker(tiebreakerId);
-          console.log(`🔍 [TIEBREAKER DEBUG] resolveTiebreaker result:`, JSON.stringify(resolveResult));
+      console.log(`🎯 [TIEBREAKER DEBUG] All teams submitted - resolving tiebreaker synchronously...`);
+      let finalizationComplete = false;
+      let tiebreakerResolved = false;
 
-          if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
-            console.log(`✅ [TIEBREAKER DEBUG] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
-            
-            // Auto-resume finalization
-            const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
-            console.log(`🔍 [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
+      try {
+        // Resolve tiebreaker
+        const resolveResult = await resolveTiebreaker(tiebreakerId);
+        console.log(`🔍 [TIEBREAKER DEBUG] resolveTiebreaker result:`, JSON.stringify(resolveResult));
 
-            if (resumeResult.success) {
-              if (resumeResult.finalizationComplete) {
-                console.log('✅ [TIEBREAKER DEBUG] Round finalization COMPLETE');
-              } else if (resumeResult.nextTiebreakerCreated) {
-                console.log('⏸️  [TIEBREAKER DEBUG] Next tiebreaker created - round still pending');
-              } else {
-                console.log('⏸️  [TIEBREAKER DEBUG] Other active tiebreakers still pending - waiting');
-              }
+        if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
+          console.log(`✅ [TIEBREAKER DEBUG] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
+          tiebreakerResolved = true;
+
+          // Auto-resume finalization
+          const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
+          console.log(`🔍 [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
+
+          if (resumeResult.success) {
+            if (resumeResult.finalizationComplete) {
+              console.log('✅ [TIEBREAKER DEBUG] Round finalization COMPLETE');
+              finalizationComplete = true;
+            } else if (resumeResult.nextTiebreakerCreated) {
+              console.log('⏸️  [TIEBREAKER DEBUG] Next tiebreaker created - round still pending');
             } else {
-              console.error('❌ [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
+              console.log('⏸️  [TIEBREAKER DEBUG] Other active tiebreakers still pending - waiting');
             }
           } else {
-            // resolveTiebreaker failed (e.g. another tie detected)
-            console.error('❌ [TIEBREAKER DEBUG] resolveTiebreaker FAILED:', resolveResult.error);
-
-            if (resolveResult.error?.includes('Another tie detected')) {
-              console.log('🔄 [TIEBREAKER DEBUG] Re-tie detected - marking tiebreaker completed so admin can Force Re-finalize');
-              // Mark the old tiebreaker completed (all bids are in, but tied)
-              await prisma.tiebreakers.update({
-                where: { id: tiebreakerId },
-                data: { status: 'completed' }
-              });
-            }
+            console.error('❌ [TIEBREAKER DEBUG] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
           }
-        } catch (error) {
-          console.error('❌ [TIEBREAKER DEBUG] Async resolution error:', error);
-        }
-      })();
+        } else {
+          console.error('❌ [TIEBREAKER DEBUG] resolveTiebreaker FAILED:', resolveResult.error);
 
-      // Return immediately to the user
+          if (resolveResult.error?.includes('Another tie detected')) {
+            console.log('🔄 [TIEBREAKER DEBUG] Re-tie detected - marking tiebreaker completed so admin can Force Re-finalize');
+            await prisma.tiebreakers.update({
+              where: { id: tiebreakerId },
+              data: { status: 'completed' }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('❌ [TIEBREAKER DEBUG] Resolution error:', error);
+      }
+
       return NextResponse.json({
         success: true,
         newBidAmount,
-        message: 'Tiebreaker bid submitted successfully. Resolution in progress...',
-        tiebreakerResolved: false,
-        resolutionInProgress: true
+        message: finalizationComplete
+          ? 'Tiebreaker resolved and round finalization completed!'
+          : 'Tiebreaker bid submitted successfully.',
+        tiebreakerResolved,
+        finalizationComplete
       });
     }
 

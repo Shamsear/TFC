@@ -18,8 +18,7 @@ export function AutoRefresh() {
     }
   }, [pathname])
 
-  // Auto-refresh when the app comes back to foreground
-  // Also poll every 30 seconds while the app is visible
+  // Auto-refresh when the app comes back to foreground or regains connection
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -30,16 +29,9 @@ export function AutoRefresh() {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('online', () => router.refresh())
     
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        router.refresh()
-      }
-    }, 30000)
-    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('online', () => router.refresh())
-      clearInterval(interval)
     }
   }, [router])
 

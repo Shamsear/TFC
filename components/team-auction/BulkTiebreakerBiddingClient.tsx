@@ -100,12 +100,30 @@ export default function BulkTiebreakerBiddingClient({
     }
   }, [tiebreaker.id])
 
-  // Poll status every 3 seconds while active
+  // Poll status every 5 seconds while active and tab is visible
   useEffect(() => {
     if (tiebreakerStatus !== 'active') return
 
-    const interval = setInterval(checkTiebreakerStatus, 3000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      checkTiebreakerStatus()
+    }, 5000)
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden && tiebreakerStatus === 'active') {
+        checkTiebreakerStatus()
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+
+    return () => {
+      clearInterval(interval)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
   }, [tiebreakerStatus, checkTiebreakerStatus])
 
   // Start redirect countdown when tiebreaker is resolved

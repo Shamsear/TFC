@@ -66,7 +66,9 @@ async function fixStuckFinalization(roundId: string) {
     console.log(`   - ${tb.basePlayer.name} → Team ${tb.winningTeamId} (£${tb.winningBid})`);
   });
 
-  // Check for active tiebreakers
+  // Check for active tiebreakers and attempt auto-resolution for completed ones
+  const { checkTiebreakerComplete, resolveTiebreaker } = await import('../lib/auction/tiebreaker');
+  
   const activeTiebreakers = await prisma.tiebreakers.findMany({
     where: {
       roundId,
@@ -83,32 +85,68 @@ async function fixStuckFinalization(roundId: string) {
   });
 
   if (activeTiebreakers.length > 0) {
-    console.log(`\n⚠️  Found ${activeTiebreakers.length} active tiebreakers:`);
-    activeTiebreakers.forEach(tb => {
-      console.log(`   - ${tb.basePlayer.name} (ID: ${tb.id})`);
-    });
-    console.log('\n❌ Cannot fix: There are still active tiebreakers that need to be resolved.');
-    console.log('   Please complete or resolve these tiebreakers first.');
-    return;
+    console.log(`\n🔍 Found ${activeTiebreakers.length} active tiebreaker(s):`);
+    let remainingActive = 0;
+
+    for (const tb of activeTiebreakers) {
+      const isComplete = await checkTiebreakerComplete(tb.id);
+      if (isComplete) {
+        console.log(`   ⚡ Auto-resolving completed active tiebreaker for ${tb.basePlayer.name} (${tb.id})...`);
+        const res = await resolveTiebreaker(tb.id);
+        if (res.success && res.winnerId) {
+          console.log(`   ✅ Resolved: Winner is Team ${res.winnerId} at £${res.winningBid}`);
+        } else {
+          console.log(`   ⚠️ Could not auto-resolve: ${res.error}`);
+          remainingActive++;
+        }
+      } else {
+        console.log(`   ⏳ ${tb.basePlayer.name} (ID: ${tb.id}) is still waiting for team bids.`);
+        remainingActive++;
+      }
+    }
+
+    if (remainingActive > 0) {
+      console.log(`\n⚠️  Round reset to "tiebreaker_pending" because ${remainingActive} tiebreaker(s) require resolution.`);
+      await prisma.rounds.update({
+        where: { id: roundId },
+        data: { status: 'tiebreaker_pending' }
+      });
+      console.log('   Teams can now submit missing bids or admins can spin-resolve.');
+      return;
+    }
   }
 
-  if (completedTiebreakers.length === 0) {
+  // Re-fetch completed tiebreakers after potential auto-resolutions
+  const updatedCompletedTiebreakers = await prisma.tiebreakers.findMany({
+    where: {
+      roundId,
+      status: 'completed',
+      winningTeamId: { not: null }
+    },
+    select: {
+      id: true,
+      winningTeamId: true,
+      winningBid: true,
+      basePlayer: {
+        select: { name: true }
+      }
+    }
+  });
+
+  if (updatedCompletedTiebreakers.length === 0) {
     console.log('\n⚠️  No completed tiebreakers found.');
-    console.log('   Resetting to "pending_finalization" instead.');
+    console.log('   Resetting status to "pending_finalization".');
     
     await prisma.rounds.update({
       where: { id: roundId },
-      data: {
-        status: 'pending_finalization'
-      }
+      data: { status: 'pending_finalization' }
     });
 
-    console.log('\n✅ Round status reset to "pending_finalization"');
-    console.log('   You can now finalize the round normally.');
+    console.log('\n✅ Round status reset to "pending_finalization". You can now finalize normally.');
     return;
   }
 
-  // Reset status to tiebreaker_pending
+  // Reset status to tiebreaker_pending so Force Re-finalize can complete the round
   await prisma.rounds.update({
     where: { id: roundId },
     data: {
@@ -120,11 +158,7 @@ async function fixStuckFinalization(roundId: string) {
   console.log('\n📋 Next steps:');
   console.log('   1. Go to the round page in the admin panel');
   console.log('   2. Click "Force Re-finalize" button');
-  console.log('   3. The system will apply the completed tiebreakers and continue finalization');
-  console.log('\n   The force re-finalize logic will:');
-  console.log('   - Apply all completed tiebreakers');
-  console.log('   - Continue finalization without creating duplicate tiebreakers');
-  console.log('   - Complete the round if no more ties exist');
+  console.log('   3. The system will apply completed tiebreakers and finish finalization');
 }
 
 // Get round ID from command line

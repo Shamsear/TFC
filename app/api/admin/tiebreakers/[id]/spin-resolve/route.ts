@@ -144,62 +144,60 @@ export async function POST(
     console.log(`\n📊 [SPIN RESOLVE] All teams submitted: ${allSubmitted}`);
 
     if (allSubmitted) {
-      console.log(`🎯 [SPIN RESOLVE] Triggering async auto-resolve...`);
-      
-      // Trigger async resolution without waiting (same as normal bid submission)
-      (async () => {
-        try {
-          // Resolve tiebreaker
-          const resolveResult = await resolveTiebreaker(tiebreakerId);
-          console.log(`🔍 [SPIN RESOLVE] resolveTiebreaker result:`, JSON.stringify(resolveResult));
+      console.log(`🎯 [SPIN RESOLVE] Resolving tiebreaker synchronously...`);
+      let finalizationComplete = false;
 
-          if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
-            console.log(`✅ [SPIN RESOLVE] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
-            
-            // Trigger news for tiebreaker resolution removed for speed
-            
-            // Auto-resume finalization
-            const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
-            console.log(`🔍 [SPIN RESOLVE] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
+      try {
+        // Resolve tiebreaker
+        const resolveResult = await resolveTiebreaker(tiebreakerId);
+        console.log(`🔍 [SPIN RESOLVE] resolveTiebreaker result:`, JSON.stringify(resolveResult));
 
-            if (resumeResult.success) {
-              if (resumeResult.finalizationComplete) {
-                console.log('✅ [SPIN RESOLVE] Round finalization COMPLETE');
-              } else if (resumeResult.nextTiebreakerCreated) {
-                console.log('⏸️  [SPIN RESOLVE] Next tiebreaker created - round still pending');
-              } else {
-                console.log('⏸️  [SPIN RESOLVE] Other active tiebreakers still pending - waiting');
-              }
+        if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
+          console.log(`✅ [SPIN RESOLVE] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
+          
+          // Auto-resume finalization
+          const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
+          console.log(`🔍 [SPIN RESOLVE] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
+
+          if (resumeResult.success) {
+            if (resumeResult.finalizationComplete) {
+              console.log('✅ [SPIN RESOLVE] Round finalization COMPLETE');
+              finalizationComplete = true;
+            } else if (resumeResult.nextTiebreakerCreated) {
+              console.log('⏸️  [SPIN RESOLVE] Next tiebreaker created - round still pending');
             } else {
-              console.error('❌ [SPIN RESOLVE] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
+              console.log('⏸️  [SPIN RESOLVE] Other active tiebreakers still pending - waiting');
             }
           } else {
-            console.error('❌ [SPIN RESOLVE] resolveTiebreaker FAILED:', resolveResult.error);
-
-            if (resolveResult.error?.includes('Another tie detected')) {
-              console.log('🔄 [SPIN RESOLVE] Re-tie detected - marking tiebreaker completed');
-              await prisma.tiebreakers.update({
-                where: { id: tiebreakerId },
-                data: { status: 'completed' }
-              });
-            }
+            console.error('❌ [SPIN RESOLVE] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
           }
-        } catch (error) {
-          console.error('❌ [SPIN RESOLVE] Async resolution error:', error);
+        } else {
+          console.error('❌ [SPIN RESOLVE] resolveTiebreaker FAILED:', resolveResult.error);
+
+          if (resolveResult.error?.includes('Another tie detected')) {
+            console.log('🔄 [SPIN RESOLVE] Re-tie detected - marking tiebreaker completed');
+            await prisma.tiebreakers.update({
+              where: { id: tiebreakerId },
+              data: { status: 'completed' }
+            });
+          }
         }
-      })();
+      } catch (error) {
+        console.error('❌ [SPIN RESOLVE] Resolution error:', error);
+      }
 
-      console.log('\n🎉 [SPIN RESOLVE] === Spin Complete - Resolution in Progress ===\n');
+      console.log('\n🎉 [SPIN RESOLVE] === Spin & Resolution Complete ===\n');
 
-      // Return immediately to the user
       return NextResponse.json({
         success: true,
         winnerId: winningTeamId,
         winnerName: winningTeam?.name || winningTeamId,
         winningBid: winningBidAmount,
         playerName: tiebreaker.basePlayer.name,
-        message: `${winningTeam?.name || winningTeamId} won ${tiebreaker.basePlayer.name} for £${winningBidAmount} via spin!`,
-        resolutionInProgress: true
+        message: finalizationComplete
+          ? `Spin complete! ${winningTeam?.name || winningTeamId} won ${tiebreaker.basePlayer.name} with £${winningBidAmount.toLocaleString()}. Round finalized!`
+          : `Spin complete! ${winningTeam?.name || winningTeamId} won ${tiebreaker.basePlayer.name} with £${winningBidAmount.toLocaleString()}`,
+        finalizationComplete
       });
     }
 

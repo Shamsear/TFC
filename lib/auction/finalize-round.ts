@@ -541,6 +541,34 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
 
     // 2. Check for completed tiebreakers first
     console.log('🔍 Step 1.5: Checking for completed tiebreakers...');
+    
+    // Auto-resolve any active tiebreakers for this round that have all bids submitted
+    try {
+      const { checkTiebreakerComplete, resolveTiebreaker } = await import('./tiebreaker');
+      const activeTiebreakersForRound = await prisma.tiebreakers.findMany({
+        where: {
+          roundId,
+          status: 'active'
+        },
+        select: { id: true }
+      });
+
+      for (const activeTb of activeTiebreakersForRound) {
+        const isComplete = await checkTiebreakerComplete(activeTb.id);
+        if (isComplete) {
+          console.log(`   ⚡ Found active tiebreaker ${activeTb.id} with all bids submitted. Auto-resolving now...`);
+          const res = await resolveTiebreaker(activeTb.id);
+          if (res.success && res.winnerId && res.winningBid) {
+            console.log(`   ✅ Tiebreaker ${activeTb.id} auto-resolved. Winner: Team ${res.winnerId}`);
+          } else if (res.error) {
+            console.error(`   ⚠️ Auto-resolution for tiebreaker ${activeTb.id} returned: ${res.error}`);
+          }
+        }
+      }
+    } catch (tbAutoErr) {
+      console.warn('   ⚠️ Failed to auto-resolve active tiebreakers prior to finalization:', tbAutoErr);
+    }
+
     const completedTiebreakers = await prisma.tiebreakers.findMany({
       where: {
         roundId,

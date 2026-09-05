@@ -158,56 +158,58 @@ export async function POST(
     console.log(`\n📊 [ADMIN TIEBREAKER] tiebreakerId=${tiebreakerId} | allSubmitted=${allSubmitted}`);
 
     if (allSubmitted) {
-      console.log(`🎯 [ADMIN TIEBREAKER] All teams submitted - triggering async auto-resolve...`);
-      
-      // Trigger async resolution without waiting
-      (async () => {
-        try {
-          // Resolve tiebreaker
-          const resolveResult = await resolveTiebreaker(tiebreakerId);
-          console.log(`🔍 [ADMIN TIEBREAKER] resolveTiebreaker result:`, JSON.stringify(resolveResult));
+      console.log(`🎯 [ADMIN TIEBREAKER] All teams submitted - resolving tiebreaker synchronously...`);
+      let finalizationComplete = false;
+      let tiebreakerResolved = false;
 
-          if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
-            console.log(`✅ [ADMIN TIEBREAKER] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
-            
-            // Auto-resume finalization
-            const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
-            console.log(`🔍 [ADMIN TIEBREAKER] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
+      try {
+        // Resolve tiebreaker
+        const resolveResult = await resolveTiebreaker(tiebreakerId);
+        console.log(`🔍 [ADMIN TIEBREAKER] resolveTiebreaker result:`, JSON.stringify(resolveResult));
 
-            if (resumeResult.success) {
-              if (resumeResult.finalizationComplete) {
-                console.log('✅ [ADMIN TIEBREAKER] Round finalization COMPLETE');
-              } else if (resumeResult.nextTiebreakerCreated) {
-                console.log('⏸️  [ADMIN TIEBREAKER] Next tiebreaker created - round still pending');
-              } else {
-                console.log('⏸️  [ADMIN TIEBREAKER] Other active tiebreakers still pending - waiting');
-              }
+        if (resolveResult.success && resolveResult.winnerId && resolveResult.winningBid) {
+          console.log(`✅ [ADMIN TIEBREAKER] Tiebreaker resolved - Winner: ${resolveResult.winnerId}, Bid: £${resolveResult.winningBid}`);
+          tiebreakerResolved = true;
+
+          // Auto-resume finalization
+          const resumeResult = await resumeFinalizationAfterTiebreaker(tiebreakerId);
+          console.log(`🔍 [ADMIN TIEBREAKER] resumeFinalizationAfterTiebreaker result:`, JSON.stringify(resumeResult));
+
+          if (resumeResult.success) {
+            if (resumeResult.finalizationComplete) {
+              console.log('✅ [ADMIN TIEBREAKER] Round finalization COMPLETE');
+              finalizationComplete = true;
+            } else if (resumeResult.nextTiebreakerCreated) {
+              console.log('⏸️  [ADMIN TIEBREAKER] Next tiebreaker created - round still pending');
             } else {
-              console.error('❌ [ADMIN TIEBREAKER] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
+              console.log('⏸️  [ADMIN TIEBREAKER] Other active tiebreakers still pending - waiting');
             }
           } else {
-            console.error('❌ [ADMIN TIEBREAKER] resolveTiebreaker FAILED:', resolveResult.error);
-
-            if (resolveResult.error?.includes('Another tie detected')) {
-              console.log('🔄 [ADMIN TIEBREAKER] Re-tie detected - marking tiebreaker completed');
-              await prisma.tiebreakers.update({
-                where: { id: tiebreakerId },
-                data: { status: 'completed' }
-              });
-            }
+            console.error('❌ [ADMIN TIEBREAKER] resumeFinalizationAfterTiebreaker FAILED:', resumeResult.error);
           }
-        } catch (error) {
-          console.error('❌ [ADMIN TIEBREAKER] Async resolution error:', error);
-        }
-      })();
+        } else {
+          console.error('❌ [ADMIN TIEBREAKER] resolveTiebreaker FAILED:', resolveResult.error);
 
-      // Return immediately
+          if (resolveResult.error?.includes('Another tie detected')) {
+            console.log('🔄 [ADMIN TIEBREAKER] Re-tie detected - marking tiebreaker completed');
+            await prisma.tiebreakers.update({
+              where: { id: tiebreakerId },
+              data: { status: 'completed' }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('❌ [ADMIN TIEBREAKER] Resolution error:', error);
+      }
+
       return NextResponse.json({
         success: true,
         newBidAmount,
-        message: 'Bid submitted successfully. Resolution in progress...',
-        tiebreakerResolved: false,
-        resolutionInProgress: true
+        message: finalizationComplete
+          ? 'Bid submitted, tiebreaker resolved, and round completed!'
+          : 'Bid submitted successfully.',
+        tiebreakerResolved,
+        finalizationComplete
       });
     }
 

@@ -477,19 +477,7 @@ export async function resumeFinalizationAfterTiebreaker(
       };
     }
 
-    // Check if finalization is already in progress or completed
     const roundStatus = tiebreaker.round.status;
-    if (roundStatus === 'finalizing') {
-      console.log(`   ⏸️  Finalization already in progress for this round`);
-      console.log(`   ℹ️  Skipping duplicate finalization attempt\n`);
-      console.log('='.repeat(80) + '\n');
-      return {
-        success: true,
-        finalizationComplete: false,
-        nextTiebreakerCreated: false,
-        error: 'Finalization already in progress'
-      };
-    }
 
     if (roundStatus === 'completed' || roundStatus === 'preview_finalized') {
       console.log(`   ✅ Round already finalized (status: ${roundStatus})`);
@@ -522,7 +510,15 @@ export async function resumeFinalizationAfterTiebreaker(
 
     if (otherActiveTiebreakers > 0) {
       console.log(`   ⏸️  Other active tiebreakers exist (${otherActiveTiebreakers})`);
-      console.log(`   ℹ️  Waiting for all tiebreakers to resolve before resuming\n`);
+      console.log(`   ℹ️  Ensuring status is tiebreaker_pending and waiting for all tiebreakers to resolve...\n`);
+      
+      if (roundStatus !== 'tiebreaker_pending') {
+        await prisma.rounds.update({
+          where: { id: tiebreaker.roundId },
+          data: { status: 'tiebreaker_pending' }
+        });
+      }
+      
       console.log('='.repeat(80) + '\n');
       return {
         success: true,
@@ -535,11 +531,10 @@ export async function resumeFinalizationAfterTiebreaker(
     console.log('   ✓ No other active tiebreakers - attempting to acquire lock...\n');
 
     // Try to acquire lock by setting round status to 'finalizing'
-    // This uses optimistic locking - only succeeds if status is still 'tiebreaker_pending'
     const lockAcquired = await prisma.rounds.updateMany({
       where: {
         id: tiebreaker.roundId,
-        status: 'tiebreaker_pending' // Only update if still in tiebreaker_pending state
+        status: { in: ['tiebreaker_pending', 'finalizing'] as any }
       },
       data: {
         status: 'finalizing'

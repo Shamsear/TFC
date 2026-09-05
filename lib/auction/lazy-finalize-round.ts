@@ -51,7 +51,20 @@ export async function checkAndFinalizeExpiredRound(
       return { finalized: false }; // Not expired yet
     }
 
-    // 4. Check finalization mode
+    // 4. Check for active tiebreakers FIRST
+    const hasTiebreakers = await hasActiveTiebreakers(roundId);
+    if (hasTiebreakers) {
+      if (round.status !== 'tiebreaker_pending') {
+        console.log(`   🔄 Round ${roundId} has active tiebreaker but status is "${round.status}". Correcting status to "tiebreaker_pending"...`);
+        await prisma.rounds.update({
+          where: { id: roundId },
+          data: { status: 'tiebreaker_pending' }
+        });
+      }
+      return { finalized: false, tiebreakerRequired: true };
+    }
+
+    // 5. Check finalization mode
     if (round.finalizationMode === 'manual') {
       // Manual mode: Mark as expired_pending_finalization
       if (round.status === 'active') {
@@ -63,15 +76,9 @@ export async function checkAndFinalizeExpiredRound(
       return { finalized: false, pendingManualFinalization: true };
     }
 
-    // 5. Auto mode: Check if already finalizing
+    // 6. Auto mode: Check if already finalizing
     if (round.status === 'finalizing') {
       return { finalized: false, alreadyFinalized: true };
-    }
-
-    // 6. Check for active tiebreakers
-    const hasTiebreakers = await hasActiveTiebreakers(roundId);
-    if (hasTiebreakers) {
-      return { finalized: false, tiebreakerRequired: true };
     }
 
     // 7. Acquire lock (optimistic locking)

@@ -374,9 +374,28 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
       // The state updates above are sufficient for live updates
     }
 
-    // Poll every 3 seconds for real-time updates
-    const interval = setInterval(fetchLiveData, 3000)
-    return () => clearInterval(interval)
+    // Poll every 5 seconds for real-time updates while active and tab is visible
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      if (['completed', 'preview_finalized'].includes(localStatus)) return
+      fetchLiveData()
+    }, 5000)
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden && !['completed', 'preview_finalized'].includes(localStatus)) {
+        fetchLiveData()
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+
+    return () => {
+      clearInterval(interval)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
   }, [isPolling, localStatus, round.id, round.status, finalizationInProgress])
 
   // Calculate time remaining for active rounds

@@ -343,10 +343,15 @@ export async function POST(
       }
 
       if (!result.success) {
-        // Revert status
+        // Revert status safely
+        const tiebreakerCount = await prisma.tiebreakers.count({
+          where: { roundId }
+        });
+        const fallbackStatus = tiebreakerCount > 0 ? 'tiebreaker_pending' : 'expired_pending_finalization';
+        
         await prisma.rounds.update({
           where: { id: roundId },
-          data: { status: 'active' }
+          data: { status: fallbackStatus }
         });
 
         return NextResponse.json(
@@ -419,11 +424,18 @@ export async function POST(
     // Try to recover status safely
     try {
       const existingTransfersCount = await prisma.transfer_history.count({ where: { roundId } });
-      const targetStatus = existingTransfersCount > 0 ? 'completed' : 'expired_pending_finalization';
+      const tiebreakerCount = await prisma.tiebreakers.count({ where: { roundId } });
+      
+      let targetStatus = 'expired_pending_finalization';
+      if (existingTransfersCount > 0) {
+        targetStatus = 'completed';
+      } else if (tiebreakerCount > 0) {
+        targetStatus = 'tiebreaker_pending';
+      }
 
       await prisma.rounds.update({
         where: { id: roundId },
-        data: { status: targetStatus }
+        data: { status: targetStatus as any }
       });
       console.log(`Updated round status to ${targetStatus} after finalization error`);
     } catch (revertError) {

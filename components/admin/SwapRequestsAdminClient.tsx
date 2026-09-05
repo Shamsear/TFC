@@ -100,10 +100,28 @@ export default function SwapRequestsAdminClient({
   }, [initialSwapWindows])
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const refreshData = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
       router.refresh()
-    }, 15000) // 15 seconds
-    return () => clearInterval(interval)
+    }
+
+    const interval = setInterval(refreshData, 45000) // 45 seconds
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        router.refresh()
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+
+    return () => {
+      clearInterval(interval)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
   }, [router])
   const [isTogglingWindow, setIsTogglingWindow] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)

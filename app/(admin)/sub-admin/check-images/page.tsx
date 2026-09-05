@@ -2,6 +2,8 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import CheckImagesClient from '@/components/admin/CheckImagesClient'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Scan Player Images - Sub Admin',
   description: 'Scan and identify players missing card templates or photos and auto-fetch them from PESDB.'

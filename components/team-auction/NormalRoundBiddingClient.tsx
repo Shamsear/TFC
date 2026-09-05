@@ -223,8 +223,27 @@ export default function NormalRoundBiddingClient({
       }
     }
 
-    const interval = setInterval(fetchLiveRoundStatus, 3000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      if (['completed', 'preview_finalized'].includes(localStatus)) return
+      fetchLiveRoundStatus()
+    }, 5000)
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden && !['completed', 'preview_finalized'].includes(localStatus)) {
+        fetchLiveRoundStatus()
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+
+    return () => {
+      clearInterval(interval)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
   }, [round.id, round.status, localStatus])
 
   // Timer countdown

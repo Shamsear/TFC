@@ -33,11 +33,12 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
   const [filter, setFilter] = useState<'all' | 'draft' | 'active' | 'completed'>('all')
   const [isPolling, setIsPolling] = useState(true)
 
-  // Live polling - refresh data every 5 seconds
+  // Live polling - refresh data every 15 seconds when visible
   useEffect(() => {
     if (!isPolling) return
 
     const fetchLiveData = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return
       try {
         // Use router.refresh() to trigger server component re-fetch
         router.refresh()
@@ -46,9 +47,24 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
       }
     }
 
-    // Poll every 5 seconds
-    const interval = setInterval(fetchLiveData, 5000)
-    return () => clearInterval(interval)
+    // Poll every 15 seconds while visible
+    const interval = setInterval(fetchLiveData, 15000)
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchLiveData()
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+
+    return () => {
+      clearInterval(interval)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
   }, [isPolling, router])
 
   // Update rounds when initialRounds changes (from router.refresh)

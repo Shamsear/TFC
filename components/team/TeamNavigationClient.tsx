@@ -79,12 +79,29 @@ export default function TeamNavigationClient({ user, team, activeSeason, isInAct
     // Listen for custom mark-as-read events from the inbox page
     window.addEventListener('notificationsUpdated', fetchUnreadCount)
     
-    // Polling every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000)
+    const pollUnreadCount = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchUnreadCount()
+    }
+
+    // Polling every 60 seconds when visible
+    const interval = setInterval(pollUnreadCount, 60000)
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchUnreadCount()
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
       window.removeEventListener('notificationsUpdated', fetchUnreadCount)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
       clearInterval(interval)
     }
   }, [])

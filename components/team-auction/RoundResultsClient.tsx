@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
+
 interface Player {
   id: string
   name: string
@@ -43,6 +45,7 @@ interface Round {
   id: string
   roundNumber: number
   position: string | null
+  position_group?: string | null
   status: string
   season: {
     id: string
@@ -165,9 +168,21 @@ ${myBids.map((bid, idx) => `${idx + 1}. ${bid.playerName} - £${bid.amount.toLoc
                   Round {round.roundNumber} Results
                 </span>
               </h1>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2 font-mono font-bold uppercase tracking-wider">
-                {round.season.name} {round.position && `— ${round.position}`}
-              </p>
+              <div className="text-xs sm:text-sm text-gray-400 mt-2 font-mono font-bold uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                <span>{round.season.name}</span>
+                {round.position && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${getPositionBadgeClass(round.position)}`}>
+                    {round.position}
+                  </span>
+                )}
+                {round.position && (
+                  <PositionGroupBadge
+                    position={round.position}
+                    group={round.position_group}
+                    size="md"
+                  />
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">

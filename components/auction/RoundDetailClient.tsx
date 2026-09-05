@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SearchableSelect from '@/components/ui/SearchableSelect'
 import { formatIST } from '@/lib/date-ist'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
 interface Round {
   id: string
@@ -1012,9 +1013,20 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
             <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 uppercase tracking-wider leading-none">
               Round {round.roundNumber}
             </h1>
-            <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
-              {round.season.name} • {round.position || 'All Positions'}{round.position_group && round.position_group.toLowerCase() !== 'all' ? ` (${round.position_group.toUpperCase()})` : ''} • {round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}
-            </p>
+            <div className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono flex items-center gap-2 flex-wrap">
+              <span>{round.season.name}</span>
+              <span>•</span>
+              <span>{round.position || 'All Positions'}</span>
+              {round.position && (
+                <PositionGroupBadge
+                  position={round.position}
+                  group={round.position_group}
+                  size="sm"
+                />
+              )}
+              <span>•</span>
+              <span>{round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {/* Live Indicator */}

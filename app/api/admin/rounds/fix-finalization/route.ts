@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { decryptBids } from '@/lib/auction/encryption';
 
 /**
  * POST /api/admin/rounds/fix-finalization
@@ -21,27 +22,64 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'roundId and seasonId are required' }, { status: 400 });
     }
 
-    // 1. Fetch all transfers for this round
+    // 1. Fetch team bids to detect skipped teams
+    const teamBids = await prisma.team_round_bids.findMany({
+      where: { roundId },
+      select: { teamId: true, submitted: true, encryptedBids: true }
+    });
+    const skippedTeamIds = new Set<string>();
+    for (const b of teamBids) {
+      try {
+        const decrypted = decryptBids(b.encryptedBids);
+        const parsed = JSON.parse(decrypted);
+        if (parsed.skipped || (b.submitted && (!parsed.bids || parsed.bids.length === 0))) {
+          skippedTeamIds.add(b.teamId);
+        }
+      } catch (e) {}
+    }
+
+    // 2. Fetch all transfers for this round
     const transfers = await prisma.transfer_history.findMany({
       where: { seasonId, roundId },
       orderBy: { createdAt: 'asc' }
     });
 
-    // Identify duplicate transfers (keep the first one created per player, mark rest for deletion)
     const playerTransferMap = new Map<string, typeof transfers>();
+    const teamAutoTransfersMap = new Map<string, typeof transfers>();
     const duplicateTransferIds: string[] = [];
 
     for (const t of transfers) {
-      const existing = playerTransferMap.get(t.basePlayerId);
-      if (!existing) {
+      // Rule A: Remove duplicate transfers for the exact same player
+      const existingPlayerTransfer = playerTransferMap.get(t.basePlayerId);
+      if (!existingPlayerTransfer) {
         playerTransferMap.set(t.basePlayerId, [t]);
       } else {
-        existing.push(t);
+        existingPlayerTransfer.push(t);
         duplicateTransferIds.push(t.id);
+        continue;
+      }
+
+      // Rule B: Remove auto-assigned transfers for teams that explicitly skipped
+      if (t.acquisitionType === 'auto_assigned' && skippedTeamIds.has(t.teamId)) {
+        console.log(`[FIX-FINALIZATION] Removing auto-assigned transfer for skipped team ${t.teamId}: ${t.id}`);
+        duplicateTransferIds.push(t.id);
+        continue;
+      }
+
+      // Rule C: Remove duplicate auto-assigned transfers given to the same team in a round
+      if (t.acquisitionType === 'auto_assigned') {
+        const existingAutoList = teamAutoTransfersMap.get(t.teamId) || [];
+        if (existingAutoList.length > 0) {
+          console.log(`[FIX-FINALIZATION] Removing extra auto-assigned transfer for team ${t.teamId}: ${t.id}`);
+          duplicateTransferIds.push(t.id);
+        } else {
+          existingAutoList.push(t);
+          teamAutoTransfersMap.set(t.teamId, existingAutoList);
+        }
       }
     }
 
-    // 2. Fetch financial ledger entries for this round
+    // 3. Fetch financial ledger entries for this round
     const round = await prisma.rounds.findUnique({
       where: { id: roundId },
       select: { roundNumber: true }
@@ -58,7 +96,7 @@ export async function POST(request: NextRequest) {
       orderBy: { createdAt: 'asc' }
     });
 
-    // Identify duplicate ledger entries (keep the first one per team/player, mark rest for deletion)
+    // Identify duplicate or invalid ledger entries
     const ledgerMap = new Map<string, typeof ledgerEntries>();
     const duplicateLedgerIds: string[] = [];
 

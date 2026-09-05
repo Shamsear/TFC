@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { decryptBids } from '@/lib/auction/encryption';
 
 /**
  * GET /api/admin/rounds/audit-finalization?seasonId=TFCS-5
@@ -39,6 +40,22 @@ export async function GET(request: NextRequest) {
     const roundAudits = [];
 
     for (const round of rounds) {
+      // Fetch team bids to detect skipped teams
+      const teamBids = await prisma.team_round_bids.findMany({
+        where: { roundId: round.id },
+        select: { teamId: true, submitted: true, encryptedBids: true }
+      });
+      const skippedTeamIds = new Set<string>();
+      for (const b of teamBids) {
+        try {
+          const decrypted = decryptBids(b.encryptedBids);
+          const parsed = JSON.parse(decrypted);
+          if (parsed.skipped || (b.submitted && (!parsed.bids || parsed.bids.length === 0))) {
+            skippedTeamIds.add(b.teamId);
+          }
+        } catch (e) {}
+      }
+
       // 1. Fetch transfers for this round
       const transfers = await prisma.transfer_history.findMany({
         where: {
@@ -50,6 +67,7 @@ export async function GET(request: NextRequest) {
           basePlayerId: true,
           teamId: true,
           soldPrice: true,
+          acquisitionType: true,
           createdAt: true,
           basePlayer: { select: { name: true } },
           team: { select: { name: true } }
@@ -57,12 +75,31 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'asc' }
       });
 
-      // Group transfers by basePlayerId to find duplicates
+      // Group transfers by basePlayerId to find duplicate player allocations
       const playerTransferMap = new Map<string, typeof transfers>();
+      const teamAutoTransfersMap = new Map<string, typeof transfers>();
+      let invalidSkippedAutoTransfersCount = 0;
+
       for (const t of transfers) {
         const list = playerTransferMap.get(t.basePlayerId) || [];
         list.push(t);
         playerTransferMap.set(t.basePlayerId, list);
+
+        if (t.acquisitionType === 'auto_assigned') {
+          if (skippedTeamIds.has(t.teamId)) {
+            invalidSkippedAutoTransfersCount++;
+          }
+          const autoList = teamAutoTransfersMap.get(t.teamId) || [];
+          autoList.push(t);
+          teamAutoTransfersMap.set(t.teamId, autoList);
+        }
+      }
+
+      let multipleAutoAssignedCount = 0;
+      for (const autoList of teamAutoTransfersMap.values()) {
+        if (autoList.length > 1) {
+          multipleAutoAssignedCount += (autoList.length - 1);
+        }
       }
 
       const duplicatePlayers: Array<{ playerId: string; playerName: string; transferCount: number }> = [];
@@ -115,7 +152,8 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const hasIssue = totalDuplicateTransfers > 0 || totalDuplicateLedger > 0;
+      const totalIssuesCount = totalDuplicateTransfers + invalidSkippedAutoTransfersCount + multipleAutoAssignedCount;
+      const hasIssue = totalIssuesCount > 0 || totalDuplicateLedger > 0;
 
       roundAudits.push({
         id: round.id,
@@ -126,7 +164,7 @@ export async function GET(request: NextRequest) {
         roundType: round.roundType,
         totalTransfers: transfers.length,
         uniquePlayersCount: playerTransferMap.size,
-        duplicateTransfersCount: totalDuplicateTransfers,
+        duplicateTransfersCount: totalIssuesCount,
         totalLedgerEntries: ledgerEntries.length,
         duplicateLedgerCount: totalDuplicateLedger,
         duplicatePlayers,

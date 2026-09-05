@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { normalizeForSearch } from '@/lib/search-utils'
 
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
+
 interface Player {
   id: string
   name: string
   photoUrl: string
   position: string
+  position_group?: string | null
   playing_style: string | null
   overall: number
   nationality: string
@@ -1020,6 +1023,11 @@ export default function BulkRoundSelectionClient({
                       <span className={`px-2 py-0.5 rounded border text-[10px] font-extrabold uppercase tracking-wide ${posBadgeColor}`}>
                         {player.position}
                       </span>
+                      <PositionGroupBadge
+                        position={player.position}
+                        group={player.position_group || round.position_group}
+                        size="sm"
+                      />
                       {player.playing_style && (
                         <span className="px-2 py-0.5 rounded border border-purple-500/20 text-purple-400 bg-purple-500/5 text-[10px] font-extrabold uppercase tracking-wide">
                           {player.playing_style}

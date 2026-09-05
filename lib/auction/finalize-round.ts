@@ -20,6 +20,7 @@ export interface TeamBids {
   teamId: string;
   bids: BidData[];
   submitted: boolean;
+  skipped?: boolean;
 }
 
 export interface Allocation {
@@ -88,7 +89,8 @@ async function fetchAllBids(roundId: string): Promise<TeamBids[]> {
       return {
         teamId: tb.teamId,
         bids: parsed.bids || [],
-        submitted: tb.submitted
+        submitted: tb.submitted,
+        skipped: parsed.skipped || false
       };
     } catch (error) {
       console.error(`Failed to decrypt bids for team ${tb.teamId}:`, error);
@@ -257,16 +259,34 @@ async function handleNonSubmittedTeams(
     select: { teamId: true }
   });
 
-  // Get teams that already received an allocation (won a bid or completed tiebreaker)
+  // Get teams that already received an allocation (won a bid or completed tiebreaker in this run)
   const allocatedTeamIds = new Set(submittedAllocations.map(a => a.teamId));
 
-  // Find teams that are currently unallocated (either didn't submit or submitted but were outbid on all bids)
+  // Get teams that already have a transfer in transfer_history for this round (prevent double assignments on re-runs)
+  const existingRoundTransfers = await prisma.transfer_history.findMany({
+    where: { roundId, seasonId },
+    select: { teamId: true }
+  });
+  const existingTransferTeamIds = new Set(existingRoundTransfers.map(t => t.teamId));
+
+  // Get teams that explicitly skipped the round
+  const skippedTeamIds = new Set(
+    teamBids
+      .filter(tb => tb.skipped || (tb.submitted && tb.bids.length === 0))
+      .map(tb => tb.teamId)
+  );
+
+  // Find teams that are unallocated, have no existing transfer, and DID NOT skip the round
   const unallocatedTeamIds = allSeasonTeams
     .map(st => st.teamId)
-    .filter(teamId => !allocatedTeamIds.has(teamId));
+    .filter(teamId => 
+      !allocatedTeamIds.has(teamId) && 
+      !existingTransferTeamIds.has(teamId) && 
+      !skippedTeamIds.has(teamId)
+    );
   
   if (unallocatedTeamIds.length === 0) {
-    console.log('   ℹ️  No unallocated teams to process');
+    console.log('   ℹ️  No unallocated non-skipped teams to process');
     return allocations;
   }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { normalizeForSearch } from '@/lib/search-utils'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
 interface Player {
   basePlayerId: string
@@ -832,9 +833,21 @@ ${bidsSection}`
                   Round {round.roundNumber} Bidding
                 </span>
               </h1>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2 font-mono font-bold uppercase tracking-wider">
-                {round.season.name} {round.position && `— ${round.position}${round.position_group && round.position_group !== 'ALL' ? `-${round.position_group}` : ''}`}
-              </p>
+              <div className="text-xs sm:text-sm text-gray-400 mt-2 font-mono font-bold uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                <span>{round.season.name}</span>
+                {round.position && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${getPositionBadgeClass(round.position)}`}>
+                    {round.position}
+                  </span>
+                )}
+                {round.position && (
+                  <PositionGroupBadge
+                    position={round.position}
+                    group={round.position_group}
+                    size="md"
+                  />
+                )}
+              </div>
             </div>
 
             {timeRemaining && (
@@ -1051,6 +1064,11 @@ ${bidsSection}`
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${getPositionBadgeClass(player.position)}`}>
                                 {player.position}
                               </span>
+                              <PositionGroupBadge
+                                position={player.position}
+                                group={player.position_group || round.position_group}
+                                size="sm"
+                              />
                               <span className="text-[10px] text-gray-500 font-mono font-semibold">OVR {player.overallRating}</span>
                             </div>
                           </div>
@@ -1293,10 +1311,15 @@ ${bidsSection}`
                   </div>
                   <div className="min-w-0 flex-1 pr-6">
                     <h3 className="font-black text-white text-sm truncate leading-tight mb-1">{player.basePlayer.name}</h3>
-                    <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-mono font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-mono font-bold uppercase tracking-wider flex-wrap">
                       <span className={`px-1.5 py-0.5 rounded ${getPositionBadgeClass(player.position)}`}>
                         {player.position}
                       </span>
+                      <PositionGroupBadge
+                        position={player.position}
+                        group={player.position_group || round.position_group}
+                        size="sm"
+                      />
                       <span className="px-1.5 py-0.5 rounded bg-white/[0.02] border border-white/5">
                         OVR {player.overallRating}
                       </span>

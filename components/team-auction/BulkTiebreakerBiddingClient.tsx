@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getPhotoUrlFromDb } from '@/lib/image-cdn'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
 interface BulkTiebreakerBiddingClientProps {
   tiebreaker: {
@@ -19,6 +20,7 @@ interface BulkTiebreakerBiddingClientProps {
       id: string
       roundNumber: number
       position: string | null
+      position_group?: string | null
       season: {
         id: string
         name: string
@@ -267,9 +269,18 @@ export default function BulkTiebreakerBiddingClient({
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight bg-gradient-to-r from-white via-[#E8A800] to-purple-400 bg-clip-text text-transparent">
                 Bulk Tiebreaker
               </h1>
-              <p className="text-sm text-[#D4CCBB] font-semibold mt-1">
-                {tiebreaker.basePlayer.name} <span className="text-[#7A7367]">•</span> Round {tiebreaker.round.roundNumber}
-              </p>
+              <div className="text-sm text-[#D4CCBB] font-semibold mt-1 flex items-center gap-2 flex-wrap">
+                <span>{tiebreaker.basePlayer.name}</span>
+                <span className="text-[#7A7367]">•</span>
+                <span>Round {tiebreaker.round.roundNumber}</span>
+                {tiebreaker.round.position && (
+                  <PositionGroupBadge
+                    position={tiebreaker.round.position}
+                    group={tiebreaker.round.position_group}
+                    size="sm"
+                  />
+                )}
+              </div>
             </div>
           </div>
 

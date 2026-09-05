@@ -14,7 +14,8 @@ export default function PositionGroupBadge({ position, group, size = 'sm' }: Pos
 
   const colors = {
     A: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    B: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+    B: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    ALL: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
   }
 
   const sizes = {
@@ -23,7 +24,7 @@ export default function PositionGroupBadge({ position, group, size = 'sm' }: Pos
     lg: 'px-2.5 py-1 text-sm'
   }
 
-  const color = colors[group as 'A' | 'B'] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+  const color = colors[group as 'A' | 'B' | 'ALL'] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
 
   return (
     <span className={`inline-flex items-center rounded border font-bold ${color} ${sizes[size]}`}>

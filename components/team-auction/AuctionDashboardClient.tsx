@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getPhotoUrlFromDb } from '@/lib/image-cdn'
+import PositionGroupBadge from '@/components/player/PositionGroupBadge'
 
 interface Team {
   id: string
@@ -471,10 +472,15 @@ export default function AuctionDashboardClient({
                           Round {round.roundNumber}
                         </h3>
                         {round.position && (
-                          <div className="mt-1.5">
+                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[10px] font-extrabold uppercase tracking-wider ${getPositionColor(round.position)}`}>
-                              {round.position}{round.position_group && round.position_group !== 'ALL' ? ` • ${round.position_group}` : ''}
+                              {round.position}
                             </span>
+                            <PositionGroupBadge
+                              position={round.position}
+                              group={round.position_group}
+                              size="sm"
+                            />
                           </div>
                         )}
                       </div>
@@ -790,10 +796,15 @@ export default function AuctionDashboardClient({
                         Round {round.roundNumber}
                       </h3>
                       {round.position && (
-                        <div className="mt-1.5">
+                        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[9px] font-extrabold uppercase tracking-wider ${getPositionColor(round.position)}`}>
-                            {round.position}{round.position_group && round.position_group !== 'ALL' ? ` • ${round.position_group}` : ''}
+                            {round.position}
                           </span>
+                          <PositionGroupBadge
+                            position={round.position}
+                            group={round.position_group}
+                            size="sm"
+                          />
                         </div>
                       )}
                     </div>
@@ -836,10 +847,15 @@ export default function AuctionDashboardClient({
                           Round {round.roundNumber}
                         </h3>
                         {round.position && (
-                          <div className="mt-1.5">
+                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[9px] font-extrabold uppercase tracking-wider ${getPositionColor(round.position)} opacity-60`}>
-                              {round.position}{round.position_group && round.position_group !== 'ALL' ? ` • ${round.position_group}` : ''}
+                              {round.position}
                             </span>
+                            <PositionGroupBadge
+                              position={round.position}
+                              group={round.position_group}
+                              size="sm"
+                            />
                           </div>
                         )}
                       </div>

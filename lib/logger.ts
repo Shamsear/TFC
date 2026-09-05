@@ -130,11 +130,19 @@ export function logInfo(message: string, context?: ErrorContext): void {
  * @returns Error context object
  */
 export function extractRequestContext(request: Request): ErrorContext {
-  const url = new URL(request.url)
-  
-  return {
-    route: url.pathname,
-    method: request.method,
-    query: Object.fromEntries(url.searchParams)
+  try {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    const url = new URL(request.url || '/', baseUrl)
+    
+    return {
+      route: url.pathname,
+      method: request.method,
+      query: Object.fromEntries(url.searchParams)
+    }
+  } catch (e) {
+    return {
+      route: request.url || 'unknown',
+      method: request.method || 'GET'
+    }
   }
 }

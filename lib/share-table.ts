@@ -89,7 +89,8 @@ async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
         const currentSrc = img.src
         if (currentSrc && !currentSrc.startsWith('data:') && !currentSrc.startsWith('/')) {
           try {
-            const url = new URL(currentSrc)
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+            const url = new URL(currentSrc, baseUrl)
             url.searchParams.set('retry', Date.now().toString())
             
             let resolved = false
@@ -242,7 +243,8 @@ export async function captureTableAsPng(
     const src = img.src
     if (src && !src.startsWith('data:') && !src.startsWith('/') && !src.includes('cb=')) {
       try {
-        const url = new URL(src)
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+        const url = new URL(src, baseUrl)
         url.searchParams.set('cb', 'tfc-poster')
         img.src = url.toString()
       } catch (e) {

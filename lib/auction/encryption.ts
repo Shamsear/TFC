@@ -65,39 +65,70 @@ export function encryptBids(data: string): string {
 }
 
 /**
+ * Get all potential encryption keys for decryption fallback
+ */
+function getDecryptionKeys(): Buffer[] {
+  const keys: Buffer[] = [];
+  const rawCandidateStrings = [
+    process.env.AUCTION_ENCRYPTION_KEY,
+    process.env.ENCRYPTION_SECRET,
+    process.env.OLD_ENCRYPTION_SECRET,
+    '45024bb583ef7b5051dbf9efe644193141f5aa03df9083bde68755556c3e94d8',
+    '0'.repeat(64)
+  ].filter(Boolean) as string[];
+
+  const seen = new Set<string>();
+
+  for (const str of rawCandidateStrings) {
+    if (seen.has(str)) continue;
+    seen.add(str);
+
+    if (str.length === 64 && /^[0-9a-fA-F]+$/.test(str)) {
+      keys.push(Buffer.from(str, 'hex'));
+    } else {
+      keys.push(crypto.createHash('sha256').update(str).digest());
+    }
+  }
+
+  return keys;
+}
+
+/**
  * Decrypt bid data
  * @param encryptedData - Base64-encoded encrypted data
  * @returns Decrypted plain text (usually JSON string)
  */
 export function decryptBids(encryptedData: string): string {
-  try {
-    const key = getEncryptionKey();
-    
-    // Decode from base64
-    const combined = Buffer.from(encryptedData, 'base64').toString('utf8');
-    
-    // Split into components
-    const parts = combined.split(':');
-    if (parts.length !== 3) {
-      throw new Error('Invalid encrypted data format');
-    }
-    
-    const [ivHex, authTagHex, encryptedHex] = parts;
-    
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-    
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-    
-    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    
-    return decrypted;
-  } catch (error) {
-    console.error('Decryption error:', error);
-    throw new Error('Failed to decrypt bid data');
+  // Decode from base64
+  const combined = Buffer.from(encryptedData, 'base64').toString('utf8');
+  
+  // Split into components
+  const parts = combined.split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid encrypted data format');
   }
+  
+  const [ivHex, authTagHex, encryptedHex] = parts;
+  const iv = Buffer.from(ivHex, 'hex');
+  const authTag = Buffer.from(authTagHex, 'hex');
+
+  const keysToTry = getDecryptionKeys();
+  let lastError: any = null;
+
+  for (const key of keysToTry) {
+    try {
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+      decipher.setAuthTag(authTag);
+      let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  console.error('Decryption error across all keys:', lastError);
+  throw new Error('Failed to decrypt bid data');
 }
 
 /**

@@ -26,9 +26,19 @@ interface Round {
   }
 }
 
+interface PlayerBidDetail {
+  playerId: string
+  amount: number
+  name: string
+  position: string
+  overallRating: number
+  photoUrl: string | null
+}
+
 interface TeamBidData {
   teamId: string
   playerIds: string[]
+  bids?: PlayerBidDetail[]
   submitted: boolean
   skipped?: boolean
   submittedAt: Date | null
@@ -52,9 +62,14 @@ export default function TeamBidsClient({ round, teams, teamBidsData, validationS
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'submitted' | 'not-submitted' | 'invalid'>('all')
+  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({})
   const [deletingTeam, setDeletingTeam] = useState<string | null>(null)
   const [cleaningTeam, setCleaningTeam] = useState<string | null>(null)
   const [togglingTeam, setTogglingTeam] = useState<string | null>(null)
+
+  const toggleExpand = (teamId: string) => {
+    setExpandedTeams(prev => ({ ...prev, [teamId]: !prev[teamId] }))
+  }
 
   const handleDeleteBids = async (teamId: string, teamName: string) => {
     if (!confirm(`Are you sure you want to delete all bids for ${teamName}?\n\nThis will allow them to submit new bids. This action cannot be undone.`)) {

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TeamBidsClient from '@/components/auction/TeamBidsClient'
 import { decryptBids } from '@/lib/auction/encryption'
+import { getPlayerPhotoUrl } from '@/lib/image-cdn'
 
 export default async function RoundBidsPage({
   params
@@ -109,7 +110,7 @@ export default async function RoundBidsPage({
       }
     })
     
-    // Decrypt bids only to extract player IDs
+    // Decrypt bids only to extract player IDs for validation
     teamBidsData = rawData.map(data => {
       try {
         const decrypted = decryptBids(data.encryptedBids)
@@ -127,14 +128,13 @@ export default async function RoundBidsPage({
           bidCount: data.bidCount || 0
         }
       } catch (e) {
-        console.error(`Failed to decrypt bids for team ${data.teamId}:`, e)
         return {
           teamId: data.teamId,
           playerIds: [],
           submitted: data.submitted,
           skipped: data.submitted && data.bidCount === 0,
           submittedAt: data.submittedAt,
-          bidCount: 0
+          bidCount: data.bidCount || 0
         }
       }
     })
@@ -143,7 +143,7 @@ export default async function RoundBidsPage({
   // Validate all player IDs exist in database
   const allPlayerIds = new Set<string>()
   teamBidsData.forEach(teamData => {
-    teamData.playerIds.forEach((playerId: string) => {
+    (teamData.playerIds || []).forEach((playerId: string) => {
       if (playerId) {
         allPlayerIds.add(playerId)
       }
@@ -164,7 +164,7 @@ export default async function RoundBidsPage({
 
   // Calculate validation stats for each team
   teamBidsData = teamBidsData.map(teamData => {
-    const invalidPlayerIds = teamData.playerIds.filter((id: string) => !existingPlayerIds.has(id))
+    const invalidPlayerIds = (teamData.playerIds || []).filter((id: string) => !existingPlayerIds.has(id))
     return {
       ...teamData,
       invalidCount: invalidPlayerIds.length,

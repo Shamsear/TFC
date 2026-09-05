@@ -87,6 +87,14 @@ function getDecryptionKeys(): Buffer[] {
       keys.push(Buffer.from(str, 'hex'));
     } else {
       keys.push(crypto.createHash('sha256').update(str).digest());
+      const bufUtf8 = Buffer.from(str, 'utf8');
+      const pad32 = Buffer.alloc(32, 0);
+      bufUtf8.copy(pad32, 0, 0, Math.min(bufUtf8.length, 32));
+      keys.push(pad32);
+      const hexClean = str.replace(/[^0-9a-fA-F]/g, '');
+      if (hexClean.length >= 64) {
+        keys.push(Buffer.from(hexClean.slice(0, 64), 'hex'));
+      }
     }
   }
 
@@ -127,7 +135,6 @@ export function decryptBids(encryptedData: string): string {
     }
   }
 
-  console.error('Decryption error across all keys:', lastError);
   throw new Error('Failed to decrypt bid data');
 }
 

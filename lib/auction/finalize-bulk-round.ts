@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { calculateReserve } from './reserve-calculator-v2';
+import { calculateReserveCore, ReserveConfig } from './reserve-calculator-v2';
 import { generateIds, ID_PREFIXES } from '@/lib/id-generator';
 
 /**
@@ -110,7 +110,7 @@ function separateAllocationsAndConflicts(
 }
 
 /**
- * Validate and allocate single bidders
+ * Validate and allocate single bidders (batch-optimized to avoid N+1 query overhead & timeouts)
  */
 async function allocateSingleBidders(
   singleBidders: Map<string, string>,
@@ -121,73 +121,140 @@ async function allocateSingleBidders(
   const allocations: BulkAllocation[] = [];
   const errors: string[] = [];
 
-  // Get player names
   const playerIds = Array.from(singleBidders.keys());
+  if (playerIds.length === 0) {
+    return { allocations: [], errors: [] };
+  }
+
+  // 1. Batch query: Player names
   const players = await prisma.base_players.findMany({
     where: { id: { in: playerIds } },
     select: { id: true, name: true }
   });
   const playerNames = new Map(players.map(p => [p.id, p.name]));
 
+  // 2. Batch query: Active owned players for this season
+  const activeTransfers = await prisma.transfer_history.findMany({
+    where: {
+      seasonId,
+      status: 'ACTIVE'
+    },
+    select: {
+      basePlayerId: true
+    }
+  });
+  const ownedPlayerIds = new Set(activeTransfers.map(t => t.basePlayerId));
+
+  // 3. Batch query: Season team budgets
+  const seasonTeams = await prisma.season_teams.findMany({
+    where: { seasonId },
+    select: { teamId: true, currentBudget: true }
+  });
+  const teamBudgetMap = new Map(seasonTeams.map(st => [st.teamId, st.currentBudget]));
+
+  // 4. Batch query: Active squad sizes
+  const squadSizeGroup = await prisma.transfer_history.groupBy({
+    by: ['teamId'],
+    where: {
+      seasonId,
+      status: 'ACTIVE'
+    },
+    _count: { id: true }
+  });
+  const teamSquadSizeMap = new Map(squadSizeGroup.map(sg => [sg.teamId, sg._count.id]));
+
+  // 5. Batch query: Round details
+  const round = await prisma.rounds.findUnique({
+    where: { id: roundId },
+    select: { roundNumber: true }
+  });
+  const currentRoundNumber = round?.roundNumber || 1;
+
+  // 6. Batch query: Auction settings
+  const settingsResult = await prisma.$queryRaw<Array<ReserveConfig>>`
+    SELECT 
+      phase_1_end_round,
+      phase_1_min_balance,
+      phase_2_end_round,
+      phase_2_min_balance,
+      phase_3_min_balance,
+      min_squad_size,
+      max_squad_size
+    FROM auction_settings
+    WHERE "seasonId" = ${seasonId}
+  `;
+
+  const defaultConfig: ReserveConfig = {
+    phase_1_end_round: 18,
+    phase_1_min_balance: 30,
+    phase_2_end_round: 20,
+    phase_2_min_balance: 30,
+    phase_3_min_balance: 10,
+    min_squad_size: 25,
+    max_squad_size: 30
+  };
+
+  const settings = settingsResult[0];
+  const config: ReserveConfig = settings ? {
+    phase_1_end_round: settings.phase_1_end_round || 18,
+    phase_1_min_balance: settings.phase_1_min_balance || 30,
+    phase_2_end_round: settings.phase_2_end_round || 20,
+    phase_2_min_balance: settings.phase_2_min_balance || 30,
+    phase_3_min_balance: settings.phase_3_min_balance || 10,
+    min_squad_size: settings.min_squad_size || 25,
+    max_squad_size: settings.max_squad_size || 30
+  } : defaultConfig;
+
+  // Track allocations per team in memory for dynamic reserve checks
+  const pendingSpentPerTeam = new Map<string, number>();
+  const pendingCountPerTeam = new Map<string, number>();
+
   let i = 0;
   for (const [playerId, teamId] of singleBidders.entries()) {
     i++;
-    if (i % 5 === 0 || i === singleBidders.size) {
+    if (i % 10 === 0 || i === singleBidders.size) {
       console.log(`   ⏳ Processing allocation ${i} of ${singleBidders.size}...`);
     }
 
-    // Check if player is available (not ACTIVE with any team)
-    const owned = await prisma.transfer_history.findFirst({
-      where: {
-        basePlayerId: playerId,
-        seasonId,
-        status: 'ACTIVE'
-      }
-    });
+    const pName = playerNames.get(playerId) || playerId;
 
-    if (owned) {
-      errors.push(`Player ${playerNames.get(playerId)} is already owned`);
+    if (ownedPlayerIds.has(playerId)) {
+      errors.push(`Player ${pName} is already owned`);
       continue;
     }
 
-    // Get team budget and squad size
-    const seasonTeam = await prisma.season_teams.findUnique({
-      where: {
-        seasonId_teamId: { seasonId, teamId }
-      },
-      select: { currentBudget: true }
-    });
-
-    if (!seasonTeam) {
+    const initialBudget = teamBudgetMap.get(teamId);
+    if (initialBudget === undefined) {
       errors.push(`Team ${teamId} not found`);
       continue;
     }
 
-    const squadSize = await prisma.transfer_history.count({
-      where: { 
-        teamId, 
-        seasonId,
-        status: 'ACTIVE'
-      }
-    });
+    const alreadySpent = pendingSpentPerTeam.get(teamId) || 0;
+    const alreadyAddedCount = pendingCountPerTeam.get(teamId) || 0;
 
-    // Check budget with reserves using v2
-    const reserveInfo = await calculateReserve(teamId, roundId, seasonId);
+    const currentBudget = initialBudget - alreadySpent;
+    const initialSquadSize = teamSquadSizeMap.get(teamId) || 0;
+    const currentSquadSize = initialSquadSize + alreadyAddedCount;
+
+    const reserveInfo = calculateReserveCore(currentRoundNumber, currentBudget, currentSquadSize, config);
+
     if (basePrice > reserveInfo.maxBid) {
       errors.push(
-        `Team ${teamId} cannot afford ${playerNames.get(playerId)} ` +
+        `Team ${teamId} cannot afford ${pName} ` +
         `(needs ${basePrice}, has ${reserveInfo.maxBid} available)`
       );
       continue;
     }
 
-    // Allocate
     allocations.push({
       teamId,
       basePlayerId: playerId,
-      playerName: playerNames.get(playerId) || playerId,
+      playerName: pName,
       amount: basePrice
     });
+
+    pendingSpentPerTeam.set(teamId, alreadySpent + basePrice);
+    pendingCountPerTeam.set(teamId, alreadyAddedCount + 1);
   }
 
   return { allocations, errors };
@@ -446,7 +513,29 @@ export async function applyBulkFinalizationResults(
       newTeamAllocations.get(alloc.teamId)!.push(alloc);
     }
     
-    // 2. Update team budgets and create financial ledger entries
+    // 2. Pre-fetch season teams for allocated teams in 1 batch query
+    console.log(`   💰 Pre-fetching season teams for ${newTeamAllocations.size} teams...`);
+    const targetTeamIds = Array.from(newTeamAllocations.keys());
+    const seasonTeamList = targetTeamIds.length > 0 ? await tx.season_teams.findMany({
+      where: {
+        seasonId: round.seasonId,
+        teamId: { in: targetTeamIds }
+      }
+    }) : [];
+    const seasonTeamMap = new Map(seasonTeamList.map(st => [st.teamId, st]));
+
+    // Pre-fetch existing ledgers in 1 batch query to avoid N+1 check
+    const existingLedgerList = targetTeamIds.length > 0 ? await tx.financial_ledger.findMany({
+      where: {
+        seasonId: round.seasonId,
+        transactionType: 'PLAYER_PURCHASE',
+        description: `Bulk round ${roundId} player purchases`
+      },
+      select: { seasonTeamId: true }
+    }) : [];
+    const existingLedgerTeamIds = new Set(existingLedgerList.map(l => l.seasonTeamId));
+
+    // Update team budgets and create financial ledger entries
     console.log(`   💰 Updating budgets for ${newTeamAllocations.size} teams...`);
     let teamCount = 0;
     for (const [teamId, teamAllocs] of newTeamAllocations.entries()) {
@@ -454,14 +543,7 @@ export async function applyBulkFinalizationResults(
       const totalSpent = teamAllocs.reduce((sum, alloc) => sum + alloc.amount, 0);
       const playerNames = teamAllocs.map(alloc => alloc.playerName);
 
-      const seasonTeam = await tx.season_teams.findUnique({
-        where: {
-          seasonId_teamId: {
-            seasonId: round.seasonId,
-            teamId
-          }
-        }
-      });
+      const seasonTeam = seasonTeamMap.get(teamId);
 
       if (seasonTeam) {
         const newBudget = seasonTeam.currentBudget - totalSpent;
@@ -476,17 +558,7 @@ export async function applyBulkFinalizationResults(
           data: { currentBudget: newBudget }
         });
 
-        // Check for existing ledger entry to prevent duplicates
-        const existingLedger = await tx.financial_ledger.findFirst({
-          where: {
-            seasonTeamId: seasonTeam.id,
-            transactionType: 'PLAYER_PURCHASE',
-            amount: -totalSpent,
-            description: `Bulk round ${roundId} player purchases`
-          }
-        });
-        
-        if (existingLedger) {
+        if (existingLedgerTeamIds.has(seasonTeam.id)) {
           console.warn(`      ⚠️  Ledger entry already exists for team ${teamId}, skipping`);
         } else {
           // Insert financial ledger entry
@@ -505,23 +577,26 @@ export async function applyBulkFinalizationResults(
           });
         }
         
-        console.log(`      ✓ [${teamCount}/${teamAllocations.size}] ${teamId}: £${totalSpent} spent, ${teamAllocs.length} players`);
+        console.log(`      ✓ [${teamCount}/${newTeamAllocations.size}] ${teamId}: £${totalSpent} spent, ${teamAllocs.length} players`);
       }
     }
 
     // 2.5 Create bulk tiebreakers for conflicts
     if (conflicts.length > 0) {
-      console.log(`   ⚖️ Creating ${conflicts.length} bulk tiebreakers...`);
-      for (const conflict of conflicts) {
-        // Check if tiebreaker already exists for this player in this round
-        const existingTiebreaker = await tx.bulk_tiebreakers.findFirst({
-          where: {
-            roundId,
-            basePlayerId: conflict.basePlayerId
-          }
-        });
+      console.log(`   ⚖️ Processing ${conflicts.length} bulk tiebreakers...`);
+      
+      const conflictPlayerIds = conflicts.map(c => c.basePlayerId);
+      const existingTiebreakers = await tx.bulk_tiebreakers.findMany({
+        where: {
+          roundId,
+          basePlayerId: { in: conflictPlayerIds }
+        },
+        select: { basePlayerId: true }
+      });
+      const existingTiebreakerPlayerIds = new Set(existingTiebreakers.map(t => t.basePlayerId));
 
-        if (existingTiebreaker) {
+      for (const conflict of conflicts) {
+        if (existingTiebreakerPlayerIds.has(conflict.basePlayerId)) {
           console.warn(`      ⚠️  Tiebreaker already exists for player ${conflict.basePlayerId}, skipping`);
           continue;
         }
@@ -563,8 +638,8 @@ export async function applyBulkFinalizationResults(
     });
     console.log(`      ✓ Round status updated`);
   }, {
-    maxWait: 10000,
-    timeout: 30000 // Increase timeout to 30 seconds for large bulk rounds
+    maxWait: 20000,
+    timeout: 60000 // 60 seconds timeout for large bulk rounds
   });
 
   console.log(`\n✅ Database transaction complete!`);

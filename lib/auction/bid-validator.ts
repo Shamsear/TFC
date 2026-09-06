@@ -259,7 +259,7 @@ export async function validateBidsAgainstReserves(
     
   } catch (error) {
     console.error('Error validating reserves:', error);
-    // Don't fail validation if reserve check fails - allow bid to proceed
+    errors.push('Failed to validate reserve requirements');
   }
   
   return {
@@ -408,16 +408,11 @@ export async function validateBids(
   }
   
   // OPTIMIZATION: Run async validations in parallel
-  // For edits, skip reserve validation but still check existence and availability
   const asyncValidations = [
     validatePlayersExist(bids, context.seasonId),
-    validatePlayersAvailable(bids, context.seasonId)
+    validatePlayersAvailable(bids, context.seasonId),
+    validateBidsAgainstReserves(bids, context)
   ];
-  
-  // Only validate reserves for new submissions, not edits
-  if (!context.skipBalanceCheck) {
-    asyncValidations.push(validateBidsAgainstReserves(bids, context));
-  }
   
   const results = await Promise.all(asyncValidations);
   

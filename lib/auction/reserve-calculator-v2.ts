@@ -98,7 +98,13 @@ export function calculateReserveCore(
     // Recommended reserve: Phase 1 + Phase 2 + Phase 3 (if do all Phase 2)
     const totalReserve = phase1Reserve + phase2Reserve + phase3ReserveIfDo;
     
-    const maxBid = Math.max(0, teamBalance - floorReserve);
+    let maxBid = teamBalance - floorReserve;
+    if (maxBid < 0 && teamBalance > 0) {
+      const remainingSlots = Math.max(1, config.min_squad_size - teamSquadSize);
+      maxBid = Math.max(1, Math.floor(teamBalance / remainingSlots));
+    } else {
+      maxBid = Math.max(0, maxBid);
+    }
     const maxRecommendedBid = Math.max(0, teamBalance - totalReserve);
     
     return {
@@ -136,7 +142,13 @@ export function calculateReserveCore(
     breakdown.phase2Reserve = phase2Reserve;
     breakdown.phase3Reserve = phase3Reserve;
     
-    const maxBid = Math.max(0, teamBalance - floorReserve);
+    let maxBid = teamBalance - floorReserve;
+    if (maxBid < 0 && teamBalance > 0) {
+      const remainingSlots = Math.max(1, config.min_squad_size - teamSquadSize);
+      maxBid = Math.max(1, Math.floor(teamBalance / remainingSlots));
+    } else {
+      maxBid = Math.max(0, maxBid);
+    }
     const maxRecommendedBid = Math.max(0, teamBalance - recommendedReserve);
     
     return {
@@ -176,7 +188,14 @@ export function calculateReserveCore(
   const playersAfterThisRound = teamSquadSize + 1;
   const futureSlotsToMin = Math.max(0, config.min_squad_size - playersAfterThisRound);
   const reserve = futureSlotsToMin * config.phase_3_min_balance;
-  const maxBid = Math.max(0, teamBalance - reserve);
+  
+  let maxBid = teamBalance - reserve;
+  if (maxBid < 0 && teamBalance > 0) {
+    const remainingSlots = Math.max(1, config.min_squad_size - teamSquadSize);
+    maxBid = Math.max(1, Math.floor(teamBalance / remainingSlots));
+  } else {
+    maxBid = Math.max(0, maxBid);
+  }
   
   breakdown.phase3Reserve = reserve;
   

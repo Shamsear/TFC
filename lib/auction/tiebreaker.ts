@@ -189,7 +189,24 @@ export async function resolveTiebreaker(tiebreakerId: string): Promise<{
       return { success: false, error: 'No valid bids' };
     }
 
-    const sorted = validBids.sort((a, b) => b.newBidAmount! - a.newBidAmount!);
+    const { calculateReserve } = await import('./reserve-calculator-v2');
+
+    // Filter out tiebreaker bids that exceed team reserve limit
+    const validReserveBids = [];
+    for (const b of validBids) {
+      const reserveInfo = await calculateReserve(b.teamId, tiebreaker.roundId, tiebreaker.round.seasonId);
+      if (b.newBidAmount! <= reserveInfo.maxBid) {
+        validReserveBids.push(b);
+      } else {
+        console.warn(`⚠️ Tiebreaker bid of £${b.newBidAmount} from team ${b.teamId} exceeds reserve max bid £${reserveInfo.maxBid}. Disqualifying bid.`);
+      }
+    }
+
+    if (validReserveBids.length === 0) {
+      return { success: false, error: 'No valid tiebreaker bids within reserve limits' };
+    }
+
+    const sorted = validReserveBids.sort((a, b) => b.newBidAmount! - a.newBidAmount!);
 
     // Check for another tie
     if (sorted.length > 1 && sorted[0].newBidAmount === sorted[1].newBidAmount) {

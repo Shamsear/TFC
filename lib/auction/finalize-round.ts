@@ -794,6 +794,13 @@ export async function finalizeRound(roundId: string): Promise<FinalizationResult
         };
       }
       
+      // Reserve validation: Check if this bid breaches the team's floor reserve
+      const reserveInfo = await calculateReserve(currentBid.teamId, roundId, round.seasonId);
+      if (currentBid.amount > reserveInfo.maxBid) {
+        console.log(`   ⚠️  Team ${currentBid.teamId} bid £${currentBid.amount.toLocaleString()} for ${currentBid.playerName} breaches max allowed bid £${reserveInfo.maxBid.toLocaleString()} (floor reserve: £${reserveInfo.floorReserve.toLocaleString()}). Skipping bid.`);
+        continue;
+      }
+      
       // No tie - Allocate this player to this team
       console.log(`   ✓ Allocating ${currentBid.playerName} → Team ${currentBid.teamId} (£${currentBid.amount.toLocaleString()})`);
       

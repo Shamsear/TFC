@@ -15,6 +15,7 @@ interface Transfer {
     id: string
     player_id: string | null
     name: string
+    photoUrl?: string | null
     seasonalPlayerStats: Array<{
       position: string
       position_group: string | null
@@ -232,7 +233,7 @@ export default function TransfersClient({ transfers, seasonId, seasonName }: Tra
                   <div className="flex items-center gap-3 sm:gap-4 flex-1">
                     <div className="relative w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-2xl overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 ring-2 ring-white/5">
                       <img
-                        src={getPlayerPhotoUrl(transfer.basePlayer.id)}
+                        src={getPlayerPhotoUrl(transfer.basePlayer.photoUrl || `${transfer.basePlayer.player_id || transfer.basePlayer.id}.webp`)}
                         alt={transfer.basePlayer.name}
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).src = '/default-player.png' }}

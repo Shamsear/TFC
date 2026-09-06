@@ -64,7 +64,8 @@ export async function GET(request: NextRequest) {
           overallRating: stats?.overallRating || 0,
           realWorldClub: stats?.realWorldClub || 'N/A',
           soldPrice: transfer.soldPrice,
-          acquisitionType: transfer.acquisitionType
+          acquisitionType: transfer.acquisitionType,
+          roundId: transfer.roundId
         };
       })
     );

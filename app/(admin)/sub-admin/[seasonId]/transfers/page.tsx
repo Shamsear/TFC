@@ -35,6 +35,7 @@ export default async function TransfersPage({ params }: TransfersPageProps) {
           id: true,
           player_id: true,
           name: true,
+          photoUrl: true,
           seasonalPlayerStats: {
             where: { seasonId },
             select: {

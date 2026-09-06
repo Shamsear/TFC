@@ -12,6 +12,7 @@ interface Player {
   id: string;
   name: string;
   soldPrice: number;
+  roundId?: string;
 }
 
 interface AllBid {
@@ -84,12 +85,12 @@ export default function PlayerReplacementClient({
       setNewAmount((player.soldPrice || 0).toString());
       
       // Find which round this player was acquired in
-      const playerBid = allBids.find(bid => bid.playerId === playerId && bid.isSold);
-      if (playerBid) {
-        setHighlightedRoundId(playerBid.roundId);
+      const acquiredRoundId = player.roundId || allBids.find(bid => bid.playerId === playerId && bid.acquiredInRound)?.acquiredInRound;
+      if (acquiredRoundId) {
+        setHighlightedRoundId(acquiredRoundId);
         // Scroll to that round after a short delay to ensure DOM is ready
         setTimeout(() => {
-          const element = document.getElementById(`round-${playerBid.roundId}`);
+          const element = document.getElementById(`round-${acquiredRoundId}`);
           if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }

@@ -162,6 +162,9 @@ export async function POST(request: NextRequest) {
       }
 
       return { successfulTransfers, errors };
+    }, {
+      maxWait: 10000,
+      timeout: 30000
     });
 
     return NextResponse.json({

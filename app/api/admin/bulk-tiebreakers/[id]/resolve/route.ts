@@ -81,6 +81,11 @@ export async function POST(
       }, { status: 400 })
     }
 
+    // Pre-generate IDs outside transaction to avoid network round-trip overhead inside the transaction
+    const transferId = await generateTransferId()
+    const financialId = await generateFinancialId()
+    const auditId = await generateAuditId()
+
     // Use transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
       // Update all participants with their final bids
@@ -119,7 +124,6 @@ export async function POST(
       })
 
       // Create transfer record
-      const transferId = await generateTransferId()
       const transfer = await tx.transfer_history.create({
         data: {
           id: transferId,
@@ -161,7 +165,6 @@ export async function POST(
       })
 
       // Create financial ledger entry
-      const financialId = await generateFinancialId()
       await tx.financial_ledger.create({
         data: {
           id: financialId,
@@ -177,7 +180,6 @@ export async function POST(
       })
 
       // Create audit log
-      const auditId = await generateAuditId()
       await tx.audit_logs.create({
         data: {
           id: auditId,
@@ -201,6 +203,9 @@ export async function POST(
       })
 
       return { transfer, winnerId, winningBid }
+    }, {
+      maxWait: 10000,
+      timeout: 30000
     })
 
     // Check if this was the last active tiebreaker in the round

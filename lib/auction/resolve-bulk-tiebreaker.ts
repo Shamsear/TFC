@@ -138,6 +138,11 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
 
     console.log(`✅ Winner: ${winner.team.name} with bid £${winningBid.toLocaleString()}`);
 
+    // Pre-generate IDs outside transaction to avoid network round-trip overhead inside the transaction
+    const transferId = await generateTransferId();
+    const financialId = await generateFinancialId();
+    const auditId = await generateAuditId();
+
     // Use transaction to ensure atomicity
     await prisma.$transaction(async (tx) => {
       // Update tiebreaker status
@@ -152,7 +157,6 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
       });
 
       // Create transfer record
-      const transferId = await generateTransferId();
       await tx.transfer_history.create({
         data: {
           id: transferId,
@@ -195,7 +199,6 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
       });
 
       // Create financial ledger entry
-      const financialId = await generateFinancialId();
       await tx.financial_ledger.create({
         data: {
           id: financialId,
@@ -211,7 +214,6 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
       });
 
       // Create audit log
-      const auditId = await generateAuditId();
       await tx.audit_logs.create({
         data: {
           id: auditId,
@@ -238,6 +240,9 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
           })
         }
       });
+    }, {
+      maxWait: 10000,
+      timeout: 30000
     });
 
     // Check if this was the last active tiebreaker in the round

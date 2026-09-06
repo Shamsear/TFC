@@ -30,7 +30,8 @@ export async function checkAndFinalizeExpiredRound(
         status: true,
         endTime: true,
         finalizationMode: true,
-        roundNumber: true
+        roundNumber: true,
+        roundType: true
       }
     });
 
@@ -97,7 +98,30 @@ export async function checkAndFinalizeExpiredRound(
       return { finalized: false, alreadyFinalized: true };
     }
 
-    // 8. Run finalization
+    // 8. Run finalization based on round type
+    if (round.roundType === 'bulk') {
+      const { finalizeBulkRound, applyBulkFinalizationResults } = await import('./finalize-bulk-round');
+      const result = await finalizeBulkRound(roundId);
+
+      if (result.success) {
+        await applyBulkFinalizationResults(roundId, result.allocations, result.conflicts);
+        return {
+          finalized: true,
+          tiebreakerRequired: result.conflicts.length > 0
+        };
+      }
+
+      await prisma.rounds.update({
+        where: { id: roundId },
+        data: { status: 'expired_pending_finalization' }
+      });
+
+      return {
+        finalized: false,
+        error: result.error || 'Bulk finalization failed'
+      };
+    }
+
     const result = await finalizeRound(roundId);
 
     // 9. Handle ties

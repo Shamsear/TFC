@@ -56,7 +56,7 @@ export default function BulkTiebreakerBiddingClient({
   allTiedTeams: initialTiedTeams
 }: BulkTiebreakerBiddingClientProps) {
   const router = useRouter()
-  const [newBidAmount, setNewBidAmount] = useState(myBid?.newBidAmount || tiebreaker.basePrice + 1)
+  const [newBidAmount, setNewBidAmount] = useState(myBid?.newBidAmount || tiebreaker.basePrice)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [reserveInfo, setReserveInfo] = useState<any>(null)
@@ -174,8 +174,8 @@ export default function BulkTiebreakerBiddingClient({
     setMessage(null)
 
     try {
-      if (newBidAmount <= tiebreaker.basePrice) {
-        throw new Error(`Bid must be higher than £${tiebreaker.basePrice.toLocaleString()}`)
+      if (newBidAmount < tiebreaker.basePrice) {
+        throw new Error(`Bid must be at least £${tiebreaker.basePrice.toLocaleString()}`)
       }
 
       if (newBidAmount > maxBidLimit) {
@@ -482,14 +482,14 @@ export default function BulkTiebreakerBiddingClient({
 
             <div className="mb-6">
               <label className="block text-xs font-extrabold text-[#D4CCBB] mb-2 uppercase tracking-wide">
-                Bid Amount (must exceed £{tiebreaker.basePrice.toLocaleString()})
+                Bid Amount (must be at least £{tiebreaker.basePrice.toLocaleString()})
               </label>
               <div className="relative">
                 <input
                   type="number"
                   value={newBidAmount}
                   onChange={(e) => setNewBidAmount(parseInt(e.target.value) || 0)}
-                  min={tiebreaker.basePrice + 1}
+                  min={tiebreaker.basePrice}
                   max={maxBidLimit}
                   step={1000}
                   className="w-full pl-9 pr-4 py-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/20 text-white text-xl font-extrabold font-mono focus:outline-none focus:border-[#E8A800] focus:ring-1 focus:ring-[#E8A800]"
@@ -523,7 +523,7 @@ export default function BulkTiebreakerBiddingClient({
               </div>
               
               <p className="text-[10px] text-[#7A7367] font-semibold mt-3.5 uppercase tracking-wide flex justify-between font-mono">
-                <span>Min: £{(tiebreaker.basePrice + 1).toLocaleString()}</span>
+                <span>Min: £{tiebreaker.basePrice.toLocaleString()}</span>
                 <span>Max Allowed: £{maxBidLimit.toLocaleString()}</span>
               </p>
             </div>
@@ -531,7 +531,7 @@ export default function BulkTiebreakerBiddingClient({
             <div className="flex gap-4">
               <button
                 onClick={handleSubmit}
-                disabled={submitting || newBidAmount <= tiebreaker.basePrice || newBidAmount > maxBidLimit}
+                disabled={submitting || newBidAmount < tiebreaker.basePrice || newBidAmount > maxBidLimit}
                 className="flex-1 px-6 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-extrabold uppercase tracking-widest text-xs active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-emerald-950/20"
               >
                 {submitting ? 'Submitting Bid...' : `Submit Bid of £${newBidAmount.toLocaleString()}`}

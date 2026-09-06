@@ -55,7 +55,7 @@ export async function resolveBulkTiebreaker(tiebreakerId: number) {
     }
 
     // Find highest bid
-    const validBids = tiebreaker.participants.filter(p => p.newBidAmount && p.newBidAmount > tiebreaker.basePrice);
+    const validBids = tiebreaker.participants.filter(p => p.newBidAmount && p.newBidAmount >= tiebreaker.basePrice);
     
     if (validBids.length === 0) {
       console.log(`⚠️  No valid bids for tiebreaker ${tiebreakerId}`);

@@ -49,14 +49,18 @@ export default function BulkTiebreakerManualResolve({
   const [showConfirm, setShowConfirm] = useState(false)
   const [showUnsoldConfirm, setShowUnsoldConfirm] = useState(false)
 
-  // Auto-select winner based on highest bid
+  // Auto-select winner based on unique highest bid
   useEffect(() => {
-    const highestBidEntry = Object.entries(teamBids).reduce((max, [teamId, bid]) => {
-      return bid > max.bid ? { teamId, bid } : max
-    }, { teamId: '', bid: 0 })
+    const entries = Object.entries(teamBids)
+    if (entries.length === 0) return
 
-    if (highestBidEntry.teamId && highestBidEntry.bid >= basePrice) {
-      setSelectedWinner(highestBidEntry.teamId)
+    const maxBid = Math.max(...entries.map(([, bid]) => bid))
+    const teamsWithMaxBid = entries.filter(([, bid]) => bid === maxBid)
+
+    if (teamsWithMaxBid.length === 1 && maxBid >= basePrice) {
+      setSelectedWinner(teamsWithMaxBid[0][0])
+    } else {
+      setSelectedWinner('')
     }
   }, [teamBids, basePrice])
 

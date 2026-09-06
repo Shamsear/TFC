@@ -167,7 +167,7 @@ export async function finalizeBulkTiebreaker(
 
     // Find all valid sealed bids
     const validBids = tiebreaker.participants.filter(
-      p => p.submitted && p.newBidAmount && p.newBidAmount > tiebreaker.basePrice
+      p => p.submitted && p.newBidAmount && p.newBidAmount >= tiebreaker.basePrice
     );
 
     console.log(`   Valid sealed bids: ${validBids.length}`);

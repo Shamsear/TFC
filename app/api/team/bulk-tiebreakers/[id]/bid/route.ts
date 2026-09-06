@@ -74,10 +74,10 @@ export async function POST(
       return NextResponse.json({ error: 'You have already submitted your bid' }, { status: 400 });
     }
 
-    // Validate bid is higher than base price
-    if (newBidAmount <= tiebreaker.basePrice) {
+    // Validate bid is at least base price
+    if (newBidAmount < tiebreaker.basePrice) {
       return NextResponse.json({
-        error: `Bid must be higher than base price of £${tiebreaker.basePrice.toLocaleString()}`
+        error: `Bid must be at least the base price of £${tiebreaker.basePrice.toLocaleString()}`
       }, { status: 400 });
     }
 

@@ -252,7 +252,7 @@ export default function ReleaseRequestClient({
       newSelected.delete(playerId)
     } else {
       // Check if adding this player would exceed the REQUEST limit
-      if (newSelected.size >= remainingRequests) {
+      if (maxReleases < 999 && newSelected.size >= remainingRequests) {
         alert(`You can only submit ${remainingRequests} more release request${remainingRequests !== 1 ? 's' : ''} (${totalRequestsCount}/${maxReleases} requests used)`)
         return
       }
@@ -267,7 +267,7 @@ export default function ReleaseRequestClient({
       return
     }
 
-    if (selectedPlayers.size > remainingRequests) {
+    if (maxReleases < 999 && selectedPlayers.size > remainingRequests) {
       alert(`You can only submit ${remainingRequests} more release request${remainingRequests !== 1 ? 's' : ''}. You have already submitted ${totalRequestsCount}/${maxReleases} requests.`)
       return
     }
@@ -396,11 +396,13 @@ export default function ReleaseRequestClient({
               <div>
                 <h3 className="text-base font-black text-white uppercase tracking-wider font-mono">Roster Release Quotas</h3>
                 <p className={`text-xs mt-1 font-mono uppercase tracking-wide font-bold ${
-                  remainingRequests === 0 ? 'text-red-400' : remainingRequests <= 1 ? 'text-yellow-400' : 'text-cyan-400'
+                  maxReleases >= 999 ? 'text-cyan-400' : remainingRequests === 0 ? 'text-red-400' : remainingRequests <= 1 ? 'text-yellow-400' : 'text-cyan-400'
                 }`}>
-                  {remainingRequests === 0 
-                    ? `Season request quotas exhausted`
-                    : `${remainingRequests} of ${maxReleases} request slots remaining`
+                  {maxReleases >= 999
+                    ? `Unlimited release request slots available`
+                    : remainingRequests === 0 
+                      ? `Season request quotas exhausted`
+                      : `${remainingRequests} of ${maxReleases} request slots remaining`
                   }
                 </p>
               </div>
@@ -409,17 +411,17 @@ export default function ReleaseRequestClient({
               <div className="text-right">
                 <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider">Total Requests</div>
                 <div className={`text-xl font-black mt-0.5 ${
-                  totalRequestsCount >= maxReleases ? 'text-red-400' : 'text-white'
+                  totalRequestsCount >= maxReleases && maxReleases < 999 ? 'text-red-400' : 'text-white'
                 }`}>
-                  {totalRequestsCount} <span className="text-xs text-gray-500 font-normal">/ {maxReleases}</span>
+                  {totalRequestsCount} <span className="text-xs text-gray-500 font-normal">/ {maxReleases >= 999 ? 'Unlimited' : maxReleases}</span>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider">Approved</div>
                 <div className={`text-xl font-black mt-0.5 ${
-                  approvedReleasesCount >= maxReleases ? 'text-red-400' : 'text-emerald-400'
+                  approvedReleasesCount >= maxReleases && maxReleases < 999 ? 'text-red-400' : 'text-emerald-400'
                 }`}>
-                  {approvedReleasesCount} <span className="text-xs text-gray-500 font-normal">/ {maxReleases}</span>
+                  {approvedReleasesCount} <span className="text-xs text-gray-500 font-normal">/ {maxReleases >= 999 ? 'Unlimited' : maxReleases}</span>
                 </div>
               </div>
             </div>
@@ -427,7 +429,7 @@ export default function ReleaseRequestClient({
         </div>
 
         {/* Show message if limit reached */}
-        {remainingRequests === 0 && (
+        {remainingRequests === 0 && maxReleases < 999 && (
           <div className="mb-8 rounded-3xl bg-red-950/15 border border-red-500/20 p-8 text-center shadow-lg">
             <svg className="w-14 h-14 text-red-500/80 mx-auto mb-4 animate-[pulse_2s_infinite]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

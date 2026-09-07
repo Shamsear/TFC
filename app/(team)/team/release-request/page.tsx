@@ -130,8 +130,9 @@ export default async function ReleaseRequestPage() {
   const approvedReleasesCount = activeWindowRequests.filter(req => req.status === 'approved').length
 
   const MAX_RELEASES_PER_TEAM = activeReleaseWindow.releaseLimit || 3
-  const remainingRequests = Math.max(0, MAX_RELEASES_PER_TEAM - totalRequestsCount)
-  const remainingApprovals = Math.max(0, MAX_RELEASES_PER_TEAM - approvedReleasesCount)
+  const isUnlimited = MAX_RELEASES_PER_TEAM >= 999
+  const remainingRequests = isUnlimited ? 999 : Math.max(0, MAX_RELEASES_PER_TEAM - totalRequestsCount)
+  const remainingApprovals = isUnlimited ? 999 : Math.max(0, MAX_RELEASES_PER_TEAM - approvedReleasesCount)
 
   // Transform data for client
   const players = transfers.map(transfer => {

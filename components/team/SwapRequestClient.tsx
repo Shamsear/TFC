@@ -57,6 +57,7 @@ interface Limits {
   remainingSwaps: number
   canSubmit: boolean
   maxSwaps?: number
+  isUnlimited?: boolean
 }
 
 interface Props {
@@ -293,20 +294,28 @@ export default function SwapRequestClient({
             {/* Quota Indicators */}
             <div className="flex gap-3 sm:gap-4 shrink-0">
               <div className={`px-4 py-2.5 rounded-xl border backdrop-blur-md flex flex-col justify-center min-w-[120px] transition-all duration-300 ${
-                limits.remainingRequests === 0 
+                limits.remainingRequests === 0 && !limits.isUnlimited && (!limits.maxSwaps || limits.maxSwaps < 999)
                   ? 'bg-red-500/10 border-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.1)]' 
                   : 'bg-white/[0.02] border-white/[0.08] text-white'
               }`}>
                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold block mb-0.5">Requests Left</span>
-                <span className="font-bold text-lg font-mono">{limits.remainingRequests} / {limits.maxSwaps || 5}</span>
+                <span className="font-bold text-lg font-mono">
+                  {(limits.isUnlimited || (limits.maxSwaps && limits.maxSwaps >= 999) || limits.remainingRequests >= 900)
+                    ? 'Unlimited'
+                    : `${limits.remainingRequests} / ${limits.maxSwaps || 5}`}
+                </span>
               </div>
               <div className={`px-4 py-2.5 rounded-xl border backdrop-blur-md flex flex-col justify-center min-w-[120px] transition-all duration-300 ${
-                limits.remainingSwaps === 0 
+                limits.remainingSwaps === 0 && !limits.isUnlimited && (!limits.maxSwaps || limits.maxSwaps < 999)
                   ? 'bg-red-500/10 border-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.1)]' 
                   : 'bg-[#E8A800]/5 border-[#E8A800]/20 text-[#E8A800] shadow-[0_0_15px_rgba(232,168,0,0.05)]'
               }`}>
                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold block mb-0.5">Swaps Left</span>
-                <span className="font-bold text-lg font-mono">{limits.remainingSwaps} / {limits.maxSwaps || 5}</span>
+                <span className="font-bold text-lg font-mono">
+                  {(limits.isUnlimited || (limits.maxSwaps && limits.maxSwaps >= 999) || limits.remainingSwaps >= 900)
+                    ? 'Unlimited'
+                    : `${limits.remainingSwaps} / ${limits.maxSwaps || 5}`}
+                </span>
               </div>
             </div>
           </div>

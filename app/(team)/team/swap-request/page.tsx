@@ -179,12 +179,13 @@ export default async function SwapRequestPage() {
   const usedRequestsCount = pendingRequestsCount + completedSwapsCount
 
   const maxSwaps = activeSwapWindow.swapLimit || 5
+  const isUnlimited = maxSwaps >= 999
   const limits = {
     totalRequests: usedRequestsCount,
     completedSwaps: completedSwapsCount,
-    remainingRequests: Math.max(0, maxSwaps - usedRequestsCount),
-    remainingSwaps: Math.max(0, maxSwaps - completedSwapsCount),
-    canSubmit: usedRequestsCount < maxSwaps && completedSwapsCount < maxSwaps,
+    remainingRequests: isUnlimited ? 999 : Math.max(0, maxSwaps - usedRequestsCount),
+    remainingSwaps: isUnlimited ? 999 : Math.max(0, maxSwaps - completedSwapsCount),
+    canSubmit: isUnlimited || (usedRequestsCount < maxSwaps && completedSwapsCount < maxSwaps),
     maxSwaps,
   }
 

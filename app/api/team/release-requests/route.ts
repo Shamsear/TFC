@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Check if adding these releases would exceed the total request limit for the window
-    if (totalRequestsCount + releases.length > MAX_RELEASES_PER_TEAM) {
+    // Check if adding these releases would exceed the total request limit for the window (if not unlimited)
+    if (MAX_RELEASES_PER_TEAM < 999 && totalRequestsCount + releases.length > MAX_RELEASES_PER_TEAM) {
       const remaining = MAX_RELEASES_PER_TEAM - totalRequestsCount
       return NextResponse.json(
         { 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Also check approved releases count in the current window
+    // Also check approved releases count in the current window (if not unlimited)
     const approvedReleasesCount = await prisma.release_requests.count({
       where: {
         seasonId,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Check if adding these releases would exceed the approved limit for the window
-    if (approvedReleasesCount + releases.length > MAX_RELEASES_PER_TEAM) {
+    if (MAX_RELEASES_PER_TEAM < 999 && approvedReleasesCount + releases.length > MAX_RELEASES_PER_TEAM) {
       const remaining = MAX_RELEASES_PER_TEAM - approvedReleasesCount
       return NextResponse.json(
         { 
@@ -244,8 +244,9 @@ export async function GET(request: NextRequest) {
       totalRequestsCount,
       approvedCount,
       maxReleases,
-      remainingRequests: Math.max(0, maxReleases - totalRequestsCount),
-      remainingApprovals: Math.max(0, maxReleases - approvedCount),
+      isUnlimited: maxReleases >= 999,
+      remainingRequests: maxReleases >= 999 ? 999 : Math.max(0, maxReleases - totalRequestsCount),
+      remainingApprovals: maxReleases >= 999 ? 999 : Math.max(0, maxReleases - approvedCount),
     })
   } catch (error: any) {
     console.error('Error fetching release requests:', error)

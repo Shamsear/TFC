@@ -248,14 +248,26 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
               </div>
               
               <div>
-                <label className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono mb-2">Swap Limit</label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest font-mono">Swap Limit</label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-gray-400 font-bold uppercase tracking-wider font-mono hover:text-white">
+                    <input
+                      type="checkbox"
+                      checked={formData.swapLimit >= 999}
+                      onChange={e => setFormData({ ...formData, swapLimit: e.target.checked ? 999 : 5 })}
+                      className="rounded border-white/10 bg-white/5 text-[#E8A800] focus:ring-0 cursor-pointer"
+                    />
+                    Unlimited
+                  </label>
+                </div>
                 <input
                   type="number"
                   required
                   min="1"
-                  value={formData.swapLimit}
+                  value={formData.swapLimit >= 999 ? 999 : formData.swapLimit}
+                  disabled={formData.swapLimit >= 999}
                   onChange={e => setFormData({ ...formData, swapLimit: parseInt(e.target.value) || 5 })}
-                  className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#E8A800]/30 transition-all font-mono disabled:opacity-50"
                   placeholder="e.g. 5"
                 />
               </div>
@@ -342,7 +354,7 @@ export default function SwapWindowsClient({ seasonId, seasonName }: Props) {
                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono flex gap-4 flex-wrap">
                   <div>Starts: <span className="text-gray-300">{formatIST(window.startDate)}</span></div>
                   <div>Ends: <span className="text-gray-300">{formatIST(window.endDate)}</span></div>
-                  <div>Limit: <span className="text-white font-medium">{window.swapLimit || 5}</span></div>
+                  <div>Limit: <span className="text-white font-medium">{window.swapLimit >= 999 ? 'Unlimited' : (window.swapLimit || 5)}</span></div>
                 </div>
                 <div className="text-xs font-bold uppercase tracking-wider font-mono text-gray-500">
                   Requests: <span className="text-[#E8A800]">{window._count?.swapRequests || 0}</span>

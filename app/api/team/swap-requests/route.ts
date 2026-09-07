@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const maxSwaps = activeSwapWindow.swapLimit || 5
+    const isUnlimited = maxSwaps >= 999
 
     // Validate even swap
     const playersFromRequesting = players.filter((p: any) => p.fromTeamId === requestingTeamId)
@@ -65,72 +66,74 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check request limit (max swaps requests involved in - sent or received for this window)
-    const teamRequests = await prisma.swap_requests.count({
-      where: {
-        seasonId,
-        swapWindowId: activeSwapWindow.id,
-        status: { in: ['pending', 'approved'] },
-        OR: [
-          { requestingTeamId },
-          { targetTeamId: requestingTeamId },
-        ],
+    if (!isUnlimited) {
+      // Check request limit (max swaps requests involved in - sent or received for this window)
+      const teamRequests = await prisma.swap_requests.count({
+        where: {
+          seasonId,
+          swapWindowId: activeSwapWindow.id,
+          status: { in: ['pending', 'approved'] },
+          OR: [
+            { requestingTeamId },
+            { targetTeamId: requestingTeamId },
+          ],
+        }
+      })
+
+      if (teamRequests >= maxSwaps) {
+        return NextResponse.json({ error: `You have reached the maximum limit of ${maxSwaps} active/completed swap requests per window` }, { status: 400 })
       }
-    })
 
-    if (teamRequests >= maxSwaps) {
-      return NextResponse.json({ error: `You have reached the maximum limit of ${maxSwaps} active/completed swap requests per window` }, { status: 400 })
-    }
+      // Check completed swap limit for requesting team (max swaps for this window)
+      const approvedSwaps = await prisma.swap_requests.count({
+        where: {
+          seasonId,
+          swapWindowId: activeSwapWindow.id,
+          status: 'approved',
+          OR: [
+            { requestingTeamId },
+            { targetTeamId: requestingTeamId },
+          ],
+        }
+      })
 
-    // Check completed swap limit for requesting team (max swaps for this window)
-    const approvedSwaps = await prisma.swap_requests.count({
-      where: {
-        seasonId,
-        swapWindowId: activeSwapWindow.id,
-        status: 'approved',
-        OR: [
-          { requestingTeamId },
-          { targetTeamId: requestingTeamId },
-        ],
+      if (approvedSwaps >= maxSwaps) {
+        return NextResponse.json({ error: `You have reached the maximum limit of ${maxSwaps} completed swaps per window` }, { status: 400 })
       }
-    })
 
-    if (approvedSwaps >= maxSwaps) {
-      return NextResponse.json({ error: `You have reached the maximum limit of ${maxSwaps} completed swaps per window` }, { status: 400 })
-    }
+      // Check target team request limit for this window
+      const targetTeamRequests = await prisma.swap_requests.count({
+        where: {
+          seasonId,
+          swapWindowId: activeSwapWindow.id,
+          status: { in: ['pending', 'approved'] },
+          OR: [
+            { requestingTeamId: targetTeamId },
+            { targetTeamId },
+          ],
+        }
+      })
 
-    // Check target team request limit for this window
-    const targetTeamRequests = await prisma.swap_requests.count({
-      where: {
-        seasonId,
-        swapWindowId: activeSwapWindow.id,
-        status: { in: ['pending', 'approved'] },
-        OR: [
-          { requestingTeamId: targetTeamId },
-          { targetTeamId },
-        ],
+      if (targetTeamRequests >= maxSwaps) {
+        return NextResponse.json({ error: `The target team has already reached their maximum limit of ${maxSwaps} active/completed swap requests per window` }, { status: 400 })
       }
-    })
 
-    if (targetTeamRequests >= maxSwaps) {
-      return NextResponse.json({ error: `The target team has already reached their maximum limit of ${maxSwaps} active/completed swap requests per window` }, { status: 400 })
-    }
+      // Check completed swap limit for target team (max approved swaps for this window)
+      const targetApprovedSwaps = await prisma.swap_requests.count({
+        where: {
+          seasonId,
+          swapWindowId: activeSwapWindow.id,
+          status: 'approved',
+          OR: [
+            { requestingTeamId: targetTeamId },
+            { targetTeamId },
+          ],
+        }
+      })
 
-    // Check completed swap limit for target team (max approved swaps for this window)
-    const targetApprovedSwaps = await prisma.swap_requests.count({
-      where: {
-        seasonId,
-        swapWindowId: activeSwapWindow.id,
-        status: 'approved',
-        OR: [
-          { requestingTeamId: targetTeamId },
-          { targetTeamId },
-        ],
+      if (targetApprovedSwaps >= maxSwaps) {
+        return NextResponse.json({ error: `The target team has already reached their maximum limit of ${maxSwaps} completed swaps per window` }, { status: 400 })
       }
-    })
-
-    if (targetApprovedSwaps >= maxSwaps) {
-      return NextResponse.json({ error: `The target team has already reached their maximum limit of ${maxSwaps} completed swaps per window` }, { status: 400 })
     }
 
     // Allow multiple pending swap requests between the same teams

@@ -455,7 +455,7 @@ _All releases processed by admin_`
                <span className="text-gray-400">Duration:</span> {formatDateIST(selectedWindow.startDate)} - {formatDateIST(selectedWindow.endDate)}
              </div>
             <div>
-              <span className="text-gray-400">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.releaseLimit} releases</span> per team
+              <span className="text-gray-400">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.releaseLimit >= 999 ? 'Unlimited' : `${selectedWindow.releaseLimit} releases`}</span> per team
             </div>
           </div>
         )}

@@ -449,7 +449,7 @@ ${targetAcquires || '_None_'}
               <span className="text-gray-400">Duration:</span> {formatDateIST(selectedWindow.startDate)} - {formatDateIST(selectedWindow.endDate)}
             </div>
             <div>
-              <span className="text-gray-400">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.swapLimit} swaps</span> per team
+              <span className="text-gray-400">Limit:</span> <span className="text-[#E8A800] font-bold">{selectedWindow.swapLimit >= 999 ? 'Unlimited' : `${selectedWindow.swapLimit} swaps`}</span> per team
             </div>
           </div>
         )}

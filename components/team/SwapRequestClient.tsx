@@ -56,6 +56,42 @@ interface ExistingRequest {
   players: SwapPlayer[]
 }
 
+interface AcquiredPlayerInfo {
+  playerName: string
+  playerValue: number
+  overall?: number
+  fromTeamName: string
+}
+
+interface TradedPlayerInfo {
+  playerName: string
+  playerValue: number
+  overall?: number
+  toTeamName: string
+}
+
+interface TeamStatItem {
+  teamId: string
+  teamName: string
+  logoUrl: string
+  isMyTeam: boolean
+  totalRequests: number
+  approvedSwapsCount: number
+  pendingSwapsCount: number
+  totalValueSwapped: number
+  topAcquiredPlayer: AcquiredPlayerInfo | null
+  topTradedPlayer: TradedPlayerInfo | null
+  topPartner: string | null
+}
+
+interface BestDealItem extends ExistingRequest {
+  team1Players: SwapPlayer[]
+  team2Players: SwapPlayer[]
+  totalDealValue: number
+  maxOverall: number
+}
+
+
 interface Limits {
   totalRequests: number
   completedSwaps: number
@@ -304,7 +340,7 @@ export default function SwapRequestClient({
   }, [requestsForStats])
 
   // Team Leaderboard Stats
-  const teamStatsList = useMemo(() => {
+  const teamStatsList = useMemo<TeamStatItem[]>(() => {
     const teamsToUse = allTeams && allTeams.length > 0
       ? allTeams
       : [
@@ -320,8 +356,8 @@ export default function SwapRequestClient({
       const pendingSwaps = teamRequests.filter(r => r.status === 'pending')
 
       let totalValueSwapped = 0
-      let topAcquiredPlayer: { playerName: string; playerValue: number; overall?: number; fromTeamName: string } | null = null
-      let topTradedPlayer: { playerName: string; playerValue: number; overall?: number; toTeamName: string } | null = null
+      let topAcquiredPlayer: AcquiredPlayerInfo | null = null
+      let topTradedPlayer: TradedPlayerInfo | null = null
       const partnerCounts: Record<string, { name: string; count: number }> = {}
 
       approvedSwaps.forEach(req => {
@@ -338,7 +374,7 @@ export default function SwapRequestClient({
         req.players.forEach(p => {
           if (p.toTeamId === t.id) {
             totalValueSwapped += p.playerValue
-            if (!topAcquiredPlayer || p.playerValue > topAcquiredPlayer.playerValue) {
+            if (!topAcquiredPlayer || p.playerValue > (topAcquiredPlayer as AcquiredPlayerInfo).playerValue) {
               topAcquiredPlayer = {
                 playerName: p.playerName,
                 playerValue: p.playerValue,
@@ -349,7 +385,7 @@ export default function SwapRequestClient({
           }
           if (p.fromTeamId === t.id) {
             totalValueSwapped += p.playerValue
-            if (!topTradedPlayer || p.playerValue > topTradedPlayer.playerValue) {
+            if (!topTradedPlayer || p.playerValue > (topTradedPlayer as TradedPlayerInfo).playerValue) {
               topTradedPlayer = {
                 playerName: p.playerName,
                 playerValue: p.playerValue,
@@ -390,7 +426,7 @@ export default function SwapRequestClient({
   }, [teamStatsList, statsSearch])
 
   // Best Deals (Ranked Approved Swaps)
-  const bestDealsList = useMemo(() => {
+  const bestDealsList = useMemo<BestDealItem[]>(() => {
     return approvedSeasonRequests.map(req => {
       const team1Players = req.players.filter(p => p.fromTeamId === req.requestingTeamId)
       const team2Players = req.players.filter(p => p.fromTeamId === req.targetTeamId)
@@ -419,7 +455,7 @@ export default function SwapRequestClient({
   }, [teamStatsList])
 
   // --- WHATSAPP MESSAGING HELPERS FOR STATS ---
-  const copyTeamStatsToWhatsApp = (tStat: typeof teamStatsList[0]) => {
+  const copyTeamStatsToWhatsApp = (tStat: TeamStatItem) => {
     const text = `📊 *TFC SWAP STATS — ${tStat.teamName}* 📊\n\n` +
       `🏆 *Deals Done (Approved Swaps):* ${tStat.approvedSwapsCount}\n` +
       `⌛ *Pending Proposals:* ${tStat.pendingSwapsCount}\n` +
@@ -432,7 +468,8 @@ export default function SwapRequestClient({
     showCopiedToast(`Copied ${tStat.teamName}'s swap stats for WhatsApp!`)
   }
 
-  const copyBestDealToWhatsApp = (deal: typeof bestDealsList[0]) => {
+  const copyBestDealToWhatsApp = (deal: BestDealItem) => {
+
     const team1List = deal.team1Players.map(p => `• ${p.playerName} (£${p.playerValue.toLocaleString()}${p.overall ? ` | OVR ${p.overall}` : ''})`).join('\n')
     const team2List = deal.team2Players.map(p => `• ${p.playerName} (£${p.playerValue.toLocaleString()}${p.overall ? ` | OVR ${p.overall}` : ''})`).join('\n')
 

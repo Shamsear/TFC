@@ -24,7 +24,7 @@ export default async function SwapRequestPage() {
   }
 
   // PARALLELIZE: All these queries are independent
-  const [activeSwapWindow, team, ownPlayers, otherTeams, otherPlayers, existingRequests] = await Promise.all([
+  const [activeSwapWindow, team, ownPlayers, allSeasonTeams, otherPlayers, allSeasonRequests] = await Promise.all([
     // Active swap window
     prisma.swap_windows.findFirst({
       where: { seasonId: activeSeason.id, status: 'ACTIVE' }
@@ -44,10 +44,11 @@ export default async function SwapRequestPage() {
       },
       orderBy: { soldPrice: 'desc' },
     }),
-    // Other teams
+    // All teams in season
     prisma.season_teams.findMany({
-      where: { seasonId: activeSeason.id, teamId: { not: session.user.teamId } },
+      where: { seasonId: activeSeason.id },
       include: { team: { select: { id: true, name: true, logoUrl: true } } },
+      orderBy: { team: { name: 'asc' } },
     }),
     // Other players
     prisma.transfer_history.findMany({
@@ -63,23 +64,29 @@ export default async function SwapRequestPage() {
       },
       orderBy: { soldPrice: 'desc' },
     }),
-    // Existing swap requests
+    // All swap requests for active season (for stats & best deals)
     prisma.swap_requests.findMany({
-      where: {
-        seasonId: activeSeason.id,
-        OR: [{ requestingTeamId: session.user.teamId }, { targetTeamId: session.user.teamId }],
-      },
+      where: { seasonId: activeSeason.id },
       include: {
         requestingTeam: { select: { id: true, name: true, logoUrl: true } },
         targetTeam: { select: { id: true, name: true, logoUrl: true } },
         players: {
           include: {
-            basePlayer: { select: { id: true, name: true, player_id: true } },
+            basePlayer: {
+              select: {
+                id: true, name: true, player_id: true,
+                seasonalPlayerStats: {
+                  where: { seasonId: activeSeason.id },
+                  select: { position: true, overallRating: true },
+                },
+              },
+            },
             fromTeam: { select: { id: true, name: true } },
             toTeam: { select: { id: true, name: true } },
           },
         },
       },
+      orderBy: { submittedAt: 'desc' },
     }),
   ])
 
@@ -143,36 +150,58 @@ export default async function SwapRequestPage() {
     }
   })
 
-  const teams = otherTeams.map(st => ({
+  const otherTeamsList = allSeasonTeams
+    .filter(st => st.teamId !== session.user.teamId)
+    .map(st => ({
+      id: st.team.id,
+      name: st.team.name,
+      logoUrl: st.team.logoUrl,
+    }))
+
+  const allTeams = allSeasonTeams.map(st => ({
     id: st.team.id,
     name: st.team.name,
     logoUrl: st.team.logoUrl,
+    isMyTeam: st.teamId === session.user.teamId,
   }))
 
-  const requests = existingRequests.map(req => ({
+  const allRequestsTransformed = allSeasonRequests.map(req => ({
     id: req.id,
     requestingTeamId: req.requestingTeamId,
     requestingTeamName: req.requestingTeam.name,
+    requestingTeamLogo: req.requestingTeam.logoUrl,
     targetTeamId: req.targetTeamId,
     targetTeamName: req.targetTeam.name,
-    isMyRequest: req.requestingTeamId === session.user.teamId,
+    targetTeamLogo: req.targetTeam.logoUrl,
+    isMyRequest: req.requestingTeamId === session.user.teamId || req.targetTeamId === session.user.teamId,
     status: req.status ?? '',
     submittedAt: req.submittedAt ? req.submittedAt.toISOString() : '',
-    players: req.players.map(p => ({
-      id: p.id,
-      playerId: p.playerId,
-      playerName: p.playerName,
-      playerPhotoId: p.basePlayer.player_id || p.basePlayer.id,
-      fromTeamId: p.fromTeamId,
-      fromTeamName: p.fromTeam.name,
-      toTeamId: p.toTeamId,
-      toTeamName: p.toTeam.name,
-      playerValue: p.playerValue,
-    })),
+    swapWindowId: req.swapWindowId,
+    players: req.players.map(p => {
+      const stats = p.basePlayer?.seasonalPlayerStats?.[0]
+      return {
+        id: p.id,
+        playerId: p.playerId,
+        playerName: p.playerName,
+        playerPhotoId: p.basePlayer?.player_id || p.basePlayer?.id || p.playerId,
+        fromTeamId: p.fromTeamId,
+        fromTeamName: p.fromTeam.name,
+        toTeamId: p.toTeamId,
+        toTeamName: p.toTeam.name,
+        playerValue: p.playerValue,
+        position: stats?.position || 'Unknown',
+        overall: stats?.overallRating || 0,
+      }
+    }),
   }))
 
+  // Existing requests for the current team
+  const requests = allRequestsTransformed.filter(
+    req => req.requestingTeamId === session.user.teamId || req.targetTeamId === session.user.teamId
+  )
+
   // Get requests for the current active swap window to calculate limits
-  const activeWindowRequests = existingRequests.filter(r => r.swapWindowId === activeSwapWindow.id)
+  const activeWindowRequests = requests.filter(r => r.swapWindowId === activeSwapWindow.id)
 
   const pendingRequestsCount = activeWindowRequests.filter(r => r.status === 'pending').length
   const completedSwapsCount = activeWindowRequests.filter(r => r.status === 'approved').length
@@ -192,13 +221,16 @@ export default async function SwapRequestPage() {
   return (
     <SwapRequestClient
       seasonId={activeSeason.id}
+      seasonName={activeSeason.name}
       swapWindowId={activeSwapWindow.id}
       myTeamId={session.user.teamId!}
       myTeamName={team?.name || ''}
       myPlayers={myPlayers}
       availablePlayers={availablePlayers}
-      teams={teams}
+      teams={otherTeamsList}
+      allTeams={allTeams}
       existingRequests={requests}
+      allSeasonRequests={allRequestsTransformed}
       limits={limits}
     />
   )

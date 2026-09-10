@@ -6,6 +6,7 @@ import TournamentTabs from '@/components/tournament/TournamentTabs'
 
 import TournamentStatusSelector from '@/components/tournament/TournamentStatusSelector'
 import { formatDateIST } from '@/lib/date-ist'
+import { autoStartDueTournamentRounds } from '@/lib/tournaments/auto-start-rounds'
 
 interface TournamentDetailPageProps {
   params: Promise<{
@@ -21,6 +22,9 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
   }
 
   const { seasonId, tournamentId } = await params
+
+  // Automatically start any gameweeks whose scheduled startDate has arrived
+  await autoStartDueTournamentRounds(tournamentId, seasonId)
 
   const tournament = await prisma.tournaments.findUnique({
     where: { id: tournamentId },

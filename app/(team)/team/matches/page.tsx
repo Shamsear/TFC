@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { checkTeamSeasonParticipation } from "@/lib/team-auth"
 import TournamentMatches from "@/components/tournaments/TournamentMatches"
+import { autoStartDueTournamentRounds } from "@/lib/tournaments/auto-start-rounds"
 
 export const metadata = {
   title: "Matches | Team Dashboard",
@@ -37,6 +38,9 @@ export default async function MatchesPage() {
       </div>
     )
   }
+
+  // Automatically start any gameweeks whose scheduled startDate has arrived
+  await autoStartDueTournamentRounds(undefined, activeSeason.id)
 
   // Get current season team
   const currentSeasonTeam = await prisma.season_teams.findUnique({

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/components/ui/ToastProvider'
+import { formatIST } from '@/lib/date-ist'
 
 interface MatchRoundManagerProps {
   matches: any[]
@@ -41,11 +42,13 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
       const isAnyLive = roundMatches.some(m => m.status === 'LIVE')
       const isAllCompleted = roundMatches.every(m => m.status === 'COMPLETED' || m.status === 'CANCELLED')
       const defaultDate = toLocalISOString(dates[0])
+      const startDate = roundMatches[0]?.startDate ? new Date(roundMatches[0].startDate) : null
       
       return {
         name,
         matches: roundMatches,
         defaultDate,
+        startDate,
         isActive: isAnyLive,
         isCompleted: isAllCompleted
       }
@@ -56,6 +59,27 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
       return a.name.localeCompare(b.name)
     })
   }, [matches])
+
+  // Automatically trigger sync if any scheduled round is due
+  useEffect(() => {
+    const now = new Date()
+    const hasDueScheduledRound = rounds.some(
+      r => !r.isActive && !r.isCompleted && r.startDate && r.startDate <= now
+    )
+
+    if (hasDueScheduledRound) {
+      fetch(`/api/seasons/${seasonId}/tournaments/${tournamentId}/rounds/auto-start`, {
+        method: 'POST'
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.results && data.results.some((r: any) => r.status === 'started')) {
+            router.refresh()
+          }
+        })
+        .catch(err => console.warn('[AutoStart Client Check] Error:', err))
+    }
+  }, [rounds, seasonId, tournamentId, router])
 
   const [defaultDeadlineTime, setDefaultDeadlineTime] = useState('22:00')
   const [defaultDeadlineOffset, setDefaultDeadlineOffset] = useState(2)
@@ -177,8 +201,38 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/5 pb-4">
         <div>
           <h2 className="text-lg font-black text-white uppercase tracking-wider font-mono">Manage Match Rounds</h2>
-          <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-1">Set deadlines and start gameweeks</p>
+          <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-1">Set deadlines and manage gameweeks</p>
         </div>
+      </div>
+
+      {/* Auto-Start Status Banner */}
+      <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">⚡</span>
+          <div>
+            <div className="text-white font-black text-xs uppercase tracking-wider flex items-center gap-2">
+              <span>Automated Gameweek Start Active</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-extrabold">AUTO</span>
+            </div>
+            <p className="text-gray-400 text-[11px] mt-0.5">
+              Rounds start automatically as <span className="text-emerald-400 font-bold">LIVE</span> on their scheduled Start Date. No manual intervention needed.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            fetch(`/api/seasons/${seasonId}/tournaments/${tournamentId}/rounds/auto-start`, { method: 'POST' })
+              .then(() => {
+                toast.success('Synced rounds schedule!')
+                router.refresh()
+              })
+              .catch(() => toast.error('Sync failed'))
+          }}
+          className="self-start sm:self-auto px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+        >
+          Check & Sync Now
+        </button>
       </div>
 
       {/* Bulk Deadline Prefill Panel */}
@@ -265,6 +319,11 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
               <div>
                 <h3 className="font-extrabold uppercase text-white text-sm font-mono tracking-tight">{round.name}</h3>
                 <p className="text-[10px] text-gray-500 font-bold uppercase mt-1 font-mono">{round.matches.length} Matches</p>
+                {round.startDate && !round.isActive && !round.isCompleted && (
+                  <p className="text-[10px] text-[#E8A800] font-bold uppercase mt-1.5 font-mono flex items-center gap-1">
+                    <span>⚡ Starts:</span> {formatIST(round.startDate)}
+                  </p>
+                )}
               </div>
               {round.isActive && (
                 <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono">
@@ -274,6 +333,11 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
               {round.isCompleted && (
                 <span className="px-2 py-0.5 text-[9px] font-black rounded-md bg-white/5 border border-white/5 text-gray-500 font-mono">
                   COMPLETED
+                </span>
+              )}
+              {!round.isActive && !round.isCompleted && (
+                <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono">
+                  SCHEDULED
                 </span>
               )}
             </div>
@@ -308,7 +372,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
                     ) : round.isActive ? (
                       'Update Deadline'
                     ) : (
-                      'Start Gameweek'
+                      'Start Early (Manual)'
                     )}
                   </button>
 

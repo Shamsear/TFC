@@ -12,6 +12,12 @@
       ]
     }
   ],
+  "crons": [
+    {
+      "path": "/api/cron/start-rounds",
+      "schedule": "*/15 * * * *"
+    }
+  ],
   "functions": {
     "app/api/import/preview/route.ts": {
       "maxDuration": 60

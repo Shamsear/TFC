@@ -71,8 +71,10 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Empty turbopack config to silence the warning
-  turbopack: {},
+  // Turbopack root explicitly set to workspace root to avoid detecting parent yarn.lock
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
 export default nextConfig;

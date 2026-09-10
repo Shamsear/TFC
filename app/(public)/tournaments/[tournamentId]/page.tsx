@@ -2,12 +2,16 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import TournamentView from '@/components/tournaments/TournamentView'
 import { getTournamentTableData, getTournamentStatsData } from '@/lib/tournament-data'
+import { autoStartDueTournamentRounds } from '@/lib/tournaments/auto-start-rounds'
 
 // Force dynamic rendering to avoid stale cache
 export const dynamic = 'force-dynamic'
 
 async function getTournamentData(tournamentId: string) {
   try {
+    // Automatically start any gameweeks whose scheduled startDate has arrived
+    await autoStartDueTournamentRounds(tournamentId)
+
     const tournament = await prisma.tournaments.findUnique({
       where: { id: tournamentId },
       include: {

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { checkTeamSeasonParticipation } from '@/lib/team-auth'
 import { formatDateIST, formatTimeIST } from '@/lib/date-ist'
+import { autoStartDueTournamentRounds } from '@/lib/tournaments/auto-start-rounds'
 
 export async function generateMetadata({ params }: { params: Promise<{ tournamentId: string }> }) {
   const { tournamentId } = await params
@@ -27,6 +28,9 @@ export default async function TournamentDetailsPage({
 
   const { isParticipating } = await checkTeamSeasonParticipation()
   if (!isParticipating) redirect('/team/not-in-season')
+
+  // Automatically start any gameweeks whose scheduled startDate has arrived
+  await autoStartDueTournamentRounds(tournamentId)
 
   const tournament = await prisma.tournaments.findUnique({
     where: { id: tournamentId },

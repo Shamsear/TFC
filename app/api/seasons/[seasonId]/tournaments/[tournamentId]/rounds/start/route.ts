@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { sendPushNotificationRaw, getTeamManagerId, notifyAllAdmins } from '@/lib/notifications-server'
-import { triggerNews } from '@/lib/news/trigger'
+import { startTournamentRound } from '@/lib/tournaments/auto-start-rounds'
 
 export async function POST(
   request: NextRequest,
@@ -19,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { seasonId, tournamentId } = await params
+    const { tournamentId } = await params
     const body = await request.json()
     const { round, deadline } = body
 
@@ -32,123 +30,21 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid deadline date format' }, { status: 400 })
     }
 
-    // Get tournament to check if it exists
-    const tournament = await prisma.tournaments.findUnique({
-      where: { id: tournamentId }
+    const result = await startTournamentRound({
+      tournamentId,
+      round,
+      deadline: parsedDeadline
     })
 
-    if (!tournament) {
-      return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
+    if (result.status === 'error') {
+      return NextResponse.json({ error: result.error || 'Failed to start round' }, { status: 500 })
     }
 
-    // First find all matches in this round to know which teams are involved
-    const matchesInRound = await prisma.matches.findMany({
-      where: {
-        tournamentId,
-        round
-      },
-      include: {
-        homeTeam: {
-          include: { team: true }
-        },
-        awayTeam: {
-          include: { team: true }
-        }
-      }
-    })
-
-    if (matchesInRound.length === 0) {
+    if (result.status === 'no_matches') {
       return NextResponse.json({ error: 'No matches found for this round' }, { status: 404 })
     }
 
-    // Update matches: set to LIVE and update matchDate to deadline
-    await prisma.matches.updateMany({
-      where: {
-        tournamentId,
-        round
-      },
-      data: {
-        status: 'LIVE',
-        matchDate: parsedDeadline,
-        updatedAt: new Date()
-      }
-    })
-
-    // Notify all distinct teams involved in this round
-    const uniqueTeamIds = new Set<string>()
-    matchesInRound.forEach(m => {
-      uniqueTeamIds.add(m.homeTeam.team.id)
-      uniqueTeamIds.add(m.awayTeam.team.id)
-    })
-
-    const formattedDeadline = parsedDeadline.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    })
-
-    for (const teamId of uniqueTeamIds) {
-      try {
-        const managerId = await getTeamManagerId(teamId)
-        if (managerId) {
-          await sendPushNotificationRaw(
-            managerId,
-            {
-              title: `⚽ Gameweek Started`,
-              body: `${round} is now LIVE. You can play your match until ${formattedDeadline}.`,
-              url: `/team/matches`
-            },
-            'general'
-          ).catch(() => {})
-        }
-      } catch (err) {
-        console.error(`Failed to notify team ${teamId} for round start:`, err)
-      }
-    }
-
-    try {
-      await notifyAllAdmins({
-        title: '⚽ Gameweek Started',
-        body: `${round} has been started for ${tournament.name}.`,
-        url: `/sub-admin/${seasonId}/tournaments/${tournamentId}`
-      }, seasonId)
-    } catch (err) {
-      console.warn('Failed to notify admins for round start:', err)
-    }
-
-    // Trigger news for matchday started - ONE overview article
-    try {
-      const season = await prisma.seasons.findUnique({
-        where: { id: seasonId },
-        select: { name: true }
-      });
-
-      if (season && matchesInRound.length > 0) {
-        // Create list of all matches
-        const matchList = matchesInRound.map(m => 
-          `${m.homeTeam.team.name} vs ${m.awayTeam.team.name}`
-        ).join(', ');
-
-        // Generate ONE matchday overview article
-        await triggerNews('matchday_started', {
-          season_id: seasonId,
-          season_name: season.name,
-          metadata: {
-            tournament_name: tournament.name,
-            round: round,
-            match_count: matchesInRound.length,
-            deadline: formattedDeadline,
-            matches: matchList
-          }
-        });
-      }
-    } catch (newsErr) {
-      console.warn('[News AI] Failed to generate matchday overview:', newsErr);
-    }
-
-    return NextResponse.json({ success: true, updatedMatches: matchesInRound.length })
+    return NextResponse.json({ success: true, updatedMatches: result.matchesCount })
   } catch (error: any) {
     console.error('Error starting round:', error)
     return NextResponse.json({ error: 'Failed to start round' }, { status: 500 })

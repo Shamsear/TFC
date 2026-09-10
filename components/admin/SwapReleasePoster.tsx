@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { getPlayerCardById, getPlayerPhotoUrl } from '@/lib/image-cdn'
+import { getPlayerCardById, getPlayerCardUrl } from '@/lib/image-cdn'
 import { captureTableAsPng, shareOrDownloadPng } from '@/lib/share-table'
 import { formatDateIST } from '@/lib/date-ist'
 
@@ -14,9 +14,24 @@ function PlayerImageWithFallback({ playerPhotoId, playerName }: { playerPhotoId:
     return `${url}?cb=tfc-poster`;
   }
 
-  const [imgSrc, setImgSrc] = useState(() => getBustedUrl(getPlayerCardById(playerPhotoId)))
-  const [hasFailedOnce, setHasFailedOnce] = useState(false)
-  const [hasFailedTwice, setHasFailedTwice] = useState(false)
+  const cleanId = String(playerPhotoId).split('/').pop()?.replace('.png', '').replace('.webp', '') || playerPhotoId;
+
+  // Waterfall for player card: CDN (.png) -> CDN (.webp) -> PESDB -> Default card placeholder
+  const [attempt, setAttempt] = useState(0)
+  const [imgSrc, setImgSrc] = useState(() => getBustedUrl(getPlayerCardUrl(`${cleanId}.png`)))
+
+  const handleError = () => {
+    if (attempt === 0) {
+      setAttempt(1)
+      setImgSrc(getBustedUrl(getPlayerCardUrl(`${cleanId}.webp`)))
+    } else if (attempt === 1) {
+      setAttempt(2)
+      setImgSrc(getBustedUrl(getPlayerCardById(cleanId)))
+    } else if (attempt === 2) {
+      setAttempt(3)
+      setImgSrc('/default-player-card.png')
+    }
+  }
 
   return (
     <img
@@ -29,15 +44,7 @@ function PlayerImageWithFallback({ playerPhotoId, playerName }: { playerPhotoId:
         objectFit: 'contain',
         borderRadius: 14,
       }}
-      onError={() => {
-        if (!hasFailedOnce) {
-          setHasFailedOnce(true)
-          setImgSrc(getBustedUrl(getPlayerPhotoUrl(`${playerPhotoId}.webp`)))
-        } else if (!hasFailedTwice) {
-          setHasFailedTwice(true)
-          setImgSrc('/default-player-card.png')
-        }
-      }}
+      onError={handleError}
     />
   )
 }

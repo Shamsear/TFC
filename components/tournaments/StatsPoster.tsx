@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { captureTableAsPng } from '@/lib/share-table'
 import type { TeamStatRow } from './TournamentStats'
 import { formatDateIST } from '@/lib/date-ist'
@@ -1473,6 +1473,43 @@ export default function StatsPoster({
   const [saveDone, setSaveDone] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  const previewOuterRef = useRef<HTMLDivElement>(null)
+  const previewInnerRef = useRef<HTMLDivElement>(null)
+  const [previewWidth, setPreviewWidth] = useState(600)
+  const [contentHeight, setContentHeight] = useState(1000)
+
+  useEffect(() => {
+    if (!showPoster) return
+    const el = previewOuterRef.current
+    if (!el) return
+    setPreviewWidth(el.clientWidth)
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setPreviewWidth(entry.contentRect.width)
+        }
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [showPoster])
+
+  useEffect(() => {
+    if (!showPoster) return
+    const el = previewInnerRef.current
+    if (!el) return
+    setContentHeight(el.clientHeight || 1000)
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.height > 0) {
+          setContentHeight(entry.contentRect.height)
+        }
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [showPoster, activeTheme, selectedMatchday, selectedWeek, imageTeamsLimit])
+
   const theme = THEMES[activeTheme]
   const maxTeams = imageTeamsLimit === 'all' ? teams.length : Number(imageTeamsLimit)
 
@@ -2076,6 +2113,11 @@ export default function StatsPoster({
     }
   }
 
+  const availableWidth = Math.min(600, previewWidth > 0 ? previewWidth : 600)
+  const scale = Math.min(0.75, Math.max(0.25, availableWidth / 800))
+  const scaledWidth = Math.round(800 * scale)
+  const scaledHeight = Math.round(contentHeight * scale)
+
   return (
     <>
       {/* Toggle Button */}
@@ -2095,7 +2137,7 @@ export default function StatsPoster({
 
       {/* Poster Studio Panel */}
       {showPoster && (
-        <div className="mt-4 rounded-3xl border border-white/5 bg-[#0D0D0D]/90 overflow-hidden shadow-2xl backdrop-blur-xl">
+        <div className="mt-4 rounded-3xl border border-white/5 bg-[#0D0D0D]/90 overflow-hidden shadow-2xl backdrop-blur-xl w-full min-w-0">
           {/* Studio Header */}
           <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -2138,7 +2180,7 @@ export default function StatsPoster({
             </div>
 
             {/* Matchday/Week Selector */}
-            <div className="mt-5 flex items-center gap-3">
+            <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               {activeTheme === 'team_weekly' ? (
                 <>
                   <label className="text-[10px] font-extrabold uppercase text-gray-500 tracking-widest font-mono">
@@ -2147,7 +2189,7 @@ export default function StatsPoster({
                   <select
                     value={selectedWeek}
                     onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                    className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-fit"
+                    className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-full sm:w-fit"
                   >
                     <option value={0} className="bg-[#0a0a0a] text-white">
                       All Weeks
@@ -2172,7 +2214,7 @@ export default function StatsPoster({
                   <select
                     value={selectedMatchday}
                     onChange={(e) => setSelectedMatchday(Number(e.target.value))}
-                    className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-fit"
+                    className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-full sm:w-fit"
                   >
                     <option value={0} className="bg-[#0a0a0a] text-white">
                       All Matchdays
@@ -2196,54 +2238,76 @@ export default function StatsPoster({
             </div>
           </div>
 
-          {/* Poster Preview (scaled down for display) */}
-          <div className="p-5">
-            <div className="rounded-2xl overflow-hidden border border-white/5 shadow-2xl mx-auto bg-black/40" style={{ maxWidth: 600 }}>
-              <div style={{ transform: 'scale(0.75)', transformOrigin: 'top left', width: '133.33%' }}>
-                {activeTheme === 'team_matchday' ? (
-                  <TeamMatchdayPosterSnapshot
-                    theme={theme}
-                    themeKey={activeTheme}
-                    team={bestTeamForMatchday}
-                    tournamentName={tournamentName}
-                    seasonName={seasonName}
-                    roundLabel={`Matchday ${selectedMatchday}`}
-                  />
-                ) : activeTheme === 'team_weekly' ? (
-                  <TeamWeeklyPosterSnapshot
-                    theme={theme}
-                    themeKey={activeTheme}
-                    team={bestTeamForMatchday}
-                    tournamentName={tournamentName}
-                    seasonName={seasonName}
-                    weekLabel={selectedWeek > 0 ? `Week ${selectedWeek}` : 'All Weeks'}
-                    weekRange={selectedWeek > 0 ? getWeekRange(selectedWeek) : 'All Matchdays'}
-                  />
-                ) : (
-                  <PosterSnapshot
-                    theme={theme}
-                    themeKey={activeTheme}
-                    teams={sortedTeams}
-                    maxTeams={maxTeams}
-                    tournamentName={tournamentName}
-                    seasonName={seasonName}
-                    roundLabel={selectedMatchday > 0 ? `Till Matchday ${selectedMatchday}` : roundLabel}
-                    getMetric={getMetric}
-                  />
-                )}
+          {/* Poster Preview (scaled dynamically for display) */}
+          <div className="p-3 sm:p-5">
+            <div 
+              ref={previewOuterRef}
+              className="rounded-2xl overflow-hidden border border-white/5 shadow-2xl mx-auto bg-black/40 flex justify-center w-full max-w-[600px]"
+            >
+              <div 
+                style={{ 
+                  width: `${scaledWidth}px`, 
+                  height: `${scaledHeight}px`, 
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}
+              >
+                <div 
+                  ref={previewInnerRef}
+                  style={{ 
+                    width: '800px',
+                    transform: `scale(${scale})`, 
+                    transformOrigin: 'top left',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0
+                  }}
+                >
+                  {activeTheme === 'team_matchday' ? (
+                    <TeamMatchdayPosterSnapshot
+                      theme={theme}
+                      themeKey={activeTheme}
+                      team={bestTeamForMatchday}
+                      tournamentName={tournamentName}
+                      seasonName={seasonName}
+                      roundLabel={`Matchday ${selectedMatchday}`}
+                    />
+                  ) : activeTheme === 'team_weekly' ? (
+                    <TeamWeeklyPosterSnapshot
+                      theme={theme}
+                      themeKey={activeTheme}
+                      team={bestTeamForMatchday}
+                      tournamentName={tournamentName}
+                      seasonName={seasonName}
+                      weekLabel={selectedWeek > 0 ? `Week ${selectedWeek}` : 'All Weeks'}
+                      weekRange={selectedWeek > 0 ? getWeekRange(selectedWeek) : 'All Matchdays'}
+                    />
+                  ) : (
+                    <PosterSnapshot
+                      theme={theme}
+                      themeKey={activeTheme}
+                      teams={sortedTeams}
+                      maxTeams={maxTeams}
+                      tournamentName={tournamentName}
+                      seasonName={seasonName}
+                      roundLabel={selectedMatchday > 0 ? `Till Matchday ${selectedMatchday}` : roundLabel}
+                      getMetric={getMetric}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="px-6 py-4 border-t border-white/5 bg-white/[0.01] flex flex-wrap gap-2 justify-between items-center">
+          <div className="px-4 sm:px-6 py-4 border-t border-white/5 bg-white/[0.01] flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
             {/* Save Award Button - Only show for team_matchday and team_weekly */}
             {(activeTheme === 'team_matchday' || activeTheme === 'team_weekly') && tournamentId && bestTeamForMatchday?.seasonTeamId && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 <button
                   onClick={handleSaveAward}
                   disabled={saving || (activeTheme === 'team_matchday' && selectedMatchday === 0) || (activeTheme === 'team_weekly' && selectedWeek === 0)}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                     saveDone
                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                       : saveError
@@ -2290,11 +2354,11 @@ export default function StatsPoster({
               </div>
             )}
             
-            <div className="flex flex-wrap gap-2 ml-auto">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-auto">
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer ${
+                className={`flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer ${
                   downloadDone
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                     : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-400 hover:text-white'
@@ -2328,7 +2392,7 @@ export default function StatsPoster({
               <button
                 onClick={handleShare}
                 disabled={sharing}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer ${
+                className={`flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider font-mono border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer ${
                   shareDone
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                     : ''

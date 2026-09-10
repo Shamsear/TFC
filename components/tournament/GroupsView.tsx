@@ -44,10 +44,10 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
                   return (
                     <div
                       key={standing.id}
-                      className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 transition-all"
+                      className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 transition-all gap-2"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black border font-mono ${badgeColor}`}>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black border font-mono flex-shrink-0 ${badgeColor}`}>
                           {index + 1}
                         </div>
                         <div className="w-6 h-6 rounded bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -57,13 +57,13 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
                             <span className="text-[10px]">⚽</span>
                           )}
                         </div>
-                        <span className="font-extrabold uppercase text-white text-xs tracking-tight font-mono">{standing.seasonTeam.team.name}</span>
+                        <span className="font-extrabold uppercase text-white text-xs tracking-tight font-mono truncate min-w-0">{standing.seasonTeam.team.name}</span>
                       </div>
-                      <div className="flex items-center gap-4 text-xs font-mono font-bold">
-                        <div className="text-gray-500">
+                      <div className="flex items-center gap-2.5 sm:gap-4 text-xs font-mono font-bold flex-shrink-0">
+                        <div className="text-gray-500 text-[11px] sm:text-xs">
                           <span className="text-white font-black">{standing.played}</span> P
                         </div>
-                        <div className="text-gray-500 w-12 text-right">
+                        <div className="text-gray-500 text-[11px] sm:text-xs w-9 sm:w-12 text-right">
                           <span className={`font-black ${
                             goalDiff > 0 ? 'text-emerald-400' :
                             goalDiff < 0 ? 'text-red-400' :
@@ -72,7 +72,7 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
                             {goalDiff > 0 ? '+' : ''}{goalDiff}
                           </span> GD
                         </div>
-                        <div className="w-10 h-6 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] font-black flex items-center justify-center text-[11px]">
+                        <div className="w-8 sm:w-10 h-6 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] font-black flex items-center justify-center text-[11px]">
                           {standing.points}
                         </div>
                       </div>
@@ -89,12 +89,12 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
                     {groupMatches.slice(0, 3).map((match) => (
                       <div
                         key={match.id}
-                        className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.01] border border-white/5 text-xs font-mono"
+                        className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-white/[0.01] border border-white/5 text-xs font-mono gap-2"
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-white font-extrabold uppercase tracking-tight truncate">{match.homeTeam.team.name}</span>
+                          <span className="text-white font-extrabold uppercase tracking-tight truncate min-w-0">{match.homeTeam.team.name}</span>
                         </div>
-                        <div className="flex items-center gap-2 px-4 flex-shrink-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 flex-shrink-0">
                           {match.status === 'COMPLETED' ? (
                             <>
                               <span className="font-black text-white text-sm">{match.homeScore}</span>
@@ -106,7 +106,7 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
                           )}
                         </div>
                         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-                          <span className="text-white font-extrabold uppercase tracking-tight truncate text-right">{match.awayTeam.team.name}</span>
+                          <span className="text-white font-extrabold uppercase tracking-tight truncate min-w-0 text-right">{match.awayTeam.team.name}</span>
                         </div>
                       </div>
                     ))}

@@ -261,7 +261,7 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
 
       {/* Round Spacing / Matchday Pager */}
       {allRounds.length > 0 && (
-        <div className="flex items-center justify-between sm:justify-end gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-1.5 sm:p-2 sm:min-w-[280px] w-fit ml-auto shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center justify-between sm:justify-end gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-1.5 sm:p-2 w-full sm:w-auto sm:min-w-[280px] sm:ml-auto shadow-2xl backdrop-blur-xl">
           <button
             onClick={(e) => {
               e.preventDefault()
@@ -476,10 +476,10 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
 
                       {/* Mobile View: Beautifully compact and responsive layout with both dates */}
                       <div className="md:hidden space-y-3 font-mono">
-                        <div className="grid grid-cols-7 items-center gap-2">
+                        <div className="grid grid-cols-7 items-center gap-1 sm:gap-2">
                           {/* Home Team */}
-                          <div className="col-span-3 flex items-center justify-end gap-1.5 text-right">
-                            <span className="text-white font-extrabold uppercase text-xs truncate">{match.homeTeam.team.name}</span>
+                          <div className="col-span-3 flex items-center justify-end gap-1.5 text-right min-w-0">
+                            <span className="text-white font-extrabold uppercase text-xs truncate min-w-0">{match.homeTeam.team.name}</span>
                             <div className="w-6 h-6 rounded-md bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {match.homeTeam.team.logoUrl ? (
                                 <img src={match.homeTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
@@ -489,9 +489,9 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                             </div>
                           </div>
                           {/* VS */}
-                          <div className="col-span-1 text-center text-gray-600 font-black text-[10px] tracking-widest">VS</div>
+                          <div className="col-span-1 text-center text-gray-600 font-black text-[10px] tracking-widest flex-shrink-0">VS</div>
                           {/* Away Team */}
-                          <div className="col-span-3 flex items-center justify-start gap-1.5 text-left">
+                          <div className="col-span-3 flex items-center justify-start gap-1.5 text-left min-w-0">
                             <div className="w-6 h-6 rounded-md bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {match.awayTeam.team.logoUrl ? (
                                 <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
@@ -499,19 +499,19 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                                 <span className="text-xs">⚽</span>
                               )}
                             </div>
-                            <span className="text-white font-extrabold uppercase text-xs truncate">{match.awayTeam.team.name}</span>
+                            <span className="text-white font-extrabold uppercase text-xs truncate min-w-0">{match.awayTeam.team.name}</span>
                           </div>
                         </div>
 
                         {/* Mobile Dates Column */}
-                        <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-2 text-center">
-                          <div>
-                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider">Start Time</div>
-                            <div className="text-xs text-[#E8A800] font-black">{match.startDate ? formatDate(match.startDate) : 'N/A'}</div>
+                        <div className="grid grid-cols-2 gap-2 sm:gap-4 border-t border-white/5 pt-2 text-center">
+                          <div className="min-w-0">
+                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider truncate">Start Time</div>
+                            <div className="text-[11px] sm:text-xs text-[#E8A800] font-black leading-tight break-words">{match.startDate ? formatDate(match.startDate) : 'N/A'}</div>
                           </div>
-                          <div>
-                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider">Deadline</div>
-                            <div className="text-xs text-[#E8A800] font-black">{formatDate(match.matchDate)}</div>
+                          <div className="min-w-0">
+                            <div className="text-[9px] text-gray-500 font-extrabold uppercase tracking-wider truncate">Deadline</div>
+                            <div className="text-[11px] sm:text-xs text-[#E8A800] font-black leading-tight break-words">{formatDate(match.matchDate)}</div>
                           </div>
                         </div>
 

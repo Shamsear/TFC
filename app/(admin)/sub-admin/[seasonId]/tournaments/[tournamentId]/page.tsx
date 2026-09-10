@@ -149,7 +149,7 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
   const formatDate = (date: Date) => formatDateIST(date)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6 min-w-0 overflow-x-hidden">
       {/* Back Link */}
       <div className="mb-6">
         <Link
@@ -165,9 +165,9 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
       
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-8">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
-            <h1 className="text-4xl sm:text-5xl font-black text-white bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
+            <h1 className="text-3xl sm:text-5xl font-black text-white bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-tight sm:leading-none break-words">
               {tournament.name}
             </h1>
             <TournamentStatusSelector
@@ -206,10 +206,10 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap gap-2.5 w-full lg:w-auto">
           <Link
             href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/edit`}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white/[0.01] border border-white/5 hover:border-white/10 hover:bg-white/[0.03] text-white rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white/[0.01] border border-white/5 hover:border-white/10 hover:bg-white/[0.03] text-white rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -218,7 +218,7 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
           </Link>
           <Link
             href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/links`}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white/[0.01] border border-white/5 hover:border-white/10 hover:bg-white/[0.03] text-white rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white/[0.01] border border-white/5 hover:border-white/10 hover:bg-white/[0.03] text-white rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -227,7 +227,7 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
           </Link>
           <Link
             href={`/sub-admin/${seasonId}/tournaments/${tournamentId}/fixtures/new`}
-            className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a] rounded-xl font-bold transition-all text-xs uppercase tracking-wider cursor-pointer whitespace-nowrap"
           >
             <span>Create Fixtures</span>
           </Link>

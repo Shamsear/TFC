@@ -626,14 +626,14 @@ export default function KnockoutRoundManager({
 
       {/* Bracket View */}
       {existingRounds.length > 0 && (
-        <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-6 shadow-2xl backdrop-blur-xl space-y-6">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="rounded-3xl bg-white/[0.01] border border-white/5 p-4 sm:p-6 shadow-2xl backdrop-blur-xl space-y-6 w-full min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
             <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono">Tournament Bracket</h3>
             <button
               type="button"
               onClick={handleResetBracket}
               disabled={resetting}
-              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-black uppercase font-mono tracking-wider transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="self-start sm:self-auto px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-black uppercase font-mono tracking-wider transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {resetting ? (
                 <>
@@ -660,7 +660,7 @@ export default function KnockoutRoundManager({
       )}
 
       {/* Create New Round */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 w-full min-w-0">
         {error && (
           <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 text-red-400 text-xs font-bold uppercase tracking-wider font-mono">
             {error}
@@ -668,7 +668,7 @@ export default function KnockoutRoundManager({
         )}
 
         {/* Configuration Panel */}
-        <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
+        <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 w-full min-w-0">
           <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono border-b border-white/5 pb-4">Configure Knockout Round</h3>
           
           <div className="space-y-6">

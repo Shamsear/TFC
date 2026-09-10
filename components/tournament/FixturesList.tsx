@@ -292,7 +292,7 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
           <ShareableAdminFixtures
             matches={filteredMatches}
             tournamentName={tournamentName || 'Tournament'}
@@ -302,7 +302,7 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
 
           {/* Round Spacing / Matchday Pager */}
           {allRounds.length > 0 && (
-            <div className="flex items-center justify-between sm:justify-end gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-1.5 sm:p-2 sm:min-w-[280px]">
+            <div className="flex items-center justify-between sm:justify-end gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-1.5 sm:p-2 w-full sm:w-auto sm:min-w-[280px]">
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -474,10 +474,10 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                 </div>
 
                 {/* Main Score/Teams grid */}
-                <div className="grid grid-cols-7 items-center gap-2 py-1">
+                <div className="grid grid-cols-7 items-center gap-1 sm:gap-2 py-1">
                   {/* Home Team */}
-                  <div className="col-span-3 flex items-center justify-end gap-2 text-right">
-                    <span className={`font-extrabold text-xs truncate uppercase tracking-tight ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
+                  <div className="col-span-3 flex items-center justify-end gap-1.5 sm:gap-2 text-right min-w-0">
+                    <span className={`font-extrabold text-xs truncate uppercase tracking-tight min-w-0 ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
                       {match.homeTeam.team.name}
                     </span>
                     <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/40 border border-white/5 p-0.5">
@@ -492,30 +492,30 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                   </div>
 
                   {/* Score or VS */}
-                  <div className="col-span-1 flex flex-col items-center justify-center">
+                  <div className="col-span-1 flex flex-col items-center justify-center flex-shrink-0">
                     {match.status === 'WALKOVER' ? (
-                      <span className="px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[9px] font-black uppercase tracking-wider text-purple-400">
+                      <span className="px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[9px] font-black uppercase tracking-wider text-purple-400 whitespace-nowrap">
                         W/O
                       </span>
                     ) : match.status === 'VOID' ? (
-                      <span className="px-1.5 py-0.5 rounded bg-slate-500/10 border border-slate-500/20 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                      <span className="px-1.5 py-0.5 rounded bg-slate-500/10 border border-slate-500/20 text-[9px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">
                         VOID
                       </span>
                     ) : hasScore ? (
-                      <div className="flex items-center gap-1 font-black text-xs text-[#F5F0E8] bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                      <div className="flex items-center gap-1 font-black text-xs text-[#F5F0E8] bg-white/5 px-1.5 sm:px-2 py-0.5 rounded-lg border border-white/5 whitespace-nowrap">
                         <span>{match.homeScore}</span>
                         <span className="text-gray-500 text-[10px] font-normal">:</span>
                         <span>{match.awayScore}</span>
                       </div>
                     ) : (
-                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black tracking-wider uppercase text-gray-500">
+                      <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-black tracking-wider uppercase text-gray-500 whitespace-nowrap">
                         VS
                       </span>
                     )}
                   </div>
 
                   {/* Away Team */}
-                  <div className="col-span-3 flex items-center justify-start gap-2 text-left">
+                  <div className="col-span-3 flex items-center justify-start gap-1.5 sm:gap-2 text-left min-w-0">
                     <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/40 border border-white/5 p-0.5">
                       {match.awayTeam.team.logoUrl ? (
                         <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
@@ -525,7 +525,7 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                         </div>
                       )}
                     </div>
-                    <span className={`font-extrabold text-xs truncate uppercase tracking-tight ${awayWin ? 'text-emerald-400' : 'text-white'}`}>
+                    <span className={`font-extrabold text-xs truncate uppercase tracking-tight min-w-0 ${awayWin ? 'text-emerald-400' : 'text-white'}`}>
                       {match.awayTeam.team.name}
                     </span>
                   </div>

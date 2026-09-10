@@ -224,40 +224,42 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
   }))
 
   return (
-    <div>
+    <div className="w-full min-w-0 max-w-full">
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 sm:mb-8 border-b border-white/5 overflow-x-auto scrollbar-hide">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 sm:px-6 py-3 font-black transition-all relative whitespace-nowrap text-xs uppercase tracking-wider cursor-pointer ${
-              activeTab === tab.id
-                ? 'text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.15)]'
-                : 'text-gray-500 hover:text-white'
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <span>{tab.label}</span>
-              {tab.count > 0 && (
-                <span className={`px-2 py-0.5 text-[9px] font-black rounded-md transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-[#E8A800]/10 text-[#E8A800] border border-[#E8A800]/20'
-                    : 'bg-white/5 text-gray-400 border border-white/5'
-                }`}>
-                  {tab.count}
-                </span>
+      <div className="mb-6 sm:mb-8 border-b border-white/5">
+        <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 py-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 sm:px-6 py-3 font-black transition-all relative whitespace-nowrap text-xs uppercase tracking-wider cursor-pointer ${
+                activeTab === tab.id
+                  ? 'text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.15)]'
+                  : 'text-gray-500 hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <span>{tab.label}</span>
+                {tab.count > 0 && (
+                  <span className={`px-2 py-0.5 text-[9px] font-black rounded-md transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-[#E8A800]/10 text-[#E8A800] border border-[#E8A800]/20'
+                      : 'bg-white/5 text-gray-400 border border-white/5'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </span>
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#E8A800] to-[#FFB347] rounded-full shadow-[0_0_10px_rgba(232,168,0,0.5)]" />
               )}
-            </span>
-            {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#E8A800] to-[#FFB347] rounded-full shadow-[0_0_10px_rgba(232,168,0,0.5)]" />
-            )}
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tab Content */}
-      <div>
+      <div className="w-full min-w-0">
         {activeTab === 'fixtures' && (
           <FixturesList
             matches={tournament.matches}
@@ -282,17 +284,17 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
           />
         )}
         {activeTab === 'standings' && tournament.tournamentType !== 'KNOCKOUT_ONLY' && (
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-[#0D0D0D]/90 border border-white/5 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
-              <div className="flex flex-col sm:flex-row gap-4">
+          <div className="w-full min-w-0">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 bg-[#0D0D0D]/90 border border-white/5 p-4 rounded-2xl shadow-2xl backdrop-blur-xl w-full min-w-0">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto">
                 {/* Round Filter dropdown */}
                 {roundOptions.length > 0 && (
-                  <div className="flex flex-col">
+                  <div className="flex flex-col w-full sm:w-auto">
                     <label className="text-[10px] text-gray-500 uppercase font-extrabold tracking-widest font-mono mb-1.5">Filter Round Limit</label>
                     <select
                       value={activeRoundLimit}
                       onChange={(e) => setActiveRoundLimit(e.target.value)}
-                      className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-fit"
+                      className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-full sm:w-fit"
                     >
                       {roundOptions.map((r: string) => (
                         <option key={r} value={r} className="bg-[#0c0c0c] text-white">{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
@@ -303,12 +305,12 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
                 
                 {/* Week Filter dropdown */}
                 {weekOptions.length > 1 && (
-                  <div className="flex flex-col">
+                  <div className="flex flex-col w-full sm:w-auto">
                     <label className="text-[10px] text-gray-500 uppercase font-extrabold tracking-widest font-mono mb-1.5">Filter by Week</label>
                     <select
                       value={activeWeekFilter}
                       onChange={(e) => setActiveWeekFilter(e.target.value)}
-                      className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-fit"
+                      className="bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03] w-full sm:w-fit"
                     >
                       {weekOptions.map((w: string) => (
                         <option key={w} value={w} className="bg-[#0c0c0c] text-white">{w}</option>
@@ -317,7 +319,7 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
                   </div>
                 )}
               </div>
-              <div className="flex justify-end sm:ml-auto">
+              <div className="flex justify-end w-full lg:w-auto lg:ml-auto">
                 <ShareableAdminStandings
                   standings={standingsWithPositions}
                   groups={tournament.groups}

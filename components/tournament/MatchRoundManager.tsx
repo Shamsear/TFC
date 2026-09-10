@@ -207,14 +207,14 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
 
       {/* Auto-Start Status Banner */}
       <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">⚡</span>
+        <div className="flex items-start sm:items-center gap-3">
+          <span className="text-2xl flex-shrink-0 mt-0.5 sm:mt-0">⚡</span>
           <div>
             <div className="text-white font-black text-xs uppercase tracking-wider flex items-center gap-2">
               <span>Automated Gameweek Start Active</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-extrabold">AUTO</span>
             </div>
-            <p className="text-gray-400 text-[11px] mt-0.5">
+            <p className="text-gray-400 text-[11px] mt-0.5 leading-relaxed">
               Rounds start automatically as <span className="text-emerald-400 font-bold">LIVE</span> on their scheduled Start Date. No manual intervention needed.
             </p>
           </div>
@@ -229,7 +229,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
               })
               .catch(() => toast.error('Sync failed'))
           }}
-          className="self-start sm:self-auto px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+          className="self-start sm:self-auto px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
         >
           Check & Sync Now
         </button>
@@ -281,14 +281,14 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
         </div>
 
         {/* Live Preview Widget */}
-        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-3.5 flex items-center justify-between gap-4 mt-5 text-xs font-mono">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">📅</span>
-            <div>
-              <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Round Deadline Preview Example</div>
-              <div className="font-extrabold text-white text-xs">
+        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-5 text-xs font-mono">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <span className="text-xl flex-shrink-0 mt-0.5 sm:mt-0">📅</span>
+            <div className="min-w-0">
+              <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-0.5 truncate">Round Deadline Preview Example</div>
+              <div className="font-extrabold text-white text-[11px] sm:text-xs leading-relaxed break-words">
                 Match Start (Today): <span className="text-[#D4CCBB]">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                <span className="mx-2 text-gray-600">→</span>
+                <span className="mx-1.5 text-gray-600">→</span>
                 Deadline: <span className="text-emerald-400">{(() => {
                   const now = new Date()
                   const [hours, minutes] = defaultDeadlineTime.split(':')
@@ -299,7 +299,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
               </div>
             </div>
           </div>
-          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">LIVE PREVIEW</span>
+          <span className="self-start sm:self-auto px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase flex-shrink-0">LIVE PREVIEW</span>
         </div>
       </div>
       

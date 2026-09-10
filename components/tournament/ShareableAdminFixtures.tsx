@@ -243,18 +243,18 @@ export default function ShareableAdminFixtures({
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
         {/* Filter Dropdown */}
-        <div className="relative">
+        <div className="relative flex-1 sm:flex-none">
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border bg-white/5 hover:bg-white/10 border-white/10 text-[#D4CCBB] hover:text-[#F5F0E8] transition-all"
+            className="w-full inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm border bg-white/5 hover:bg-white/10 border-white/10 text-[#D4CCBB] hover:text-[#F5F0E8] transition-all cursor-pointer whitespace-nowrap"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
-            {matchFilter === 'all' ? 'All Matches' : matchFilter === 'pending' ? 'Pending' : 'Completed'}
-            <svg className={`w-3.5 h-3.5 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="truncate">{matchFilter === 'all' ? 'All' : matchFilter === 'pending' ? 'Pending' : 'Done'}</span>
+            <svg className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -265,7 +265,7 @@ export default function ShareableAdminFixtures({
                 className="fixed inset-0 z-40" 
                 onClick={() => setIsFilterOpen(false)}
               />
-              <div className="absolute z-50 mt-2 right-0 w-48 rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1">
+              <div className="absolute z-50 mt-2 left-0 sm:right-0 sm:left-auto w-48 rounded-xl bg-[#121212]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgb(0,0,0,0.5)] py-1">
                 {[
                   { value: 'all', label: 'All Matches', icon: '📋' },
                   { value: 'pending', label: 'Pending Matches', icon: '⏳' },
@@ -277,7 +277,7 @@ export default function ShareableAdminFixtures({
                       setMatchFilter(option.value as MatchFilter)
                       setIsFilterOpen(false)
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] ${
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-xs sm:text-sm transition-colors hover:bg-[#E8A800]/10 hover:text-[#E8A800] cursor-pointer ${
                       matchFilter === option.value ? 'text-[#E8A800] bg-[#E8A800]/5 font-bold' : 'text-gray-300'
                     }`}
                   >
@@ -299,7 +299,7 @@ export default function ShareableAdminFixtures({
         <button
           onClick={handleShare}
           disabled={sharing || downloading}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
+          className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer whitespace-nowrap ${
             shareDone
               ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
               : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
@@ -311,21 +311,21 @@ export default function ShareableAdminFixtures({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
-              Sharing…
+              <span>Sharing…</span>
             </>
           ) : shareDone ? (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
-              Shared!
+              <span>Shared!</span>
             </>
           ) : (
             <>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
               </svg>
-              Share
+              <span>Share</span>
             </>
           )}
         </button>
@@ -334,7 +334,7 @@ export default function ShareableAdminFixtures({
         <button
           onClick={handleDownload}
           disabled={sharing || downloading}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 ${
+          className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm border transition-all hover:scale-[1.02] disabled:opacity-60 cursor-pointer whitespace-nowrap ${
             downloadDone
               ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
               : 'bg-white/5 hover:bg-white/10 border-white/10 text-[#D4CCBB] hover:text-[#F5F0E8]'
@@ -346,21 +346,21 @@ export default function ShareableAdminFixtures({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
-              Saving…
+              <span>Saving…</span>
             </>
           ) : downloadDone ? (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
-              Saved!
+              <span>Saved!</span>
             </>
           ) : (
             <>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Download
+              <span>Download</span>
             </>
           )}
         </button>

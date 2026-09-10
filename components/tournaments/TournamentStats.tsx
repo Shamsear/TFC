@@ -452,10 +452,10 @@ export default function TournamentStats({
       {/* Control panel: Round Limits, Share / Export Tools */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white/[0.01] border border-white/5 p-4 sm:p-5 rounded-2xl backdrop-blur-xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8A800]/[0.01] rounded-full blur-2xl pointer-events-none" />
-        <div className="flex flex-wrap items-center gap-4 relative z-10">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 relative z-10 w-full lg:w-auto">
           {/* Round Filter dropdown */}
           {roundOptions.length > 0 && (
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full sm:w-auto">
               <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Filter Round Limit</label>
               <select
                 value={activeRoundLimit}
@@ -465,7 +465,7 @@ export default function TournamentStats({
                     setActiveWeekFilter('All Weeks')
                   }
                 }}
-                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md w-full sm:w-auto"
               >
                 {roundOptions.map(r => (
                   <option key={r} value={r} className="bg-[#0a0a0a] text-white">{r === 'All Matchdays' ? 'All Matchdays' : `Up to ${r}`}</option>
@@ -476,7 +476,7 @@ export default function TournamentStats({
 
           {/* Week Filter dropdown */}
           {weekOptions.length > 1 && (
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full sm:w-auto">
               <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Filter By Week</label>
               <select
                 value={activeWeekFilter}
@@ -486,7 +486,7 @@ export default function TournamentStats({
                     setActiveRoundLimit('All Matchdays')
                   }
                 }}
-                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md w-full sm:w-auto"
               >
                 {weekOptions.map(w => (
                   <option key={w} value={w} className="bg-[#0a0a0a] text-white">{w}</option>
@@ -497,12 +497,12 @@ export default function TournamentStats({
 
           {/* Share Limit select */}
           {!hideShareOptions && (
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full sm:w-auto">
               <label className="text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">Teams in Share Card</label>
               <select
                 value={imageTeamsLimit}
                 onChange={(e) => setImageTeamsLimit(e.target.value)}
-                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md"
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer backdrop-blur-md w-full sm:w-auto"
               >
                 <option value="3" className="bg-[#0a0a0a] text-white">Top 3 Teams</option>
                 <option value="5" className="bg-[#0a0a0a] text-white">Top 5 Teams</option>
@@ -513,12 +513,12 @@ export default function TournamentStats({
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2 items-end relative z-10">
+        <div className="flex flex-wrap gap-2 items-center relative z-10 w-full lg:w-auto">
           {/* Export to Excel */}
           {!hideShareOptions && (
             <button
               onClick={handleExportExcel}
-              className="group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer"
+              className="flex-1 sm:flex-none group relative inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer whitespace-nowrap"
             >
               <span>📥</span> Export Excel (CSV)
             </button>
@@ -529,7 +529,7 @@ export default function TournamentStats({
             <button
               onClick={handleDownloadImage}
               disabled={downloading}
-              className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-gray-300 hover:text-white rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${downloadDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}`}
+              className={`flex-1 sm:flex-none group relative inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-gray-300 hover:text-white rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer whitespace-nowrap ${downloadDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}`}
             >
               <span>🖼️</span> {downloadDone ? 'Downloaded!' : downloading ? 'Loading…' : 'Download Image'}
             </button>
@@ -540,7 +540,7 @@ export default function TournamentStats({
             <button
               onClick={handleShareImage}
               disabled={sharing}
-              className={`group relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-black rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer ${shareDone ? 'from-emerald-500 to-emerald-400 text-white' : ''}`}
+              className={`w-full sm:w-auto flex-1 sm:flex-none group relative inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] text-black rounded-xl font-extrabold text-xs sm:text-sm transition-all duration-300 transform active:scale-95 cursor-pointer whitespace-nowrap ${shareDone ? 'from-emerald-500 to-emerald-400 text-white' : ''}`}
             >
               <span>🔗</span> {shareDone ? 'Shared!' : sharing ? 'Loading…' : 'Share Leaderboard'}
             </button>
@@ -564,16 +564,16 @@ export default function TournamentStats({
       )}
 
       {/* Headline stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
         {[
           { icon: '⚽', value: Math.round(totalMatches), label: 'Matches Played', color: 'bg-blue-500/[0.02] border-blue-500/10 text-blue-400' },
           { icon: '🥅', value: totalGoals, label: 'Total Goals', color: 'bg-emerald-500/[0.02] border-emerald-500/10 text-emerald-400' },
           { icon: '📊', value: avgGoalsPerMatch, label: 'Avg Goals / Match', color: 'bg-[#E8A800]/[0.02] border-[#E8A800]/10 text-[#E8A800]' },
           { icon: '🧤', value: totalCleanSheets, label: 'Clean Sheets', color: 'bg-purple-500/[0.02] border-purple-500/10 text-purple-400' },
         ].map(({ icon, value, label, color }) => (
-          <div key={label} className={`relative rounded-2xl p-4 text-center backdrop-blur-xl shadow-xl overflow-hidden ${color} border`}>
-            <div className="text-2xl mb-1">{icon}</div>
-            <div className="text-xl sm:text-2xl font-black text-white">{value}</div>
+          <div key={label} className={`relative rounded-2xl p-3 sm:p-4 text-center backdrop-blur-xl shadow-xl overflow-hidden ${color} border`}>
+            <div className="text-xl sm:text-2xl mb-1">{icon}</div>
+            <div className="text-lg sm:text-2xl font-black text-white">{value}</div>
             <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-1 leading-snug">{label}</div>
           </div>
         ))}

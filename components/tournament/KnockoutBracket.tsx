@@ -188,50 +188,50 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
                   ) : (
                     <div className="space-y-3">
                       {/* Team 1 */}
-                      <div className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${
+                      <div className={`flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-xl transition-all min-w-0 ${
                         pairing.winnerId === pairing.team1Id 
                           ? 'bg-emerald-500/5 border border-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
                           : 'bg-[#121212]/40 border border-white/5'
                       }`}>
-                        <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {team1?.logoUrl ? (
                             <img src={team1.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                           ) : (
                             <span className="text-sm">⚽</span>
                           )}
                         </div>
-                        <span className={`font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate ${
+                        <span className={`font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate min-w-0 ${
                           team1 ? 'text-white' : 'text-[#7A7367] italic'
                         }`}>
                           {team1?.name || pairing.team1Placeholder || 'TBD'}
                         </span>
                         {pairing.winnerId === pairing.team1Id && (
-                          <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono">WINNER</span>
+                          <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono flex-shrink-0">WINNER</span>
                         )}
                       </div>
  
                        <div className="text-center text-gray-600 text-[10px] font-black font-mono tracking-widest my-1">VS</div>
  
                        {/* Team 2 */}
-                       <div className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${
+                       <div className={`flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-xl transition-all min-w-0 ${
                         pairing.winnerId === pairing.team2Id 
                           ? 'bg-emerald-500/5 border border-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.05)]' 
                           : 'bg-[#121212]/40 border border-white/5'
                       }`}>
-                        <div className="w-8 h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {team2?.logoUrl ? (
                             <img src={team2.logoUrl} alt="" className="w-full h-full object-contain p-1" />
                           ) : (
                             <span className="text-sm">⚽</span>
                           )}
                         </div>
-                        <span className={`font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate ${
+                        <span className={`font-extrabold uppercase text-xs tracking-tight font-mono flex-1 truncate min-w-0 ${
                           team2 ? 'text-white' : 'text-[#7A7367] italic'
                         }`}>
                           {team2?.name || pairing.team2Placeholder || 'TBD'}
                         </span>
                         {pairing.winnerId === pairing.team2Id && (
-                          <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono">WINNER</span>
+                          <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider font-mono flex-shrink-0">WINNER</span>
                         )}
                       </div>
 

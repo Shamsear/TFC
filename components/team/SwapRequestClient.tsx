@@ -691,11 +691,17 @@ export default function SwapRequestClient({
                         <div key={req.id} className="bg-neutral-900/60 border border-white/[0.06] rounded-xl p-4 sm:p-5 hover:border-white/10 transition-colors duration-200">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 pb-4 border-b border-white/[0.04]">
                             <div>
-                              <div className="font-bold text-white text-base sm:text-lg flex items-center gap-2">
-                                <span>{req.requestingTeamName}</span>
-                                <span className="text-cyan-400 font-mono text-sm">⇄</span>
-                                <span className="text-gray-300">{req.targetTeamName}</span>
-                              </div>
+                              {(() => {
+                                const reqPlayers = req.players.filter(p => p.fromTeamId === req.requestingTeamId).map(p => p.playerName).join(', ')
+                                const tgtPlayers = req.players.filter(p => p.fromTeamId === req.targetTeamId).map(p => p.playerName).join(', ')
+                                return (
+                                  <div className="font-bold text-white text-base sm:text-lg flex items-center gap-2 flex-wrap">
+                                    <span>{req.requestingTeamName} <span className="text-[#E8A800] font-normal text-xs">({reqPlayers})</span></span>
+                                    <span className="text-cyan-400 font-mono text-sm">⇄</span>
+                                    <span className="text-gray-300">{req.targetTeamName} <span className="text-[#E8A800] font-normal text-xs">({tgtPlayers})</span></span>
+                                  </div>
+                                )
+                              })()}
                               <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                                 <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400 font-medium">
                                   {req.players.length / 2}-for-{req.players.length / 2} Trade
@@ -796,11 +802,17 @@ export default function SwapRequestClient({
                         <div key={req.id} className="bg-[#0b0b0d]/80 border border-emerald-500/15 rounded-xl p-4 sm:p-5">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 pb-4 border-b border-emerald-500/10">
                             <div>
-                              <div className="font-bold text-white text-base sm:text-lg flex items-center gap-2">
-                                <span>{req.requestingTeamName}</span>
-                                <span className="text-emerald-400 font-mono text-sm">⇄</span>
-                                <span className="text-gray-300">{req.targetTeamName}</span>
-                              </div>
+                              {(() => {
+                                const reqPlayers = req.players.filter(p => p.fromTeamId === req.requestingTeamId).map(p => p.playerName).join(', ')
+                                const tgtPlayers = req.players.filter(p => p.fromTeamId === req.targetTeamId).map(p => p.playerName).join(', ')
+                                return (
+                                  <div className="font-bold text-white text-base sm:text-lg flex items-center gap-2 flex-wrap">
+                                    <span>{req.requestingTeamName} <span className="text-[#E8A800] font-normal text-xs">({reqPlayers})</span></span>
+                                    <span className="text-emerald-400 font-mono text-sm">⇄</span>
+                                    <span className="text-gray-300">{req.targetTeamName} <span className="text-[#E8A800] font-normal text-xs">({tgtPlayers})</span></span>
+                                  </div>
+                                )
+                              })()}
                               <div className="text-xs text-emerald-400 font-bold mt-1.5 flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                 Approved by League Admin
@@ -1303,10 +1315,10 @@ export default function SwapRequestClient({
                             <span className="w-7 h-7 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/30 text-[#E8A800] font-black text-xs flex items-center justify-center">
                               #{idx + 1}
                             </span>
-                            <div className="font-bold text-white text-base sm:text-lg flex items-center gap-2">
-                              <span>{deal.requestingTeamName}</span>
+                            <div className="font-bold text-white text-base sm:text-lg flex items-center gap-2 flex-wrap">
+                              <span>{deal.requestingTeamName} <span className="text-[#E8A800] font-normal text-xs">({deal.team1Players.map(p => p.playerName).join(', ')})</span></span>
                               <span className="text-emerald-400 font-mono">⇄</span>
-                              <span>{deal.targetTeamName}</span>
+                              <span>{deal.targetTeamName} <span className="text-[#E8A800] font-normal text-xs">({deal.team2Players.map(p => p.playerName).join(', ')})</span></span>
                             </div>
                           </div>
 

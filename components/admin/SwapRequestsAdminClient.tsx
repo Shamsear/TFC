@@ -606,7 +606,7 @@ ${targetAcquires || '_None_'}
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h3 className="text-xl font-black text-white mb-2">
-                        {swapType}-for-{swapType} Swap
+                        {swapType}-for-{swapType} Swap: <span className="text-[#E8A800]">{request.requestingTeamName}</span> ({requestingPlayers.map(p => p.playerName).join(', ')}) ⇄ <span className="text-[#E8A800]">{request.targetTeamName}</span> ({targetPlayers.map(p => p.playerName).join(', ')})
                       </h3>
                       <div className="text-sm text-gray-400">{formatDate(request.submittedAt)}</div>
                     </div>
@@ -622,7 +622,9 @@ ${targetAcquires || '_None_'}
                             <img src={request.requestingTeamLogo} alt={request.requestingTeamName} className="w-full h-full object-contain" />
                           </div>
                         )}
-                        <div className="font-bold text-white">{request.requestingTeamName} gives:</div>
+                        <div className="font-bold text-white">
+                          {request.requestingTeamName} <span className="text-[#E8A800] text-xs font-normal">({requestingPlayers.map(p => p.playerName).join(', ')})</span> gives:
+                        </div>
                       </div>
                       <div className="space-y-3">
                         {requestingPlayers.map(player => (
@@ -653,7 +655,9 @@ ${targetAcquires || '_None_'}
                             <img src={request.targetTeamLogo} alt={request.targetTeamName} className="w-full h-full object-contain" />
                           </div>
                         )}
-                        <div className="font-bold text-white">{request.targetTeamName} gives:</div>
+                        <div className="font-bold text-white">
+                          {request.targetTeamName} <span className="text-[#E8A800] text-xs font-normal">({targetPlayers.map(p => p.playerName).join(', ')})</span> gives:
+                        </div>
                       </div>
                       <div className="space-y-3">
                         {targetPlayers.map(player => (
@@ -721,12 +725,18 @@ ${targetAcquires || '_None_'}
           <div className="space-y-3">
             {processedRequests.map(request => {
               const swapType = request.players.length / 2
+              const requestingPlayers = request.players.filter(p => p.fromTeamId === request.requestingTeamId)
+              const targetPlayers = request.players.filter(p => p.fromTeamId === request.targetTeamId)
+              const reqPlayerNames = requestingPlayers.map(p => p.playerName).join(', ')
+              const tgtPlayerNames = targetPlayers.map(p => p.playerName).join(', ')
               return (
                 <div key={request.id} className="rounded-xl bg-white/5 border border-white/10 p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-bold text-white mb-1">
-                        {request.requestingTeamName} ⇄ {request.targetTeamName}
+                      <div className="font-bold text-white mb-1 flex items-center gap-1.5 flex-wrap">
+                        <span>{request.requestingTeamName} <span className="text-[#E8A800] font-normal text-xs">({reqPlayerNames || 'No players'})</span></span>
+                        <span className="text-gray-400 font-mono text-sm mx-1">⇄</span>
+                        <span>{request.targetTeamName} <span className="text-[#E8A800] font-normal text-xs">({tgtPlayerNames || 'No players'})</span></span>
                       </div>
                       <div className="text-sm text-gray-400">
                         {swapType}-for-{swapType} swap

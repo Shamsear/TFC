@@ -11,8 +11,9 @@ export const metadata = {
 export default async function EditTeamManagerPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   const session = await auth()
 
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
@@ -22,7 +23,7 @@ export default async function EditTeamManagerPage({
   // Fetch team manager
   const teamManager = await prisma.users.findUnique({
     where: {
-      id: params.id,
+      id,
       role: "TEAM_MANAGER",
     },
     include: {

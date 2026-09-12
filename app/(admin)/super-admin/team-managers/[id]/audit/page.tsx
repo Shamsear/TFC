@@ -39,7 +39,7 @@ export default async function TeamManagerAuditPage({
   // Fetch audit logs for this team manager
   const auditLogs = await prisma.audit_logs.findMany({
     where: {
-      userId: params.id,
+      userId: id,
     },
     orderBy: {
       createdAt: "desc",

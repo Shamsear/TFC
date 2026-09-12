@@ -476,9 +476,9 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
 
                       {/* Mobile View: Beautifully compact and responsive layout with both dates */}
                       <div className="md:hidden space-y-3 font-mono">
-                        <div className="grid grid-cols-7 items-center gap-1 sm:gap-2">
+                        <div className="flex items-center justify-between gap-1.5 sm:gap-2 w-full min-w-0">
                           {/* Home Team */}
-                          <div className="col-span-3 flex items-center justify-end gap-1.5 text-right min-w-0">
+                          <div className="flex-1 flex items-center justify-end gap-1.5 text-right min-w-0">
                             <span className="text-white font-extrabold uppercase text-xs truncate min-w-0">{match.homeTeam.team.name}</span>
                             <div className="w-6 h-6 rounded-md bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {match.homeTeam.team.logoUrl ? (
@@ -489,9 +489,9 @@ export default function FixtureCalendarEditor({ matches, tournamentId, seasonId 
                             </div>
                           </div>
                           {/* VS */}
-                          <div className="col-span-1 text-center text-gray-600 font-black text-[10px] tracking-widest flex-shrink-0">VS</div>
+                          <div className="flex-shrink-0 px-1 text-center text-gray-600 font-black text-[10px] tracking-widest">VS</div>
                           {/* Away Team */}
-                          <div className="col-span-3 flex items-center justify-start gap-1.5 text-left min-w-0">
+                          <div className="flex-1 flex items-center justify-start gap-1.5 text-left min-w-0">
                             <div className="w-6 h-6 rounded-md bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {match.awayTeam.team.logoUrl ? (
                                 <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />

@@ -2438,7 +2438,19 @@ export default function StatsPoster({
       )}
 
       {/* Off-screen render target for capture */}
-      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', overflow: 'hidden' }} aria-hidden="true">
+      <div 
+        style={{ 
+          position: 'fixed', 
+          left: '-9999px', 
+          top: '-9999px', 
+          width: '800px',
+          overflow: 'hidden', 
+          pointerEvents: 'none',
+          visibility: 'hidden',
+          zIndex: -100
+        }} 
+        aria-hidden="true"
+      >
         <div ref={posterRef}>
           {activeTheme === 'team_matchday' ? (
             <TeamMatchdayPosterSnapshot

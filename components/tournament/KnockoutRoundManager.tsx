@@ -814,7 +814,7 @@ export default function KnockoutRoundManager({
 
         {/* Auto Mode Bracket Preview */}
         {formData.mode === 'auto' && (
-          <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
+          <div className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 w-full min-w-0">
             <div>
               <h3 className="text-lg font-black text-white uppercase tracking-wider font-mono">
                 Knockout Bracket Preview

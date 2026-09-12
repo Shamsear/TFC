@@ -473,10 +473,10 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                   <div>{formatDate(match.matchDate)}</div>
                 </div>
 
-                {/* Main Score/Teams grid */}
-                <div className="grid grid-cols-7 items-center gap-1 sm:gap-2 py-1">
+                {/* Main Score/Teams flex layout - resilient & guaranteed never to blow out mobile cards */}
+                <div className="flex items-center justify-between gap-1.5 sm:gap-2 py-1 w-full min-w-0">
                   {/* Home Team */}
-                  <div className="col-span-3 flex items-center justify-end gap-1.5 sm:gap-2 text-right min-w-0">
+                  <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-2 text-right min-w-0">
                     <span className={`font-extrabold text-xs truncate uppercase tracking-tight min-w-0 ${homeWin ? 'text-emerald-400' : 'text-white'}`}>
                       {match.homeTeam.team.name}
                     </span>
@@ -492,7 +492,7 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                   </div>
 
                   {/* Score or VS */}
-                  <div className="col-span-1 flex flex-col items-center justify-center flex-shrink-0">
+                  <div className="flex-shrink-0 flex items-center justify-center px-0.5">
                     {match.status === 'WALKOVER' ? (
                       <span className="px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[9px] font-black uppercase tracking-wider text-purple-400 whitespace-nowrap">
                         W/O
@@ -515,7 +515,7 @@ export default function FixturesList({ matches, tournamentId, seasonId, tourname
                   </div>
 
                   {/* Away Team */}
-                  <div className="col-span-3 flex items-center justify-start gap-1.5 sm:gap-2 text-left min-w-0">
+                  <div className="flex-1 flex items-center justify-start gap-1.5 sm:gap-2 text-left min-w-0">
                     <div className="w-6 h-6 flex-shrink-0 rounded-md overflow-hidden bg-black/40 border border-white/5 p-0.5">
                       {match.awayTeam.team.logoUrl ? (
                         <img src={match.awayTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />

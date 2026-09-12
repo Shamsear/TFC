@@ -243,7 +243,7 @@ export default function ShareableAdminFixtures({
 
   return (
     <>
-      <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
         {/* Filter Dropdown */}
         <div className="relative flex-1 sm:flex-none">
           <button
@@ -368,7 +368,16 @@ export default function ShareableAdminFixtures({
 
       {/* Off-screen snapshot */}
       <div
-        style={{ position: 'absolute', left: '-9999px', top: 0, pointerEvents: 'none' }}
+        style={{
+          position: 'fixed',
+          left: '-9999px',
+          top: '-9999px',
+          width: '1200px',
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          visibility: 'hidden',
+          zIndex: -100
+        }}
         aria-hidden="true"
       >
         <div ref={snapshotRef}>

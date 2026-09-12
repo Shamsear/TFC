@@ -247,7 +247,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
               type="time"
               value={defaultDeadlineTime}
               onChange={(e) => setDefaultDeadlineTime(e.target.value)}
-              className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
+              className="w-full min-w-0 max-w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
             />
           </div>
 
@@ -258,7 +258,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
             <select
               value={defaultDeadlineOffset}
               onChange={(e) => setDefaultDeadlineOffset(parseInt(e.target.value) || 0)}
-              className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
+              className="w-full min-w-0 max-w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
             >
               <option value={0} className="bg-[#0c0c0c] text-white">Same day</option>
               <option value={1} className="bg-[#0c0c0c] text-white">1 day after</option>
@@ -352,7 +352,7 @@ export default function MatchRoundManager({ matches, tournamentId, seasonId }: M
                   value={deadlines[round.name] || ''}
                   onChange={(e) => handleDeadlineChange(round.name, e.target.value)}
                   disabled={round.isCompleted || loading?.includes(round.name)}
-                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
+                  className="w-full min-w-0 max-w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-2 text-xs font-black text-[#E8A800] focus:outline-none focus:ring-1 focus:ring-[#E8A800] cursor-pointer font-mono uppercase tracking-wider transition-all hover:bg-white/[0.03]"
                 />
               </div>
 

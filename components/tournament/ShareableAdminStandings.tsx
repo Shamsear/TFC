@@ -241,7 +241,7 @@ export default function ShareableAdminStandings({
 
   return (
     <>
-      <div className="flex items-center gap-2 w-full sm:w-auto">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         {/* Share */}
         <button
           onClick={handleShare}
@@ -315,7 +315,16 @@ export default function ShareableAdminStandings({
 
       {/* Off-screen snapshot */}
       <div
-        style={{ position: 'absolute', left: '-9999px', top: 0, pointerEvents: 'none' }}
+        style={{
+          position: 'fixed',
+          left: '-9999px',
+          top: '-9999px',
+          width: '1200px',
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          visibility: 'hidden',
+          zIndex: -100
+        }}
         aria-hidden="true"
       >
         <div ref={snapshotRef}>

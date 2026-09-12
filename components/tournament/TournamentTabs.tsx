@@ -226,13 +226,14 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
   return (
     <div className="w-full min-w-0 max-w-full">
       {/* Tabs */}
-      <div className="mb-6 sm:mb-8 border-b border-white/5">
-        <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 py-1">
+      <div className="mb-6 sm:mb-8 border-b border-white/5 w-full max-w-full overflow-hidden">
+        <div className="w-full max-w-full overflow-x-auto scrollbar-none py-1">
+          <div className="flex items-center gap-1.5 sm:gap-2 w-max min-w-full">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 sm:px-6 py-3 font-black transition-all relative whitespace-nowrap text-xs uppercase tracking-wider cursor-pointer ${
+              className={`px-3.5 sm:px-6 py-2.5 sm:py-3 font-black transition-all relative whitespace-nowrap text-xs uppercase tracking-wider cursor-pointer flex-shrink-0 ${
                 activeTab === tab.id
                   ? 'text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.15)]'
                   : 'text-gray-500 hover:text-white'
@@ -255,6 +256,7 @@ export default function TournamentTabs({ tournament, teams, seasonId, statsTeams
               )}
             </button>
           ))}
+          </div>
         </div>
       </div>
 

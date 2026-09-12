@@ -100,9 +100,9 @@ export default function KnockoutBracket({ rounds, teams, seasonId, tournamentId 
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 w-full min-w-0">
       {rounds.map((round) => (
-        <div key={round.id} className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div key={round.id} className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 p-4 sm:p-8 shadow-2xl backdrop-blur-xl w-full min-w-0">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className={`text-xl font-black uppercase tracking-wider font-mono bg-gradient-to-r ${getRoundColor(round.roundName)} bg-clip-text text-transparent`}>

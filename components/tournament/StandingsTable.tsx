@@ -44,30 +44,30 @@ export default function StandingsTable({ standings, groups }: StandingsTableProp
     : { 'Overall': standings }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0 max-w-full">
       {Object.entries(groupedStandings).map(([groupName, groupStandings]) => (
-        <div key={groupName} className="rounded-3xl border border-white/5 bg-[#0D0D0D]/90 overflow-hidden shadow-2xl backdrop-blur-xl">
+        <div key={groupName} className="rounded-3xl border border-white/5 bg-[#0D0D0D]/90 overflow-hidden shadow-2xl backdrop-blur-xl w-full min-w-0 max-w-full">
           {groups.length > 0 && (
-            <div className="px-6 py-4 border-b border-white/5 flex items-center gap-2">
+            <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#E8A800] shadow-[0_0_10px_rgba(232,168,0,0.5)]" />
               <span className="font-black text-sm text-white uppercase tracking-wider font-mono">{groupName}</span>
             </div>
           )}
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs font-mono">
+          <div className="overflow-x-auto w-full min-w-0 max-w-full scrollbar-thin">
+            <table className="w-full text-xs font-mono min-w-[330px]">
               <thead>
                 <tr className="border-b border-white/5 bg-white/[0.02]">
-                  <th className="px-4 py-3 sm:px-5 text-left text-[10px] font-extrabold text-gray-500 uppercase tracking-widest w-12">#</th>
-                  <th className="px-4 py-3 sm:px-5 text-left text-[10px] font-extrabold text-gray-500 uppercase tracking-widest min-w-[120px] sm:min-w-[180px]">Team</th>
-                  <th className="px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">P</th>
-                  <th className="px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">W</th>
-                  <th className="px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">D</th>
-                  <th className="px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">L</th>
+                  <th className="px-3 py-3 sm:px-5 text-left text-[10px] font-extrabold text-gray-500 uppercase tracking-widest w-10 sm:w-12">#</th>
+                  <th className="px-2 py-3 sm:px-5 text-left text-[10px] font-extrabold text-gray-500 uppercase tracking-widest min-w-[100px] sm:min-w-[180px]">Team</th>
+                  <th className="px-1.5 sm:px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">P</th>
+                  <th className="px-1.5 sm:px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">W</th>
+                  <th className="px-1.5 sm:px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">D</th>
+                  <th className="px-1.5 sm:px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">L</th>
                   <th className="hidden sm:table-cell px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">GF</th>
                   <th className="hidden sm:table-cell px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">GA</th>
-                  <th className="px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">GD</th>
-                  <th className="px-4 py-3 sm:px-5 text-center text-[10px] font-black text-[#E8A800] uppercase tracking-widest w-16">Pts</th>
+                  <th className="px-1.5 sm:px-2 py-3 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">GD</th>
+                  <th className="px-3 py-3 sm:px-5 text-center text-[10px] font-black text-[#E8A800] uppercase tracking-widest w-14 sm:w-16">Pts</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -85,13 +85,13 @@ export default function StandingsTable({ standings, groups }: StandingsTableProp
                       key={standing.id}
                       className="hover:bg-white/[0.02] transition-colors"
                     >
-                      <td className="px-4 py-3 sm:px-5">
+                      <td className="px-3 py-3 sm:px-5">
                         <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black border ${posColor}`}>
                           {pos}
                         </div>
                       </td>
-                      <td className="px-4 py-3 sm:px-5">
-                        <div className="flex items-center gap-2">
+                      <td className="px-2 py-3 sm:px-5">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           <div className="relative w-6 h-6 flex-shrink-0 rounded-lg overflow-hidden bg-black/40 border border-white/5 p-0.5">
                             {standing.seasonTeam.team.logoUrl ? (
                               <img src={standing.seasonTeam.team.logoUrl} alt="" className="w-full h-full object-contain" />
@@ -101,26 +101,26 @@ export default function StandingsTable({ standings, groups }: StandingsTableProp
                               </div>
                             )}
                           </div>
-                          <span className="font-extrabold text-xs text-white uppercase tracking-tight truncate max-w-[120px] sm:max-w-none">
+                          <span className="font-extrabold text-xs text-white uppercase tracking-tight truncate max-w-[100px] sm:max-w-none">
                             {standing.seasonTeam.team.name}
                           </span>
                         </div>
                       </td>
-                      <td className="px-2 py-3 text-center text-gray-300 font-bold">{standing.played}</td>
-                      <td className="px-2 py-3 text-center text-emerald-400 font-black">{standing.won}</td>
-                      <td className="px-2 py-3 text-center text-gray-300 font-bold">{standing.drawn}</td>
-                      <td className="px-2 py-3 text-center text-red-400 font-black">{standing.lost}</td>
+                      <td className="px-1.5 sm:px-2 py-3 text-center text-gray-300 font-bold">{standing.played}</td>
+                      <td className="px-1.5 sm:px-2 py-3 text-center text-emerald-400 font-black">{standing.won}</td>
+                      <td className="px-1.5 sm:px-2 py-3 text-center text-gray-300 font-bold">{standing.drawn}</td>
+                      <td className="px-1.5 sm:px-2 py-3 text-center text-red-400 font-black">{standing.lost}</td>
                       <td className="hidden sm:table-cell px-2 py-3 text-center text-gray-400">{standing.goalsFor}</td>
                       <td className="hidden sm:table-cell px-2 py-3 text-center text-gray-400">{standing.goalsAgainst}</td>
-                      <td className={`px-2 py-3 text-center font-black ${
+                      <td className={`px-1.5 sm:px-2 py-3 text-center font-black ${
                         goalDiff > 0 ? 'text-emerald-400' :
                         goalDiff < 0 ? 'text-red-400' :
                         'text-gray-500'
                       }`}>
                         {goalDiff > 0 ? '+' : ''}{goalDiff}
                       </td>
-                      <td className="px-4 py-3 sm:px-5 text-center">
-                        <div className="w-10 h-6 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] font-black flex items-center justify-center text-[11px] mx-auto">
+                      <td className="px-3 py-3 sm:px-5 text-center">
+                        <div className="w-9 sm:w-10 h-6 rounded-lg bg-[#E8A800]/10 border border-[#E8A800]/25 text-[#E8A800] font-black flex items-center justify-center text-[11px] mx-auto">
                           {standing.points}
                         </div>
                       </td>

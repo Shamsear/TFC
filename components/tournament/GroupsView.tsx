@@ -19,9 +19,9 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
           })
 
         return (
-          <div key={group.id} className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 shadow-2xl overflow-hidden backdrop-blur-xl">
+          <div key={group.id} className="rounded-3xl bg-[#0D0D0D]/90 border border-white/5 shadow-2xl overflow-hidden backdrop-blur-xl w-full min-w-0">
             {/* Group Header */}
-            <div className="bg-white/[0.01] border-b border-white/5 px-6 py-5">
+            <div className="bg-white/[0.01] border-b border-white/5 px-4 sm:px-6 py-4 sm:py-5">
               <h3 className="text-lg font-black uppercase text-white tracking-wider font-mono">{group.name}</h3>
               <div className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider font-mono mt-1">
                 {groupMatches.length} matches • {groupStandings.length} teams
@@ -29,7 +29,7 @@ export default function GroupsView({ groups, matches, standings }: GroupsViewPro
             </div>
 
             {/* Standings */}
-            <div className="p-6">
+            <div className="p-3.5 sm:p-6">
               <h4 className="text-[10px] font-extrabold uppercase text-gray-500 tracking-wider font-mono mb-4">STANDINGS</h4>
               <div className="space-y-2">
                 {groupStandings.map((standing, index) => {

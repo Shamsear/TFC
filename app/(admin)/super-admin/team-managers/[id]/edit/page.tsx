@@ -53,7 +53,7 @@ export default async function EditTeamManagerPage({
       role: "TEAM_MANAGER",
       teamId: { not: null },
       NOT: {
-        id: params.id,
+        id,
       },
     },
     select: {

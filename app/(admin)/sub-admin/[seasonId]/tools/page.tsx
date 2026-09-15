@@ -27,6 +27,20 @@ export default async function ToolsPage({ params }: ToolsPageProps) {
 
   const tools = [
     {
+      title: 'Manager Handover',
+      description: 'Mid-season manager transfer & stats split for departing managers',
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ),
+      href: `/sub-admin/${seasonId}/tools/manager-handover`,
+      color: 'from-[#E8A800] to-[#FFB347]',
+      bgColor: 'bg-[#E8A800]/10',
+      borderColor: 'border-[#E8A800]/30',
+      textColor: 'text-[#E8A800]'
+    },
+    {
       title: 'Release Requests',
       description: 'Manage player release requests from teams',
       icon: (

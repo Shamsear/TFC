@@ -86,6 +86,7 @@ model season_teams {
   transfer_history   transfer_history[]
   teamAwards         team_awards[]
   qualifications      tournament_team_qualifications[] @relation("TeamQualifications")
+  managerTenures     manager_tenures[]
 
   @@unique([seasonId, teamId])
 }
@@ -1213,6 +1214,20 @@ model manager_teams {
   @@id([managerId, teamId])
   @@index([managerId])
   @@index([teamId])
+}
+
+model manager_tenures {
+  id           String       @id
+  seasonTeamId String       @map("season_team_id")
+  managerName  String       @map("manager_name")
+  fromMatchId  String?      @map("from_match_id")
+  toMatchId    String?      @map("to_match_id")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  seasonTeam   season_teams @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
+
+  @@index([seasonTeamId], map: "idx_manager_tenures_season_team")
+  @@index([managerName], map: "idx_manager_tenures_manager")
 }
 
 model news {

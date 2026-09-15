@@ -12,6 +12,7 @@ import {
   getRankDetails,
   BADGE_DEFINITIONS
 } from "@/lib/achievements-math"
+import { filterMatchesByTenureWindow, computeMatchStats } from "@/lib/manager-tenure"
 
 interface ManagerDetailPageProps {
   params: Promise<{
@@ -46,9 +47,14 @@ async function getTeamData(teamId: string) {
     if (currentLink) {
       resolvedTeamId = currentLink.teamId;
     } else {
-      // Fallback: find most recent season_teams entry
+      // Fallback: find most recent season_teams entry or tenure entry
       const latestSeasonTeam = await prisma.season_teams.findFirst({
-        where: { managerName: { equals: manager.name, mode: 'insensitive' } },
+        where: {
+          OR: [
+            { managerName: { equals: manager.name, mode: 'insensitive' } },
+            { managerTenures: { some: { managerName: { equals: manager.name, mode: 'insensitive' } } } }
+          ]
+        },
         include: { season: { select: { seasonNumber: true } } },
         orderBy: { season: { seasonNumber: 'desc' } }
       });
@@ -103,17 +109,21 @@ async function getTeamData(teamId: string) {
   }
 
   // ── Step 2: Get ALL seasons this manager participated in ────────
-  // Query season_teams by the canonical manager name
+  // Query season_teams by canonical manager name OR tenure presence
   const allSeasonTeams = await prisma.season_teams.findMany({
     where: {
-      managerName: { equals: resolvedManagerName, mode: 'insensitive' }
+      OR: [
+        { managerName: { equals: resolvedManagerName, mode: 'insensitive' } },
+        { managerTenures: { some: { managerName: { equals: resolvedManagerName, mode: 'insensitive' } } } }
+      ]
     },
     include: {
       season: {
         select: {
           id: true,
           name: true,
-          startingPurse: true
+          startingPurse: true,
+          seasonNumber: true
         }
       },
       team: {
@@ -127,11 +137,32 @@ async function getTeamData(teamId: string) {
         include: {
           tournament: true
         }
+      },
+      managerTenures: {
+        orderBy: { createdAt: 'asc' }
+      },
+      homeMatches: {
+        where: { status: 'COMPLETED' },
+        include: {
+          homeTeam: { select: { id: true, team: { select: { name: true, logoUrl: true } } } },
+          awayTeam: { select: { id: true, team: { select: { name: true, logoUrl: true } } } },
+          tournament: { select: { id: true, name: true } }
+        },
+        orderBy: [{ matchDate: 'asc' }, { createdAt: 'asc' }]
+      },
+      awayMatches: {
+        where: { status: 'COMPLETED' },
+        include: {
+          homeTeam: { select: { id: true, team: { select: { name: true, logoUrl: true } } } },
+          awayTeam: { select: { id: true, team: { select: { name: true, logoUrl: true } } } },
+          tournament: { select: { id: true, name: true } }
+        },
+        orderBy: [{ matchDate: 'asc' }, { createdAt: 'asc' }]
       }
     },
     orderBy: {
       season: {
-        createdAt: 'desc'
+        seasonNumber: 'desc'
       }
     }
   });

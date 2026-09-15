@@ -33,6 +33,7 @@ export const ID_PREFIXES = {
   RELEASE_WINDOW: 'TFCRW',
   SWAP_WINDOW: 'TFCSW',
   MANAGER: 'TFCMGR',
+  MANAGER_TENURE: 'TFCMT',
   TEAM_AWARD: 'TFCTA',
 } as const
 
@@ -245,6 +246,13 @@ export async function generateRoundId(): Promise<string> {
  */
 export async function generateManagerId(): Promise<string> {
   return generateId(ID_PREFIXES.MANAGER)
+}
+
+/**
+ * Generate a manager tenure ID
+ */
+export async function generateManagerTenureId(): Promise<string> {
+  return generateId(ID_PREFIXES.MANAGER_TENURE)
 }
 
 /**

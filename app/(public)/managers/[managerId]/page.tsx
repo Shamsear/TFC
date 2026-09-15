@@ -233,14 +233,61 @@ async function getTeamData(teamId: string) {
 
     const formationObj = allSquads.find(q => q.season_id === st.seasonId && q.team_id === st.teamId);
 
-    const played = st.standings.reduce((sum, s) => sum + s.played, 0);
-    const won = st.standings.reduce((sum, s) => sum + s.won, 0);
-    const drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0);
-    const lost = st.standings.reduce((sum, s) => sum + s.lost, 0);
-    const goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0);
-    const goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0);
-    const goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0);
-    const points = st.standings.reduce((sum, s) => sum + s.points, 0);
+    let played = 0;
+    let won = 0;
+    let drawn = 0;
+    let lost = 0;
+    let goalsFor = 0;
+    let goalsAgainst = 0;
+    let goalDiff = 0;
+    let points = 0;
+
+    if (st.managerTenures && st.managerTenures.length > 0) {
+      // Team has manager tenures — compute from tenure matches
+      const allTeamMatches = [...st.homeMatches, ...st.awayMatches].sort(
+        (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
+      );
+
+      const myTenures = st.managerTenures.filter(
+        t => t.managerName.toLowerCase() === (resolvedManagerName || '').toLowerCase()
+      );
+
+      const matchedMatches: any[] = [];
+      const seenMatchIds = new Set<string>();
+
+      for (const tenure of myTenures) {
+        const windowMatches = filterMatchesByTenureWindow(
+          allTeamMatches,
+          tenure.fromMatchId,
+          tenure.toMatchId
+        );
+        for (const m of windowMatches) {
+          if (!seenMatchIds.has(m.id)) {
+            seenMatchIds.add(m.id);
+            matchedMatches.push(m);
+          }
+        }
+      }
+
+      const matchStats = computeMatchStats(matchedMatches, st.id);
+      played = matchStats.played;
+      won = matchStats.won;
+      drawn = matchStats.drawn;
+      lost = matchStats.lost;
+      goalsFor = matchStats.goalsFor;
+      goalsAgainst = matchStats.goalsAgainst;
+      goalDiff = matchStats.goalDiff;
+      points = matchStats.points;
+    } else {
+      played = st.standings.reduce((sum, s) => sum + s.played, 0);
+      won = st.standings.reduce((sum, s) => sum + s.won, 0);
+      drawn = st.standings.reduce((sum, s) => sum + s.drawn, 0);
+      lost = st.standings.reduce((sum, s) => sum + s.lost, 0);
+      goalsFor = st.standings.reduce((sum, s) => sum + s.goalsFor, 0);
+      goalsAgainst = st.standings.reduce((sum, s) => sum + s.goalsAgainst, 0);
+      goalDiff = st.standings.reduce((sum, s) => sum + s.goalDiff, 0);
+      points = st.standings.reduce((sum, s) => sum + s.points, 0);
+    }
 
     const startingPurse = st.season.startingPurse === 10000 ? 20000 : (st.season.startingPurse || 20000);
 

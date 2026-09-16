@@ -325,7 +325,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             oldManager: oldManagerName,
             newManager: newManagerName,
             lastMatchId: lastMatchOfOld,
-            firstNewMatchId: firstMatchOfNew,
             transferredBy: session.user.email,
           }),
           ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown",

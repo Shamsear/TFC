@@ -76,7 +76,7 @@ export default function CreateRoundClient({
   // Form state
   const [roundType, setRoundType] = useState<'normal' | 'bulk' | 'special'>('normal')
   const [targetTeamId, setTargetTeamId] = useState<string>('')
-  const [customBasePrice, setCustomBasePrice] = useState<string>(seasonDefaults.basePrice ? seasonDefaults.basePrice.toString() : '10000000')
+  const [customBasePrice, setCustomBasePrice] = useState<string>(seasonDefaults.basePrice ? seasonDefaults.basePrice.toString() : '10')
   const [timingMode, setTimingMode] = useState<'calendar' | 'immediate'>('calendar')
   const [finalizationMode, setFinalizationMode] = useState<'auto' | 'manual'>('auto')
   const [durationHours, setDurationHours] = useState('1')
@@ -409,14 +409,14 @@ export default function CreateRoundClient({
               <input
                 type="number"
                 min="1"
-                step="100000"
+                step="1"
                 value={customBasePrice}
                 onChange={(e) => setCustomBasePrice(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg bg-black/40 border border-amber-500/30 text-white font-mono text-sm focus:border-amber-400 focus:outline-none"
-                placeholder="e.g. 10000000"
+                placeholder="e.g. 10"
               />
               <div className="text-[11px] text-gray-400 mt-1">
-                Cost deducted per acquired player (£{(parseInt(customBasePrice || '0', 10) / 1000000).toFixed(1)}M)
+                Cost deducted per acquired player: <span className="text-emerald-400 font-bold">£{parseInt(customBasePrice || '0', 10).toLocaleString()}</span>
               </div>
             </div>
 

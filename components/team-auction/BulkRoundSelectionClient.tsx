@@ -323,7 +323,7 @@ export default function BulkRoundSelectionClient({
         setModalConfig({
           isOpen: true,
           title: 'Insufficient Budget',
-          message: `Total cost £${(totalCost / 1_000_000).toFixed(1)}M exceeds your remaining budget of £${(team.budget / 1_000_000).toFixed(1)}M. Please remove some players.`,
+          message: `Total cost £${totalCost.toLocaleString()} exceeds your remaining budget of £${team.budget.toLocaleString()}. Please remove some players.`,
           isError: true
         })
         return
@@ -355,7 +355,7 @@ export default function BulkRoundSelectionClient({
       isOpen: true,
       title: 'Confirm Submission',
       message: isSpecial
-        ? `Submit ${selections.length} player${selections.length === 1 ? '' : 's'} for £${(totalCost / 1_000_000).toFixed(1)}M? All selected players will directly join your squad upon finalization.`
+        ? `Submit ${selections.length} player${selections.length === 1 ? '' : 's'} for £${totalCost.toLocaleString()}? All selected players will directly join your squad upon finalization.`
         : 'Are you sure you want to submit? You can still edit your selections before the round ends.',
       onConfirm: performSubmit,
       confirmText: 'Submit',
@@ -627,7 +627,7 @@ export default function BulkRoundSelectionClient({
                   Exclusive Squad Rebuild Round
                 </h3>
                 <p className="text-xs text-[#D4CCBB] mt-0.5 leading-relaxed">
-                  This round is created specifically for <strong>{team.name}</strong>. All players you select will directly join your squad at base price (<strong className="text-emerald-400">£{((round.basePrice || 0) / 1_000_000).toFixed(1)}M</strong> each) with no competing bids upon finalization.
+                  This round is created specifically for <strong>{team.name}</strong>. All players you select will directly join your squad at base price (<strong className="text-emerald-400">£{(round.basePrice || 0).toLocaleString()}</strong> each) with no competing bids upon finalization.
                 </p>
               </div>
             </div>
@@ -656,9 +656,9 @@ export default function BulkRoundSelectionClient({
               </div>
               {isSpecial ? (
                 <div className="text-lg sm:text-xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.2)]">
-                  £{(totalCost / 1_000_000).toFixed(1)}M{' '}
+                  £{totalCost.toLocaleString()}{' '}
                   <span className={`text-xs font-semibold ${remainingBudget < 0 ? 'text-red-400' : 'text-[#7A7367]'}`}>
-                    (£{(remainingBudget / 1_000_000).toFixed(1)}M left)
+                    (£{remainingBudget.toLocaleString()} left)
                   </span>
                 </div>
               ) : (

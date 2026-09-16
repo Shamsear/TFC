@@ -159,7 +159,7 @@ export default async function CreateRoundPage({ params }: CreateRoundPageProps) 
         nextRoundNumber={nextRoundNumber}
         seasonDefaults={{
           maxBidsPerTeam: season.defaultMaxBidsPerTeam || seasonTeams.length,
-          basePrice: season.defaultBasePrice || 100000
+          basePrice: season.defaultBasePrice || 10
         }}
       />
     </div>

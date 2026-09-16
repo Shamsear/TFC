@@ -22,6 +22,20 @@ export default async function ManagerHandoverPage({ params }: PageProps) {
 
   const { seasonId } = await params
 
+  if (session.user.role === 'SUB_ADMIN') {
+    const subAdminSeason = await prisma.sub_admin_seasons.findUnique({
+      where: {
+        userId_seasonId: {
+          userId: session.user.id,
+          seasonId,
+        },
+      },
+    })
+    if (!subAdminSeason) {
+      redirect('/sub-admin')
+    }
+  }
+
   const season = await prisma.seasons.findUnique({
     where: { id: seasonId },
     include: {

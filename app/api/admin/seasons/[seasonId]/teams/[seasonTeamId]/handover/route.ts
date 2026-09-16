@@ -17,15 +17,36 @@ interface RouteParams {
   }>
 }
 
+async function checkSeasonAccess(userId: string, role: string, seasonId: string): Promise<boolean> {
+  if (role === "SUPER_ADMIN") return true
+  if (role === "SUB_ADMIN") {
+    const subAdminSeason = await prisma.sub_admin_seasons.findUnique({
+      where: {
+        userId_seasonId: {
+          userId,
+          seasonId,
+        },
+      },
+    })
+    return !!subAdminSeason
+  }
+  return false
+}
+
 // GET: Fetch team info, completed matches, and tenure status for handover preview
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user.role !== "SUPER_ADMIN" && session.user.role !== "SUB_ADMIN")) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { seasonId, seasonTeamId } = await params
+
+    const hasAccess = await checkSeasonAccess(session.user.id, session.user.role, seasonId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Unauthorized: You do not have access to this season" }, { status: 403 })
+    }
 
     const seasonTeam = await prisma.season_teams.findUnique({
       where: { id: seasonTeamId },
@@ -116,11 +137,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user.role !== "SUPER_ADMIN" && session.user.role !== "SUB_ADMIN")) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { seasonId, seasonTeamId } = await params
+
+    const hasAccess = await checkSeasonAccess(session.user.id, session.user.role, seasonId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Unauthorized: You do not have access to this season" }, { status: 403 })
+    }
     const body = await request.json()
     const validated = handoverSchema.parse(body)
 
@@ -162,7 +188,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     let lastMatchOfOld: string | null = null
-    let firstMatchOfNew: string | null = null
 
     if (validated.lastMatchId) {
       const matchIndex = completedMatches.findIndex((m) => m.id === validated.lastMatchId)
@@ -170,14 +195,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: "Selected match not found in completed matches" }, { status: 400 })
       }
       lastMatchOfOld = completedMatches[matchIndex].id
-      if (matchIndex + 1 < completedMatches.length) {
-        firstMatchOfNew = completedMatches[matchIndex + 1].id
-      }
-    } else {
-      // Handover before any matches were played
-      if (completedMatches.length > 0) {
-        firstMatchOfNew = completedMatches[0].id
-      }
     }
 
     // Generate IDs for new records
@@ -192,24 +209,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         where: { seasonTeamId },
       })
 
-      // 2. Create tenure for Old Manager
+      // 2. Create tenure for Old Manager (from start of season up to lastMatchId, or NONE if 0 matches)
       await tx.manager_tenures.create({
         data: {
           id: oldTenureId,
           seasonTeamId,
           managerName: oldManagerName,
           fromMatchId: null,
-          toMatchId: lastMatchOfOld,
+          toMatchId: lastMatchOfOld ? lastMatchOfOld : 'NONE',
         },
       })
 
-      // 3. Create tenure for New Manager
+      // 3. Create tenure for New Manager (starts after lastMatchId, continues to future matches)
       await tx.manager_tenures.create({
         data: {
           id: newTenureId,
           seasonTeamId,
           managerName: newManagerName,
-          fromMatchId: firstMatchOfNew,
+          fromMatchId: lastMatchOfOld ? lastMatchOfOld : null,
           toMatchId: null,
         },
       })
@@ -360,11 +377,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user.role !== "SUPER_ADMIN" && session.user.role !== "SUB_ADMIN")) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { seasonId, seasonTeamId } = await params
+
+    const hasAccess = await checkSeasonAccess(session.user.id, session.user.role, seasonId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Unauthorized: You do not have access to this season" }, { status: 403 })
+    }
 
     const seasonTeam = await prisma.season_teams.findUnique({
       where: { id: seasonTeamId },

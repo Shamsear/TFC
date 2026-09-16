@@ -13,7 +13,7 @@ export interface TenureStats {
 
 /**
  * Filter an ordered list of matches for a specific season team tenure window.
- * Boundaries are inclusive.
+ * Boundaries are inclusive for toMatchId, and exclusive (starts after) for fromMatchId.
  */
 export function filterMatchesByTenureWindow(
   matches: Array<{ id: string; [key: string]: any }>,
@@ -22,13 +22,17 @@ export function filterMatchesByTenureWindow(
 ): Array<{ id: string; [key: string]: any }> {
   if (matches.length === 0) return []
 
+  // If toMatchId is explicitly 'NONE', this tenure had 0 matches
+  if (toMatchId === 'NONE') return []
+
   let startIndex = 0
   let endIndex = matches.length - 1
 
   if (fromMatchId) {
     const idx = matches.findIndex(m => m.id === fromMatchId)
     if (idx !== -1) {
-      startIndex = idx
+      // fromMatchId is the boundary match of the PREVIOUS tenure, so this tenure starts AFTER it
+      startIndex = idx + 1
     }
   }
 

@@ -23,6 +23,7 @@ export async function POST(
     const round = await prisma.rounds.findUnique({
       where: { id: roundId },
       select: {
+        id: true,
         status: true,
         durationSeconds: true,
         seasonId: true,

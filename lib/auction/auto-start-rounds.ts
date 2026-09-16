@@ -28,7 +28,8 @@ export async function autoStartScheduledRounds(seasonId?: string): Promise<numbe
         position: true,
         durationSeconds: true,
         startTime: true,
-        endTime: true
+        endTime: true,
+        targetTeamId: true
       }
     });
 
@@ -64,19 +65,30 @@ export async function autoStartScheduledRounds(seasonId?: string): Promise<numbe
 
         // Notify managers via push notification
         try {
-          const seasonTeams = await prisma.season_teams.findMany({
-            where: { seasonId: round.seasonId },
-            select: { teamId: true }
-          });
-          const managerIds = (await Promise.all(seasonTeams.map(st => getTeamManagerId(st.teamId)))).filter(Boolean) as string[];
+          if (round.targetTeamId) {
+            const managerId = await getTeamManagerId(round.targetTeamId);
+            if (managerId) {
+              await sendPushNotificationRaw(managerId, {
+                title: '⚡ Special Squad Rebuild Round Open',
+                body: `Your exclusive Special Auction Round is now open for player selection!`,
+                url: `/team/auction/bulk-rounds/${round.id}`
+              }, 'general').catch(() => {});
+            }
+          } else {
+            const seasonTeams = await prisma.season_teams.findMany({
+              where: { seasonId: round.seasonId },
+              select: { teamId: true }
+            });
+            const managerIds = (await Promise.all(seasonTeams.map(st => getTeamManagerId(st.teamId)))).filter(Boolean) as string[];
 
-          await Promise.all(managerIds.map(userId =>
-            sendPushNotificationRaw(userId, {
-              title: '🔥 New Round Open',
-              body: `Round ${round.roundNumber}${round.position ? ` (${round.position})` : ''} is now open for bidding!`,
-              url: '/team/auction'
-            }, 'general').catch(() => {})
-          ));
+            await Promise.all(managerIds.map(userId =>
+              sendPushNotificationRaw(userId, {
+                title: '🔥 New Round Open',
+                body: `Round ${round.roundNumber}${round.position ? ` (${round.position})` : ''} is now open for bidding!`,
+                url: '/team/auction'
+              }, 'general').catch(() => {})
+            ));
+          }
         } catch (notifErr) {
           console.warn('[Push] Auto round open notification failed (non-fatal):', notifErr);
         }

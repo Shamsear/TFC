@@ -159,9 +159,17 @@ export default async function TeamDashboardPage() {
     }),
     prisma.financial_ledger.findMany({ where: { seasonTeamId: currentSeasonTeam.id }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.rounds.findMany({
-      where: { seasonId: activeSeason.id, status: "active", endTime: { gte: new Date() } },
+      where: {
+        seasonId: activeSeason.id,
+        status: "active",
+        endTime: { gte: new Date() },
+        OR: [
+          { targetTeamId: null },
+          { targetTeamId: team.id }
+        ]
+      },
       select: {
-        id: true, roundNumber: true, position: true, position_group: true, roundType: true, endTime: true,
+        id: true, roundNumber: true, position: true, position_group: true, roundType: true, endTime: true, targetTeamId: true,
         teamRoundBids: { where: { teamId: team.id }, select: { submitted: true, bidCount: true } },
         bulkRoundSelections: { where: { teamId: team.id }, select: { submitted: true } },
       },
@@ -425,11 +433,17 @@ export default async function TeamDashboardPage() {
                         <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 flex-wrap">
                           <span className="dash-body font-black text-white">Round {round.roundNumber}</span>
                           <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 dash-caption font-bold border border-emerald-500/25 uppercase tracking-wider">Live</span>
-                          <span className="dash-caption text-[#5A5660] font-medium">
-                            {round.roundType === "normal" ? "Standard" : "Bulk"}
-                            {" · "}
-                            {round.position ? `${round.position}${round.position_group && round.position_group !== "ALL" ? ` ${round.position_group}` : ""}` : "All"}
-                          </span>
+                          {round.targetTeamId ? (
+                            <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 dash-caption font-extrabold border border-amber-500/35 uppercase tracking-wider">
+                              ⚡ Special Round
+                            </span>
+                          ) : (
+                            <span className="dash-caption text-[#5A5660] font-medium">
+                              {round.roundType === "normal" ? "Standard" : "Bulk"}
+                              {" · "}
+                              {round.position ? `${round.position}${round.position_group && round.position_group !== "ALL" ? ` ${round.position_group}` : ""}` : "All"}
+                            </span>
+                          )}
                         </div>
                         {isSubmitted ? (
                           <span className="dash-caption text-emerald-400 font-bold">✓ Submitted{bidCount ? ` (${bidCount})` : ""}</span>

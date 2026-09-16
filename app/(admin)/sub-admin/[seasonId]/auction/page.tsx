@@ -43,10 +43,19 @@ export default async function AuctionV2Page({ params }: AuctionV2PageProps) {
         endTime: true,
         maxBidsPerTeam: true,
         basePrice: true,
+        targetTeamId: true,
+        targetTeam: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true
+          }
+        },
         _count: {
           select: {
             teamRoundBids: true,
-            tiebreakers: true
+            tiebreakers: true,
+            bulkRoundSelections: true
           }
         }
       },

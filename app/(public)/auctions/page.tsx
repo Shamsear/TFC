@@ -15,9 +15,12 @@ async function getAuctionsData() {
       return { rounds: [], seasonName: null, stats: { total: 0, active: 0, completed: 0 } }
     }
 
-    // Get all rounds for this season
+    // Get all public rounds for this season
     const rounds = await prisma.rounds.findMany({
-      where: { seasonId: activeSeason.id },
+      where: {
+        seasonId: activeSeason.id,
+        targetTeamId: null
+      },
       include: {
         _count: {
           select: {

@@ -16,9 +16,16 @@ interface Round {
   endTime: Date | null
   maxBidsPerTeam: number | null
   basePrice: number | null
+  targetTeamId?: string | null
+  targetTeam?: {
+    id: string
+    name: string
+    logoUrl: string | null
+  } | null
   _count: {
     teamRoundBids: number
     tiebreakers: number
+    bulkRoundSelections?: number
   }
 }
 
@@ -129,12 +136,18 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
     }
   }
 
-  const getRoundTypeLabel = (type: string) => {
-    return type === 'bulk' ? 'Bulk' : 'Normal'
+  const getRoundTypeLabel = (round: Round) => {
+    if (round.targetTeamId || round.roundType === 'special') {
+      return `⚡ Special (${round.targetTeam?.name || 'Target Team'})`
+    }
+    return round.roundType === 'bulk' ? 'Bulk' : 'Normal'
   }
 
-  const getRoundTypeColor = (type: string) => {
-    return type === 'bulk' 
+  const getRoundTypeColor = (round: Round) => {
+    if (round.targetTeamId || round.roundType === 'special') {
+      return 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+    }
+    return round.roundType === 'bulk' 
       ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
       : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
   }
@@ -218,8 +231,8 @@ export default function RoundsListClient({ seasonId, initialRounds }: RoundsList
                   <h3 className="text-lg font-black text-white group-hover:text-[#FFB347] transition-all uppercase tracking-tight">
                     Round {round.roundNumber}
                   </h3>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono border ${getRoundTypeColor(round.roundType)}`}>
-                    {getRoundTypeLabel(round.roundType)}
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono border ${getRoundTypeColor(round)}`}>
+                    {getRoundTypeLabel(round)}
                   </span>
                 </div>
                 {round.position && (

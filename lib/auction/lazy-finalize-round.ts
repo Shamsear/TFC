@@ -99,7 +99,7 @@ export async function checkAndFinalizeExpiredRound(
     }
 
     // 8. Run finalization based on round type
-    if (round.roundType === 'bulk') {
+    if (round.roundType === 'bulk' || round.roundType === 'special') {
       const { finalizeBulkRound, applyBulkFinalizationResults } = await import('./finalize-bulk-round');
       const result = await finalizeBulkRound(roundId);
 

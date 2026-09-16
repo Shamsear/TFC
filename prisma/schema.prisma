@@ -402,6 +402,7 @@ model teams {
   unlockedBadges             team_badges[]
   xpHistory                  team_xp_history[]
   managerLinks               manager_teams[]
+  targetedRounds             rounds[]                       @relation("TargetTeamRounds")
 
   @@unique([name, managerName])
 }
@@ -709,6 +710,8 @@ model rounds {
   finalizationState   Json?                   @map("finalization_state")
   position_group      String?                 @map("position_group")
   position_hidden     Boolean                 @default(false) @map("position_hidden")
+  targetTeamId        String?                 @map("target_team_id")
+  targetTeam          teams?                  @relation("TargetTeamRounds", fields: [targetTeamId], references: [id], onDelete: Cascade)
   bidAuditLogs        bid_audit_log[]
   bulkRoundSelections bulk_round_selections[]
   bulkTiebreakers     bulk_tiebreakers[]      @relation("BulkTiebreakerRound")
@@ -721,8 +724,10 @@ model rounds {
   @@index([seasonId])
   @@index([status])
   @@index([endTime])
+  @@index([targetTeamId])
   @@index([seasonId], map: "idx_rounds_season_id")
   @@index([status], map: "idx_rounds_status")
+  @@index([targetTeamId], map: "idx_rounds_target_team_id")
 }
 
 model team_round_bids {

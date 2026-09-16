@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       position,
       position_group,
       roundNumber,
+      targetTeamId,
       maxBidsPerTeam,
       basePrice,
       durationSeconds,
@@ -43,6 +44,22 @@ export async function POST(request: NextRequest) {
 
     if (!season) {
       return NextResponse.json({ error: 'Season not found' }, { status: 404 });
+    }
+
+    // If targetTeamId is provided, check if team is in this season
+    if (targetTeamId) {
+      const seasonTeam = await prisma.season_teams.findUnique({
+        where: {
+          seasonId_teamId: {
+            seasonId,
+            teamId: targetTeamId
+          }
+        }
+      });
+
+      if (!seasonTeam) {
+        return NextResponse.json({ error: 'Target team is not participating in this season' }, { status: 400 });
+      }
     }
 
     // Check if round number already exists
@@ -72,13 +89,23 @@ export async function POST(request: NextRequest) {
         position_group,
         roundNumber,
         roundType: 'bulk',
+        targetTeamId: targetTeamId || null,
         maxBidsPerTeam,
- basePrice,
+        basePrice,
         durationSeconds,
         finalizationMode,
         status: 'draft',
         startTime: startTime ? new Date(startTime) : null,
         endTime: endTime ? new Date(endTime) : null
+      },
+      include: {
+        targetTeam: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true
+          }
+        }
       }
     });
 
@@ -126,6 +153,13 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             seasonNumber: true
+          }
+        },
+        targetTeam: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true
           }
         },
         _count: {

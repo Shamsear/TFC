@@ -74,7 +74,10 @@ export default function CreateRoundClient({
   const [error, setError] = useState('')
   
   // Form state
-  const [roundType, setRoundType] = useState<'normal' | 'bulk'>('normal')
+  const [roundType, setRoundType] = useState<'normal' | 'bulk' | 'special'>('normal')
+  const [targetTeamId, setTargetTeamId] = useState<string>('')
+  const [customBasePrice, setCustomBasePrice] = useState<string>(seasonDefaults.basePrice ? seasonDefaults.basePrice.toString() : '10000000')
+  const [timingMode, setTimingMode] = useState<'calendar' | 'immediate'>('calendar')
   const [finalizationMode, setFinalizationMode] = useState<'auto' | 'manual'>('auto')
   const [durationHours, setDurationHours] = useState('1')
   const [durationMinutes, setDurationMinutes] = useState('0')
@@ -83,6 +86,20 @@ export default function CreateRoundClient({
 
   const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'SS', 'LWF', 'RWF', 'CF']
   const [checkedPositions, setCheckedPositions] = useState<string[]>([])
+
+  // Auto-select first team when special round is selected
+  useEffect(() => {
+    if (roundType === 'special' && !targetTeamId && teams.length > 0) {
+      setTargetTeamId(teams[0].id)
+    }
+  }, [roundType, targetTeamId, teams])
+
+  // Set all positions by default when switching to special round
+  useEffect(() => {
+    if (roundType === 'special' && checkedPositions.length === 0) {
+      setCheckedPositions(POSITIONS)
+    }
+  }, [roundType])
 
   // Helper to check if a slot in a calendar entry has already been converted to a round
   const isSlotUsed = (cal: AuctionCalendar, slot: AuctionSlot): boolean => {
@@ -140,7 +157,7 @@ export default function CreateRoundClient({
 
   // Auto-calculate duration from calendar start time to end time
   useEffect(() => {
-    if (selectedCalendar?.auctionDate && selectedCalendar?.endDate) {
+    if (timingMode === 'calendar' && selectedCalendar?.auctionDate && selectedCalendar?.endDate) {
       const start = new Date(selectedCalendar.auctionDate).getTime()
       const end = new Date(selectedCalendar.endDate).getTime()
       const diffMs = end - start
@@ -152,11 +169,11 @@ export default function CreateRoundClient({
         setDurationMinutes(mins.toString())
       }
     }
-  }, [selectedCalendarId, selectedCalendar?.id, selectedCalendar?.auctionDate, selectedCalendar?.endDate])
+  }, [timingMode, selectedCalendarId, selectedCalendar?.id, selectedCalendar?.auctionDate, selectedCalendar?.endDate])
 
   // Synchronize positions & roundType when calendar slot changes
   useEffect(() => {
-    if (selectedSlot) {
+    if (roundType !== 'special' && selectedSlot) {
       if (selectedSlot.roundType === 'bulk' || selectedSlot.roundType === 'normal') {
         setRoundType(selectedSlot.roundType as 'normal' | 'bulk')
       }
@@ -167,7 +184,7 @@ export default function CreateRoundClient({
         setCheckedPositions([])
       }
     }
-  }, [selectedSlotId, selectedCalendarId, selectedSlot?.id, selectedSlot?.position])
+  }, [selectedSlotId, selectedCalendarId, selectedSlot?.id, selectedSlot?.position, roundType])
 
   // Synchronize custom positions or default when round type toggles to bulk (if no positions are checked)
   useEffect(() => {
@@ -180,7 +197,9 @@ export default function CreateRoundClient({
   const totalDurationHours = parseFloat(durationHours || '0') + parseFloat(durationMinutes || '0') / 60
 
   // Calculate end time based on start time and duration
-  const calculatedEndTime = selectedCalendar && (durationHours || durationMinutes)
+  const calculatedEndTime = timingMode === 'immediate'
+    ? new Date(Date.now() + totalDurationHours * 60 * 60 * 1000)
+    : selectedCalendar && (durationHours || durationMinutes)
     ? new Date(new Date(selectedCalendar.auctionDate).getTime() + totalDurationHours * 60 * 60 * 1000)
     : null
 
@@ -205,8 +224,14 @@ export default function CreateRoundClient({
     setLoading(true)
 
     try {
-      if (!selectedCalendarId || !selectedSlotId) {
-        throw new Error('Please fill in all required fields')
+      if (roundType === 'special') {
+        if (!targetTeamId) {
+          throw new Error('Please select a target team for the special round')
+        }
+      } else {
+        if (!selectedCalendarId || !selectedSlotId) {
+          throw new Error('Please select an auction calendar date and position slot')
+        }
       }
 
       if (checkedPositions.length === 0) {
@@ -218,13 +243,27 @@ export default function CreateRoundClient({
       }
 
       // Calculate duration in seconds
-      const durationSeconds = Math.round(totalDurationHours * 3600)
-      const scheduledStartTime = selectedCalendar?.auctionDate ? new Date(selectedCalendar.auctionDate).toISOString() : null
-      const scheduledEndTime = calculatedEndTime ? calculatedEndTime.toISOString() : (selectedCalendar?.endDate ? new Date(selectedCalendar.endDate).toISOString() : null)
+      const durationSeconds = Math.max(60, Math.round(totalDurationHours * 3600))
+      
+      let scheduledStartTime: string | null = null
+      let scheduledEndTime: string | null = null
+
+      if (timingMode === 'immediate' || roundType === 'special') {
+        const now = new Date()
+        scheduledStartTime = now.toISOString()
+        scheduledEndTime = new Date(now.getTime() + durationSeconds * 1000).toISOString()
+      } else {
+        scheduledStartTime = selectedCalendar?.auctionDate ? new Date(selectedCalendar.auctionDate).toISOString() : null
+        scheduledEndTime = calculatedEndTime ? calculatedEndTime.toISOString() : (selectedCalendar?.endDate ? new Date(selectedCalendar.endDate).toISOString() : null)
+      }
+
+      const parsedBasePrice = customBasePrice ? parseInt(customBasePrice.replace(/[^0-9]/g, ''), 10) : seasonDefaults.basePrice
 
       const endpoint = roundType === 'normal' 
         ? '/api/admin/rounds'
-        : '/api/admin/bulk-rounds'
+        : roundType === 'bulk'
+        ? '/api/admin/bulk-rounds'
+        : '/api/admin/rounds'
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -234,10 +273,11 @@ export default function CreateRoundClient({
           roundNumber: nextRoundNumber,
           durationSeconds,
           position: checkedPositions.join(','),
-          position_group: selectedPositionGroup,
+          position_group: selectedPositionGroup || 'ALL',
           roundType: roundType,
-          maxBidsPerTeam: seasonDefaults.maxBidsPerTeam,
-          basePrice: seasonDefaults.basePrice,
+          targetTeamId: roundType === 'special' ? targetTeamId : null,
+          maxBidsPerTeam: roundType === 'special' ? 30 : seasonDefaults.maxBidsPerTeam,
+          basePrice: parsedBasePrice || seasonDefaults.basePrice,
           finalizationMode: finalizationMode,
           startTime: scheduledStartTime,
           endTime: scheduledEndTime
@@ -269,34 +309,147 @@ export default function CreateRoundClient({
 
       {/* Round Type */}
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
-        <label className="block text-sm font-bold text-white mb-3">Round Type</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <label className="block text-sm font-bold text-white mb-3">Round Type & Scope</label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <button
             type="button"
             onClick={() => setRoundType('normal')}
-            className={`p-4 rounded-xl border-2 transition-all ${
+            className={`p-4 rounded-xl border-2 transition-all text-left ${
               roundType === 'normal'
                 ? 'border-[#E8A800] bg-[#E8A800]/10'
                 : 'border-white/10 bg-white/5 hover:border-white/20'
             }`}
           >
             <div className="font-bold text-white mb-1">Normal Round</div>
-            <div className="text-xs text-gray-400">Teams bid on players</div>
+            <div className="text-xs text-gray-400">All teams bid on players</div>
           </button>
           <button
             type="button"
             onClick={() => setRoundType('bulk')}
-            className={`p-4 rounded-xl border-2 transition-all ${
+            className={`p-4 rounded-xl border-2 transition-all text-left ${
               roundType === 'bulk'
                 ? 'border-[#E8A800] bg-[#E8A800]/10'
                 : 'border-white/10 bg-white/5 hover:border-white/20'
             }`}
           >
             <div className="font-bold text-white mb-1">Bulk Round</div>
-            <div className="text-xs text-gray-400">Teams select players</div>
+            <div className="text-xs text-gray-400">All teams select wishlists</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRoundType('special')
+              if (checkedPositions.length === 0) setCheckedPositions(POSITIONS)
+              setTimingMode('immediate')
+            }}
+            className={`p-4 rounded-xl border-2 transition-all text-left ${
+              roundType === 'special'
+                ? 'border-amber-400 bg-amber-400/10 shadow-[0_0_15px_rgba(251,191,36,0.15)]'
+                : 'border-white/10 bg-white/5 hover:border-white/20'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-amber-400">⚡</span>
+              <span className="font-bold text-white">Special Round</span>
+            </div>
+            <div className="text-xs text-amber-300/80">Restricted single-team squad rebuild</div>
           </button>
         </div>
       </div>
+
+      {/* Target Team Selection for Special Round */}
+      {roundType === 'special' && (
+        <div className="rounded-xl sm:rounded-2xl bg-amber-500/5 border border-amber-500/20 p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400 text-lg">⚡</span>
+            <label className="text-sm font-bold text-white">Select Target Team for Special Auction</label>
+          </div>
+          <p className="text-xs text-amber-200/70">
+            This round will be exclusively visible to the selected team. They will be able to bulk pick unowned players at the set base price.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {teams.map(t => {
+              const isSelected = targetTeamId === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTargetTeamId(t.id)}
+                  className={`p-3.5 rounded-xl border transition-all flex items-center gap-3 text-left ${
+                    isSelected
+                      ? 'border-amber-400 bg-amber-400/15 text-white shadow-[0_0_12px_rgba(251,191,36,0.2)]'
+                      : 'border-white/10 bg-black/30 text-gray-300 hover:border-white/20'
+                  }`}
+                >
+                  {t.logoUrl ? (
+                    <img src={t.logoUrl} alt={t.name} className="w-9 h-9 rounded-lg object-contain bg-black/40 p-1 shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs shrink-0">
+                      {t.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm truncate">{t.name}</div>
+                    <div className="text-[11px] text-gray-400 truncate">Target Team</div>
+                  </div>
+                  {isSelected && (
+                    <div className="w-5 h-5 rounded-full bg-amber-400 text-black flex items-center justify-center text-xs font-black shrink-0">
+                      ✓
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Base Price per Player (£)</label>
+              <input
+                type="number"
+                min="1"
+                step="100000"
+                value={customBasePrice}
+                onChange={(e) => setCustomBasePrice(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg bg-black/40 border border-amber-500/30 text-white font-mono text-sm focus:border-amber-400 focus:outline-none"
+                placeholder="e.g. 10000000"
+              />
+              <div className="text-[11px] text-gray-400 mt-1">
+                Cost deducted per acquired player (£{(parseInt(customBasePrice || '0', 10) / 1000000).toFixed(1)}M)
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Timing & Start</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTimingMode('immediate')}
+                  className={`px-3 py-2.5 rounded-lg border text-xs font-bold transition-all ${
+                    timingMode === 'immediate'
+                      ? 'border-amber-400 bg-amber-400/20 text-white'
+                      : 'border-white/10 bg-black/30 text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  🚀 Immediate (Active Now)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimingMode('calendar')}
+                  className={`px-3 py-2.5 rounded-lg border text-xs font-bold transition-all ${
+                    timingMode === 'calendar'
+                      ? 'border-amber-400 bg-amber-400/20 text-white'
+                      : 'border-white/10 bg-black/30 text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  📅 Use Calendar Slot
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Finalization Mode */}
       <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6">
@@ -383,85 +536,87 @@ export default function CreateRoundClient({
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-bold text-white mb-2">Select Auction Date</label>
-          {availableCalendar.length === 0 ? (
-            <div className="text-center py-8 px-4 text-gray-400 border border-white/10 rounded-xl bg-black/30 font-mono space-y-3">
-              <div className="text-sm font-bold text-gray-300">
-                All scheduled auction calendar dates and position slots have already been converted into rounds!
+        {(roundType !== 'special' || timingMode === 'calendar') && (
+          <div>
+            <label className="block text-sm font-bold text-white mb-2">Select Auction Date</label>
+            {availableCalendar.length === 0 ? (
+              <div className="text-center py-8 px-4 text-gray-400 border border-white/10 rounded-xl bg-black/30 font-mono space-y-3">
+                <div className="text-sm font-bold text-gray-300">
+                  All scheduled auction calendar dates and position slots have already been converted into rounds!
+                </div>
+                <div className="text-xs text-gray-500">
+                  To schedule new bidding rounds, create additional dates in the Auction Calendar.
+                </div>
+                <div className="pt-2">
+                  <Link
+                    href={`/sub-admin/${seasonId}/calendar`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800] text-black font-black rounded-lg text-xs uppercase tracking-wider hover:bg-[#FFC93A] transition-all"
+                  >
+                    Manage Auction Calendar
+                  </Link>
+                </div>
               </div>
-              <div className="text-xs text-gray-500">
-                To schedule new bidding rounds, create additional dates in the Auction Calendar.
-              </div>
-              <div className="pt-2">
-                <Link
-                  href={`/sub-admin/${seasonId}/calendar`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8A800] text-black font-black rounded-lg text-xs uppercase tracking-wider hover:bg-[#FFC93A] transition-all"
-                >
-                  Manage Auction Calendar
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2 font-mono">
-              {availableCalendar.map(calendar => (
-                <button
-                  key={calendar.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCalendarId(calendar.id)
-                    const firstSlot = calendar.auctionSlots[0]
-                    if (firstSlot) {
-                      setSelectedSlotId(firstSlot.id)
-                      if (firstSlot.roundType === 'bulk' || firstSlot.roundType === 'normal') {
-                        setRoundType(firstSlot.roundType as 'normal' | 'bulk')
+            ) : (
+              <div className="space-y-2 font-mono">
+                {availableCalendar.map(calendar => (
+                  <button
+                    key={calendar.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCalendarId(calendar.id)
+                      const firstSlot = calendar.auctionSlots[0]
+                      if (firstSlot) {
+                        setSelectedSlotId(firstSlot.id)
+                        if (firstSlot.roundType === 'bulk' || firstSlot.roundType === 'normal') {
+                          setRoundType(firstSlot.roundType as 'normal' | 'bulk')
+                        }
+                        if (firstSlot.position) {
+                          setCheckedPositions(firstSlot.position.split(',').map(p => p.trim()).filter(Boolean))
+                        }
+                      } else {
+                        setSelectedSlotId('')
                       }
-                      if (firstSlot.position) {
-                        setCheckedPositions(firstSlot.position.split(',').map(p => p.trim()).filter(Boolean))
-                      }
-                    } else {
-                      setSelectedSlotId('')
-                    }
-                  }}
-                  className={`w-full p-4 rounded-lg border transition-all text-left ${
-                    selectedCalendarId === calendar.id
-                      ? 'border-[#E8A800] bg-[#E8A800]/10'
-                      : 'border-white/10 bg-black/20 hover:border-white/20'
-                  }`}
-                >
-                  <div className="font-bold text-white flex items-center justify-between">
-                    <span>{formatDateIST(calendar.auctionDate)} at {formatTimeIST(calendar.auctionDate)} (IST)</span>
-                    {calendar.endDate && (
-                      <span className="text-xs text-[#E8A800]">
-                        Deadline: {formatTimeIST(calendar.endDate)} (IST)
-                      </span>
+                    }}
+                    className={`w-full p-4 rounded-lg border transition-all text-left ${
+                      selectedCalendarId === calendar.id
+                        ? 'border-[#E8A800] bg-[#E8A800]/10'
+                        : 'border-white/10 bg-black/20 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="font-bold text-white flex items-center justify-between">
+                      <span>{formatDateIST(calendar.auctionDate)} at {formatTimeIST(calendar.auctionDate)} (IST)</span>
+                      {calendar.endDate && (
+                        <span className="text-xs text-[#E8A800]">
+                          Deadline: {formatTimeIST(calendar.endDate)} (IST)
+                        </span>
+                      )}
+                    </div>
+                    {calendar.description && (
+                      <div className="text-xs text-gray-400 mt-1">{calendar.description}</div>
                     )}
-                  </div>
-                  {calendar.description && (
-                    <div className="text-xs text-gray-400 mt-1">{calendar.description}</div>
-                  )}
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {calendar.auctionSlots.map(slot => (
-                      <span
-                        key={slot.id}
-                        className={`px-2 py-0.5 rounded text-xs border ${
-                          slot.roundType === 'bulk'
-                            ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 font-semibold'
-                            : 'bg-white/5 border-white/10 text-gray-300'
-                        }`}
-                      >
-                        {slot.position.split(',').join(', ')}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
-                        {slot.roundType === 'bulk' && ' (Bulk)'}
-                      </span>
-                    ))}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {calendar.auctionSlots.map(slot => (
+                        <span
+                          key={slot.id}
+                          className={`px-2 py-0.5 rounded text-xs border ${
+                            slot.roundType === 'bulk'
+                              ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 font-semibold'
+                              : 'bg-white/5 border-white/10 text-gray-300'
+                          }`}
+                        >
+                          {slot.position.split(',').join(', ')}{slot.position_group && slot.position_group !== 'ALL' ? `-${slot.position_group}` : ''}
+                          {slot.roundType === 'bulk' && ' (Bulk)'}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {selectedCalendar && (
+        {(roundType !== 'special' || timingMode === 'calendar') && selectedCalendar && (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-white mb-2">Select Position Slot</label>
@@ -501,62 +656,72 @@ export default function CreateRoundClient({
                 ))}
               </div>
             </div>
-
-            {selectedSlot && (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <label className="block text-sm font-bold text-white">Customize Positions for this Round</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setCheckedPositions(POSITIONS)}
-                      className={`text-xs font-bold transition-all bg-white/5 px-2.5 py-1 rounded border border-white/10 hover:bg-white/10 ${
-                        roundType === 'bulk' ? 'text-purple-400 hover:text-purple-300' : 'text-[#E8A800] hover:text-[#FFB347]'
-                      }`}
-                    >
-                      Select All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCheckedPositions([])}
-                      className="text-xs font-bold text-gray-400 hover:text-white transition-all bg-white/5 px-2.5 py-1 rounded border border-white/10 hover:bg-white/10"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
-                  {POSITIONS.map(position => {
-                    const isChecked = checkedPositions.includes(position)
-                    return (
-                      <button
-                        key={position}
-                        type="button"
-                        onClick={() => {
-                          if (isChecked) {
-                            setCheckedPositions(checkedPositions.filter(p => p !== position))
-                          } else {
-                            setCheckedPositions([...checkedPositions, position])
-                          }
-                        }}
-                        className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all text-center ${
-                          isChecked
-                            ? roundType === 'bulk'
-                              ? 'border-purple-500 bg-purple-500/20 text-white shadow-[0_0_10px_rgba(168,85,247,0.2)]'
-                              : 'border-[#E8A800] bg-[#E8A800]/20 text-white shadow-[0_0_10px_rgba(232,168,0,0.2)]'
-                            : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
-                        }`}
-                      >
-                        {position}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
+
+      {/* Position Selection (Direct for Special Round or Calendar Slot) */}
+      {(roundType === 'special' || (selectedCalendar && selectedSlot)) && (
+        <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-6 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <label className="block text-sm font-bold text-white">
+                {roundType === 'special' ? 'Eligible Positions for Special Round' : 'Customize Positions for this Round'}
+              </label>
+              <div className="text-xs text-gray-400 mt-0.5">
+                {eligiblePlayers.length} unowned players available across selected positions
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCheckedPositions(POSITIONS)}
+                className={`text-xs font-bold transition-all bg-white/5 px-2.5 py-1 rounded border border-white/10 hover:bg-white/10 ${
+                  roundType === 'special' ? 'text-amber-400 hover:text-amber-300' : roundType === 'bulk' ? 'text-purple-400 hover:text-purple-300' : 'text-[#E8A800] hover:text-[#FFB347]'
+                }`}
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                onClick={() => setCheckedPositions([])}
+                className="text-xs font-bold text-gray-400 hover:text-white transition-all bg-white/5 px-2.5 py-1 rounded border border-white/10 hover:bg-white/10"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+            {POSITIONS.map(position => {
+              const isChecked = checkedPositions.includes(position)
+              return (
+                <button
+                  key={position}
+                  type="button"
+                  onClick={() => {
+                    if (isChecked) {
+                      setCheckedPositions(checkedPositions.filter(p => p !== position))
+                    } else {
+                      setCheckedPositions([...checkedPositions, position])
+                    }
+                  }}
+                  className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all text-center ${
+                    isChecked
+                      ? roundType === 'special'
+                        ? 'border-amber-400 bg-amber-400/20 text-white shadow-[0_0_10px_rgba(251,191,36,0.2)]'
+                        : roundType === 'bulk'
+                        ? 'border-purple-500 bg-purple-500/20 text-white shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                        : 'border-[#E8A800] bg-[#E8A800]/20 text-white shadow-[0_0_10px_rgba(232,168,0,0.2)]'
+                      : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  {position}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-4">
@@ -568,14 +733,20 @@ export default function CreateRoundClient({
         </Link>
         <button
           type="submit"
-          disabled={loading || checkedPositions.length === 0 || !selectedSlotId}
+          disabled={
+            loading || 
+            checkedPositions.length === 0 || 
+            (roundType === 'special' ? !targetTeamId : (timingMode === 'calendar' && !selectedSlotId))
+          }
           className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-            roundType === 'bulk'
+            roundType === 'special'
+              ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-extrabold shadow-[0_0_20px_rgba(251,191,36,0.3)]'
+              : roundType === 'bulk'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white'
               : 'bg-gradient-to-r from-[#E8A800] to-[#FFB347] hover:from-[#FFC93A] hover:to-[#FFB347] text-[#0a0a0a]'
           }`}
         >
-          {loading ? 'Creating...' : 'Create Round'}
+          {loading ? 'Creating...' : roundType === 'special' ? '⚡ Create Special Round' : 'Create Round'}
         </button>
       </div>
     </form>

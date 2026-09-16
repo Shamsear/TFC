@@ -41,6 +41,7 @@ export async function POST(
         status: true,
         seasonId: true,
         roundType: true,
+        targetTeamId: true,
         maxBidsPerTeam: true,
         basePrice: true,
         endTime: true
@@ -59,11 +60,19 @@ export async function POST(
       );
     }
 
-    // Check if round type is bulk
-    if (round.roundType !== 'bulk') {
+    // Check if round type is bulk or special
+    if (round.roundType !== 'bulk' && round.roundType !== 'special') {
       return NextResponse.json(
-        { error: 'This endpoint is for bulk rounds only' },
+        { error: 'This endpoint is for bulk and special rounds only' },
         { status: 400 }
+      );
+    }
+
+    // Check targetTeamId restriction for special rounds
+    if (round.targetTeamId && round.targetTeamId !== teamId) {
+      return NextResponse.json(
+        { error: 'This round is restricted to another team' },
+        { status: 403 }
       );
     }
 
@@ -109,29 +118,45 @@ export async function POST(
     });
 
     // ENHANCED: Validate squad size constraints
-    const { validateSquadSizeForRound } = await import('@/lib/squad-size-validator');
-    
-    const squadValidation = await validateSquadSizeForRound(
-      teamId,
-      round.seasonId,
-      playerIds.length
-    );
-    
-    if (!squadValidation.valid) {
-      return NextResponse.json(
-        { 
-          error: squadValidation.error,
-          squadInfo: {
-            current: squadValidation.currentSquadSize,
-            min: squadValidation.minSquadSize,
-            max: squadValidation.maxSquadSize,
-            slotsToMin: squadValidation.slotsToMin,
-            slotsToMax: squadValidation.slotsToMax,
-            requiredSelections: squadValidation.requiredSelections
-          }
-        },
-        { status: 400 }
+    if (round.roundType === 'special') {
+      const maxSquad = 30; // fallback max squad size
+      if (squadSize + playerIds.length > maxSquad) {
+        return NextResponse.json(
+          { error: `Selection would exceed maximum squad size (${maxSquad}). Current squad: ${squadSize}, Selected: ${playerIds.length}` },
+          { status: 400 }
+        );
+      }
+      if (submitted && playerIds.length === 0) {
+        return NextResponse.json(
+          { error: 'Please select at least one player to submit' },
+          { status: 400 }
+        );
+      }
+    } else {
+      const { validateSquadSizeForRound } = await import('@/lib/squad-size-validator');
+      
+      const squadValidation = await validateSquadSizeForRound(
+        teamId,
+        round.seasonId,
+        playerIds.length
       );
+      
+      if (!squadValidation.valid) {
+        return NextResponse.json(
+          { 
+            error: squadValidation.error,
+            squadInfo: {
+              current: squadValidation.currentSquadSize,
+              min: squadValidation.minSquadSize,
+              max: squadValidation.maxSquadSize,
+              slotsToMin: squadValidation.slotsToMin,
+              slotsToMax: squadValidation.slotsToMax,
+              requiredSelections: squadValidation.requiredSelections
+            }
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate selections

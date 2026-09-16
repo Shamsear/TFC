@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       position_group,
       roundNumber,
       roundType = 'normal',
+      targetTeamId,
       maxBidsPerTeam,
       basePrice,
       durationSeconds,
@@ -38,9 +39,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate round type
-    if (!['normal', 'bulk'].includes(roundType)) {
+    if (!['normal', 'bulk', 'special'].includes(roundType)) {
       return NextResponse.json(
-        { error: 'Invalid roundType. Must be "normal" or "bulk"' },
+        { error: 'Invalid roundType. Must be "normal", "bulk", or "special"' },
         { status: 400 }
       );
     }
@@ -60,6 +61,22 @@ export async function POST(request: NextRequest) {
 
     if (!season) {
       return NextResponse.json({ error: 'Season not found' }, { status: 404 });
+    }
+
+    // If targetTeamId is provided, check if team is in this season
+    if (targetTeamId) {
+      const seasonTeam = await prisma.season_teams.findUnique({
+        where: {
+          seasonId_teamId: {
+            seasonId,
+            teamId: targetTeamId
+          }
+        }
+      });
+
+      if (!seasonTeam) {
+        return NextResponse.json({ error: 'Target team is not participating in this season' }, { status: 400 });
+      }
     }
 
     // Check if round number already exists for this season
@@ -88,7 +105,8 @@ export async function POST(request: NextRequest) {
         position,
         position_group,
         roundNumber,
-        roundType,
+        roundType: roundType === 'special' ? 'bulk' : roundType,
+        targetTeamId: targetTeamId || null,
         maxBidsPerTeam,
         basePrice,
         durationSeconds,
@@ -96,6 +114,15 @@ export async function POST(request: NextRequest) {
         status: 'draft',
         startTime: startTime ? new Date(startTime) : null,
         endTime: endTime ? new Date(endTime) : null
+      },
+      include: {
+        targetTeam: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true
+          }
+        }
       }
     });
 
@@ -145,10 +172,18 @@ export async function GET(request: NextRequest) {
             seasonNumber: true
           }
         },
+        targetTeam: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true
+          }
+        },
         _count: {
           select: {
             teamRoundBids: true,
-            tiebreakers: true
+            tiebreakers: true,
+            bulkRoundSelections: true
           }
         }
       },

@@ -94,7 +94,7 @@ export async function POST(
 
     // Preview mode: Calculate results and create tiebreakers, but don't apply allocations
     if (preview) {
-      if (round.roundType === 'bulk') {
+      if (round.roundType === 'bulk' || round.roundType === 'special') {
         const result = await finalizeBulkRound(roundId);
         return NextResponse.json({
           success: true,
@@ -198,7 +198,7 @@ export async function POST(
     }
 
     // Finalize based on round type
-    if (round.roundType === 'bulk') {
+    if (round.roundType === 'bulk' || round.roundType === 'special') {
       const result = await finalizeBulkRound(roundId);
 
       if (!result.success) {

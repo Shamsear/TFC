@@ -48,6 +48,7 @@ interface Round {
   maxBidsPerTeam: number | null
   basePrice: number | null
   seasonId: string
+  targetTeamId?: string | null
 }
 
 interface Season {
@@ -84,8 +85,11 @@ export default function BulkRoundSelectionClient({
   maxSquadSize
 }: BulkRoundSelectionClientProps) {
   const router = useRouter()
-  const isBelowMin = squadSize < minSquadSize
-  const targetSlots = isBelowMin ? Math.max(0, minSquadSize - squadSize) : Math.max(0, maxSquadSize - squadSize)
+  const isSpecial = round.roundType === 'special'
+  const isBelowMin = !isSpecial && squadSize < minSquadSize
+  const targetSlots = isSpecial
+    ? Math.max(0, maxSquadSize - squadSize)
+    : (isBelowMin ? Math.max(0, minSquadSize - squadSize) : Math.max(0, maxSquadSize - squadSize))
 
   const [selections, setSelections] = useState<string[]>(
     initialSelections.map(s => s.playerId)
@@ -303,30 +307,56 @@ export default function BulkRoundSelectionClient({
   }
 
   const handleSubmit = () => {
-    if (isBelowMin && selections.length < targetSlots) {
-      setModalConfig({
-        isOpen: true,
-        title: 'Validation Error',
-        message: `You must select exactly ${targetSlots} players to reach your minimum squad size.`,
-        isError: true
-      })
-      return
+    if (isSpecial) {
+      if (selections.length === 0) {
+        setModalConfig({
+          isOpen: true,
+          title: 'Validation Error',
+          message: 'Please select at least one player to submit.',
+          isError: true
+        })
+        return
+      }
+
+      const totalCost = selections.length * (round.basePrice || 0)
+      if (totalCost > team.budget) {
+        setModalConfig({
+          isOpen: true,
+          title: 'Insufficient Budget',
+          message: `Total cost £${(totalCost / 1_000_000).toFixed(1)}M exceeds your remaining budget of £${(team.budget / 1_000_000).toFixed(1)}M. Please remove some players.`,
+          isError: true
+        })
+        return
+      }
+    } else {
+      if (isBelowMin && selections.length < targetSlots) {
+        setModalConfig({
+          isOpen: true,
+          title: 'Validation Error',
+          message: `You must select exactly ${targetSlots} players to reach your minimum squad size.`,
+          isError: true
+        })
+        return
+      }
+
+      if (!isBelowMin && selections.length === 0) {
+        setModalConfig({
+          isOpen: true,
+          title: 'Validation Error',
+          message: 'Please select at least one player to submit.',
+          isError: true
+        })
+        return
+      }
     }
 
-    if (!isBelowMin && selections.length === 0) {
-      setModalConfig({
-        isOpen: true,
-        title: 'Validation Error',
-        message: 'Please select at least one player to submit.',
-        isError: true
-      })
-      return
-    }
-
+    const totalCost = selections.length * (round.basePrice || 0)
     setModalConfig({
       isOpen: true,
       title: 'Confirm Submission',
-      message: 'Are you sure you want to submit? You can still edit your selections before the round ends.',
+      message: isSpecial
+        ? `Submit ${selections.length} player${selections.length === 1 ? '' : 's'} for £${(totalCost / 1_000_000).toFixed(1)}M? All selected players will directly join your squad upon finalization.`
+        : 'Are you sure you want to submit? You can still edit your selections before the round ends.',
       onConfirm: performSubmit,
       confirmText: 'Submit',
       cancelText: 'Cancel'
@@ -534,6 +564,9 @@ export default function BulkRoundSelectionClient({
     )
   }
 
+  const totalCost = selections.length * (round.basePrice || 0)
+  const remainingBudget = team.budget - totalCost
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 overflow-x-hidden relative">
       {/* Background spotlights */}
@@ -546,8 +579,17 @@ export default function BulkRoundSelectionClient({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between mb-4 gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-1 truncate bg-gradient-to-r from-white via-[#E8A800] to-emerald-400 bg-clip-text text-transparent">
-                Round {round.roundNumber} - Bulk Selection
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-1 truncate bg-gradient-to-r from-white via-[#E8A800] to-emerald-400 bg-clip-text text-transparent flex items-center gap-2">
+                {isSpecial ? (
+                  <>
+                    <span>Round {round.roundNumber}</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                      ⚡ Special Selection
+                    </span>
+                  </>
+                ) : (
+                  `Round ${round.roundNumber} - Bulk Selection`
+                )}
               </h1>
               <p className="text-sm text-[#D4CCBB] font-medium">
                 {season.name} {round.position && (
@@ -574,13 +616,30 @@ export default function BulkRoundSelectionClient({
             )}
           </div>
 
+          {/* Special Round Banner */}
+          {isSpecial && (
+            <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 flex items-start gap-3 backdrop-blur-md shadow-lg shadow-amber-950/20">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0 text-amber-400 font-black text-base mt-0.5">
+                ⚡
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                  Exclusive Squad Rebuild Round
+                </h3>
+                <p className="text-xs text-[#D4CCBB] mt-0.5 leading-relaxed">
+                  This round is created specifically for <strong>{team.name}</strong>. All players you select will directly join your squad at base price (<strong className="text-emerald-400">£{((round.basePrice || 0) / 1_000_000).toFixed(1)}M</strong> each) with no competing bids upon finalization.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div className="rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 p-3 sm:p-4 transition-all duration-300 backdrop-blur-md shadow-lg shadow-black/20 group">
               <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Current Squad</div>
               <div className="text-lg sm:text-xl font-black text-white">
                 {squadSize} <span className="text-xs text-[#7A7367] font-semibold">
-                  {minSquadSize === maxSquadSize ? `(${minSquadSize} req)` : `(${minSquadSize}–${maxSquadSize})`}
+                  {isSpecial ? `(max ${maxSquadSize})` : (minSquadSize === maxSquadSize ? `(${minSquadSize} req)` : `(${minSquadSize}–${maxSquadSize})`)}
                 </span>
               </div>
             </div>
@@ -588,12 +647,25 @@ export default function BulkRoundSelectionClient({
               <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Selected</div>
               <div className="text-lg sm:text-xl font-black text-[#E8A800] drop-shadow-[0_0_8px_rgba(232,168,0,0.2)]">
                 {selections.length} <span className="text-white/40">/</span> {targetSlots}
-                <span className="text-xs text-[#7A7367] font-semibold"> ({isBelowMin ? 'needed' : 'max'})</span>
+                <span className="text-xs text-[#7A7367] font-semibold"> ({isSpecial ? 'max slots' : (isBelowMin ? 'needed' : 'max')})</span>
               </div>
             </div>
             <div className="rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 p-3 sm:p-4 transition-all duration-300 backdrop-blur-md shadow-lg shadow-black/20 group">
-              <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Price Each</div>
-              <div className="text-lg sm:text-xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.2)]">£{round.basePrice?.toLocaleString() || 0}</div>
+              <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">
+                {isSpecial ? 'Total Cost / Rem' : 'Price Each'}
+              </div>
+              {isSpecial ? (
+                <div className="text-lg sm:text-xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.2)]">
+                  £{(totalCost / 1_000_000).toFixed(1)}M{' '}
+                  <span className={`text-xs font-semibold ${remainingBudget < 0 ? 'text-red-400' : 'text-[#7A7367]'}`}>
+                    (£{(remainingBudget / 1_000_000).toFixed(1)}M left)
+                  </span>
+                </div>
+              ) : (
+                <div className="text-lg sm:text-xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.2)]">
+                  £{round.basePrice?.toLocaleString() || 0}
+                </div>
+              )}
             </div>
             <div className="rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#E8A800]/30 p-3 sm:p-4 transition-all duration-300 backdrop-blur-md shadow-lg shadow-black/20 group">
               <div className="text-xs text-[#7A7367] mb-1 font-semibold tracking-wide uppercase transition-colors group-hover:text-[#D4CCBB]">Status</div>

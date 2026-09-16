@@ -29,6 +29,7 @@ interface Round {
   endTime: Date | null
   maxBidsPerTeam: number | null
   basePrice: number | null
+  targetTeamId?: string | null
 }
 
 interface TeamBid {
@@ -480,9 +481,15 @@ export default function AuctionDashboardClient({
                           <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-md uppercase tracking-wider">
                             Live Round
                           </span>
-                          <span className="text-[10px] font-black text-gray-400 bg-white/[0.03] border border-white/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            {round.roundType}
-                          </span>
+                          {round.targetTeamId || round.roundType === 'special' ? (
+                            <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/35 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                              ⚡ Special Round
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black text-gray-400 bg-white/[0.03] border border-white/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                              {round.roundType}
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-lg font-black text-white group-hover:text-emerald-400 transition-colors">
                           Round {round.roundNumber}

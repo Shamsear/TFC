@@ -31,6 +31,7 @@ export async function GET(
         roundNumber: true,
         position: true,
         roundType: true,
+        targetTeamId: true,
         status: true,
         startTime: true,
         endTime: true,
@@ -42,6 +43,14 @@ export async function GET(
 
     if (!round) {
       return NextResponse.json({ error: 'Round not found' }, { status: 404 });
+    }
+
+    // Check targetTeamId restriction for special rounds
+    if (round.targetTeamId && round.targetTeamId !== teamId) {
+      return NextResponse.json(
+        { error: 'This round is restricted to another team' },
+        { status: 403 }
+      );
     }
 
     // Check if team belongs to season

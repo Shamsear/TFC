@@ -79,8 +79,8 @@ export async function POST(
         let finalizationFunction: (id: string) => Promise<any>;
         let applyFunction: (id: string, allocations: any, conflicts?: any) => Promise<void>;
         
-        if (round.roundType === 'bulk') {
-          sendLog('📦 Detected bulk round, loading bulk finalization logic...', 'info');
+        if (round.roundType === 'bulk' || round.roundType === 'special') {
+          sendLog(`📦 Detected ${round.roundType} round, loading bulk finalization logic...`, 'info');
           const { finalizeBulkRound, applyBulkFinalizationResults } = await import('@/lib/auction/finalize-bulk-round');
           finalizationFunction = finalizeBulkRound;
           applyFunction = applyBulkFinalizationResults;

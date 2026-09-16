@@ -27,6 +27,13 @@ export default async function RoundDetailPage({ params }: RoundDetailPageProps) 
           seasonNumber: true
         }
       },
+      targetTeam: {
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true
+        }
+      },
       teamRoundBids: true,
       bulkRoundSelections: true,
       tiebreakers: {

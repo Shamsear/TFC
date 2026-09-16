@@ -93,13 +93,19 @@ export default async function TeamAuctionPage() {
     prisma.transfer_history.count({
       where: { teamId: team.id, seasonId: activeSeason.id, status: 'ACTIVE' }
     }),
-    // All rounds
+    // All rounds (global or targeted to this team)
     prisma.rounds.findMany({
-      where: { seasonId: activeSeason.id },
+      where: {
+        seasonId: activeSeason.id,
+        OR: [
+          { targetTeamId: null },
+          { targetTeamId: team.id }
+        ]
+      },
       select: {
         id: true, roundNumber: true, position: true, position_group: true,
         roundType: true, status: true, startTime: true, endTime: true,
-        maxBidsPerTeam: true, basePrice: true
+        maxBidsPerTeam: true, basePrice: true, targetTeamId: true
       },
       orderBy: [{ status: 'asc' }, { roundNumber: 'desc' }],
       take: 20

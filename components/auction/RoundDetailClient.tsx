@@ -20,6 +20,12 @@ interface Round {
   maxBidsPerTeam: number | null
   basePrice: number | null
   finalizationMode: string
+  targetTeamId?: string | null
+  targetTeam?: {
+    id: string
+    name: string
+    logoUrl: string | null
+  } | null
   season: {
     id: string
     name: string
@@ -1061,7 +1067,14 @@ export default function RoundDetailClient({ round, teams, auctionResults, previe
                 />
               )}
               <span>•</span>
-              <span>{round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}</span>
+              {round.targetTeamId || round.roundType === 'special' ? (
+                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  <span>⚡ Special Round:</span>
+                  <span className="text-white">{round.targetTeam?.name || 'Target Team'}</span>
+                </span>
+              ) : (
+                <span>{round.roundType === 'normal' ? 'Normal Round' : 'Bulk Round'}</span>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">

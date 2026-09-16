@@ -31,7 +31,12 @@ export default async function BulkRoundResultsPage({
     }
   })
 
-  if (!round || round.roundType !== 'bulk') {
+  if (!round || (round.roundType !== 'bulk' && round.roundType !== 'special')) {
+    redirect("/team/auction")
+  }
+
+  // Security check: If round is targeted to a specific team, ensure current user's team matches
+  if (round.targetTeamId && round.targetTeamId !== teamId) {
     redirect("/team/auction")
   }
 

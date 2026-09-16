@@ -269,7 +269,7 @@ export default function AuctionDashboardClient({
   }
 
   const getBidStatus = (roundId: string, roundType: string) => {
-    if (roundType === 'bulk') {
+    if (roundType === 'bulk' || roundType === 'special') {
       const selection = liveData.bulkSelections.find(s => s.roundId === roundId)
       if (!selection) return { label: 'No Selections Placed', color: 'text-gray-500' }
       if (selection.submitted) return { label: 'Submitted', color: 'text-emerald-400' }
@@ -463,8 +463,9 @@ export default function AuctionDashboardClient({
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {activeRounds.map(round => {
+                const isSpecial = round.roundType === 'special' || Boolean(round.targetTeamId)
                 const bidStatus = getBidStatus(round.id, round.roundType)
-                const roundPath = round.roundType === 'bulk' 
+                const roundPath = (round.roundType === 'bulk' || round.roundType === 'special')
                   ? `/team/auction/bulk-rounds/${round.id}`
                   : `/team/auction/rounds/${round.id}`
                 return (
@@ -481,7 +482,7 @@ export default function AuctionDashboardClient({
                           <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-md uppercase tracking-wider">
                             Live Round
                           </span>
-                          {round.targetTeamId || round.roundType === 'special' ? (
+                          {isSpecial ? (
                             <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/35 px-2 py-0.5 rounded-md uppercase tracking-wider">
                               ⚡ Special Round
                             </span>
@@ -526,7 +527,7 @@ export default function AuctionDashboardClient({
                         {bidStatus.label}
                       </span>
                       <div className="flex items-center gap-1.5 text-xs font-bold text-[#E8A800] group-hover:translate-x-1 transition-transform">
-                        <span>Place Bids</span>
+                        <span>{isSpecial ? '⚡ Select Players' : 'Place Bids'}</span>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
@@ -855,7 +856,7 @@ export default function AuctionDashboardClient({
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {completedRounds.map(round => {
-                const resultsPath = round.roundType === 'bulk'
+                const resultsPath = (round.roundType === 'bulk' || round.roundType === 'special')
                   ? `/team/auction/bulk-rounds/${round.id}/results`
                   : `/team/auction/rounds/${round.id}/results`
                 return (

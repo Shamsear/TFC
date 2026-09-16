@@ -289,6 +289,44 @@ async function getTeamData(teamId: string) {
       points = st.standings.reduce((sum, s) => sum + s.points, 0);
     }
 
+    // Build tournament-level stats (tenure-filtered when split exists)
+    let tournamentDetails = st.standings;
+    if (st.managerTenures && st.managerTenures.length > 0) {
+      const allTeamMatches = [...st.homeMatches, ...st.awayMatches].sort(
+        (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
+      );
+      const myTenures = st.managerTenures.filter(
+        t => t.managerName.toLowerCase() === (resolvedManagerName || '').toLowerCase()
+      );
+      const myMatches: any[] = [];
+      const seenIds = new Set<string>();
+      for (const tenure of myTenures) {
+        const windowMatches = filterMatchesByTenureWindow(allTeamMatches, tenure.fromMatchId, tenure.toMatchId);
+        for (const m of windowMatches) {
+          if (!seenIds.has(m.id)) {
+            seenIds.add(m.id);
+            myMatches.push(m);
+          }
+        }
+      }
+
+      tournamentDetails = st.standings.map(s => {
+        const tourMatches = myMatches.filter(m => m.tournamentId === s.tournamentId);
+        const tStats = computeMatchStats(tourMatches, st.id);
+        return {
+          ...s,
+          played: tStats.played,
+          won: tStats.won,
+          drawn: tStats.drawn,
+          lost: tStats.lost,
+          goalsFor: tStats.goalsFor,
+          goalsAgainst: tStats.goalsAgainst,
+          goalDiff: tStats.goalDiff,
+          points: tStats.points,
+        };
+      });
+    }
+
     const startingPurse = st.season.startingPurse === 10000 ? 20000 : (st.season.startingPurse || 20000);
 
     return {
@@ -315,7 +353,7 @@ async function getTeamData(teamId: string) {
       positionCounts,
       squad: squadByPosition,
       formation: formationObj?.formation || null,
-      tournaments: st.standings
+      tournaments: tournamentDetails
     };
   });
 

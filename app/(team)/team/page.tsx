@@ -474,7 +474,7 @@ export default async function TeamDashboardPage() {
               {upcomingMatches.length > 0 ? (
                 <div className="space-y-1.5 sm:space-y-2">
                   {upcomingMatches.map((match) => {
-                    const isHome = match.homeTeam.team.id === currentSeasonTeam.id
+                    const isHome = match.homeTeam.id === currentSeasonTeam.id
                     const opponent = isHome ? match.awayTeam.team : match.homeTeam.team
                     return (
                       <Link
@@ -488,13 +488,19 @@ export default async function TeamDashboardPage() {
                           </div>
                         </div>
                         <div className="flex-1 min-w-0 text-center">
-                          <div className="flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2">
-                            <span className="dash-small font-bold text-[#8A8690] truncate max-w-[70px] sm:max-w-[80px]">{team.name}</span>
-                            <span className="dash-caption text-[#3A3A3A] font-black uppercase px-0.5">{isHome ? "H" : "A"}</span>
-                            <span className="dash-caption text-[#3A3A3A] font-black">vs</span>
-                            <span className="dash-small font-bold text-white truncate max-w-[70px] sm:max-w-[80px]">{opponent.name}</span>
+                          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                            <span className="dash-small font-bold text-white truncate max-w-[100px] sm:max-w-[130px]">{team.name}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold font-mono ${
+                              isHome 
+                                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" 
+                                : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                            }`}>
+                              {isHome ? "H" : "A"}
+                            </span>
+                            <span className="dash-caption text-[#5A5660] font-black">vs</span>
+                            <span className="dash-small font-bold text-gray-300 truncate max-w-[100px] sm:max-w-[130px]">{opponent.name}</span>
                           </div>
-                          <div className="dash-caption text-[#3A3A3A] font-medium mt-0.5 truncate">{match.tournament.name}</div>
+                          <div className="dash-caption text-[#5A5660] font-medium mt-0.5 truncate">{match.tournament.name}</div>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-[#3A3A3A] shrink-0" aria-hidden="true" />
                       </Link>

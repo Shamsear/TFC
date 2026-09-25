@@ -80,11 +80,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (phase_2_end_round <= phase_1_end_round) {
-      return NextResponse.json(
-        { error: 'Phase 2 end round must be after Phase 1 end round' },
-        { status: 400 }
-      );
+    const isMidSeason = auction_window === 'mid_season';
+
+    if (!isMidSeason) {
+      if (phase_2_end_round <= phase_1_end_round) {
+        return NextResponse.json(
+          { error: 'Phase 2 end round must be after Phase 1 end round' },
+          { status: 400 }
+        );
+      }
+
+      if (max_rounds < phase_2_end_round) {
+        return NextResponse.json(
+          { error: 'Max rounds must be >= Phase 2 end round' },
+          { status: 400 }
+        );
+      }
     }
 
     if (max_squad_size < min_squad_size) {
@@ -94,12 +105,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (max_rounds < phase_2_end_round) {
+    if (max_rounds < 1) {
       return NextResponse.json(
-        { error: 'Max rounds must be >= Phase 2 end round' },
+        { error: 'Max rounds must be at least 1' },
         { status: 400 }
       );
     }
+
+    const finalPhase1End = isMidSeason ? 0 : (phase_1_end_round ?? 0);
+    const finalPhase1Min = isMidSeason ? 0 : (phase_1_min_balance ?? 0);
+    const finalPhase2End = isMidSeason ? 0 : (phase_2_end_round ?? 0);
+    const finalPhase2Min = isMidSeason ? 0 : (phase_2_min_balance ?? 0);
 
     // Upsert auction settings using Prisma
     await prisma.$executeRaw`
@@ -120,10 +136,10 @@ export async function POST(request: NextRequest) {
       ) VALUES (
         ${season_id},
         ${auction_window},
-        ${phase_1_end_round},
-        ${phase_1_min_balance},
-        ${phase_2_end_round},
-        ${phase_2_min_balance},
+        ${finalPhase1End},
+        ${finalPhase1Min},
+        ${finalPhase2End},
+        ${finalPhase2Min},
         ${phase_3_min_balance},
         ${min_squad_size},
         ${max_squad_size},
@@ -134,10 +150,10 @@ export async function POST(request: NextRequest) {
       )
       ON CONFLICT ("seasonId") DO UPDATE SET
         auction_window = ${auction_window},
-        phase_1_end_round = ${phase_1_end_round},
-        phase_1_min_balance = ${phase_1_min_balance},
-        phase_2_end_round = ${phase_2_end_round},
-        phase_2_min_balance = ${phase_2_min_balance},
+        phase_1_end_round = ${finalPhase1End},
+        phase_1_min_balance = ${finalPhase1Min},
+        phase_2_end_round = ${finalPhase2End},
+        phase_2_min_balance = ${finalPhase2Min},
         phase_3_min_balance = ${phase_3_min_balance},
         min_squad_size = ${min_squad_size},
         max_squad_size = ${max_squad_size},

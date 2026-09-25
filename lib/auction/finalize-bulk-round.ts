@@ -173,6 +173,7 @@ async function allocateSingleBidders(
   // 6. Batch query: Auction settings
   const settingsResult = await prisma.$queryRaw<Array<ReserveConfig>>`
     SELECT 
+      auction_window,
       phase_1_end_round,
       phase_1_min_balance,
       phase_2_end_round,
@@ -185,6 +186,7 @@ async function allocateSingleBidders(
   `;
 
   const defaultConfig: ReserveConfig = {
+    auction_window: 'season_start',
     phase_1_end_round: 18,
     phase_1_min_balance: 30,
     phase_2_end_round: 20,
@@ -195,14 +197,16 @@ async function allocateSingleBidders(
   };
 
   const settings = settingsResult[0];
+  const isMidSeason = settings?.auction_window === 'mid_season';
   const config: ReserveConfig = settings ? {
-    phase_1_end_round: settings.phase_1_end_round || 18,
-    phase_1_min_balance: settings.phase_1_min_balance || 30,
-    phase_2_end_round: settings.phase_2_end_round || 20,
-    phase_2_min_balance: settings.phase_2_min_balance || 30,
-    phase_3_min_balance: settings.phase_3_min_balance || 10,
-    min_squad_size: settings.min_squad_size || 25,
-    max_squad_size: settings.max_squad_size || 30
+    auction_window: settings.auction_window,
+    phase_1_end_round: isMidSeason ? 0 : (settings.phase_1_end_round ?? 18),
+    phase_1_min_balance: isMidSeason ? 0 : (settings.phase_1_min_balance ?? 30),
+    phase_2_end_round: isMidSeason ? 0 : (settings.phase_2_end_round ?? 20),
+    phase_2_min_balance: isMidSeason ? 0 : (settings.phase_2_min_balance ?? 30),
+    phase_3_min_balance: settings.phase_3_min_balance ?? 10,
+    min_squad_size: settings.min_squad_size ?? 25,
+    max_squad_size: settings.max_squad_size ?? 30
   } : defaultConfig;
 
   // Track allocations per team in memory for dynamic reserve checks

@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma';
 
 export interface ReserveConfig {
+  auction_window?: string;
   phase_1_end_round: number;
   phase_1_min_balance: number;
   phase_2_end_round: number;
@@ -54,7 +55,12 @@ export function calculateReserveCore(
   
   // Determine current phase
   let phase: 'phase_1' | 'phase_2' | 'phase_3';
-  if (currentRoundNumber <= config.phase_1_end_round) {
+  if (
+    config.auction_window === 'mid_season' || 
+    (config.phase_1_end_round === 0 && config.phase_2_end_round === 0)
+  ) {
+    phase = 'phase_3';
+  } else if (currentRoundNumber <= config.phase_1_end_round) {
     phase = 'phase_1';
   } else if (currentRoundNumber <= config.phase_2_end_round) {
     phase = 'phase_2';
@@ -269,6 +275,7 @@ export async function calculateReserve(
   
   // Get auction settings using Prisma raw query
   const settingsResult = await prisma.$queryRaw<Array<{
+    auction_window?: string;
     phase_1_end_round: number;
     phase_1_min_balance: number;
     phase_2_end_round: number;
@@ -278,6 +285,7 @@ export async function calculateReserve(
     max_squad_size: number;
   }>>`
     SELECT 
+      auction_window,
       phase_1_end_round,
       phase_1_min_balance,
       phase_2_end_round,
@@ -292,6 +300,7 @@ export async function calculateReserve(
   if (settingsResult.length === 0) {
     // Use defaults if no settings found
     const config: ReserveConfig = {
+      auction_window: 'season_start',
       phase_1_end_round: 18,
       phase_1_min_balance: 30,
       phase_2_end_round: 20,
@@ -305,14 +314,16 @@ export async function calculateReserve(
   }
   
   const settings = settingsResult[0];
+  const isMidSeason = settings.auction_window === 'mid_season';
   const config: ReserveConfig = {
-    phase_1_end_round: settings.phase_1_end_round || 18,
-    phase_1_min_balance: settings.phase_1_min_balance || 30,
-    phase_2_end_round: settings.phase_2_end_round || 20,
-    phase_2_min_balance: settings.phase_2_min_balance || 30,
-    phase_3_min_balance: settings.phase_3_min_balance || 10,
-    min_squad_size: settings.min_squad_size || 25,
-    max_squad_size: settings.max_squad_size || 30
+    auction_window: settings.auction_window,
+    phase_1_end_round: isMidSeason ? 0 : (settings.phase_1_end_round ?? 18),
+    phase_1_min_balance: isMidSeason ? 0 : (settings.phase_1_min_balance ?? 30),
+    phase_2_end_round: isMidSeason ? 0 : (settings.phase_2_end_round ?? 20),
+    phase_2_min_balance: isMidSeason ? 0 : (settings.phase_2_min_balance ?? 30),
+    phase_3_min_balance: settings.phase_3_min_balance ?? 10,
+    min_squad_size: settings.min_squad_size ?? 25,
+    max_squad_size: settings.max_squad_size ?? 30
   };
   
   return calculateReserveCore(currentRoundNumber, teamBalance, teamSquadSize, config);

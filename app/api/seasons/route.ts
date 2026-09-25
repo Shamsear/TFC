@@ -84,7 +84,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, startingPurse, seasonNumber, isActive, minSquadSize, maxSquadSize } = body
+    const { name, startingPurse, seasonNumber, isActive, minSquadSize, maxSquadSize, auction_window } = body
+    const auctionWindow = auction_window || 'season_start'
+    const isMidSeason = auctionWindow === 'mid_season'
 
     // Validate required fields
     if (!name || typeof name !== "string" || name.trim() === "") {
@@ -165,9 +167,14 @@ export async function POST(request: NextRequest) {
 
     // Create auction settings for the season using Prisma
     try {
+      const p1End = isMidSeason ? 0 : 18;
+      const p1Min = isMidSeason ? 0 : 30;
+      const p2End = isMidSeason ? 0 : 20;
+      const p2Min = isMidSeason ? 0 : 30;
+
       await prisma.$executeRaw`
         INSERT INTO auction_settings (
-          season_id,
+          "seasonId",
           auction_window,
           phase_1_end_round,
           phase_1_min_balance,
@@ -177,23 +184,26 @@ export async function POST(request: NextRequest) {
           min_squad_size,
           max_squad_size,
           max_rounds,
-          contract_duration,
           min_balance_per_round
         ) VALUES (
           ${seasonId},
-          'season_start',
-          18,
-          30,
-          20,
-          30,
+          ${auctionWindow},
+          ${p1End},
+          ${p1Min},
+          ${p2End},
+          ${p2Min},
           10,
           ${minSquad},
           ${maxSquad},
           25,
-          2,
           30
         )
-        ON CONFLICT (season_id) DO UPDATE SET
+        ON CONFLICT ("seasonId") DO UPDATE SET
+          auction_window = ${auctionWindow},
+          phase_1_end_round = ${p1End},
+          phase_1_min_balance = ${p1Min},
+          phase_2_end_round = ${p2End},
+          phase_2_min_balance = ${p2Min},
           min_squad_size = ${minSquad},
           max_squad_size = ${maxSquad},
           updated_at = NOW()

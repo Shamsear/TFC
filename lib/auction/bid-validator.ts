@@ -200,6 +200,7 @@ export async function validateBidsAgainstReserves(
       }),
       prisma.$queryRaw<any[]>`
         SELECT 
+          auction_window,
           phase_1_end_round,
           phase_1_min_balance,
           phase_2_end_round,
@@ -225,14 +226,16 @@ export async function validateBidsAgainstReserves(
     }
     
     const settings = settingsResult[0];
+    const isMidSeason = settings.auction_window === 'mid_season';
     const config = {
-      phase_1_end_round: parseInt(settings.phase_1_end_round) || 18,
-      phase_1_min_balance: parseInt(settings.phase_1_min_balance) || 30,
-      phase_2_end_round: parseInt(settings.phase_2_end_round) || 20,
-      phase_2_min_balance: parseInt(settings.phase_2_min_balance) || 30,
-      phase_3_min_balance: parseInt(settings.phase_3_min_balance) || 10,
-      min_squad_size: parseInt(settings.min_squad_size) || 25,
-      max_squad_size: parseInt(settings.max_squad_size) || 30
+      auction_window: settings.auction_window,
+      phase_1_end_round: isMidSeason ? 0 : (parseInt(settings.phase_1_end_round) || 18),
+      phase_1_min_balance: isMidSeason ? 0 : (parseInt(settings.phase_1_min_balance) || 30),
+      phase_2_end_round: isMidSeason ? 0 : (parseInt(settings.phase_2_end_round) || 20),
+      phase_2_min_balance: isMidSeason ? 0 : (parseInt(settings.phase_2_min_balance) || 30),
+      phase_3_min_balance: parseInt(settings.phase_3_min_balance) ?? 10,
+      min_squad_size: parseInt(settings.min_squad_size) ?? 25,
+      max_squad_size: parseInt(settings.max_squad_size) ?? 30
     };
     
     // Calculate reserve using context.currentBudget (already provided)

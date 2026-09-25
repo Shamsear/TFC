@@ -226,7 +226,7 @@ export async function validateBidsAgainstReserves(
     }
     
     const settings = settingsResult[0];
-    const isMidSeason = settings.auction_window === 'mid_season';
+    const isMidSeason = settings.auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season';
     const config = {
       auction_window: settings.auction_window,
       phase_1_end_round: isMidSeason ? 0 : (parseInt(settings.phase_1_end_round) || 18),

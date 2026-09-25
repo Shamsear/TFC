@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isMidSeason = auction_window === 'mid_season';
+    const isMidSeason = auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season';
 
     if (!isMidSeason) {
       if (phase_2_end_round <= phase_1_end_round) {

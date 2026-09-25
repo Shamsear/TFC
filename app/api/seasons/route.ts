@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     const { name, startingPurse, seasonNumber, isActive, minSquadSize, maxSquadSize, auction_window } = body
     const auctionWindow = auction_window || 'season_start'
-    const isMidSeason = auctionWindow === 'mid_season'
+    const isMidSeason = auctionWindow?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season'
 
     // Validate required fields
     if (!name || typeof name !== "string" || name.trim() === "") {

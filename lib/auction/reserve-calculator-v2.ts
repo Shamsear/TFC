@@ -55,8 +55,9 @@ export function calculateReserveCore(
   
   // Determine current phase
   let phase: 'phase_1' | 'phase_2' | 'phase_3';
+  const isMid = config.auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season';
   if (
-    config.auction_window === 'mid_season' || 
+    isMid || 
     (config.phase_1_end_round === 0 && config.phase_2_end_round === 0)
   ) {
     phase = 'phase_3';
@@ -314,7 +315,7 @@ export async function calculateReserve(
   }
   
   const settings = settingsResult[0];
-  const isMidSeason = settings.auction_window === 'mid_season';
+  const isMidSeason = settings.auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season';
   const config: ReserveConfig = {
     auction_window: settings.auction_window,
     phase_1_end_round: isMidSeason ? 0 : (settings.phase_1_end_round ?? 18),

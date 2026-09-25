@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import PageLoader from "@/components/ui/PageLoader"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
-import SearchableSelect from '@/components/ui/SearchableSelect'
 
 interface AuctionSettings {
   id: number
@@ -47,7 +46,19 @@ export default function AuctionSettingsPage() {
     default_max_bids_per_team: 10
   })
 
-  const isMidSeason = formData.auction_window === 'mid_season'
+  const isMidSeason = formData.auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season'
+
+  const handleAuctionWindowChange = (val: string) => {
+    const isMid = val.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season'
+    setFormData(prev => ({
+      ...prev,
+      auction_window: val,
+      phase_1_end_round: isMid ? 0 : (prev.phase_1_end_round === 0 ? 18 : prev.phase_1_end_round),
+      phase_1_min_balance: isMid ? 0 : (prev.phase_1_min_balance === 0 ? 30 : prev.phase_1_min_balance),
+      phase_2_end_round: isMid ? 0 : (prev.phase_2_end_round === 0 ? 20 : prev.phase_2_end_round),
+      phase_2_min_balance: isMid ? 0 : (prev.phase_2_min_balance === 0 ? 30 : prev.phase_2_min_balance),
+    }))
+  }
 
   useEffect(() => {
     fetchSettings()
@@ -60,7 +71,7 @@ export default function AuctionSettingsPage() {
         const data = await response.json()
         if (data.settings) {
           setSettings(data.settings)
-          const isMid = data.settings.auction_window === 'mid_season'
+          const isMid = data.settings.auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season'
           setFormData({
             auction_window: data.settings.auction_window || 'season_start',
             phase_1_end_round: isMid ? 0 : (data.settings.phase_1_end_round ?? 18),
@@ -87,8 +98,10 @@ export default function AuctionSettingsPage() {
     e.preventDefault()
     setMessage(null)
 
+    const isMid = formData.auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season'
+
     // Validation
-    if (!isMidSeason) {
+    if (!isMid) {
       if (formData.phase_2_end_round <= formData.phase_1_end_round) {
         setMessage({ type: 'error', text: 'Phase 2 end round must be after Phase 1 end round' })
         return
@@ -116,10 +129,11 @@ export default function AuctionSettingsPage() {
       const payload = {
         season_id: seasonId,
         ...formData,
-        phase_1_end_round: isMidSeason ? 0 : formData.phase_1_end_round,
-        phase_1_min_balance: isMidSeason ? 0 : formData.phase_1_min_balance,
-        phase_2_end_round: isMidSeason ? 0 : formData.phase_2_end_round,
-        phase_2_min_balance: isMidSeason ? 0 : formData.phase_2_min_balance,
+        auction_window: formData.auction_window,
+        phase_1_end_round: isMid ? 0 : formData.phase_1_end_round,
+        phase_1_min_balance: isMid ? 0 : formData.phase_1_min_balance,
+        phase_2_end_round: isMid ? 0 : formData.phase_2_end_round,
+        phase_2_min_balance: isMid ? 0 : formData.phase_2_min_balance,
       }
 
       const response = await fetch('/api/auction-settings', {
@@ -128,9 +142,9 @@ export default function AuctionSettingsPage() {
         body: JSON.stringify(payload)
       })
 
+      const data = await response.json()
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to save settings')
+        throw new Error(data.error || 'Failed to save settings')
       }
 
       setMessage({ type: 'success', text: 'Auction settings saved successfully!' })
@@ -185,36 +199,95 @@ export default function AuctionSettingsPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Auction Window Setting */}
         <div className="rounded-2xl bg-white/[0.01] border border-white/5 p-6 backdrop-blur-xl shadow-md">
-          <h2 className="text-lg font-black text-white mb-1 uppercase tracking-tight">Auction Window</h2>
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+            <h2 className="text-lg font-black text-white uppercase tracking-tight">Auction Window</h2>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider font-mono border self-start sm:self-auto ${
+              isMidSeason 
+                ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' 
+                : formData.auction_window === 'season_end'
+                  ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+                  : 'bg-[#E8A800]/10 text-[#E8A800] border-[#E8A800]/30'
+            }`}>
+              {isMidSeason ? '⚡ Mid Season: Phase 3 Only' : formData.auction_window === 'season_end' ? 'Season End' : 'Season Start: 3 Phases'}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-5">
             When the auction takes place relative to the season
           </p>
-          <div>
-            <SearchableSelect
-              label="Auction Timing"
+
+          {/* Interactive Mode Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            {[
+              {
+                value: 'season_start',
+                label: 'Season Start',
+                badge: '3 Phases',
+                badgeColor: 'border-red-500/30 text-red-400 bg-red-500/10',
+                desc: 'Standard season-opening auction with Phase 1, Phase 2, and Phase 3 reserve rules.'
+              },
+              {
+                value: 'mid_season',
+                label: 'Mid Season',
+                badge: 'Phase 3 Only',
+                badgeColor: 'border-blue-500/30 text-blue-400 bg-blue-500/10',
+                desc: 'Mid-season reinforcement auction. Only Phase 3 applies. Phase 1 & 2 are bypassed.'
+              },
+              {
+                value: 'season_end',
+                label: 'Season End',
+                badge: 'Post Season',
+                badgeColor: 'border-purple-500/30 text-purple-400 bg-purple-500/10',
+                desc: 'End-of-season auction window for wrap-up squad adjustments.'
+              }
+            ].map(option => {
+              const selected = formData.auction_window === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleAuctionWindowChange(option.value)}
+                  className={`relative p-4 rounded-xl text-left transition-all cursor-pointer border ${
+                    selected
+                      ? 'bg-[#E8A800]/10 border-[#E8A800] shadow-[0_0_20px_rgba(232,168,0,0.15)] ring-1 ring-[#E8A800]/50'
+                      : 'bg-white/[0.02] border-white/5 hover:border-white/20 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-sm font-black uppercase tracking-wider ${selected ? 'text-[#E8A800]' : 'text-white'}`}>
+                      {option.label}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border font-mono ${option.badgeColor}`}>
+                      {option.badge}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                    {option.desc}
+                  </p>
+                  {selected && (
+                    <div className="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-[#E8A800] uppercase tracking-widest font-mono">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Active Mode
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Quick Select Fallback */}
+          <div className="pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">Or select via dropdown:</span>
+            <select
               value={formData.auction_window}
-              options={[
-                { value: 'season_start', label: 'Season Start' },
-                { value: 'mid_season', label: 'Mid Season' },
-                { value: 'season_end', label: 'Season End' }
-              ]}
-              onChange={(val) => {
-                setFormData(prev => {
-                  const isMid = val === 'mid_season'
-                  return {
-                    ...prev,
-                    auction_window: val,
-                    phase_1_end_round: isMid ? 0 : (prev.phase_1_end_round === 0 ? 18 : prev.phase_1_end_round),
-                    phase_1_min_balance: isMid ? 0 : (prev.phase_1_min_balance === 0 ? 30 : prev.phase_1_min_balance),
-                    phase_2_end_round: isMid ? 0 : (prev.phase_2_end_round === 0 ? 20 : prev.phase_2_end_round),
-                    phase_2_min_balance: isMid ? 0 : (prev.phase_2_min_balance === 0 ? 30 : prev.phase_2_min_balance),
-                  }
-                })
-              }}
-              required={true}
-              enableSearch={false}
-            />
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono mt-1.5">When the auction window opens</p>
+              onChange={(e) => handleAuctionWindowChange(e.target.value)}
+              className="bg-black/60 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#E8A800] font-mono cursor-pointer"
+            >
+              <option value="season_start" className="bg-[#121212] text-white">Season Start (3 Phases)</option>
+              <option value="mid_season" className="bg-[#121212] text-white">Mid Season (Phase 3 Only)</option>
+              <option value="season_end" className="bg-[#121212] text-white">Season End</option>
+            </select>
           </div>
         </div>
 

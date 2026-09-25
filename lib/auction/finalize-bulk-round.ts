@@ -197,7 +197,7 @@ async function allocateSingleBidders(
   };
 
   const settings = settingsResult[0];
-  const isMidSeason = settings?.auction_window === 'mid_season';
+  const isMidSeason = settings?.auction_window?.toLowerCase().replace(/[-\s]/g, '_') === 'mid_season';
   const config: ReserveConfig = settings ? {
     auction_window: settings.auction_window,
     phase_1_end_round: isMidSeason ? 0 : (settings.phase_1_end_round ?? 18),

@@ -1024,6 +1024,12 @@ model id_counters {
   updated_at DateTime @default(now()) @db.Timestamp(6)
 }
 
+model system_settings {
+  key        String   @id @db.VarChar(100)
+  value      String
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(6)
+}
+
 enum TransferStatus {
   ACTIVE
   RELEASED

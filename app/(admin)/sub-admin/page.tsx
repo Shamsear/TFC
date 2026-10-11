@@ -3,7 +3,9 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import PushToggle from "@/components/notifications/PushToggle"
+import MaintenanceToggle from "@/components/admin/MaintenanceToggle"
 import { getActiveSeasonId } from "@/lib/get-active-season"
+import { isMaintenanceModeActive } from "@/lib/maintenance"
 
 // Icon Components
 const TrophyIcon = () => (
@@ -150,16 +152,24 @@ export default async function SubAdminDashboard() {
     }
   })
 
+  // Fetch maintenance mode status
+  const isMaintenance = await isMaintenanceModeActive()
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Page Title */}
-      <div className="mb-8 lg:mb-12">
+      <div className="mb-6 lg:mb-8">
         <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
           Sub Admin Dashboard
         </h1>
         <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
           Manage season operations, team selection, retention, and live auctions
         </p>
+      </div>
+
+      {/* Maintenance Mode Access Control Banner */}
+      <div className="mb-8">
+        <MaintenanceToggle initialMaintenance={isMaintenance} />
       </div>
 
       {/* Active Season Info */}

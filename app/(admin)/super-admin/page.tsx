@@ -3,8 +3,10 @@ import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import PushToggle from "@/components/notifications/PushToggle"
+import MaintenanceToggle from "@/components/admin/MaintenanceToggle"
 import { resolveTeamManagerNames } from '@/lib/resolve-manager'
 import { getActiveSeasonId } from '@/lib/get-active-season'
+import { isMaintenanceModeActive } from "@/lib/maintenance"
 
 // Icon Components
 const TrophyIcon = () => (
@@ -112,7 +114,7 @@ export default async function SuperAdminDashboard() {
   }
 
   // Fetch overview data
-  const [teamsCount, seasonsCount, activeSeasonId, recentTeamsRaw] = await Promise.all([
+  const [teamsCount, seasonsCount, activeSeasonId, recentTeamsRaw, isMaintenance] = await Promise.all([
     prisma.teams.count(),
     prisma.seasons.count(),
     getActiveSeasonId(),
@@ -126,7 +128,8 @@ export default async function SuperAdminDashboard() {
           take: 1
         }
       }
-    })
+    }),
+    isMaintenanceModeActive()
   ])
 
   const latestSeason = activeSeasonId ? await prisma.seasons.findUnique({
@@ -149,13 +152,18 @@ export default async function SuperAdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {/* Page Title */}
-      <div className="mb-8 lg:mb-12">
+      <div className="mb-6 lg:mb-8">
         <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 bg-gradient-to-r from-[#E8A800] to-[#FFB347] bg-clip-text text-transparent uppercase tracking-wider leading-none">
           Super Admin Dashboard
         </h1>
         <p className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest font-mono">
           Manage teams, seasons, sub-admins, and platform data
         </p>
+      </div>
+
+      {/* Maintenance Mode Access Control Banner */}
+      <div className="mb-8">
+        <MaintenanceToggle initialMaintenance={isMaintenance} />
       </div>
 
       {/* Stats Overview */}

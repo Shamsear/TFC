@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/api/cron/start-rounds",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "functions": {

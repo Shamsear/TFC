@@ -37,7 +37,7 @@
   "license": "ISC",
   "description": "Turf Cats Tournament Management Platform",
   "engines": {
-    "node": "20.x"
+    "node": ">=20.x"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -91,6 +91,7 @@
     "fast-check": "^4.7.0",
     "tsx": "^4.19.2",
     "typescript": "^6.0.3",
+    "vercel": "^63.1.2",
     "vitest": "^4.1.5"
   }
 }
